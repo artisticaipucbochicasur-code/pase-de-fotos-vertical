@@ -88,24 +88,10 @@
           anuncioActual.comentarios = data.data;
           console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
           // Si App Inventor necesita saberlo, se actualiza:
-         if (window.AppInventor) {
-  const listaTitulos = anunciosData.map(a => a.titulo);
-  const anuncioActualCompleto = {
-    titulo: anuncioActual.titulo || "",
-    descripcion: anuncioActual.descripcion || "",
-    comentarios: anuncioActual.comentarios || [],
-    url: anuncioActual.url || "",
-    deleteurl: anuncioActual.deleteurl || "",
-    autor: anuncioActual.autor || "",
-    correo: anuncioActual.correo || "",
-    fecha: anuncioActual.fecha || "",
-    id: anuncioActual.id || "",
-    titulos: listaTitulos,
-    contador: contadorAcumulado
-  };
-  window.AppInventor.setWebViewString(JSON.stringify(anuncioActualCompleto));
-}
-
+          if (window.AppInventor) {
+            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+          }
         }
       } catch (e) {
         console.error("Error al recargar comentarios:", e);
@@ -245,4 +231,3 @@
   </script>
 </body>
 </html>
-
