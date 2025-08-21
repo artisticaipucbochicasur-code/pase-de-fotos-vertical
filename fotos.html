@@ -16,7 +16,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳Dios te bendiga...</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -120,7 +120,7 @@
         const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
         if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        const newAnunciosData = [];
+        let newAnunciosData = [];
 
         if(data.url && data.url.length > 0) {
           data.url.forEach((url, index) => {
@@ -138,6 +138,9 @@
             });
           });
         }
+
+        // 🔹 Invertir orden: el más reciente primero
+        newAnunciosData.reverse();
 
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
