@@ -82,21 +82,36 @@
       }
     }
 
-    // 🔹 Recargar comentarios del anuncio visible
     function recargarComentariosDelAnuncioActual() {
-      if (!swiperInstance || anunciosData.length === 0) return;
+  if (!swiperInstance || anunciosData.length === 0) return;
 
-      const anuncioActual = anunciosData[swiperInstance.realIndex];
-      const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
-      anuncioActual.comentarios = nuevosComentarios;
+  const anuncioActual = anunciosData[swiperInstance.realIndex];
+  const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+  anuncioActual.comentarios = nuevosComentarios;
 
-      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-      
-      if (window.AppInventor) {
-        const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
-        window.AppInventor.setWebViewString(JSON.stringify(payload));
-      }
-    }
+  console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+
+  if (window.AppInventor) {
+    // 🔹 Convertir los comentarios a texto legible
+    const comentariosTexto = nuevosComentarios.map(c => {
+      try {
+        if (typeof c === "string") c = JSON.parse(c); // Si viene como string JSON
+      } catch(e) {}
+
+      return `${c.autor} (${c.fecha}) - ${c.comentario}`;
+    });
+
+    const payload = { 
+      ...anuncioActual, 
+      comentariosTexto,   // 👈 aquí mandas los comentarios ya listos
+      titulos: anunciosData.map(a => a.titulo), 
+      contador: contadorAcumulado 
+    };
+
+    window.AppInventor.setWebViewString(JSON.stringify(payload));
+  }
+}
+
 
     // 🔹 Cargar imágenes sin tocar la lógica existente
     async function cargarImagenes() {
@@ -231,3 +246,4 @@
   </script>
 </body>
 </html>
+
