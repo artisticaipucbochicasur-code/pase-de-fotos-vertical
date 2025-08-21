@@ -27,92 +27,76 @@
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    const INTERVALO_VERIFICACION = 5000; // Cada 5 segundos revisamos si hay cambios
+    // 🔹 NUEVO: contador global de comentarios
+    let contadorComentariosAnterior = -1;
 
-// 🔹 Función para actualizar el contador y refrescar la lista si cambió
-async function actualizarContador() {
-  try {
-    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-    const data = await response.json();
-    const totalActual = data.contador || 0;
+    // 🔹 Función para actualizar el contador y refrescar si cambió
+    async function actualizarContador() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+        const data = await response.json();
+        const totalActual = data.contador || 0;
 
-    // ✅ Primera carga → solo guardamos el valor inicial
-    if (contadorTotalAnterior === -1) {
-      contadorTotalAnterior = totalActual;
-    } else {
-      // ✅ Si el número de anuncios cambió...
-      if (totalActual !== contadorTotalAnterior) {
-        // 1. Calculamos cuántos anuncios nuevos hay
-        const diferencia = totalActual - contadorTotalAnterior;
-
-        // 2. Si hay más anuncios → incrementamos contadorAcumulado
-        if (diferencia > 0) {
-          contadorAcumulado += diferencia;
-        } else if (diferencia < 0) {
-          // Si se eliminaron anuncios → reseteamos contadorAcumulado
-          contadorAcumulado = 0;
+        if (contadorTotalAnterior === -1) {
+          contadorTotalAnterior = totalActual;
+        } else {
+          if (totalActual !== contadorTotalAnterior) {
+            console.log("🔄 Cambio detectado: recargando anuncios...");
+            contadorTotalAnterior = totalActual;
+            await cargarImagenes();
+          } else {
+            let diferencia = totalActual - contadorTotalAnterior;
+            if (diferencia > 0) {
+              contadorAcumulado += diferencia;
+            }
+            contadorTotalAnterior = totalActual;
+          }
         }
-
-        // 3. Actualizamos el contador visual si tienes un Label para mostrarlo
-        const lblContador = document.getElementById("lblContador");
-        if (lblContador) {
-          lblContador.textContent = contadorAcumulado > 0
-            ? `🔔 ${contadorAcumulado} anuncios nuevos`
-            : "";
-        }
-
-        // 4. Guardamos el nuevo total
-        contadorTotalAnterior = totalActual;
-
-        // 5. 🔄 Recargamos las imágenes automáticamente
-        console.log("🔄 Cambio detectado: recargando anuncios...");
-        await cargarImagenes();
+      } catch (e) {
+        console.error("Error al obtener contador:", e);
       }
     }
-  } catch (e) {
-    console.error("❌ Error al obtener contador:", e);
-  }
-}
-let contadorComentariosAnterior = -1;
 
-// 🔹 Función para actualizar comentarios automáticamente
-async function actualizarComentarios(anuncioId) {
-  try {
-    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
-    const data = await response.json();
-    const totalComentarios = data.contadorComentarios || 0;
+    // 🔹 NUEVO: función para verificar cambios en los comentarios
+    async function verificarComentarios() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
+        const data = await response.json();
+        const totalComentariosActual = data.contadorComentarios || 0;
 
-    // Primera vez → solo guardar
-    if (contadorComentariosAnterior === -1) {
-      contadorComentariosAnterior = totalComentarios;
-    } else {
-      // Si cambió el total → recargar comentarios
-      if (totalComentarios !== contadorComentariosAnterior) {
-        contadorComentariosAnterior = totalComentarios;
-        await cargarComentarios(anuncioId);
+        if (contadorComentariosAnterior === -1) {
+          contadorComentariosAnterior = totalComentariosActual;
+        } else if (totalComentariosActual !== contadorComentariosAnterior) {
+          console.log("💬 Cambio detectado en comentarios, recargando...");
+          contadorComentariosAnterior = totalComentariosActual;
+          recargarComentariosDelAnuncioActual();
+        }
+      } catch (e) {
+        console.error("Error al verificar comentarios:", e);
       }
     }
-  } catch (e) {
-    console.error("Error al actualizar comentarios:", e);
-  }
-}
 
-// 🔹 Función para listar comentarios de un anuncio específico
-async function cargarComentarios(anuncioId) {
-  try {
-    const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioId}`);
-    const data = await response.json();
-    // Aquí actualizas la UI con data.data (los comentarios)
-    mostrarComentariosEnPantalla(data.data);
-  } catch (e) {
-    console.error("Error al cargar comentarios:", e);
-  }
-}
+    // 🔹 NUEVO: recargar comentarios del anuncio que el usuario está viendo
+    async function recargarComentariosDelAnuncioActual() {
+      if (!swiperInstance || anunciosData.length === 0) return;
 
-// 🔹 Iniciamos el chequeo automático
-setInterval(actualizarContador, INTERVALO_VERIFICACION);
-
-
+      const anuncioActual = anunciosData[swiperInstance.realIndex];
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
+        const data = await response.json();
+        if (data.status === "✅ success") {
+          anuncioActual.comentarios = data.data;
+          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+          // Si App Inventor necesita saberlo, se actualiza:
+          if (window.AppInventor) {
+            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+          }
+        }
+      } catch (e) {
+        console.error("Error al recargar comentarios:", e);
+      }
+    }
 
     // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
     async function cargarImagenes() {
@@ -176,7 +160,7 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
       if(swiperInstance) swiperInstance.destroy(true,true);
       swiperInstance = new Swiper('.swiper', {
         loop:true, 
-        direction:'vertical',  // ⬅️ CAMBIO AQUÍ: vertical en vez de horizontal
+        direction:'vertical',
         slidesPerView:1, 
         spaceBetween:10,
         zoom:{ maxRatio:3, minRatio:1 }
@@ -204,10 +188,11 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
       }
     }
 
-    // Actualizar el contador cada 5 segundos de forma independiente
+    // Actualizar anuncios y comentarios cada 5 segundos
     setInterval(actualizarContador, 5000);
+    setInterval(verificarComentarios, 5000); // 🔹 NUEVO
 
-    // Cargar imágenes al inicio para mostrar el contenido
+    // Cargar imágenes al inicio
     cargarImagenes();
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -240,12 +225,9 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
     // 🔹 NUEVA FUNCIÓN AGREGADA: recargar datos externamente
     function recargarDatos() {
-      // Llama a la función existente que carga y actualiza las imágenes
       cargarImagenes();
       console.log("Datos recargados por solicitud externa.");
     }
   </script>
 </body>
 </html>
-
-
