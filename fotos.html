@@ -76,27 +76,32 @@
       }
     }
 
-    // 🔹 NUEVO: recargar comentarios del anuncio que el usuario está viendo
     async function recargarComentariosDelAnuncioActual() {
-      if (!swiperInstance || anunciosData.length === 0) return;
+  if (!swiperInstance || anunciosData.length === 0) return;
 
-      const anuncioActual = anunciosData[swiperInstance.realIndex];
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
-        const data = await response.json();
-        if (data.status === "✅ success") {
-          anuncioActual.comentarios = data.data;
-          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-          // Si App Inventor necesita saberlo, se actualiza:
-          if (window.AppInventor) {
-            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
-          }
-        }
-      } catch (e) {
-        console.error("Error al recargar comentarios:", e);
+  const anuncioActual = anunciosData[swiperInstance.realIndex];
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
+    const data = await response.json();
+    if (data.status === "✅ success") {
+      anuncioActual.comentarios = data.data;
+      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+
+      // 🔹 Aquí reenviamos el payload actualizado a App Inventor
+      if (window.AppInventor) {
+        const payload = { 
+          ...anuncioActual, 
+          titulos: anunciosData.map(a => a.titulo), 
+          contador: contadorAcumulado 
+        };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
       }
     }
+  } catch (e) {
+    console.error("Error al recargar comentarios:", e);
+  }
+}
+
 
     // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
     async function cargarImagenes() {
@@ -231,3 +236,4 @@
   </script>
 </body>
 </html>
+
