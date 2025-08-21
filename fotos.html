@@ -31,7 +31,7 @@
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {}; 
 
-    // 🔹 Normalizar comentarios para evitar undefined
+    // 🔹 Normalizar comentarios
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
       return lista.map(c => {
@@ -43,7 +43,7 @@
       }).filter(txt => txt !== "");
     }
 
-    // 🔹 Función para actualizar anuncios
+    // 🔹 Actualizar contador de anuncios
     async function actualizarContador() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
@@ -99,7 +99,6 @@
 
       const anuncioActual = anunciosData[swiperInstance.realIndex];
       const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
-
       anuncioActual.comentarios = nuevosComentarios;
 
       console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
@@ -126,7 +125,6 @@
         if(data.url && data.url.length > 0) {
           data.url.forEach((url, index) => {
             const comentariosFormateados = normalizarComentarios(data.comentarios[index]);
-
             newAnunciosData.push({
               titulo: data.titulo[index] || "",
               descripcion: data.descripcion[index] || "",
@@ -188,6 +186,11 @@
         if(window.AppInventor && anunciosData.length > 0) {
           const realIndex = swiperInstance.realIndex;
           const anuncioActual = anunciosData[realIndex];
+
+          // 🔹 Actualizamos los comentarios al cambiar de slide
+          const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
+          anuncioActual.comentarios = nuevosComentarios;
+
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -199,6 +202,9 @@
         swiperInstance.slideToLoop(initialSlideIndex, 0);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
+          const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioInicial.id]);
+          anuncioInicial.comentarios = nuevosComentarios;
+
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
