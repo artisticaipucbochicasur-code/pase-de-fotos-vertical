@@ -73,6 +73,41 @@ async function actualizarContador() {
     console.error("❌ Error al obtener contador:", e);
   }
 }
+let contadorComentariosAnterior = -1;
+
+// 🔹 Función para actualizar comentarios automáticamente
+async function actualizarComentarios(anuncioId) {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
+    const data = await response.json();
+    const totalComentarios = data.contadorComentarios || 0;
+
+    // Primera vez → solo guardar
+    if (contadorComentariosAnterior === -1) {
+      contadorComentariosAnterior = totalComentarios;
+    } else {
+      // Si cambió el total → recargar comentarios
+      if (totalComentarios !== contadorComentariosAnterior) {
+        contadorComentariosAnterior = totalComentarios;
+        await cargarComentarios(anuncioId);
+      }
+    }
+  } catch (e) {
+    console.error("Error al actualizar comentarios:", e);
+  }
+}
+
+// 🔹 Función para listar comentarios de un anuncio específico
+async function cargarComentarios(anuncioId) {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioId}`);
+    const data = await response.json();
+    // Aquí actualizas la UI con data.data (los comentarios)
+    mostrarComentariosEnPantalla(data.data);
+  } catch (e) {
+    console.error("Error al cargar comentarios:", e);
+  }
+}
 
 // 🔹 Iniciamos el chequeo automático
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
@@ -212,4 +247,5 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
   </script>
 </body>
 </html>
+
 
