@@ -23,14 +23,14 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let swiperInstance = null;
-    let contadorTotalAnterior = -1; // Se inicializa en -1 para la primera carga
+    let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    // 🔹 NUEVO: contador global de comentarios
+    // 🔹 Contador global de comentarios
     let contadorComentariosAnterior = -1;
 
-    // 🔹 Función para actualizar el contador y refrescar si cambió
+    // 🔹 Función para actualizar anuncios
     async function actualizarContador() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
@@ -57,7 +57,7 @@
       }
     }
 
-    // 🔹 NUEVO: función para verificar cambios en los comentarios
+    // 🔹 Verificar cambios en comentarios
     async function verificarComentarios() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
@@ -76,7 +76,7 @@
       }
     }
 
-    // 🔹 NUEVO: recargar comentarios del anuncio que el usuario está viendo
+    // 🔹 Recargar comentarios del anuncio visible
     async function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
 
@@ -97,7 +97,7 @@
       }
     }
 
-    // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
+    // 🔹 Cargar imágenes sin tocar la lógica existente
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
@@ -187,7 +187,7 @@
       }
     }
 
-    // Actualizar anuncios y comentarios cada 5 segundos
+    // 🔹 Intervalos: anuncios + comentarios
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
@@ -222,7 +222,7 @@
       }
     });
 
-    // 🔹 NUEVA FUNCIÓN AGREGADA: recargar datos externamente
+    // 🔹 Recargar datos externamente
     function recargarDatos() {
       cargarImagenes();
       console.log("Datos recargados por solicitud externa.");
