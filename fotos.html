@@ -29,7 +29,7 @@
 
     // 🔹 Contador global de comentarios
     let contadorComentariosAnterior = -1;
-    let comentariosPorAnuncio = {}; // Aquí guardaremos todos los comentarios
+    let comentariosPorAnuncio = {}; 
 
     // 🔹 Función para actualizar anuncios
     async function actualizarContador() {
@@ -65,7 +65,6 @@
         const data = await response.json();
         const totalComentariosActual = data.contadorComentarios || 0;
 
-        // Guardamos los comentarios por anuncio
         if (data.comentarios) {
           comentariosPorAnuncio = data.comentarios;
         }
@@ -82,38 +81,32 @@
       }
     }
 
+    // 🔹 Recargar comentarios del anuncio visible
     function recargarComentariosDelAnuncioActual() {
-  if (!swiperInstance || anunciosData.length === 0) return;
+      if (!swiperInstance || anunciosData.length === 0) return;
 
-  const anuncioActual = anunciosData[swiperInstance.realIndex];
-  const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
-  anuncioActual.comentarios = nuevosComentarios;
+      const anuncioActual = anunciosData[swiperInstance.realIndex];
+      const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
 
-  console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+      // 🔹 Convertir SIEMPRE los comentarios a texto
+      anuncioActual.comentarios = nuevosComentarios.map(c => {
+        try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+        return `${c.autor} (${c.fecha}) - ${c.comentario}`;
+      });
 
-  if (window.AppInventor) {
-    // 🔹 Convertir los comentarios a texto legible
-    const comentariosTexto = nuevosComentarios.map(c => {
-      try {
-        if (typeof c === "string") c = JSON.parse(c); // Si viene como string JSON
-      } catch(e) {}
+      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
 
-      return `${c.autor} (${c.fecha}) - ${c.comentario}`;
-    });
+      if (window.AppInventor) {
+        const payload = { 
+          ...anuncioActual, 
+          titulos: anunciosData.map(a => a.titulo), 
+          contador: contadorAcumulado 
+        };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      }
+    }
 
-    const payload = { 
-      ...anuncioActual, 
-      comentariosTexto,   // 👈 aquí mandas los comentarios ya listos
-      titulos: anunciosData.map(a => a.titulo), 
-      contador: contadorAcumulado 
-    };
-
-    window.AppInventor.setWebViewString(JSON.stringify(payload));
-  }
-}
-
-
-    // 🔹 Cargar imágenes sin tocar la lógica existente
+    // 🔹 Cargar imágenes
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
@@ -124,10 +117,16 @@
 
         if(data.url && data.url.length > 0) {
           data.url.forEach((url, index) => {
+            // 🔹 Convertir comentarios aquí también
+            const comentariosFormateados = (data.comentarios[index] || []).map(c => {
+              try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+              return `${c.autor} (${c.fecha}) - ${c.comentario}`;
+            });
+
             newAnunciosData.push({
               titulo: data.titulo[index] || "",
               descripcion: data.descripcion[index] || "",
-              comentarios: data.comentarios[index] || [],
+              comentarios: comentariosFormateados,
               url: url,
               deleteurl: data.deleteurl[index] || "",
               autor: data.autor[index] || "",
@@ -203,11 +202,9 @@
       }
     }
 
-    // 🔹 Intervalos: anuncios + comentarios
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    // Cargar imágenes al inicio
     cargarImagenes();
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -238,7 +235,6 @@
       }
     });
 
-    // 🔹 Recargar datos externamente
     function recargarDatos() {
       cargarImagenes();
       console.log("Datos recargados por solicitud externa.");
@@ -246,4 +242,3 @@
   </script>
 </body>
 </html>
-
