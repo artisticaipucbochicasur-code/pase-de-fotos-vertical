@@ -27,31 +27,8 @@
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    // 🔹 NUEVAS VARIABLES Y FUNCIÓN PARA COMENTARIOS
-    let contadorComentariosAnterior = -1; // Nuevo contador para los comentarios
-    const SCRIPT_URL_COMENTARIOS = SCRIPT_URL; // Reutilizamos la misma URL para ambos contadores
-
-    async function actualizarContadorComentarios() {
-      try {
-        const response = await fetch(`${SCRIPT_URL_COMENTARIOS}?accion=obtenerContadorComentarios`);
-        const data = await response.json();
-        const totalActualComentarios = data.contadorComentarios || 0;
-
-        // Si es la primera vez, solo guardamos el valor
-        if (contadorComentariosAnterior === -1) {
-          contadorComentariosAnterior = totalActualComentarios;
-        } else {
-          // Si el número de comentarios cambió, recargamos las imágenes
-          if (totalActualComentarios !== contadorComentariosAnterior) {
-            console.log("🔄 Cambio de comentarios detectado: recargando anuncios para obtener los comentarios más recientes...");
-            contadorComentariosAnterior = totalActualComentarios;
-            await cargarImagenes();
-          }
-        }
-      } catch (e) {
-        console.error("Error al obtener contador de comentarios:", e);
-      }
-    }
+    // 🔹 NUEVO: contador global de comentarios
+    let contadorComentariosAnterior = -1;
 
     // 🔹 Función para actualizar el contador y refrescar si cambió
     async function actualizarContador() {
@@ -60,17 +37,14 @@
         const data = await response.json();
         const totalActual = data.contador || 0;
 
-        // Si es la primera vez, solo guardamos el valor
         if (contadorTotalAnterior === -1) {
           contadorTotalAnterior = totalActual;
         } else {
-          // Si el número de anuncios cambió, recargamos imágenes
           if (totalActual !== contadorTotalAnterior) {
             console.log("🔄 Cambio detectado: recargando anuncios...");
             contadorTotalAnterior = totalActual;
             await cargarImagenes();
           } else {
-            // Si no cambió, mantenemos el acumulado
             let diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
               contadorAcumulado += diferencia;
@@ -83,6 +57,46 @@
       }
     }
 
+    // 🔹 NUEVO: función para verificar cambios en los comentarios
+    async function verificarComentarios() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
+        const data = await response.json();
+        const totalComentariosActual = data.contadorComentarios || 0;
+
+        if (contadorComentariosAnterior === -1) {
+          contadorComentariosAnterior = totalComentariosActual;
+        } else if (totalComentariosActual !== contadorComentariosAnterior) {
+          console.log("💬 Cambio detectado en comentarios, recargando...");
+          contadorComentariosAnterior = totalComentariosActual;
+          recargarComentariosDelAnuncioActual();
+        }
+      } catch (e) {
+        console.error("Error al verificar comentarios:", e);
+      }
+    }
+
+    // 🔹 NUEVO: recargar comentarios del anuncio que el usuario está viendo
+    async function recargarComentariosDelAnuncioActual() {
+      if (!swiperInstance || anunciosData.length === 0) return;
+
+      const anuncioActual = anunciosData[swiperInstance.realIndex];
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
+        const data = await response.json();
+        if (data.status === "✅ success") {
+          anuncioActual.comentarios = data.data;
+          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+          // Si App Inventor necesita saberlo, se actualiza:
+          if (window.AppInventor) {
+            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+          }
+        }
+      } catch (e) {
+        console.error("Error al recargar comentarios:", e);
+      }
+    }
 
     // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
     async function cargarImagenes() {
@@ -146,7 +160,7 @@
       if(swiperInstance) swiperInstance.destroy(true,true);
       swiperInstance = new Swiper('.swiper', {
         loop:true, 
-        direction:'vertical',  // ⬅️ CAMBIO AQUÍ: vertical en vez de horizontal
+        direction:'vertical',
         slidesPerView:1, 
         spaceBetween:10,
         zoom:{ maxRatio:3, minRatio:1 }
@@ -174,11 +188,11 @@
       }
     }
 
-    // Actualizar los contadores cada 5 segundos de forma independiente
+    // Actualizar anuncios y comentarios cada 5 segundos
     setInterval(actualizarContador, 5000);
-    setInterval(actualizarContadorComentarios, 5000); // 🔹 NUEVA LLAMADA
+    setInterval(verificarComentarios, 5000); // 🔹 NUEVO
 
-    // Cargar imágenes al inicio para mostrar el contenido
+    // Cargar imágenes al inicio
     cargarImagenes();
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -211,7 +225,6 @@
 
     // 🔹 NUEVA FUNCIÓN AGREGADA: recargar datos externamente
     function recargarDatos() {
-      // Llama a la función existente que carga y actualiza las imágenes
       cargarImagenes();
       console.log("Datos recargados por solicitud externa.");
     }
