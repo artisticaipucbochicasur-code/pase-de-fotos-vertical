@@ -29,7 +29,6 @@
 
     // 🔹 Contador global de comentarios
     let contadorComentariosAnterior = -1;
-    let comentariosPorAnuncio = {}; // Aquí guardaremos todos los comentarios
 
     // 🔹 Función para actualizar anuncios
     async function actualizarContador() {
@@ -44,7 +43,7 @@
           if (totalActual !== contadorTotalAnterior) {
             console.log("🔄 Cambio detectado: recargando anuncios...");
             contadorTotalAnterior = totalActual;
-            await cargarImagenes();
+            await cargarImagenes(); // 🛠 FIX
           } else {
             let diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
@@ -65,11 +64,6 @@
         const data = await response.json();
         const totalComentariosActual = data.contadorComentarios || 0;
 
-        // Guardamos los comentarios por anuncio
-        if (data.comentarios) {
-          comentariosPorAnuncio = data.comentarios;
-        }
-
         if (contadorComentariosAnterior === -1) {
           contadorComentariosAnterior = totalComentariosActual;
         } else if (totalComentariosActual !== contadorComentariosAnterior) {
@@ -83,22 +77,27 @@
     }
 
     // 🔹 Recargar comentarios del anuncio visible
-    function recargarComentariosDelAnuncioActual() {
+    async function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
 
       const anuncioActual = anunciosData[swiperInstance.realIndex];
-      const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
-      anuncioActual.comentarios = nuevosComentarios;
-
-      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-      
-      if (window.AppInventor) {
-        const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
-        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
+        const data = await response.json();
+        if (data.status === "✅ success") {
+          anuncioActual.comentarios = data.data;
+          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+          if (window.AppInventor) {
+            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+          }
+        }
+      } catch (e) {
+        console.error("Error al recargar comentarios:", e);
       }
     }
 
-    // 🔹 Cargar imágenes sin tocar la lógica existente
+    // 🔹 Cargar imágenes y reconstruir Swiper
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
@@ -132,6 +131,13 @@
         }
 
         anunciosData = newAnunciosData;
+
+        // 🛠 FIX: destruir swiper antes de limpiar DOM
+        if (swiperInstance) {
+          swiperInstance.destroy(true, true);
+          swiperInstance = null;
+        }
+
         swiperWrapper.innerHTML = '';
 
         anunciosData.forEach(anuncio => {
@@ -147,6 +153,9 @@
           swiperWrapper.appendChild(slide);
         });
 
+        // 🛠 FIX: pequeña pausa para forzar reflujo del DOM
+        await new Promise(res => setTimeout(res, 100));
+
         const newIndex = (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex;
         initSwiper(newIndex < 0 ? 0 : newIndex);
       } catch(error) {
@@ -157,7 +166,9 @@
     }
 
     function initSwiper(initialIndex = 0) {
+      // 🛠 FIX: asegurar swiper limpio
       if(swiperInstance) swiperInstance.destroy(true,true);
+
       swiperInstance = new Swiper('.swiper', {
         loop:true, 
         direction:'vertical',
