@@ -1,233 +1,233 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-  <style>
-    body { margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <style>
+    body { margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; }
+    .swiper { width: 100vw; height: 100vh; }
+    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
+    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+  </style>
 </head>
 
 <body>
-  <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div class="swiper"><div class="swiper-wrapper"></div></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-    let anunciosData = [];
-    let swiperInstance = null;
-    let contadorTotalAnterior = -1; // Se inicializa en -1 para la primera carga
-    let contadorAcumulado = 0;
-    const loader = document.getElementById('loader');
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+    let anunciosData = [];
+    let swiperInstance = null;
+    let contadorTotalAnterior = -1; // Se inicializa en -1 para la primera carga
+    let contadorAcumulado = 0;
+    const loader = document.getElementById('loader');
 
-    // 🔹 NUEVO: contador global de comentarios
-    let contadorComentariosAnterior = -1;
+    // 🔹 NUEVO: contador global de comentarios
+    let contadorComentariosAnterior = -1;
 
-    // 🔹 Función para actualizar el contador y refrescar si cambió
-    async function actualizarContador() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-        const data = await response.json();
-        const totalActual = data.contador || 0;
+    // 🔹 Función para actualizar el contador y refrescar si cambió
+    async function actualizarContador() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+        const data = await response.json();
+        const totalActual = data.contador || 0;
 
-        if (contadorTotalAnterior === -1) {
-          contadorTotalAnterior = totalActual;
-        } else {
-          if (totalActual !== contadorTotalAnterior) {
-            console.log("🔄 Cambio detectado: recargando anuncios...");
-            contadorTotalAnterior = totalActual;
-            await cargarImagenes();
-          } else {
-            let diferencia = totalActual - contadorTotalAnterior;
-            if (diferencia > 0) {
-              contadorAcumulado += diferencia;
-            }
-            contadorTotalAnterior = totalActual;
-          }
-        }
-      } catch (e) {
-        console.error("Error al obtener contador:", e);
-      }
-    }
+        if (contadorTotalAnterior === -1) {
+          contadorTotalAnterior = totalActual;
+        } else {
+          if (totalActual !== contadorTotalAnterior) {
+            console.log("🔄 Cambio detectado: recargando anuncios...");
+            contadorTotalAnterior = totalActual;
+            await cargarImagenes();
+          } else {
+            let diferencia = totalActual - contadorTotalAnterior;
+            if (diferencia > 0) {
+              contadorAcumulado += diferencia;
+            }
+            contadorTotalAnterior = totalActual;
+          }
+        }
+      } catch (e) {
+        console.error("Error al obtener contador:", e);
+      }
+    }
 
-    // 🔹 NUEVO: función para verificar cambios en los comentarios
-    async function verificarComentarios() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
-        const data = await response.json();
-        const totalComentariosActual = data.contadorComentarios || 0;
+    // 🔹 NUEVO: función para verificar cambios en los comentarios
+    async function verificarComentarios() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
+        const data = await response.json();
+        const totalComentariosActual = data.contadorComentarios || 0;
 
-        if (contadorComentariosAnterior === -1) {
-          contadorComentariosAnterior = totalComentariosActual;
-        } else if (totalComentariosActual !== contadorComentariosAnterior) {
-          console.log("💬 Cambio detectado en comentarios, recargando...");
-          contadorComentariosAnterior = totalComentariosActual;
-          recargarComentariosDelAnuncioActual();
-        }
-      } catch (e) {
-        console.error("Error al verificar comentarios:", e);
-      }
-    }
+        if (contadorComentariosAnterior === -1) {
+          contadorComentariosAnterior = totalComentariosActual;
+        } else if (totalComentariosActual !== contadorComentariosAnterior) {
+          console.log("💬 Cambio detectado en comentarios, recargando...");
+          contadorComentariosAnterior = totalComentariosActual;
+          recargarComentariosDelAnuncioActual();
+        }
+      } catch (e) {
+        console.error("Error al verificar comentarios:", e);
+      }
+    }
 
-    // 🔹 NUEVO: recargar comentarios del anuncio que el usuario está viendo
-    async function recargarComentariosDelAnuncioActual() {
-      if (!swiperInstance || anunciosData.length === 0) return;
+    // 🔹 NUEVO: recargar comentarios del anuncio que el usuario está viendo
+    async function recargarComentariosDelAnuncioActual() {
+      if (!swiperInstance || anunciosData.length === 0) return;
 
-      const anuncioActual = anunciosData[swiperInstance.realIndex];
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
-        const data = await response.json();
-        if (data.status === "✅ success") {
-          anuncioActual.comentarios = data.data;
-          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-          // Si App Inventor necesita saberlo, se actualiza:
-          if (window.AppInventor) {
-            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
-          }
-        }
-      } catch (e) {
-        console.error("Error al recargar comentarios:", e);
-      }
-    }
+      const anuncioActual = anunciosData[swiperInstance.realIndex];
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
+        const data = await response.json();
+        if (data.status === "✅ success") {
+          anuncioActual.comentarios = data.data;
+          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+          // Si App Inventor necesita saberlo, se actualiza:
+          if (window.AppInventor) {
+            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+          }
+        }
+      } catch (e) {
+        console.error("Error al recargar comentarios:", e);
+      }
+    }
 
-    // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
-    async function cargarImagenes() {
-      loader.style.display = 'block';
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        const newAnunciosData = [];
+    // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
+    async function cargarImagenes() {
+      loader.style.display = 'block';
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const newAnunciosData = [];
 
-        if(data.url && data.url.length > 0) {
-          data.url.forEach((url, index) => {
-            newAnunciosData.push({
-              titulo: data.titulo[index] || "",
-              descripcion: data.descripcion[index] || "",
-              comentarios: data.comentarios[index] || [],
-              url: url,
-              deleteurl: data.deleteurl[index] || "",
-              autor: data.autor[index] || "",
-              correo: data.correo[index] || "",
-              fecha: data.fecha[index] || "",
-              id: data.id[index] || ""
-            });
-          });
-        }
+        if(data.url && data.url.length > 0) {
+          data.url.forEach((url, index) => {
+            newAnunciosData.push({
+              titulo: data.titulo[index] || "",
+              descripcion: data.descripcion[index] || "",
+              comentarios: data.comentarios[index] || [],
+              url: url,
+              deleteurl: data.deleteurl[index] || "",
+              autor: data.autor[index] || "",
+              correo: data.correo[index] || "",
+              fecha: data.fecha[index] || "",
+              id: data.id[index] || ""
+            });
+          });
+        }
 
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+        const swiperWrapper = document.querySelector('.swiper-wrapper');
+        const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
 
-        if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
-          loader.style.display='none';
-          return;
-        }
+        if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
+          loader.style.display='none';
+          return;
+        }
 
-        anunciosData = newAnunciosData;
-        swiperWrapper.innerHTML = '';
+        anunciosData = newAnunciosData;
+        swiperWrapper.innerHTML = '';
 
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
-          swiperWrapper.appendChild(slide);
-        });
+        anunciosData.forEach(anuncio => {
+          const slide = document.createElement('div');
+          slide.classList.add('swiper-slide');
+          const zoomContainer = document.createElement('div');
+          zoomContainer.classList.add('swiper-zoom-container');
+          const img = document.createElement('img');
+          img.src = anuncio.url;
+          img.alt = anuncio.titulo;
+          zoomContainer.appendChild(img);
+          slide.appendChild(zoomContainer);
+          swiperWrapper.appendChild(slide);
+        });
 
-        const newIndex = (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex;
-        initSwiper(newIndex < 0 ? 0 : newIndex);
-      } catch(error) {
-        console.error("Error al cargar las imágenes:", error);
-      } finally {
-        loader.style.display = 'none';
-      }
-    }
+        const newIndex = (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex;
+        initSwiper(newIndex < 0 ? 0 : newIndex);
+      } catch(error) {
+        console.error("Error al cargar las imágenes:", error);
+      } finally {
+        loader.style.display = 'none';
+      }
+    }
 
-    function initSwiper(initialIndex = 0) {
-      if(swiperInstance) swiperInstance.destroy(true,true);
-      swiperInstance = new Swiper('.swiper', {
-        loop:true, 
-        direction:'vertical',
-        slidesPerView:1, 
-        spaceBetween:10,
-        zoom:{ maxRatio:3, minRatio:1 }
-      });
+    function initSwiper(initialIndex = 0) {
+      if(swiperInstance) swiperInstance.destroy(true,true);
+      swiperInstance = new Swiper('.swiper', {
+        loop:true, 
+        direction:'vertical',
+        slidesPerView:1, 
+        spaceBetween:10,
+        zoom:{ maxRatio:3, minRatio:1 }
+      });
 
-      swiperInstance.on('slideChange', () => {
-        if(window.AppInventor && anunciosData.length > 0) {
-          const realIndex = swiperInstance.realIndex;
-          const anuncioActual = anunciosData[realIndex];
-          const listaTitulos = anunciosData.map(a => a.titulo);
-          const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-          window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
-      });
+      swiperInstance.on('slideChange', () => {
+        if(window.AppInventor && anunciosData.length > 0) {
+          const realIndex = swiperInstance.realIndex;
+          const anuncioActual = anunciosData[realIndex];
+          const listaTitulos = anunciosData.map(a => a.titulo);
+          const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+      });
 
-      if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0);
-        if(window.AppInventor){
-          const anuncioInicial = anunciosData[initialSlideIndex];
-          const listaTitulos = anunciosData.map(a => a.titulo);
-          const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-          window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
-      }
-    }
+      if(anunciosData.length > 0) {
+        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+        swiperInstance.slideToLoop(initialSlideIndex, 0);
+        if(window.AppInventor){
+          const anuncioInicial = anunciosData[initialSlideIndex];
+          const listaTitulos = anunciosData.map(a => a.titulo);
+          const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+      }
+    }
 
-    // Actualizar anuncios y comentarios cada 5 segundos
-    setInterval(actualizarContador, 5000);
-    setInterval(verificarComentarios, 5000); // 🔹 NUEVO
+    // Actualizar anuncios y comentarios cada 5 segundos
+    setInterval(actualizarContador, 5000);
+    setInterval(verificarComentarios, 5000); // 🔹 NUEVO
 
-    // Cargar imágenes al inicio
-    cargarImagenes();
+    // Cargar imágenes al inicio
+    cargarImagenes();
 
-    document.addEventListener("DOMContentLoaded", () => {
-      if(window.AppInventor) {
-        setInterval(() => {
-          const comando = window.AppInventor.getWebViewString?.();
-          if(comando) {
-            if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-              console.log("Reiniciando contador y cargando anuncios.");
-              contadorAcumulado = 0;
-              contadorTotalAnterior = -1; 
-              cargarImagenes();
-            }
+    document.addEventListener("DOMContentLoaded", () => {
+      if(window.AppInventor) {
+        setInterval(() => {
+          const comando = window.AppInventor.getWebViewString?.();
+          if(comando) {
+            if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+              console.log("Reiniciando contador y cargando anuncios.");
+              contadorAcumulado = 0;
+              contadorTotalAnterior = -1; 
+              cargarImagenes();
+            }
 
-            if(comando.startsWith("irATitulo:")) {
-              const tituloBuscado = comando.replace("irATitulo:", "").trim();
-              const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-              const tituloNormalizado = normalizar(tituloBuscado);
-              const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0);
-            }
-            if(comando.startsWith("irAIndice:")) {
-              const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0);
-            }
-          }
-        }, 500);
-      }
-    });
+            if(comando.startsWith("irATitulo:")) {
+              const tituloBuscado = comando.replace("irATitulo:", "").trim();
+              const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+              const tituloNormalizado = normalizar(tituloBuscado);
+              const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0);
+            }
+            if(comando.startsWith("irAIndice:")) {
+              const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0);
+            }
+          }
+        }, 500);
+      }
+    });
 
-    // 🔹 NUEVA FUNCIÓN AGREGADA: recargar datos externamente
-    function recargarDatos() {
-      cargarImagenes();
-      console.log("Datos recargados por solicitud externa.");
-    }
-  </script>
+    // 🔹 NUEVA FUNCIÓN AGREGADA: recargar datos externamente
+    function recargarDatos() {
+      cargarImagenes();
+      console.log("Datos recargados por solicitud externa.");
+    }
+  </script>
 </body>
 </html>
