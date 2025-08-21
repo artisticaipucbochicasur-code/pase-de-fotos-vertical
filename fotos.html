@@ -31,6 +31,18 @@
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {}; 
 
+    // 🔹 Normalizar comentarios para evitar undefined
+    function normalizarComentarios(lista) {
+      if (!Array.isArray(lista)) return [];
+      return lista.map(c => {
+        try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+        if (c && c.autor && c.fecha && c.comentario) {
+          return `${c.autor} (${c.fecha}) - ${c.comentario}`;
+        }
+        return "";
+      }).filter(txt => txt !== "");
+    }
+
     // 🔹 Función para actualizar anuncios
     async function actualizarContador() {
       try {
@@ -86,16 +98,9 @@
       if (!swiperInstance || anunciosData.length === 0) return;
 
       const anuncioActual = anunciosData[swiperInstance.realIndex];
-      const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+      const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
 
-      // 🔹 Convertir SIEMPRE los comentarios a texto evitando undefined
-      anuncioActual.comentarios = nuevosComentarios.map(c => {
-        try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
-        if (c && c.autor && c.fecha && c.comentario) {
-          return `${c.autor} (${c.fecha}) - ${c.comentario}`;
-        }
-        return "";
-      }).filter(txt => txt !== "");
+      anuncioActual.comentarios = nuevosComentarios;
 
       console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
 
@@ -120,14 +125,7 @@
 
         if(data.url && data.url.length > 0) {
           data.url.forEach((url, index) => {
-            // 🔹 Convertir comentarios evitando undefined
-            const comentariosFormateados = (data.comentarios[index] || []).map(c => {
-              try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
-              if (c && c.autor && c.fecha && c.comentario) {
-                return `${c.autor} (${c.fecha}) - ${c.comentario}`;
-              }
-              return "";
-            }).filter(txt => txt !== "");
+            const comentariosFormateados = normalizarComentarios(data.comentarios[index]);
 
             newAnunciosData.push({
               titulo: data.titulo[index] || "",
