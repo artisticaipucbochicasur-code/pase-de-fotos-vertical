@@ -29,6 +29,7 @@
 
     // 🔹 Contador global de comentarios
     let contadorComentariosAnterior = -1;
+    let comentariosPorAnuncio = {}; // Aquí guardaremos todos los comentarios
 
     // 🔹 Función para actualizar anuncios
     async function actualizarContador() {
@@ -64,6 +65,11 @@
         const data = await response.json();
         const totalComentariosActual = data.contadorComentarios || 0;
 
+        // Guardamos los comentarios por anuncio
+        if (data.comentarios) {
+          comentariosPorAnuncio = data.comentarios;
+        }
+
         if (contadorComentariosAnterior === -1) {
           contadorComentariosAnterior = totalComentariosActual;
         } else if (totalComentariosActual !== contadorComentariosAnterior) {
@@ -77,23 +83,18 @@
     }
 
     // 🔹 Recargar comentarios del anuncio visible
-    async function recargarComentariosDelAnuncioActual() {
+    function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
 
       const anuncioActual = anunciosData[swiperInstance.realIndex];
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarComentarios&anuncioId=${anuncioActual.id}`);
-        const data = await response.json();
-        if (data.status === "✅ success") {
-          anuncioActual.comentarios = data.data;
-          console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-          if (window.AppInventor) {
-            const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
-          }
-        }
-      } catch (e) {
-        console.error("Error al recargar comentarios:", e);
+      const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+      anuncioActual.comentarios = nuevosComentarios;
+
+      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+      
+      if (window.AppInventor) {
+        const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
       }
     }
 
