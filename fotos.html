@@ -1,4 +1,4 @@
-<!DOCTYPE html>  
+<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -43,7 +43,7 @@
           if (totalActual !== contadorTotalAnterior) {
             console.log("🔄 Cambio detectado: recargando anuncios...");
             contadorTotalAnterior = totalActual;
-            await cargarImagenes(); // 🛠 FIX
+            await cargarImagenes();
           } else {
             let diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
@@ -69,14 +69,14 @@
         } else if (totalComentariosActual !== contadorComentariosAnterior) {
           console.log("💬 Cambio detectado en comentarios, recargando...");
           contadorComentariosAnterior = totalComentariosActual;
-          recargarComentariosDelAnuncioActual();
+          await recargarComentariosDelAnuncioActual();
         }
       } catch (e) {
         console.error("Error al verificar comentarios:", e);
       }
     }
 
-    // 🔹 Recargar comentarios del anuncio visible
+    // 🔹 Recargar comentarios del anuncio visible + reconstruir diapositiva actual
     async function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
 
@@ -87,6 +87,12 @@
         if (data.status === "✅ success") {
           anuncioActual.comentarios = data.data;
           console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+
+          // 🛠️ Forzar reconstrucción de diapositiva actual para mantener formato correcto
+          const currentIndex = swiperInstance.realIndex;
+          swiperInstance.update();
+          swiperInstance.slideToLoop(currentIndex, 0);
+
           if (window.AppInventor) {
             const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
             window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -153,7 +159,6 @@
           swiperWrapper.appendChild(slide);
         });
 
-        // 🛠 FIX: pequeña pausa para forzar reflujo del DOM
         await new Promise(res => setTimeout(res, 100));
 
         const newIndex = (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex;
@@ -166,7 +171,6 @@
     }
 
     function initSwiper(initialIndex = 0) {
-      // 🛠 FIX: asegurar swiper limpio
       if(swiperInstance) swiperInstance.destroy(true,true);
 
       swiperInstance = new Swiper('.swiper', {
@@ -234,7 +238,6 @@
       }
     });
 
-    // 🔹 Recargar datos externamente
     function recargarDatos() {
       cargarImagenes();
       console.log("Datos recargados por solicitud externa.");
