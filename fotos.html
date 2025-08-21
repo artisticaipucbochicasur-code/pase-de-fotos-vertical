@@ -215,7 +215,12 @@
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    cargarImagenes();
+    // 🔹 Cargar datos y comentarios en el arranque
+    (async () => {
+      await cargarImagenes();
+      await verificarComentarios();
+      recargarComentariosDelAnuncioActual();
+    })();
 
     document.addEventListener("DOMContentLoaded", () => {
       if(window.AppInventor) {
@@ -227,6 +232,7 @@
               contadorAcumulado = 0;
               contadorTotalAnterior = -1; 
               cargarImagenes();
+              verificarComentarios();
             }
 
             if(comando.startsWith("irATitulo:")) {
@@ -247,6 +253,8 @@
 
     function recargarDatos() {
       cargarImagenes();
+      verificarComentarios();
+      recargarComentariosDelAnuncioActual();
       console.log("Datos recargados por solicitud externa.");
     }
   </script>
