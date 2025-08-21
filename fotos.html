@@ -27,26 +27,36 @@
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    // 🔹 Función para actualizar el contador sin cargar las imágenes
-    async function actualizarContador() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-        const data = await response.json();
-        const totalActual = data.contador || 0;
+    // 🔹 Función para actualizar el contador y refrescar si cambió
+async function actualizarContador() {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+    const data = await response.json();
+    const totalActual = data.contador || 0;
 
-        if (contadorTotalAnterior === -1) {
-          contadorTotalAnterior = totalActual;
-        } else {
-          let diferencia = totalActual - contadorTotalAnterior;
-          if(diferencia > 0) {
-            contadorAcumulado += diferencia;
-          }
-          contadorTotalAnterior = totalActual;
+    // Si es la primera vez, solo guardamos el valor
+    if (contadorTotalAnterior === -1) {
+      contadorTotalAnterior = totalActual;
+    } else {
+      // Si el número de anuncios cambió, recargamos imágenes
+      if (totalActual !== contadorTotalAnterior) {
+        console.log("🔄 Cambio detectado: recargando anuncios...");
+        contadorTotalAnterior = totalActual;
+        await cargarImagenes();
+      } else {
+        // Si no cambió, mantenemos el acumulado
+        let diferencia = totalActual - contadorTotalAnterior;
+        if (diferencia > 0) {
+          contadorAcumulado += diferencia;
         }
-      } catch(e) {
-        console.error("Error al obtener contador:", e);
+        contadorTotalAnterior = totalActual;
       }
     }
+  } catch (e) {
+    console.error("Error al obtener contador:", e);
+  }
+}
+
 
     // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
     async function cargarImagenes() {
@@ -109,7 +119,10 @@
     function initSwiper(initialIndex = 0) {
       if(swiperInstance) swiperInstance.destroy(true,true);
       swiperInstance = new Swiper('.swiper', {
-        loop:true, direction:'vertical', slidesPerView:1, spaceBetween:10,
+        loop:true, 
+        direction:'vertical',  // ⬅️ CAMBIO AQUÍ: vertical en vez de horizontal
+        slidesPerView:1, 
+        spaceBetween:10,
         zoom:{ maxRatio:3, minRatio:1 }
       });
 
