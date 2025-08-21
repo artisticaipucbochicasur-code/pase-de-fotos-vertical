@@ -31,16 +31,22 @@
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {}; 
 
-    // 🔹 Normalizar comentarios
+    // 🔹 Normalizar comentarios (más reciente primero)
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
-      return lista.map(c => {
-        try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
-        if (c && c.autor && c.fecha && c.comentario) {
-          return `${c.autor} (${c.fecha}) - ${c.comentario}`;
-        }
-        return "";
-      }).filter(txt => txt !== "");
+      return [...lista] // copia defensiva
+        .reverse()      // último enviado primero
+        .map(c => {
+          try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+          const autor = c?.autor ?? "";
+          const fecha = c?.fecha ?? "";
+          const comentario = c?.comentario ?? "";
+          if (autor || fecha || comentario) {
+            return `${autor} (${fecha}) - ${comentario}`;
+          }
+          return "";
+        })
+        .filter(Boolean);
     }
 
     // 🔹 Actualizar contador de anuncios
@@ -124,7 +130,7 @@
 
         if(data.url && data.url.length > 0) {
           data.url.forEach((url, index) => {
-            const comentariosFormateados = normalizarComentarios(data.comentarios[index]);
+            const comentariosFormateados = normalizarComentarios(data.comentarios?.[index] || []);
             newAnunciosData.push({
               titulo: data.titulo[index] || "",
               descripcion: data.descripcion[index] || "",
@@ -190,9 +196,12 @@
           const realIndex = swiperInstance.realIndex;
           const anuncioActual = anunciosData[realIndex];
 
-          // 🔹 Actualizamos los comentarios al cambiar de slide
-          const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
-          anuncioActual.comentarios = nuevosComentarios;
+          // ✅ Solo sobreescribir si ya tenemos comentarios del servidor para ese ID
+          const id = anuncioActual.id;
+          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+          if (hayServidor) {
+            anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+          }
 
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
@@ -205,8 +214,14 @@
         swiperInstance.slideToLoop(initialSlideIndex, 0);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
-          const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioInicial.id]);
-          anuncioInicial.comentarios = nuevosComentarios;
+
+          // ✅ Primer envío: usar los comentarios ya cargados;
+          // si ya hay en el mapa del servidor, los priorizamos.
+          const id = anuncioInicial.id;
+          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+          if (hayServidor) {
+            anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+          }
 
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
@@ -218,7 +233,10 @@
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
+    // 🔹 Carga inicial
     cargarImagenes();
+    // 🔹 Precarga del mapa de comentarios para que llegue lo antes posible
+    verificarComentarios();
 
     document.addEventListener("DOMContentLoaded", () => {
       if(window.AppInventor) {
