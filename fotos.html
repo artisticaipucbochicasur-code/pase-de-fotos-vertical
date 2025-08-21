@@ -82,36 +82,22 @@
       }
     }
 
-  // La función `recargarComentariosDelAnuncioActual()`
-function recargarComentariosDelAnuncioActual() {
-    if (!swiperInstance || anunciosData.length === 0) return;
+    // 🔹 Recargar comentarios del anuncio visible
+    function recargarComentariosDelAnuncioActual() {
+      if (!swiperInstance || anunciosData.length === 0) return;
 
-    const anuncioActual = anunciosData[swiperInstance.realIndex];
-    // Asegurarse de que `comentariosPorAnuncio` contiene el anuncio.
-    const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
-    anuncioActual.comentarios = nuevosComentarios;
+      const anuncioActual = anunciosData[swiperInstance.realIndex];
+      const nuevosComentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+      anuncioActual.comentarios = nuevosComentarios;
 
-    console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-    
-   if (window.AppInventor) {
-    const listaTitulos = anunciosData.map(a => a.titulo);
-    const payload = {
-        titulo: anuncioActual.titulo,
-        descripcion: anuncioActual.descripcion,
-        comentarios: nuevosComentarios,
-        url: anuncioActual.url,
-        deleteurl: anuncioActual.deleteurl,
-        autor: anuncioActual.autor,
-        correo: anuncioActual.correo,
-        fecha: anuncioActual.fecha,
-        id: anuncioActual.id,
-        titulos: listaTitulos,
-        contador: contadorAcumulado
-    };
-    window.AppInventor.setWebViewString(JSON.stringify(payload));
-}
+      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+      
+      if (window.AppInventor) {
+        const payload = { ...anuncioActual, titulos: anunciosData.map(a => a.titulo), contador: contadorAcumulado };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      }
+    }
 
-}
     // 🔹 Cargar imágenes sin tocar la lógica existente
     async function cargarImagenes() {
       loader.style.display = 'block';
@@ -245,5 +231,3 @@ function recargarComentariosDelAnuncioActual() {
   </script>
 </body>
 </html>
-
-
