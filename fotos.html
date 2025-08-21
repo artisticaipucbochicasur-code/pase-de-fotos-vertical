@@ -27,35 +27,56 @@
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    // 🔹 Función para actualizar el contador y refrescar si cambió
+    const INTERVALO_VERIFICACION = 5000; // Cada 5 segundos revisamos si hay cambios
+
+// 🔹 Función para actualizar el contador y refrescar la lista si cambió
 async function actualizarContador() {
   try {
     const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
     const data = await response.json();
     const totalActual = data.contador || 0;
 
-    // Si es la primera vez, solo guardamos el valor
+    // ✅ Primera carga → solo guardamos el valor inicial
     if (contadorTotalAnterior === -1) {
       contadorTotalAnterior = totalActual;
     } else {
-      // Si el número de anuncios cambió, recargamos imágenes
+      // ✅ Si el número de anuncios cambió...
       if (totalActual !== contadorTotalAnterior) {
-        console.log("🔄 Cambio detectado: recargando anuncios...");
-        contadorTotalAnterior = totalActual;
-        await cargarImagenes();
-      } else {
-        // Si no cambió, mantenemos el acumulado
-        let diferencia = totalActual - contadorTotalAnterior;
+        // 1. Calculamos cuántos anuncios nuevos hay
+        const diferencia = totalActual - contadorTotalAnterior;
+
+        // 2. Si hay más anuncios → incrementamos contadorAcumulado
         if (diferencia > 0) {
           contadorAcumulado += diferencia;
+        } else if (diferencia < 0) {
+          // Si se eliminaron anuncios → reseteamos contadorAcumulado
+          contadorAcumulado = 0;
         }
+
+        // 3. Actualizamos el contador visual si tienes un Label para mostrarlo
+        const lblContador = document.getElementById("lblContador");
+        if (lblContador) {
+          lblContador.textContent = contadorAcumulado > 0
+            ? `🔔 ${contadorAcumulado} anuncios nuevos`
+            : "";
+        }
+
+        // 4. Guardamos el nuevo total
         contadorTotalAnterior = totalActual;
+
+        // 5. 🔄 Recargamos las imágenes automáticamente
+        console.log("🔄 Cambio detectado: recargando anuncios...");
+        await cargarImagenes();
       }
     }
   } catch (e) {
-    console.error("Error al obtener contador:", e);
+    console.error("❌ Error al obtener contador:", e);
   }
 }
+
+// 🔹 Iniciamos el chequeo automático
+setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
 
     // 🔹 Función para cargar las imágenes (sin afectar el contador acumulado)
@@ -191,3 +212,4 @@ async function actualizarContador() {
   </script>
 </body>
 </html>
+
