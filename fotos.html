@@ -318,8 +318,11 @@
     });
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
-    commentsOverlay.addEventListener('click', () => {
-        commentsOverlay.classList.toggle('expanded');
+    commentsOverlay.addEventListener('click', (e) => {
+        if (!isSwiping) {
+            commentsOverlay.classList.toggle('expanded');
+        }
+        isSwiping = false; // Reset the swiping flag
     });
 
     // Lógica para el swipe
@@ -334,7 +337,7 @@
           startX = e.touches[0].clientX;
           activeComment = commentElement;
           activeComment.style.transition = 'none'; // Desactivar la transición para el movimiento
-          isSwiping = false; // Reset the swiping flag
+          isSwiping = false; 
       }
     });
 
@@ -343,17 +346,22 @@
 
       const currentX = e.touches[0].clientX;
       const diffX = currentX - startX;
+      
+      if (Math.abs(diffX) > 10) { // Un pequeño umbral para detectar el swipe
+        isSwiping = true;
+      }
 
       if (diffX > 0) { // Solo si se desliza hacia la derecha
         activeComment.style.transform = `translateX(${diffX}px)`;
-        isSwiping = true;
+      } else { // Deslizamiento hacia la izquierda
+          activeComment.style.transform = `translateX(${diffX}px)`;
       }
     });
 
     commentsList.addEventListener('touchend', (e) => {
       if (!activeComment) return;
       
-      const swipeThreshold = 50; // Mínimo de 50px de deslizamiento para activar el borrado
+      const swipeThreshold = 50;
       const diffX = e.changedTouches[0].clientX - startX;
       
       activeComment.style.transition = 'transform 0.3s ease';
@@ -370,7 +378,7 @@
             activeComment.appendChild(deleteBtn);
 
             deleteBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation(); // Evitar que el clic se propague
+                ev.stopPropagation(); 
                 const commentData = activeComment.dataset;
                 const comentario = commentData.texto;
                 const autorCorreo = commentData.correo;
@@ -410,7 +418,7 @@
             const result = await response.json();
             if (result.status === "✅ success") {
                 console.log("Comentario eliminado con éxito.");
-                await verificarComentarios(); // Volver a cargar los comentarios
+                await verificarComentarios(); 
             } else {
                 console.error("Error al eliminar el comentario:", result.message);
                 showInfoDialog("Error", `No se pudo eliminar el comentario. ${result.message}`);
@@ -620,7 +628,7 @@
             
             commentsList.innerHTML = '';
             
-            commentsOverlay.classList.remove('expanded'); // Colapsa el contenedor al cambiar de slide
+            commentsOverlay.classList.remove('expanded'); 
 
             if (anuncio.comentarios && anuncio.comentarios.length > 0) {
               anuncio.comentarios.forEach(comentario => {
@@ -696,7 +704,6 @@
         const alertTitle = document.getElementById('alertTitle');
         const alertMessage = document.getElementById('alertMessage');
         
-        // Reinicia la clase de la ventana modal para no tener conflictos
         alertDiv.className = 'custom-alert';
         alertMessage.innerHTML = '';
         
@@ -796,8 +803,6 @@
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    // Llama a verificarComentarios primero para obtener los datos
-    // y luego a cargarImagenes para usarlos.
     verificarComentarios().then(() => {
         cargarImagenes();
     });
