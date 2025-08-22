@@ -583,23 +583,21 @@
         }
     });
 
-    // Nuevo: Lógica de ajuste al teclado basada en eventos del viewport
-    window.visualViewport.addEventListener('resize', () => {
-      const keyboardHeight = window.innerHeight - window.visualViewport.height;
-      const containerHeight = commentInputContainer.offsetHeight;
-      
-      if (keyboardHeight > 0) {
-        // Teclado visible: Mover la barra y los overlays
-        commentInputContainer.style.bottom = `${keyboardHeight}px`;
-        commentsOverlay.style.bottom = `${keyboardHeight + containerHeight + 10}px`;
-        commentsCounter.style.bottom = `${keyboardHeight + containerHeight + 10}px`;
-      } else {
-        // Teclado oculto: Restaurar posición original
-        commentInputContainer.style.bottom = `0px`;
-        commentsOverlay.style.bottom = `60px`;
-        commentsCounter.style.bottom = `60px`;
-      }
+    // Nueva lógica: Desplazamiento manual al campo de texto
+    commentInput.addEventListener('focus', () => {
+      commentInputContainer.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
     });
+
+    commentInput.addEventListener('blur', () => {
+        commentInputContainer.scrollIntoView({
+            behavior: 'smooth',
+            block: 'end'
+        });
+    });
+
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
