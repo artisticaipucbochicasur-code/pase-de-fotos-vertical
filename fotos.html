@@ -100,7 +100,7 @@
 
     /* Estilos para el overlay de título y descripción */
     .content-overlay {
-        position: absolute;
+        position: fixed;
         top: 10px;
         left: 10px;
         background: rgba(0, 0, 0, 0.6);
@@ -108,8 +108,9 @@
         padding: 10px 15px;
         border-radius: 5px;
         text-align: left;
-        max-width: 80%; /* Para que no ocupe todo el ancho */
+        max-width: 80%;
         box-sizing: border-box;
+        z-index: 999;
     }
 
     .content-overlay h3 {
@@ -138,6 +139,10 @@
           <button id="closeAlertButton">Cerrar</button>
       </div>
   </div>
+  <div class="content-overlay">
+    <h3 id="currentTitle"></h3>
+    <p id="currentDescription"></p>
+  </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -149,6 +154,9 @@
     let nuevosTitulos = []; 
     const loader = document.getElementById('loader');
     const lblContador = document.getElementById("lblContador");
+
+    const currentTitle = document.getElementById('currentTitle');
+    const currentDescription = document.getElementById('currentDescription');
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -232,9 +240,8 @@
 
     function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
-      const activeSlideEl = swiperInstance.slides[swiperInstance.activeIndex];
-      const anuncioId = activeSlideEl.dataset.id;
-      const anuncioActual = anunciosData.find(a => a.id === anuncioId);
+      const activeIndex = swiperInstance.realIndex;
+      const anuncioActual = anunciosData[activeIndex];
       
       if (anuncioActual) {
         anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
@@ -316,17 +323,6 @@
           zoomContainer.appendChild(img);
           slide.appendChild(zoomContainer);
 
-          // Contenedor de título y descripción tipo red social
-          const contentOverlay = document.createElement('div');
-          contentOverlay.classList.add('content-overlay');
-          const titleElement = document.createElement('h3');
-          titleElement.textContent = anuncio.titulo;
-          const descElement = document.createElement('p');
-          descElement.textContent = anuncio.descripcion;
-          contentOverlay.appendChild(titleElement);
-          contentOverlay.appendChild(descElement);
-          slide.appendChild(contentOverlay);
-
           swiperWrapper.appendChild(slide);
         });
 
@@ -340,11 +336,22 @@
           swiperInstance.slideTo(finalIndex, 0, false);
         }
 
+        // Actualizar el texto al cargar
+        updateContentOverlay(finalIndex);
+
       } catch(error) {
         console.error("Error al cargar las imágenes:", error);
       } finally {
         loader.style.display = 'none';
       }
+    }
+
+    function updateContentOverlay(index) {
+        if (anunciosData.length > index) {
+            const anuncio = anunciosData[index];
+            currentTitle.textContent = anuncio.titulo;
+            currentDescription.textContent = anuncio.descripcion;
+        }
     }
 
     function initSwiper(initialIndex = 0) {
@@ -358,10 +365,11 @@
       });
 
       swiperInstance.on('slideChange', () => {
-        if(window.AppInventor && swiperInstance.slides.length > 0) {
-          const activeSlideEl = swiperInstance.slides[swiperInstance.activeIndex];
-          const anuncioId = activeSlideEl.dataset.id;
-          const anuncioActual = anunciosData.find(a => a.id === anuncioId);
+        const activeIndex = swiperInstance.realIndex;
+        updateContentOverlay(activeIndex);
+
+        if(window.AppInventor && anunciosData.length > 0) {
+          const anuncioActual = anunciosData[activeIndex];
           
           if (!anuncioActual) return;
 
@@ -379,6 +387,7 @@
       if(anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+        updateContentOverlay(initialSlideIndex);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
           const id = anuncioInicial.id;
