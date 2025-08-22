@@ -97,6 +97,35 @@
     .titles-list li:hover {
         background-color: #5d6d7e;
     }
+
+    /* Estilos para el overlay de título y descripción */
+    .content-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+        padding: 20px;
+        box-sizing: border-box;
+        text-align: center;
+        transition: opacity 0.3s ease;
+    }
+
+    .content-overlay h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .content-overlay p {
+        margin: 10px 0 0;
+        font-size: 1rem;
+        color: #eee;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        word-wrap: break-word; /* Para que la descripción no se desborde */
+    }
   </style>
 </head>
 
@@ -264,20 +293,15 @@
         const newAnunciosDataLength = newAnunciosData.length;
         const isInitialLoad = oldAnunciosDataLength === 0;
 
-        // Limpia la lista de nuevos títulos y el contador en cualquier cambio que no sea una simple adición
-        if (newAnunciosDataLength <= oldAnunciosDataLength && !isInitialLoad) {
+        if (!isInitialLoad && newAnunciosDataLength > oldAnunciosDataLength) {
+            const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosDataLength - oldAnunciosDataLength);
+            nuevosTitulos.unshift(...nuevosAnuncios.map(a => a.titulo));
+        } else {
             nuevosTitulos = [];
             contadorAcumulado = 0;
             lblContador.style.display = "none";
         }
 
-        // Si hay nuevos elementos y no es la carga inicial, los agrega a la lista de títulos nuevos
-        if (newAnunciosDataLength > oldAnunciosDataLength) {
-            const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosDataLength - oldAnunciosDataLength);
-            nuevosTitulos.unshift(...nuevosAnuncios.map(a => a.titulo));
-        }
-
-        // 🔄 Siempre actualiza la data principal y reconstruye el slider
         anunciosData = newAnunciosData;
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         swiperWrapper.innerHTML = '';
@@ -293,6 +317,18 @@
           img.alt = anuncio.titulo;
           zoomContainer.appendChild(img);
           slide.appendChild(zoomContainer);
+
+          // Contenedor de título y descripción tipo red social
+          const contentOverlay = document.createElement('div');
+          contentOverlay.classList.add('content-overlay');
+          const titleElement = document.createElement('h3');
+          titleElement.textContent = anuncio.titulo;
+          const descElement = document.createElement('p');
+          descElement.textContent = anuncio.descripcion;
+          contentOverlay.appendChild(titleElement);
+          contentOverlay.appendChild(descElement);
+          slide.appendChild(contentOverlay);
+
           swiperWrapper.appendChild(slide);
         });
 
