@@ -177,6 +177,13 @@
         margin-bottom: 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         padding-bottom: 8px;
+        /* Estilos para el swipe */
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        background-color: #34495e; /* Color de fondo del comentario */
+        transform: translateX(0);
+        cursor: grab;
     }
 
     .comments-overlay-container li:last-child {
@@ -186,6 +193,23 @@
     /* Estilo para los comentarios que se pueden borrar */
     .comments-overlay-container li.deletable {
         cursor: pointer;
+    }
+
+    /* Estilo para el botón de borrar que aparece al deslizar */
+    .comments-overlay-container li .delete-btn {
+        position: absolute;
+        top: 0;
+        left: -100px;
+        height: 100%;
+        width: 100px;
+        background-color: #e74c3c;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+        z-index: -1;
     }
 
     /* Clase para ocultar los overlays */
@@ -262,9 +286,9 @@
     const commentsOverlay = document.getElementById('commentsOverlay');
     const commentsCounter = document.getElementById('commentsCounter');
     const commentCountValue = document.getElementById('commentCountValue');
+    const commentsList = document.getElementById('commentsList');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
-    const commentsList = document.getElementById('commentsList');
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -272,6 +296,10 @@
     
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
     
+    // Variables para el swipe
+    let startX = 0;
+    let activeComment = null;
+
     function normalizeText(text) {
         if (!text) return "";
         return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
@@ -288,39 +316,84 @@
         lastTapTime = currentTime;
     });
 
-    // Manejador de un solo toque en el contenedor de comentarios para expandir/contraer
-    commentsOverlay.addEventListener('click', (e) => {
-        const isList = e.target.tagName === 'LI';
-        const isContainer = e.target.id === 'commentsOverlay';
-        
-        if (isList || isContainer) {
-            commentsOverlay.classList.toggle('expanded');
-        }
+    // Toggle para expandir/colapsar el contenedor de comentarios con un toque
+    commentsOverlay.addEventListener('click', () => {
+        commentsOverlay.classList.toggle('expanded');
     });
 
-    // Manejador de eventos para el doble toque en los comentarios
-    commentsList.addEventListener('dblclick', (e) => {
+    // Lógica para el swipe
+    commentsList.addEventListener('touchstart', (e) => {
       const commentElement = e.target.closest('li');
       if (!commentElement) return;
 
       const commentData = commentElement.dataset;
-      const comentario = commentData.texto;
       const autorCorreo = commentData.correo;
-      
+
       if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
-        showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
-          const activeIndex = swiperInstance.realIndex;
-          const currentAnuncio = anunciosData[activeIndex];
-          if(currentAnuncio) {
-            eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
-          }
-        });
-      } else {
-        showInfoDialog("Acceso denegado", "Solo puedes eliminar tus propios comentarios.");
+          startX = e.touches[0].clientX;
+          activeComment = commentElement;
+          activeComment.style.transition = 'none'; // Desactivar la transición para el movimiento
       }
     });
 
-    
+    commentsList.addEventListener('touchmove', (e) => {
+      if (!activeComment) return;
+
+      const currentX = e.touches[0].clientX;
+      const diffX = currentX - startX;
+
+      if (diffX > 0) { // Solo si se desliza hacia la derecha
+        activeComment.style.transform = `translateX(${diffX}px)`;
+      }
+    });
+
+    commentsList.addEventListener('touchend', (e) => {
+      if (!activeComment) return;
+      
+      const swipeThreshold = 50; // Mínimo de 50px de deslizamiento para activar el borrado
+      const diffX = e.changedTouches[0].clientX - startX;
+      
+      if (diffX > swipeThreshold) {
+        // Revelar el botón de borrar
+        activeComment.style.transform = `translateX(100px)`; // Desplazar el comentario
+        
+        // Crear y mostrar el botón de borrado
+        let deleteBtn = activeComment.querySelector('.delete-btn');
+        if (!deleteBtn) {
+            deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Borrar';
+            activeComment.appendChild(deleteBtn);
+
+            deleteBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const commentData = activeComment.dataset;
+                const comentario = commentData.texto;
+                const autorCorreo = commentData.correo;
+                
+                showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
+                  const activeIndex = swiperInstance.realIndex;
+                  const currentAnuncio = anunciosData[activeIndex];
+                  if(currentAnuncio) {
+                    eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
+                  }
+                });
+            });
+        }
+        deleteBtn.style.transform = `translateX(${diffX}px)`;
+        
+      } else {
+        // Restaurar la posición original
+        activeComment.style.transform = `translateX(0)`;
+      }
+
+      // Restablecer variables
+      activeComment.style.transition = 'transform 0.3s ease';
+      activeComment = null;
+      startX = 0;
+    });
+
+
     async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
         loader.style.display = 'block';
         try {
