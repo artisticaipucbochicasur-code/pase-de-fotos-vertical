@@ -103,7 +103,7 @@
         position: fixed;
         top: 10px;
         left: 10px;
-        background: rgba(0, 0, 0, 0.6); /* Color de fondo añadido */
+        background: rgba(0, 0, 0, 0.6);
         color: #fff;
         padding: 10px 15px;
         border-radius: 5px;
@@ -129,13 +129,12 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-    /* Estilos para el nuevo contenedor de comentarios */
+    /* Contenedor de comentarios (reducido por defecto) */
     .comments-overlay-container {
         position: fixed;
         bottom: 10px;
         left: 10px;
         width: calc(80% - 20px);
-        max-height: 25vh;
         background: rgba(0, 0, 0, 0.6);
         color: #eee;
         padding: 10px;
@@ -143,10 +142,16 @@
         box-sizing: border-box;
         z-index: 998;
         overflow-y: auto;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+        max-height: 4em; /* Tamaño por defecto para 1-2 comentarios */
     }
 
-    /* Estilos para cada comentario individual */
+    /* Estado expandido del contenedor de comentarios */
+    .comments-overlay-container.expanded {
+      max-height: 25vh;
+    }
+
+    /* Estilos para la lista de comentarios */
     .comments-overlay-container ul {
         list-style: none;
         padding: 0;
@@ -171,6 +176,30 @@
       opacity: 0;
       visibility: hidden;
     }
+
+    /* Estilos del nuevo contador de comentarios */
+    .comments-counter {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .comments-counter span {
+        /* Icono de comentarios con Unicode */
+        font-family: 'Arial', sans-serif;
+    }
   </style>
 </head>
 
@@ -192,6 +221,10 @@
   <div class="comments-overlay-container" id="commentsOverlay">
     <ul id="commentsList"></ul>
   </div>
+  <div class="comments-counter" id="commentsCounter">
+      <span>💬</span>
+      <span id="commentCountValue">0</span>
+  </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -206,6 +239,8 @@
 
     const contentOverlay = document.getElementById('contentOverlay');
     const commentsOverlay = document.getElementById('commentsOverlay');
+    const commentsCounter = document.getElementById('commentsCounter');
+    const commentCountValue = document.getElementById('commentCountValue');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
     const commentsList = document.getElementById('commentsList');
@@ -214,15 +249,21 @@
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
 
-    // Escuchar el evento de clic en el contenedor principal del swiper
+    // Toggle para ocultar/mostrar overlays al tocar la imagen
     document.querySelector('.swiper').addEventListener('click', () => {
         const currentTime = new Date().getTime();
         // Evita el conflicto con el doble toque (zoom)
         if (currentTime - lastTapTime > 300) {
             contentOverlay.classList.toggle('hidden-overlay');
             commentsOverlay.classList.toggle('hidden-overlay');
+            commentsCounter.classList.toggle('hidden-overlay');
         }
         lastTapTime = currentTime;
+    });
+
+    // Toggle para expandir/colapsar el contenedor de comentarios
+    commentsOverlay.addEventListener('click', () => {
+        commentsOverlay.classList.toggle('expanded');
     });
 
     function normalizarComentarios(lista) {
@@ -308,7 +349,8 @@
       const anuncioActual = anunciosData[activeIndex];
       
       if (anuncioActual) {
-        anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
+        const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+        anuncioActual.comentarios = normalizarComentarios(comentarios);
         updateContentOverlay(activeIndex);
         
         console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
@@ -338,7 +380,8 @@
         if(data.url && data.url.length > 0) {
           data.url.forEach((url, index) => {
             const idAnuncio = data.id[index];
-            const comentariosFormateados = normalizarComentarios(comentariosPorAnuncio[idAnuncio] || []);
+            const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+            const comentariosFormateados = normalizarComentarios(comentarios);
             newAnunciosData.push({
               titulo: data.titulo[index] || "",
               descripcion: data.descripcion[index] || "",
@@ -425,10 +468,12 @@
                 li.textContent = comentario;
                 commentsList.appendChild(li);
               });
+              commentCountValue.textContent = anuncio.comentarios.length;
             } else {
               const li = document.createElement('li');
               li.textContent = "No hay comentarios aún.";
               commentsList.appendChild(li);
+              commentCountValue.textContent = 0;
             }
         }
     }
