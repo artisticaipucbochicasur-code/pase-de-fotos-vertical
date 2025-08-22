@@ -248,7 +248,16 @@
       swiperInstance.on('slideChange', () => {
         if(window.AppInventor && anunciosData.length > 0) {
           const realIndex = swiperInstance.realIndex;
-          const anuncioActual = anunciosData[realIndex];
+          
+          // Buscar la diapositiva en el DOM para obtener el ID
+          const currentSlideEl = swiperInstance.slides[swiperInstance.activeIndex];
+          const imgEl = currentSlideEl ? currentSlideEl.querySelector('img') : null;
+          const currentUrl = imgEl ? imgEl.src : null;
+          
+          if (!currentUrl) return;
+
+          // Encontrar el objeto de datos que corresponde a la URL de la imagen actual
+          const anuncioActual = anunciosData.find(a => a.url === currentUrl);
           
           if (!anuncioActual) return; // Si no hay anuncio, salir
 
