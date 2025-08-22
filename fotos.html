@@ -232,8 +232,7 @@
   <div id="customAlertOverlay">
       <div class="custom-alert">
           <h2 id="alertTitle"></h2>
-          <ul class="titles-list" id="alertMessage"></ul>
-          <button id="closeAlertButton">Cerrar</button>
+          <div class="titles-list" id="alertMessage"></div>
       </div>
   </div>
   <div class="content-overlay" id="contentOverlay">
@@ -271,9 +270,8 @@
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
     
-    let currentAuthorEmail = "deimer.herrera91@gmail.com"; // **👉 Aquí se debe obtener el correo del usuario actual de la aplicación**
+    let currentAuthorEmail = "deimer.herrera91@gmail.com";
     
-    // Función para normalizar texto para comparaciones seguras
     function normalizeText(text) {
         if (!text) return "";
         return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
@@ -290,10 +288,12 @@
         lastTapTime = currentTime;
     });
 
-    // Toggle para expandir/colapsar el contenedor de comentarios
+    // Manejador de un solo toque en el contenedor de comentarios para expandir/contraer
     commentsOverlay.addEventListener('click', (e) => {
-        // Asegurarse de que el clic no provenga de un elemento que tenga un doble toque
-        if (e.target.tagName !== 'LI') {
+        const isList = e.target.tagName === 'LI';
+        const isContainer = e.target.id === 'commentsOverlay';
+        
+        if (isList || isContainer) {
             commentsOverlay.classList.toggle('expanded');
         }
     });
