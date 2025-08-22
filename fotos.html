@@ -206,7 +206,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        transform: translateX(0);
+        transform: translateX(-100%);
         transition: transform 0.3s ease;
         z-index: 1; /* Asegurar que el botón esté detrás */
         font-weight: bold;
@@ -215,12 +215,20 @@
     /* El comentario se desliza sobre el botón */
     .comments-overlay-container li .comment-content {
       position: relative;
-      background: rgba(0, 0, 0, 0.6);
+      background: none; /* Eliminado el fondo */
       width: 100%;
       height: 100%;
       padding: 0 10px;
       box-sizing: border-box;
       transition: transform 0.3s ease;
+    }
+    
+    .comments-overlay-container li .comment-content.swiped {
+      transform: translateX(100px);
+    }
+    
+    .comments-overlay-container li .delete-btn.active {
+      transform: translateX(0);
     }
 
     /* Clase para ocultar los overlays */
@@ -333,7 +341,7 @@
         if (!isSwiping) {
             commentsOverlay.classList.toggle('expanded');
         }
-        isSwiping = false; // Reset the swiping flag
+        isSwiping = false; 
     });
 
     // Lógica para el swipe
@@ -347,7 +355,6 @@
       if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
           startX = e.touches[0].clientX;
           activeComment = commentElement;
-          // Desactivar transiciones para el movimiento de swipe
           activeComment.querySelector('.comment-content').style.transition = 'none';
           isSwiping = false; 
       }
@@ -365,8 +372,16 @@
       
       if (diffX > 0) { 
         activeComment.querySelector('.comment-content').style.transform = `translateX(${diffX}px)`;
+        let deleteBtn = activeComment.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.style.transform = `translateX(${diffX - 100}px)`;
+        }
       } else { 
         activeComment.querySelector('.comment-content').style.transform = `translateX(0)`; 
+        let deleteBtn = activeComment.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.style.transform = `translateX(-100%)`;
+        }
       }
     });
 
@@ -376,20 +391,24 @@
       const swipeThreshold = 50;
       const diffX = e.changedTouches[0].clientX - startX;
       
-      activeComment.querySelector('.comment-content').style.transition = 'transform 0.3s ease';
-      
-      if (diffX > swipeThreshold) {
-        activeComment.querySelector('.comment-content').style.transform = `translateX(100px)`; 
-        
-        // Crear y mostrar el botón de borrado
-        let deleteBtn = activeComment.querySelector('.delete-btn');
-        if (!deleteBtn) {
-            deleteBtn = document.createElement('div');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.textContent = 'Borrar';
-            activeComment.appendChild(deleteBtn);
+      const commentContent = activeComment.querySelector('.comment-content');
+      const deleteBtn = activeComment.querySelector('.delete-btn');
 
-            deleteBtn.addEventListener('click', (ev) => {
+      commentContent.style.transition = 'transform 0.3s ease';
+      if (deleteBtn) {
+        deleteBtn.style.transition = 'transform 0.3s ease';
+      }
+
+      if (diffX > swipeThreshold) {
+        commentContent.style.transform = `translateX(100px)`; 
+        
+        if (!deleteBtn) {
+            let newDeleteBtn = document.createElement('div');
+            newDeleteBtn.className = 'delete-btn';
+            newDeleteBtn.textContent = 'Borrar';
+            activeComment.appendChild(newDeleteBtn);
+            newDeleteBtn.style.transform = `translateX(0)`;
+            newDeleteBtn.addEventListener('click', (ev) => {
                 ev.stopPropagation(); 
                 const commentData = activeComment.dataset;
                 const comentario = commentData.texto;
@@ -403,10 +422,15 @@
                   }
                 });
             });
+        } else {
+          deleteBtn.style.transform = `translateX(0)`;
         }
         
       } else {
-        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`;
+        commentContent.style.transform = `translateX(0)`;
+        if (deleteBtn) {
+            deleteBtn.style.transform = `translateX(-100%)`;
+        }
       }
 
       activeComment = null;
