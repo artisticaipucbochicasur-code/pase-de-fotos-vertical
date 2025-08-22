@@ -25,7 +25,6 @@
       z-index: 9999;
       display: none;
       cursor: pointer; /* Para indicar que es clickeable */
-      user-select: none; /* Evita que el texto sea seleccionado */
     }
   </style>
 </head>
@@ -42,6 +41,7 @@
     let swiperInstance = null;
     let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
+    let nuevosTitulos = []; // Array para almacenar los títulos de los nuevos anuncios
     const loader = document.getElementById('loader');
     const lblContador = document.getElementById("lblContador");
 
@@ -187,6 +187,9 @@
         // Si solo hay nuevos anuncios, los agregamos sin mover el slider
         if (newAnunciosData.length > anunciosData.length) {
           const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosData.length - anunciosData.length);
+          // Almacena los títulos de los nuevos anuncios
+          nuevosTitulos = nuevosAnuncios.map(a => a.titulo);
+          
           if (swiperInstance) {
             nuevosAnuncios.forEach(anuncio => {
               const slide = document.createElement('div');
@@ -299,7 +302,13 @@
     // 🔔 Evento para manejar el clic en el aviso de nuevos anuncios
     if (lblContador) {
         lblContador.addEventListener('click', () => {
-            alert("Nuevos por el momento");
+            let mensaje = "DECOM BOCHICA SUR\n\n";
+            if (nuevosTitulos.length > 0) {
+                mensaje += nuevosTitulos.join('\n');
+            } else {
+                mensaje += "No hay anuncios nuevos.";
+            }
+            alert(mensaje);
         });
     }
 
