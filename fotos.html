@@ -293,7 +293,7 @@
         align-items: center;
         gap: 10px;
         z-index: 1000;
-        transition: transform 0.3s ease;
+        transition: bottom 0.3s ease;
     }
 
     .comment-input-container input {
@@ -583,22 +583,37 @@
         }
     });
 
-    // Nueva y mejorada lógica de ajuste al teclado
-    window.visualViewport.addEventListener('resize', () => {
-        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+    // Nuevo: Lógica de ajuste al teclado basada en eventos del DOM
+    let isKeyboardVisible = false;
+
+    window.addEventListener('focusin', () => {
+      if (document.activeElement === commentInput && !isKeyboardVisible) {
+        isKeyboardVisible = true;
         
-        if (keyboardHeight > 0) {
-            // Teclado visible: Mover la barra de comentarios hacia arriba
+        // Espera un pequeño retraso para que el teclado se muestre y la altura sea correcta
+        setTimeout(() => {
+          const keyboardHeight = window.innerHeight - window.visualViewport.height;
+          if (keyboardHeight > 0) {
             const containerHeight = commentInputContainer.offsetHeight;
-            commentInputContainer.style.transform = `translateY(${-keyboardHeight}px)`;
+            commentInputContainer.style.bottom = `${keyboardHeight}px`;
             commentsOverlay.style.bottom = `${keyboardHeight + containerHeight + 10}px`;
             commentsCounter.style.bottom = `${keyboardHeight + containerHeight + 10}px`;
-        } else {
-            // Teclado oculto: Restaurar posición original
-            commentInputContainer.style.transform = `translateY(0)`;
-            commentsOverlay.style.bottom = `60px`;
-            commentsCounter.style.bottom = `60px`;
-        }
+          }
+        }, 100);
+      }
+    });
+
+    window.addEventListener('focusout', () => {
+      if (isKeyboardVisible) {
+        isKeyboardVisible = false;
+        
+        // Pequeño retraso para que el teclado se oculte completamente
+        setTimeout(() => {
+          commentInputContainer.style.bottom = `0px`;
+          commentsOverlay.style.bottom = `60px`;
+          commentsCounter.style.bottom = `60px`;
+        }, 100);
+      }
     });
 
     function normalizarComentarios(lista) {
