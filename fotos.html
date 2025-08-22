@@ -11,12 +11,27 @@
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+
+    /* 🔔 Contador visual arriba */
+    #lblContador {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 9999;
+      display: none;
+    }
   </style>
 </head>
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="lblContador"></div> <!-- 🔔 Aquí se muestra el aviso de nuevos anuncios -->
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -68,9 +83,13 @@
             }
             const lblContador = document.getElementById("lblContador");
             if (lblContador) {
-              lblContador.textContent = contadorAcumulado > 0
-                ? `🔔 ${contadorAcumulado} anuncios nuevos`
-                : "";
+              if (contadorAcumulado > 0) {
+                lblContador.textContent = `🔔 ${contadorAcumulado} anuncios nuevos`;
+                lblContador.style.display = "block";
+              } else {
+                lblContador.textContent = "";
+                lblContador.style.display = "none";
+              }
             }
             contadorTotalAnterior = totalActual;
             console.log("🔄 Cambio detectado: recargando anuncios...");
