@@ -583,21 +583,25 @@
         }
     });
 
-    // Nueva lógica: Desplazamiento manual al campo de texto
+    // Nueva lógica: Desplazamiento manual y temporizado para el campo de texto
     commentInput.addEventListener('focus', () => {
-      commentInputContainer.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
+        setTimeout(() => {
+            const yOffset = commentInputContainer.getBoundingClientRect().top - (window.innerHeight / 2) + (commentInputContainer.offsetHeight / 2);
+            window.scrollTo({
+                top: yOffset,
+                behavior: 'smooth'
+            });
+        }, 100); 
     });
 
     commentInput.addEventListener('blur', () => {
-        commentInputContainer.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end'
-        });
+        setTimeout(() => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }, 100);
     });
-
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
