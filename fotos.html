@@ -51,6 +51,18 @@
         display: flex;
         flex-direction: column;
     }
+    
+    .custom-alert.confirm-delete {
+      width: 300px;
+      text-align: center;
+    }
+    
+    .custom-alert.confirm-delete .btn-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
 
     .custom-alert h2 {
         color: #3498db;
@@ -170,6 +182,11 @@
     .comments-overlay-container li:last-child {
       border-bottom: none;
     }
+    
+    /* Estilo para los comentarios que se pueden borrar */
+    .comments-overlay-container li.deletable {
+        cursor: pointer;
+    }
 
     /* Clase para ocultar los overlays */
     .hidden-overlay {
@@ -190,15 +207,20 @@
         font-weight: bold;
         z-index: 999;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 5px;
+        gap: 2px;
         cursor: pointer;
         transition: opacity 0.3s ease, visibility 0.3s ease;
     }
     
-    .comments-counter span {
-        /* Icono de comentarios con Unicode */
-        font-family: 'Arial', sans-serif;
+    .comments-counter .icon {
+        font-size: 1.5rem; /* Icono más grande */
+        line-height: 1;
+    }
+    
+    .comments-counter .count {
+        font-size: 0.9rem; /* Número más pequeño */
     }
   </style>
 </head>
@@ -222,8 +244,8 @@
     <ul id="commentsList"></ul>
   </div>
   <div class="comments-counter" id="commentsCounter">
-      <span>💬</span>
-      <span id="commentCountValue">0</span>
+      <span class="icon">💬</span>
+      <span class="count" id="commentCountValue">0</span>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -248,9 +270,29 @@
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
+    
+    let isLongPress = false;
+    let pressTimer = null;
+    let currentAuthorEmail = ""; // Aquí debes almacenar el correo del usuario actual
+
+    // Simula la obtención del correo del usuario actual desde AppInventor.
+    // Esto debería ser proporcionado por la aplicación nativa.
+    function getAutorCorreo() {
+      // Reemplaza esto con la lógica real para obtener el correo del usuario.
+      // Por ejemplo, desde un componente de AppInventor que maneje la autenticación.
+      return "usuario@ejemplo.com"; 
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      currentAuthorEmail = getAutorCorreo();
+    });
 
     // Toggle para ocultar/mostrar overlays al tocar la imagen
     document.querySelector('.swiper').addEventListener('click', () => {
+        if(isLongPress) {
+          isLongPress = false;
+          return;
+        }
         const currentTime = new Date().getTime();
         // Evita el conflicto con el doble toque (zoom)
         if (currentTime - lastTapTime > 300) {
@@ -262,9 +304,99 @@
     });
 
     // Toggle para expandir/colapsar el contenedor de comentarios
-    commentsOverlay.addEventListener('click', () => {
+    commentsOverlay.addEventListener('click', (e) => {
+        if (isLongPress) {
+          isLongPress = false;
+          return;
+        }
+        // Solo expande si no fue un toque largo
         commentsOverlay.classList.toggle('expanded');
     });
+
+    // Manejador de eventos para el long press en los comentarios
+    function handleLongPress(e) {
+      if (e.target.tagName !== 'LI') return;
+
+      const commentData = e.target.dataset;
+      const comentario = commentData.texto;
+      const autorCorreo = commentData.correo;
+      
+      if (autorCorreo === currentAuthorEmail) {
+        showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
+          const activeIndex = swiperInstance.realIndex;
+          const currentAnuncio = anunciosData[activeIndex];
+          if(currentAnuncio) {
+            eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
+          }
+        });
+      }
+    }
+
+    function startPressTimer(e) {
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            handleLongPress(e);
+        }, 1000); // 1 segundo para long press
+    }
+
+    function cancelPressTimer() {
+        clearTimeout(pressTimer);
+    }
+    
+    commentsList.addEventListener('touchstart', (e) => {
+        startPressTimer(e);
+    });
+    
+    commentsList.addEventListener('touchend', () => {
+        cancelPressTimer();
+    });
+    
+    commentsList.addEventListener('touchmove', () => {
+        cancelPressTimer();
+    });
+    
+    commentsList.addEventListener('mousedown', (e) => {
+        startPressTimer(e);
+    });
+
+    commentsList.addEventListener('mouseup', () => {
+        cancelPressTimer();
+    });
+
+    function normalizeText(text) {
+        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    }
+    
+    async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'eliminarComentario');
+            formData.append('idAnuncio', anuncioId);
+            formData.append('textoComentario', comentarioTexto);
+            formData.append('correoAutor', autorCorreo);
+            
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.status === "✅ success") {
+                console.log("Comentario eliminado con éxito.");
+                await verificarComentarios(); // Volver a cargar los comentarios
+            } else {
+                console.error("Error al eliminar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo eliminar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al eliminar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar eliminar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -275,10 +407,11 @@
           const autor = c?.autor ?? "";
           const fecha = c?.fecha ?? "";
           const comentario = c?.comentario ?? "";
+          const correo = c?.correo ?? "";
           if (autor || fecha || comentario) {
-            return `${autor} (${fecha}) - ${comentario}`;
+            return { texto: `${autor} (${fecha}) - ${comentario}`, autorCorreo: correo, textoPuro: comentario };
           }
-          return "";
+          return null;
         })
         .filter(Boolean);
     }
@@ -461,11 +594,17 @@
             currentDescription.textContent = anuncio.descripcion;
             
             commentsList.innerHTML = '';
+            
+            commentsOverlay.classList.remove('expanded'); // Colapsa el contenedor al cambiar de slide
 
             if (anuncio.comentarios && anuncio.comentarios.length > 0) {
               anuncio.comentarios.forEach(comentario => {
                 const li = document.createElement('li');
-                li.textContent = comentario;
+                li.textContent = comentario.texto;
+                li.dataset.id = comentario.id;
+                li.dataset.correo = comentario.autorCorreo;
+                li.dataset.texto = comentario.textoPuro;
+                li.classList.add('deletable');
                 commentsList.appendChild(li);
               });
               commentCountValue.textContent = anuncio.comentarios.length;
@@ -531,6 +670,9 @@
         const alertTitle = document.getElementById('alertTitle');
         const alertMessage = document.getElementById('alertMessage');
         
+        // Reinicia la clase de la ventana modal para no tener conflictos
+        overlay.querySelector('.custom-alert').className = 'custom-alert';
+
         alertTitle.textContent = title;
         alertMessage.innerHTML = '';
         
@@ -561,6 +703,55 @@
             alertMessage.appendChild(li);
         }
 
+        overlay.style.display = 'flex';
+    }
+
+    function showConfirmationDialog(message, onConfirm) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert confirm-delete';
+        alertTitle.textContent = "Confirmar eliminación";
+        alertMessage.innerHTML = `<p>${message}</p>`;
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'btn-group';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Sí, borrar';
+        confirmBtn.style.backgroundColor = '#e74c3c';
+        confirmBtn.onclick = () => {
+            onConfirm();
+            overlay.style.display = 'none';
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.onclick = () => {
+            overlay.style.display = 'none';
+        };
+
+        buttonGroup.appendChild(confirmBtn);
+        buttonGroup.appendChild(cancelBtn);
+        alertMessage.appendChild(buttonGroup);
+
+        overlay.style.display = 'flex';
+    }
+    
+    function showInfoDialog(title, message) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        const closeButton = document.getElementById('closeAlertButton');
+
+        alertDiv.className = 'custom-alert';
+        alertTitle.textContent = title;
+        alertMessage.innerHTML = `<p>${message}</p>`;
+        closeButton.textContent = 'Aceptar';
+        
         overlay.style.display = 'flex';
     }
 
