@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -11,12 +11,27 @@
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+
+    /* 🔔 Contador visual arriba */
+    #lblContador {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 9999;
+      display: none;
+    }
   </style>
 </head>
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="lblContador"></div> <!-- 🔔 Aquí se muestra el aviso de nuevos anuncios -->
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -27,15 +42,14 @@
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    // 🔹 Contador global de comentarios
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {}; 
 
     // 🔹 Normalizar comentarios (más reciente primero)
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
-      return [...lista] // copia defensiva
-        .reverse()      // último enviado primero
+      return [...lista]
+        .reverse()
         .map(c => {
           try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
           const autor = c?.autor ?? "";
@@ -49,7 +63,8 @@
         .filter(Boolean);
     }
 
-    // 🔹 Actualizar contador de anuncios
+    const INTERVALO_VERIFICACION = 5000;
+
     async function actualizarContador() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
@@ -60,23 +75,33 @@
           contadorTotalAnterior = totalActual;
         } else {
           if (totalActual !== contadorTotalAnterior) {
-            console.log("🔄 Cambio detectado: recargando anuncios...");
-            contadorTotalAnterior = totalActual;
-            await cargarImagenes();
-          } else {
-            let diferencia = totalActual - contadorTotalAnterior;
+            const diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
               contadorAcumulado += diferencia;
+            } else if (diferencia < 0) {
+              contadorAcumulado = 0;
+            }
+            const lblContador = document.getElementById("lblContador");
+            if (lblContador) {
+              if (contadorAcumulado > 0) {
+                lblContador.textContent = `🔔 ${contadorAcumulado} anuncios nuevos`;
+                lblContador.style.display = "block";
+              } else {
+                lblContador.textContent = "";
+                lblContador.style.display = "none";
+              }
             }
             contadorTotalAnterior = totalActual;
+            console.log("🔄 Cambio detectado: recargando anuncios...");
+            await cargarImagenes();
           }
         }
       } catch (e) {
-        console.error("Error al obtener contador:", e);
+        console.error("❌ Error al obtener contador:", e);
       }
     }
+    setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
-    // 🔹 Verificar cambios en comentarios
     async function verificarComentarios() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
@@ -99,7 +124,6 @@
       }
     }
 
-    // 🔹 Recargar comentarios del anuncio visible
     function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
 
@@ -119,7 +143,6 @@
       }
     }
 
-    // 🔹 Cargar imágenes
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
@@ -145,10 +168,8 @@
           });
         }
 
-        // 🔹 Invertir orden: el más reciente primero
         newAnunciosData.reverse();
 
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
         const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
 
         if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
@@ -157,6 +178,7 @@
         }
 
         anunciosData = newAnunciosData;
+        const swiperWrapper = document.querySelector('.swiper-wrapper');
         swiperWrapper.innerHTML = '';
 
         anunciosData.forEach(anuncio => {
@@ -172,8 +194,17 @@
           swiperWrapper.appendChild(slide);
         });
 
-        const newIndex = (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex;
-        initSwiper(newIndex < 0 ? 0 : newIndex);
+        if(!swiperInstance) {
+          initSwiper(0);
+        } else {
+          swiperInstance.update();
+          swiperInstance.slideTo(
+            (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex,
+            0,
+            false
+          );
+        }
+
       } catch(error) {
         console.error("Error al cargar las imágenes:", error);
       } finally {
@@ -184,7 +215,7 @@
     function initSwiper(initialIndex = 0) {
       if(swiperInstance) swiperInstance.destroy(true,true);
       swiperInstance = new Swiper('.swiper', {
-        loop:true, 
+        loop:false, 
         direction:'vertical',
         slidesPerView:1, 
         spaceBetween:10,
@@ -195,14 +226,11 @@
         if(window.AppInventor && anunciosData.length > 0) {
           const realIndex = swiperInstance.realIndex;
           const anuncioActual = anunciosData[realIndex];
-
-          // ✅ Solo sobreescribir si ya tenemos comentarios del servidor para ese ID
           const id = anuncioActual.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
           if (hayServidor) {
             anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
           }
-
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -211,18 +239,14 @@
 
       if(anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0);
+        swiperInstance.slideTo(initialSlideIndex, 0, false);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
-
-          // ✅ Primer envío: usar los comentarios ya cargados;
-          // si ya hay en el mapa del servidor, los priorizamos.
           const id = anuncioInicial.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
           if (hayServidor) {
             anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
           }
-
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -233,9 +257,7 @@
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    // 🔹 Carga inicial
     cargarImagenes();
-    // 🔹 Precarga del mapa de comentarios para que llegue lo antes posible
     verificarComentarios();
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -249,17 +271,16 @@
               contadorTotalAnterior = -1; 
               cargarImagenes();
             }
-
             if(comando.startsWith("irATitulo:")) {
               const tituloBuscado = comando.replace("irATitulo:", "").trim();
               const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
               const tituloNormalizado = normalizar(tituloBuscado);
               const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0);
+              if(index >= 0 && swiperInstance) swiperInstance.slideTo(index, 0, false);
             }
             if(comando.startsWith("irAIndice:")) {
               const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0);
+              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideTo(indice, 0, false);
             }
           }
         }, 500);
