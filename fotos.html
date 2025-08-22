@@ -289,12 +289,7 @@
 
     // Toggle para ocultar/mostrar overlays al tocar la imagen
     document.querySelector('.swiper').addEventListener('click', () => {
-        if(isLongPress) {
-          isLongPress = false;
-          return;
-        }
         const currentTime = new Date().getTime();
-        // Evita el conflicto con el doble toque (zoom)
         if (currentTime - lastTapTime > 300) {
             contentOverlay.classList.toggle('hidden-overlay');
             commentsOverlay.classList.toggle('hidden-overlay');
@@ -305,19 +300,18 @@
 
     // Toggle para expandir/colapsar el contenedor de comentarios
     commentsOverlay.addEventListener('click', (e) => {
-        if (isLongPress) {
-          isLongPress = false;
-          return;
+        // Asegurarse de que el clic no provenga de un elemento que tenga un doble toque
+        if (e.target.tagName !== 'LI') {
+            commentsOverlay.classList.toggle('expanded');
         }
-        // Solo expande si no fue un toque largo
-        commentsOverlay.classList.toggle('expanded');
     });
 
-    // Manejador de eventos para el long press en los comentarios
-    function handleLongPress(e) {
-      if (e.target.tagName !== 'LI') return;
+    // Manejador de eventos para el doble toque en los comentarios
+    commentsList.addEventListener('dblclick', (e) => {
+      const commentElement = e.target.closest('li');
+      if (!commentElement) return;
 
-      const commentData = e.target.dataset;
+      const commentData = commentElement.dataset;
       const comentario = commentData.texto;
       const autorCorreo = commentData.correo;
       
@@ -329,39 +323,9 @@
             eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
           }
         });
+      } else {
+        showInfoDialog("Acceso denegado", "Solo puedes eliminar tus propios comentarios.");
       }
-    }
-
-    function startPressTimer(e) {
-        isLongPress = false;
-        pressTimer = setTimeout(() => {
-            isLongPress = true;
-            handleLongPress(e);
-        }, 1000); // 1 segundo para long press
-    }
-
-    function cancelPressTimer() {
-        clearTimeout(pressTimer);
-    }
-    
-    commentsList.addEventListener('touchstart', (e) => {
-        startPressTimer(e);
-    });
-    
-    commentsList.addEventListener('touchend', () => {
-        cancelPressTimer();
-    });
-    
-    commentsList.addEventListener('touchmove', () => {
-        cancelPressTimer();
-    });
-    
-    commentsList.addEventListener('mousedown', (e) => {
-        startPressTimer(e);
-    });
-
-    commentsList.addEventListener('mouseup', () => {
-        cancelPressTimer();
     });
 
     function normalizeText(text) {
@@ -667,16 +631,19 @@
 
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
         const alertTitle = document.getElementById('alertTitle');
         const alertMessage = document.getElementById('alertMessage');
         
         // Reinicia la clase de la ventana modal para no tener conflictos
-        overlay.querySelector('.custom-alert').className = 'custom-alert';
-
-        alertTitle.textContent = title;
+        alertDiv.className = 'custom-alert';
         alertMessage.innerHTML = '';
         
+        alertTitle.textContent = title;
+        
         if (titlesList.length > 0) {
+            const list = document.createElement('ul');
+            list.className = 'titles-list';
             titlesList.forEach((titulo, index) => {
                 const li = document.createElement('li');
                 li.textContent = titulo;
@@ -695,13 +662,20 @@
                         document.getElementById('customAlertOverlay').style.display = 'none';
                     }
                 });
-                alertMessage.appendChild(li);
+                list.appendChild(li);
             });
+            alertMessage.appendChild(list);
         } else {
-            const li = document.createElement('li');
-            li.textContent = "No hay anuncios nuevos.";
-            alertMessage.appendChild(li);
+            const p = document.createElement('p');
+            p.textContent = "No hay anuncios nuevos.";
+            alertMessage.appendChild(p);
         }
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = "Cerrar";
+        closeBtn.id = "closeAlertButton";
+        closeBtn.onclick = () => overlay.style.display = 'none';
+        alertMessage.appendChild(closeBtn);
 
         overlay.style.display = 'flex';
     }
@@ -745,19 +719,18 @@
         const alertDiv = overlay.querySelector('.custom-alert');
         const alertTitle = document.getElementById('alertTitle');
         const alertMessage = document.getElementById('alertMessage');
-        const closeButton = document.getElementById('closeAlertButton');
-
+        
         alertDiv.className = 'custom-alert';
         alertTitle.textContent = title;
         alertMessage.innerHTML = `<p>${message}</p>`;
-        closeButton.textContent = 'Aceptar';
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Aceptar';
+        closeBtn.onclick = () => overlay.style.display = 'none';
+        alertMessage.appendChild(closeBtn);
         
         overlay.style.display = 'flex';
     }
-
-    document.getElementById('closeAlertButton').addEventListener('click', () => {
-        document.getElementById('customAlertOverlay').style.display = 'none';
-    });
 
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
