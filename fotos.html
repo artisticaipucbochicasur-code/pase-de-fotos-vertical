@@ -5,7 +5,14 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    body { margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; }
+    body {
+        margin: 0;
+        padding: 0;
+        background: #111;
+        font-family: Arial, sans-serif;
+        color: white;
+        transition: transform 0.3s ease; /* Transición para el movimiento */
+    }
     .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -155,7 +162,7 @@
         box-sizing: border-box;
         z-index: 998;
         overflow-y: auto;
-        transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
         max-height: 4em;
     }
 
@@ -247,7 +254,7 @@
     /* Estilos del nuevo contador de comentarios */
     .comments-counter {
         position: fixed;
-        bottom: 60px; /* Ajustado para subir la posición */
+        bottom: 60px;
         right: 10px;
         background: rgba(0, 0, 0, 0.6);
         color: white;
@@ -261,7 +268,7 @@
         align-items: center;
         gap: 2px;
         cursor: pointer;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
     }
     
     .comments-counter .icon {
@@ -286,7 +293,7 @@
         align-items: center;
         gap: 10px;
         z-index: 1000;
-        transition: transform 0.3s ease;
+        transition: bottom 0.3s ease, transform 0.3s ease;
     }
 
     .comment-input-container input {
@@ -341,7 +348,7 @@
   
   <div class="comment-input-container">
       <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-      <button class="send-comment-btn"><i class="fas fa-envelope"></i></button>
+      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -574,6 +581,18 @@
         if (e.key === 'Enter') {
             enviarComentario();
         }
+    });
+
+    // Nuevo: Detección de teclado para mover la vista
+    commentInput.addEventListener('focus', () => {
+        document.body.style.marginBottom = commentInputContainer.offsetHeight + 'px';
+        const offset = window.innerHeight - (commentInputContainer.getBoundingClientRect().top - 10);
+        document.body.style.transform = `translateY(${-offset}px)`;
+    });
+
+    commentInput.addEventListener('blur', () => {
+        document.body.style.marginBottom = '0';
+        document.body.style.transform = `translateY(0)`;
     });
 
     function normalizarComentarios(lista) {
@@ -1016,4 +1035,3 @@
   </script>
 </body>
 </html>
-
