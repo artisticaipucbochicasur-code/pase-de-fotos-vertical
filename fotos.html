@@ -144,73 +144,79 @@
     }
 
     async function cargarImagenes() {
-      loader.style.display = 'block';
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        let newAnunciosData = [];
+  loader.style.display = 'block';
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    let newAnunciosData = [];
 
-        if(data.url && data.url.length > 0) {
-          data.url.forEach((url, index) => {
-            const comentariosFormateados = normalizarComentarios(data.comentarios?.[index] || []);
-            newAnunciosData.push({
-              titulo: data.titulo[index] || "",
-              descripcion: data.descripcion[index] || "",
-              comentarios: comentariosFormateados,
-              url: url,
-              deleteurl: data.deleteurl[index] || "",
-              autor: data.autor[index] || "",
-              correo: data.correo[index] || "",
-              fecha: data.fecha[index] || "",
-              id: data.id[index] || ""
-            });
-          });
-        }
-
-        newAnunciosData.reverse();
-
-        const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-
-        if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
-          loader.style.display='none';
-          return;
-        }
-
-        anunciosData = newAnunciosData;
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        swiperWrapper.innerHTML = '';
-
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
-          swiperWrapper.appendChild(slide);
+    if (data.url && data.url.length > 0) {
+      data.url.forEach((url, index) => {
+        const comentariosFormateados = normalizarComentarios(data.comentarios?.[index] || []);
+        newAnunciosData.push({
+          titulo: data.titulo[index] || "",
+          descripcion: data.descripcion[index] || "",
+          comentarios: comentariosFormateados,
+          url: url,
+          deleteurl: data.deleteurl[index] || "",
+          autor: data.autor[index] || "",
+          correo: data.correo[index] || "",
+          fecha: data.fecha[index] || "",
+          id: data.id[index] || ""
         });
-
-        if(!swiperInstance) {
-          initSwiper(0);
-        } else {
-          swiperInstance.update();
-          swiperInstance.slideTo(
-            (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex,
-            0,
-            false
-          );
-        }
-
-      } catch(error) {
-        console.error("Error al cargar las imágenes:", error);
-      } finally {
-        loader.style.display = 'none';
-      }
+      });
     }
+
+    // 🔹 Invertir orden: el más reciente primero
+    newAnunciosData.reverse();
+
+    // ✅ Si no hay cambios, no tocar nada
+    if (JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)) {
+      loader.style.display = 'none';
+      return;
+    }
+
+    // Guardar índice actual (si existe Swiper)
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+
+    // Reemplazar data pero sin movernos
+    anunciosData = newAnunciosData;
+    const swiperWrapper = document.querySelector('.swiper-wrapper');
+    swiperWrapper.innerHTML = '';
+
+    anunciosData.forEach(anuncio => {
+      const slide = document.createElement('div');
+      slide.classList.add('swiper-slide');
+      const zoomContainer = document.createElement('div');
+      zoomContainer.classList.add('swiper-zoom-container');
+      const img = document.createElement('img');
+      img.src = anuncio.url;
+      img.alt = anuncio.titulo;
+      zoomContainer.appendChild(img);
+      slide.appendChild(zoomContainer);
+      swiperWrapper.appendChild(slide);
+    });
+
+    if (!swiperInstance) {
+      // Primera carga → inicializamos Swiper
+      initSwiper(0);
+    } else {
+      // ✅ Mantener posición actual SIEMPRE
+      swiperInstance.update();
+      swiperInstance.slideToLoop(
+        (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex,
+        0
+      );
+    }
+
+  } catch (error) {
+    console.error("Error al cargar las imágenes:", error);
+  } finally {
+    loader.style.display = 'none';
+  }
+}
+
 
     function initSwiper(initialIndex = 0) {
       if(swiperInstance) swiperInstance.destroy(true,true);
@@ -294,3 +300,4 @@
   </script>
 </body>
 </html>
+
