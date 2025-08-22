@@ -12,7 +12,7 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-    /* 🔔 Estilos para el aviso de nuevos anuncios */
+    /* 🔔 Estilos para el aviso de nuevos anuncios (más sensible) */
     #lblContador {
       position: fixed;
       top: 10px;
@@ -24,8 +24,61 @@
       font-weight: bold;
       z-index: 9999;
       display: none;
-      cursor: pointer; /* Para indicar que es clickeable */
+      cursor: pointer;
     }
+
+    /* 🆕 Estilos para la alerta personalizada */
+    #customAlertOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .custom-alert {
+        background-color: #2c3e50; /* Azul oscuro */
+        color: #ecf0f1; /* Blanco claro */
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        max-width: 80%;
+        text-align: center;
+        border: 2px solid #3498db; /* Borde azul */
+    }
+
+    .custom-alert h2 {
+        color: #3498db; /* Azul */
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+    }
+
+    .custom-alert p {
+        margin: 0 0 20px;
+        white-space: pre-wrap;
+    }
+
+    .custom-alert button {
+        background-color: #34495e; /* Gris oscuro */
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+    }
+    
+    .custom-alert button:hover {
+        background-color: #5d6d7e; /* Gris más claro al pasar el mouse */
+    }
+
   </style>
 </head>
 
@@ -33,6 +86,13 @@
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
+  <div id="customAlertOverlay">
+      <div class="custom-alert">
+          <h2 id="alertTitle"></h2>
+          <p id="alertMessage"></p>
+          <button id="closeAlertButton">Cerrar</button>
+      </div>
+  </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -41,7 +101,7 @@
     let swiperInstance = null;
     let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
-    let nuevosTitulos = []; // Array para almacenar los títulos de los nuevos anuncios
+    let nuevosTitulos = []; 
     const loader = document.getElementById('loader');
     const lblContador = document.getElementById("lblContador");
 
@@ -187,7 +247,6 @@
         // Si solo hay nuevos anuncios, los agregamos sin mover el slider
         if (newAnunciosData.length > anunciosData.length) {
           const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosData.length - anunciosData.length);
-          // Almacena los títulos de los nuevos anuncios
           nuevosTitulos = nuevosAnuncios.map(a => a.titulo);
           
           if (swiperInstance) {
@@ -201,16 +260,14 @@
               slide.appendChild(img);
               swiperInstance.prependSlide(slide);
             });
-            // Mantenemos la posición actual
             swiperInstance.slideTo(currentIndex + nuevosAnuncios.length, 0, false);
-            // Actualizamos la data local
             anunciosData = newAnunciosData;
             loader.style.display = 'none';
             return;
           }
         }
 
-        // Si hay cambios más complejos (borrados, reordenamientos, etc.), recreamos el slider
+        // Si hay cambios más complejos, recreamos el slider
         anunciosData = newAnunciosData;
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         swiperWrapper.innerHTML = '';
@@ -218,7 +275,7 @@
         anunciosData.forEach(anuncio => {
           const slide = document.createElement('div');
           slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id; // Almacena el ID del anuncio
+          slide.dataset.id = anuncio.id;
           const zoomContainer = document.createElement('div');
           zoomContainer.classList.add('swiper-zoom-container');
           const img = document.createElement('img');
@@ -229,9 +286,8 @@
           swiperWrapper.appendChild(slide);
         });
 
-        // Buscamos el nuevo índice de la imagen que estábamos viendo
         const newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
-        const finalIndex = newIndex >= 0 ? newIndex : 0; // Si no se encuentra, vamos al inicio
+        const finalIndex = newIndex >= 0 ? newIndex : 0; 
 
         if(!swiperInstance) {
           initSwiper(finalIndex);
@@ -293,6 +349,22 @@
       }
     }
 
+    // 🆕 Nueva función para mostrar la alerta personalizada
+    function showCustomAlert(title, message) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertTitle.textContent = title;
+        alertMessage.textContent = message;
+        overlay.style.display = 'flex';
+    }
+
+    // 🆕 Evento para cerrar la alerta personalizada
+    document.getElementById('closeAlertButton').addEventListener('click', () => {
+        document.getElementById('customAlertOverlay').style.display = 'none';
+    });
+
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
@@ -302,13 +374,13 @@
     // 🔔 Evento para manejar el clic en el aviso de nuevos anuncios
     if (lblContador) {
         lblContador.addEventListener('click', () => {
-            let mensaje = "DECOM BOCHICA SUR\n\n";
+            let mensaje = "";
             if (nuevosTitulos.length > 0) {
                 mensaje += nuevosTitulos.join('\n');
             } else {
                 mensaje += "No hay anuncios nuevos.";
             }
-            alert(mensaje);
+            showCustomAlert("DECOM BOCHICA SUR", mensaje);
         });
     }
 
