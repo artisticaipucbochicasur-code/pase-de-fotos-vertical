@@ -378,7 +378,7 @@
     let lastTapTime = 0;
     
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
-    let currentAuthorName = "Usuario Web"; // Nueva variable para el nombre del autor
+    let currentAuthorName = "Usuario Web";
     
     // Variables para el swipe
     let startX = 0;
@@ -552,7 +552,7 @@
             formData.append('accion', 'agregarComentario');
             formData.append('anuncioId', currentAnuncio.id);
             formData.append('comentario', comentarioTexto);
-            formData.append('autor', currentAuthorName); // Ahora usa la variable
+            formData.append('autor', currentAuthorName);
             formData.append('correo', currentAuthorEmail);
 
             const response = await fetch(SCRIPT_URL, {
@@ -584,15 +584,14 @@
         }
     });
 
-    // Nueva lógica: Desplazamiento usando el 'transform' del body para una mayor fiabilidad
+    // Lógica para subir la barra de comentarios
     commentInput.addEventListener('focus', () => {
-        const windowHeight = window.innerHeight;
-        const inputHeight = commentInputContainer.offsetHeight;
-        const offset = windowHeight / 2 - inputHeight;
-        document.body.style.transform = `translateY(-${offset}px)`;
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-50%)`;
     });
 
     commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
         document.body.style.transform = 'translateY(0)';
     });
 
@@ -1015,7 +1014,6 @@
                 console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
               }
             } catch (e) {
-              // Si no es JSON, procesa como un comando de cadena
               if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
                 console.log("Reiniciando contador y cargando anuncios.");
                 contadorAcumulado = 0;
