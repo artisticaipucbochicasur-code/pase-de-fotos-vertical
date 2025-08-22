@@ -103,7 +103,7 @@
         position: fixed;
         top: 10px;
         left: 10px;
-        background: transparent;
+        background: rgba(0, 0, 0, 0.6); /* Color de fondo añadido */
         color: #fff;
         padding: 10px 15px;
         border-radius: 5px;
@@ -111,6 +111,7 @@
         max-width: 80%;
         box-sizing: border-box;
         z-index: 999;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 
     .content-overlay h3 {
@@ -142,9 +143,10 @@
         box-sizing: border-box;
         z-index: 998;
         overflow-y: auto;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 
-    /* Estilos para la lista de comentarios */
+    /* Estilos para cada comentario individual */
     .comments-overlay-container ul {
         list-style: none;
         padding: 0;
@@ -163,6 +165,12 @@
     .comments-overlay-container li:last-child {
       border-bottom: none;
     }
+
+    /* Clase para ocultar los overlays */
+    .hidden-overlay {
+      opacity: 0;
+      visibility: hidden;
+    }
   </style>
 </head>
 
@@ -177,11 +185,11 @@
           <button id="closeAlertButton">Cerrar</button>
       </div>
   </div>
-  <div class="content-overlay">
+  <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
-  <div class="comments-overlay-container">
+  <div class="comments-overlay-container" id="commentsOverlay">
     <ul id="commentsList"></ul>
   </div>
   
@@ -196,12 +204,26 @@
     const loader = document.getElementById('loader');
     const lblContador = document.getElementById("lblContador");
 
+    const contentOverlay = document.getElementById('contentOverlay');
+    const commentsOverlay = document.getElementById('commentsOverlay');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
     const commentsList = document.getElementById('commentsList');
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
+    let lastTapTime = 0;
+
+    // Escuchar el evento de clic en el contenedor principal del swiper
+    document.querySelector('.swiper').addEventListener('click', () => {
+        const currentTime = new Date().getTime();
+        // Evita el conflicto con el doble toque (zoom)
+        if (currentTime - lastTapTime > 300) {
+            contentOverlay.classList.toggle('hidden-overlay');
+            commentsOverlay.classList.toggle('hidden-overlay');
+        }
+        lastTapTime = currentTime;
+    });
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
