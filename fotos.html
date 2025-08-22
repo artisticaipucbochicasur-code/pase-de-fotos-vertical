@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css  "/>
   <style>
     body { margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; }
     .swiper { width: 100vw; height: 100vh; }
@@ -208,27 +208,21 @@
         align-items: center;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
-        z-index: 1; /* Asegurar que el botón esté detrás */
+        z-index: -1; /* Detrás del contenido */
         font-weight: bold;
+        pointer-events: none; /* No recibe eventos hasta que esté visible */
     }
     
     /* El comentario se desliza sobre el botón */
     .comments-overlay-container li .comment-content {
       position: relative;
-      background: none; /* Eliminado el fondo */
+      background: none;
       width: 100%;
       height: 100%;
       padding: 0 10px;
       box-sizing: border-box;
       transition: transform 0.3s ease;
-    }
-    
-    .comments-overlay-container li .comment-content.swiped {
-      transform: translateX(100px);
-    }
-    
-    .comments-overlay-container li .delete-btn.active {
-      transform: translateX(0);
+      z-index: 1; /* Siempre encima */
     }
 
     /* Clase para ocultar los overlays */
@@ -290,9 +284,9 @@
       <span class="count" id="commentCountValue">0</span>
   </div>
   
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js  "></script>
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec  ";
     let anunciosData = [];
     let swiperInstance = null;
     let contadorTotalAnterior = -1;
@@ -408,6 +402,7 @@
             newDeleteBtn.textContent = 'Borrar';
             activeComment.appendChild(newDeleteBtn);
             newDeleteBtn.style.transform = `translateX(0)`;
+            newDeleteBtn.style.pointerEvents = 'auto';
             newDeleteBtn.addEventListener('click', (ev) => {
                 ev.stopPropagation(); 
                 const commentData = activeComment.dataset;
@@ -424,12 +419,14 @@
             });
         } else {
           deleteBtn.style.transform = `translateX(0)`;
+          deleteBtn.style.pointerEvents = 'auto';
         }
         
       } else {
         commentContent.style.transform = `translateX(0)`;
         if (deleteBtn) {
             deleteBtn.style.transform = `translateX(-100%)`;
+            deleteBtn.style.pointerEvents = 'none';
         }
       }
 
@@ -860,7 +857,7 @@
         setInterval(() => {
           const comando = window.AppInventor.getWebViewString?.();
           if(comando) {
-            if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+            if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html  ") {
               console.log("Reiniciando contador y cargando anuncios.");
               contadorAcumulado = 0;
               contadorTotalAnterior = -1;
