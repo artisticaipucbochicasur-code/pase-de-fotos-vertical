@@ -293,7 +293,7 @@
         align-items: center;
         gap: 10px;
         z-index: 1000;
-        transition: bottom 0.3s ease, transform 0.3s ease;
+        transition: transform 0.3s ease;
     }
 
     .comment-input-container input {
@@ -583,16 +583,22 @@
         }
     });
 
-    // Nuevo: Detección de teclado para mover la vista
-    commentInput.addEventListener('focus', () => {
-        document.body.style.marginBottom = commentInputContainer.offsetHeight + 'px';
-        const offset = window.innerHeight - (commentInputContainer.getBoundingClientRect().top - 10);
-        document.body.style.transform = `translateY(${-offset}px)`;
-    });
-
-    commentInput.addEventListener('blur', () => {
-        document.body.style.marginBottom = '0';
-        document.body.style.transform = `translateY(0)`;
+    // Nueva y mejorada lógica de ajuste al teclado
+    window.visualViewport.addEventListener('resize', () => {
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        
+        if (keyboardHeight > 0) {
+            // Teclado visible: Mover la barra de comentarios hacia arriba
+            const containerHeight = commentInputContainer.offsetHeight;
+            commentInputContainer.style.transform = `translateY(${-keyboardHeight}px)`;
+            commentsOverlay.style.bottom = `${keyboardHeight + containerHeight + 10}px`;
+            commentsCounter.style.bottom = `${keyboardHeight + containerHeight + 10}px`;
+        } else {
+            // Teclado oculto: Restaurar posición original
+            commentInputContainer.style.transform = `translateY(0)`;
+            commentsOverlay.style.bottom = `60px`;
+            commentsCounter.style.bottom = `60px`;
+        }
     });
 
     function normalizarComentarios(lista) {
