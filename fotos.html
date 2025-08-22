@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -27,15 +27,14 @@
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
 
-    // 🔹 Contador global de comentarios
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {}; 
 
     // 🔹 Normalizar comentarios (más reciente primero)
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
-      return [...lista] // copia defensiva
-        .reverse()      // último enviado primero
+      return [...lista]
+        .reverse()
         .map(c => {
           try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
           const autor = c?.autor ?? "";
@@ -49,58 +48,41 @@
         .filter(Boolean);
     }
 
-   const INTERVALO_VERIFICACION = 5000; // Cada 5 segundos revisamos si hay cambios
+    const INTERVALO_VERIFICACION = 5000;
 
-// 🔹 Función para actualizar el contador y refrescar la lista si cambió
-async function actualizarContador() {
-  try {
-    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-    const data = await response.json();
-    const totalActual = data.contador || 0;
+    async function actualizarContador() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+        const data = await response.json();
+        const totalActual = data.contador || 0;
 
-    // ✅ Primera carga → solo guardamos el valor inicial
-    if (contadorTotalAnterior === -1) {
-      contadorTotalAnterior = totalActual;
-    } else {
-      // ✅ Si el número de anuncios cambió...
-      if (totalActual !== contadorTotalAnterior) {
-        // 1. Calculamos cuántos anuncios nuevos hay
-        const diferencia = totalActual - contadorTotalAnterior;
-
-        // 2. Si hay más anuncios → incrementamos contadorAcumulado
-        if (diferencia > 0) {
-          contadorAcumulado += diferencia;
-        } else if (diferencia < 0) {
-          // Si se eliminaron anuncios → reseteamos contadorAcumulado
-          contadorAcumulado = 0;
+        if (contadorTotalAnterior === -1) {
+          contadorTotalAnterior = totalActual;
+        } else {
+          if (totalActual !== contadorTotalAnterior) {
+            const diferencia = totalActual - contadorTotalAnterior;
+            if (diferencia > 0) {
+              contadorAcumulado += diferencia;
+            } else if (diferencia < 0) {
+              contadorAcumulado = 0;
+            }
+            const lblContador = document.getElementById("lblContador");
+            if (lblContador) {
+              lblContador.textContent = contadorAcumulado > 0
+                ? `🔔 ${contadorAcumulado} anuncios nuevos`
+                : "";
+            }
+            contadorTotalAnterior = totalActual;
+            console.log("🔄 Cambio detectado: recargando anuncios...");
+            await cargarImagenes();
+          }
         }
-
-        // 3. Actualizamos el contador visual si tienes un Label para mostrarlo
-        const lblContador = document.getElementById("lblContador");
-        if (lblContador) {
-          lblContador.textContent = contadorAcumulado > 0
-            ? `🔔 ${contadorAcumulado} anuncios nuevos`
-            : "";
-        }
-
-        // 4. Guardamos el nuevo total
-        contadorTotalAnterior = totalActual;
-
-        // 5. 🔄 Recargamos las imágenes automáticamente
-        console.log("🔄 Cambio detectado: recargando anuncios...");
-        await cargarImagenes();
+      } catch (e) {
+        console.error("❌ Error al obtener contador:", e);
       }
     }
-  } catch (e) {
-    console.error("❌ Error al obtener contador:", e);
-  }
-}
+    setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
-// 🔹 Iniciamos el chequeo automático
-setInterval(actualizarContador, INTERVALO_VERIFICACION);
-
-
-    // 🔹 Verificar cambios en comentarios
     async function verificarComentarios() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
@@ -123,7 +105,6 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
       }
     }
 
-    // 🔹 Recargar comentarios del anuncio visible
     function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
 
@@ -143,7 +124,6 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
       }
     }
 
-    // 🔹 Cargar imágenes
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
@@ -169,13 +149,10 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
           });
         }
 
-        // 🔹 Invertir orden: el más reciente primero
         newAnunciosData.reverse();
 
-        // ✅ Guardar índice actual antes de actualizar
         const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
 
-        // ✅ Si no hay cambios, no recargar
         if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
           loader.style.display='none';
           return;
@@ -199,14 +176,13 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         });
 
         if(!swiperInstance) {
-          // Primera carga → inicializamos Swiper
           initSwiper(0);
         } else {
-          // ✅ Mantener posición actual
           swiperInstance.update();
-          swiperInstance.slideToLoop(
-            (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex, 
-            0
+          swiperInstance.slideTo(
+            (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex,
+            0,
+            false
           );
         }
 
@@ -220,7 +196,7 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
     function initSwiper(initialIndex = 0) {
       if(swiperInstance) swiperInstance.destroy(true,true);
       swiperInstance = new Swiper('.swiper', {
-        loop:true, 
+        loop:false, 
         direction:'vertical',
         slidesPerView:1, 
         spaceBetween:10,
@@ -231,14 +207,11 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         if(window.AppInventor && anunciosData.length > 0) {
           const realIndex = swiperInstance.realIndex;
           const anuncioActual = anunciosData[realIndex];
-
-          // ✅ Solo sobreescribir si ya tenemos comentarios del servidor para ese ID
           const id = anuncioActual.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
           if (hayServidor) {
             anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
           }
-
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -247,18 +220,14 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
       if(anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0);
+        swiperInstance.slideTo(initialSlideIndex, 0, false);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
-
-          // ✅ Primer envío: usar los comentarios ya cargados;
-          // si ya hay en el mapa del servidor, los priorizamos.
           const id = anuncioInicial.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
           if (hayServidor) {
             anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
           }
-
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -269,9 +238,7 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    // 🔹 Carga inicial
     cargarImagenes();
-    // 🔹 Precarga del mapa de comentarios para que llegue lo antes posible
     verificarComentarios();
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -285,17 +252,16 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
               contadorTotalAnterior = -1; 
               cargarImagenes();
             }
-
             if(comando.startsWith("irATitulo:")) {
               const tituloBuscado = comando.replace("irATitulo:", "").trim();
               const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
               const tituloNormalizado = normalizar(tituloBuscado);
               const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0);
+              if(index >= 0 && swiperInstance) swiperInstance.slideTo(index, 0, false);
             }
             if(comando.startsWith("irAIndice:")) {
               const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0);
+              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideTo(indice, 0, false);
             }
           }
         }, 500);
