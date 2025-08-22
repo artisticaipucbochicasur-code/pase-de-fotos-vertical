@@ -206,10 +206,21 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        transform: translateX(-100px);
+        transform: translateX(0);
         transition: transform 0.3s ease;
-        z-index: 10;
+        z-index: 1; /* Asegurar que el botón esté detrás */
         font-weight: bold;
+    }
+    
+    /* El comentario se desliza sobre el botón */
+    .comments-overlay-container li .comment-content {
+      position: relative;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      height: 100%;
+      padding: 0 10px;
+      box-sizing: border-box;
+      transition: transform 0.3s ease;
     }
 
     /* Clase para ocultar los overlays */
@@ -336,7 +347,8 @@
       if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
           startX = e.touches[0].clientX;
           activeComment = commentElement;
-          activeComment.style.transition = 'none'; // Desactivar la transición para el movimiento
+          // Desactivar transiciones para el movimiento de swipe
+          activeComment.querySelector('.comment-content').style.transition = 'none';
           isSwiping = false; 
       }
     });
@@ -350,11 +362,11 @@
       if (Math.abs(diffX) > 10) { 
         isSwiping = true;
       }
-
+      
       if (diffX > 0) { 
-        activeComment.style.transform = `translateX(${diffX}px)`;
+        activeComment.querySelector('.comment-content').style.transform = `translateX(${diffX}px)`;
       } else { 
-          activeComment.style.transform = `translateX(0)`; 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`; 
       }
     });
 
@@ -364,11 +376,12 @@
       const swipeThreshold = 50;
       const diffX = e.changedTouches[0].clientX - startX;
       
-      activeComment.style.transition = 'transform 0.3s ease';
+      activeComment.querySelector('.comment-content').style.transition = 'transform 0.3s ease';
       
       if (diffX > swipeThreshold) {
-        activeComment.style.transform = `translateX(100px)`; 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(100px)`; 
         
+        // Crear y mostrar el botón de borrado
         let deleteBtn = activeComment.querySelector('.delete-btn');
         if (!deleteBtn) {
             deleteBtn = document.createElement('div');
@@ -393,7 +406,7 @@
         }
         
       } else {
-        activeComment.style.transform = `translateX(0)`;
+        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`;
       }
 
       activeComment = null;
@@ -632,11 +645,17 @@
             if (anuncio.comentarios && anuncio.comentarios.length > 0) {
               anuncio.comentarios.forEach(comentario => {
                 const li = document.createElement('li');
-                li.textContent = comentario.texto;
+                li.classList.add('deletable');
+
+                const commentContent = document.createElement('div');
+                commentContent.classList.add('comment-content');
+                commentContent.textContent = comentario.texto;
+                li.appendChild(commentContent);
+
                 li.dataset.id = comentario.id;
                 li.dataset.correo = comentario.autorCorreo;
                 li.dataset.texto = comentario.textoPuro;
-                li.classList.add('deletable');
+                
                 commentsList.appendChild(li);
               });
               commentCountValue.textContent = anuncio.comentarios.length;
