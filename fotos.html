@@ -49,32 +49,56 @@
         .filter(Boolean);
     }
 
-    // 🔹 Actualizar contador de anuncios
-    async function actualizarContador() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-        const data = await response.json();
-        const totalActual = data.contador || 0;
+   const INTERVALO_VERIFICACION = 5000; // Cada 5 segundos revisamos si hay cambios
 
-        if (contadorTotalAnterior === -1) {
-          contadorTotalAnterior = totalActual;
-        } else {
-          if (totalActual !== contadorTotalAnterior) {
-            console.log("🔄 Cambio detectado: recargando anuncios...");
-            contadorTotalAnterior = totalActual;
-            await cargarImagenes();
-          } else {
-            let diferencia = totalActual - contadorTotalAnterior;
-            if (diferencia > 0) {
-              contadorAcumulado += diferencia;
-            }
-            contadorTotalAnterior = totalActual;
-          }
+// 🔹 Función para actualizar el contador y refrescar la lista si cambió
+async function actualizarContador() {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+    const data = await response.json();
+    const totalActual = data.contador || 0;
+
+    // ✅ Primera carga → solo guardamos el valor inicial
+    if (contadorTotalAnterior === -1) {
+      contadorTotalAnterior = totalActual;
+    } else {
+      // ✅ Si el número de anuncios cambió...
+      if (totalActual !== contadorTotalAnterior) {
+        // 1. Calculamos cuántos anuncios nuevos hay
+        const diferencia = totalActual - contadorTotalAnterior;
+
+        // 2. Si hay más anuncios → incrementamos contadorAcumulado
+        if (diferencia > 0) {
+          contadorAcumulado += diferencia;
+        } else if (diferencia < 0) {
+          // Si se eliminaron anuncios → reseteamos contadorAcumulado
+          contadorAcumulado = 0;
         }
-      } catch (e) {
-        console.error("Error al obtener contador:", e);
+
+        // 3. Actualizamos el contador visual si tienes un Label para mostrarlo
+        const lblContador = document.getElementById("lblContador");
+        if (lblContador) {
+          lblContador.textContent = contadorAcumulado > 0
+            ? `🔔 ${contadorAcumulado} anuncios nuevos`
+            : "";
+        }
+
+        // 4. Guardamos el nuevo total
+        contadorTotalAnterior = totalActual;
+
+        // 5. 🔄 Recargamos las imágenes automáticamente
+        console.log("🔄 Cambio detectado: recargando anuncios...");
+        await cargarImagenes();
       }
     }
+  } catch (e) {
+    console.error("❌ Error al obtener contador:", e);
+  }
+}
+
+// 🔹 Iniciamos el chequeo automático
+setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
     // 🔹 Verificar cambios en comentarios
     async function verificarComentarios() {
@@ -273,3 +297,4 @@
   </script>
 </body>
 </html>
+
