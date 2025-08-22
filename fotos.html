@@ -378,6 +378,7 @@
     let lastTapTime = 0;
     
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
+    let currentAuthorName = "Usuario Web"; // Nueva variable para el nombre del autor
     
     // Variables para el swipe
     let startX = 0;
@@ -551,7 +552,7 @@
             formData.append('accion', 'agregarComentario');
             formData.append('anuncioId', currentAnuncio.id);
             formData.append('comentario', comentarioTexto);
-            formData.append('autor', "Usuario Web");
+            formData.append('autor', currentAuthorName); // Ahora usa la variable
             formData.append('correo', currentAuthorEmail);
 
             const response = await fetch(SCRIPT_URL, {
@@ -583,24 +584,16 @@
         }
     });
 
-    // Nueva lógica: Desplazamiento manual y temporizado para el campo de texto
+    // Nueva lógica: Desplazamiento usando el 'transform' del body para una mayor fiabilidad
     commentInput.addEventListener('focus', () => {
-        setTimeout(() => {
-            const yOffset = commentInputContainer.getBoundingClientRect().top - (window.innerHeight / 2) + (commentInputContainer.offsetHeight / 2);
-            window.scrollTo({
-                top: yOffset,
-                behavior: 'smooth'
-            });
-        }, 100); 
+        const windowHeight = window.innerHeight;
+        const inputHeight = commentInputContainer.offsetHeight;
+        const offset = windowHeight / 2 - inputHeight;
+        document.body.style.transform = `translateY(-${offset}px)`;
     });
 
     commentInput.addEventListener('blur', () => {
-        setTimeout(() => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }, 100);
+        document.body.style.transform = 'translateY(0)';
     });
 
     function normalizarComentarios(lista) {
@@ -1014,22 +1007,32 @@
         setInterval(() => {
           const comando = window.AppInventor.getWebViewString?.();
           if(comando) {
-            if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-              console.log("Reiniciando contador y cargando anuncios.");
-              contadorAcumulado = 0;
-              contadorTotalAnterior = -1;
-              verificarComentarios().then(() => cargarImagenes());
-            }
-            if(comando.startsWith("irATitulo:")) {
-              const tituloBuscado = comando.replace("irATitulo:", "").trim();
-              const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-              const tituloNormalizado = normalizar(tituloBuscado);
-              const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
-            }
-            if(comando.startsWith("irAIndice:")) {
-              const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+            try {
+              const data = JSON.parse(comando);
+              if(data.action === "updateUserData") {
+                currentAuthorEmail = data.email;
+                currentAuthorName = data.name;
+                console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+              }
+            } catch (e) {
+              // Si no es JSON, procesa como un comando de cadena
+              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+                console.log("Reiniciando contador y cargando anuncios.");
+                contadorAcumulado = 0;
+                contadorTotalAnterior = -1;
+                verificarComentarios().then(() => cargarImagenes());
+              }
+              if(comando.startsWith("irATitulo:")) {
+                const tituloBuscado = comando.replace("irATitulo:", "").trim();
+                const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                const tituloNormalizado = normalizar(tituloBuscado);
+                const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+                if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+              }
+              if(comando.startsWith("irAIndice:")) {
+                const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+                if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+              }
             }
           }
         }, 500);
