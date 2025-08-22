@@ -103,7 +103,7 @@
         position: fixed;
         top: 10px;
         left: 10px;
-        background: transparent; /* Fondo transparente */
+        background: transparent;
         color: #fff;
         padding: 10px 15px;
         border-radius: 5px;
@@ -118,38 +118,50 @@
         margin-bottom: 5px;
         font-size: 1.2rem;
         font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Sombra para mejorar legibilidad */
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
     .content-overlay p {
         margin-top: 0;
         font-size: 0.9rem;
         line-height: 1.2;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Sombra para mejorar legibilidad */
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-    /* Estilos para el overlay de comentarios */
-    .comments-overlay {
+    /* Estilos para el nuevo contenedor de comentarios */
+    .comments-overlay-container {
         position: fixed;
         bottom: 10px;
         left: 10px;
+        width: calc(80% - 20px); /* Ajusta el ancho */
+        max-height: 25vh; /* Altura máxima para el scroll */
         background: rgba(0, 0, 0, 0.6);
         color: #eee;
-        padding: 10px 15px;
+        padding: 10px;
         border-radius: 5px;
-        text-align: left;
-        max-width: 80%;
         box-sizing: border-box;
         z-index: 998;
+        overflow-y: auto; /* Habilita el scroll vertical */
+    }
+
+    /* Estilos para la lista de comentarios */
+    .comments-overlay-container ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Estilos para cada comentario individual */
+    .comments-overlay-container li {
         font-size: 0.8rem;
         line-height: 1.2;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 8px;
     }
-    .comments-overlay p {
-      margin: 0;
-    }
-    .comments-overlay strong {
-        font-weight: bold;
-        color: #fff;
+
+    .comments-overlay-container li:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
@@ -169,8 +181,8 @@
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
-  <div class="comments-overlay">
-    <p id="currentComment"></p>
+  <div class="comments-overlay-container">
+    <ul id="commentsList"></ul>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -186,7 +198,7 @@
 
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
-    const currentComment = document.getElementById('currentComment');
+    const commentsList = document.getElementById('commentsList');
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -275,6 +287,7 @@
       
       if (anuncioActual) {
         anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
+        updateContentOverlay(activeIndex);
         
         console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
         
@@ -366,7 +379,6 @@
           swiperInstance.slideTo(finalIndex, 0, false);
         }
 
-        // Actualizar el texto al cargar
         updateContentOverlay(finalIndex);
 
       } catch(error) {
@@ -381,7 +393,20 @@
             const anuncio = anunciosData[index];
             currentTitle.textContent = anuncio.titulo;
             currentDescription.textContent = anuncio.descripcion;
-            currentComment.textContent = anuncio.comentarios.length > 0 ? anuncio.comentarios[0] : "No hay comentarios aún.";
+            
+            commentsList.innerHTML = ''; // Limpiar la lista de comentarios
+
+            if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+              anuncio.comentarios.forEach(comentario => {
+                const li = document.createElement('li');
+                li.textContent = comentario;
+                commentsList.appendChild(li);
+              });
+            } else {
+              const li = document.createElement('li');
+              li.textContent = "No hay comentarios aún.";
+              commentsList.appendChild(li);
+            }
         }
     }
 
