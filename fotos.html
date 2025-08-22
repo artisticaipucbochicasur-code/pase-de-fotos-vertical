@@ -198,7 +198,7 @@
     .comments-overlay-container li .delete-btn {
         position: absolute;
         top: 0;
-        left: -100px;
+        left: 0;
         height: 100%;
         width: 100px;
         background-color: #e74c3c;
@@ -206,9 +206,10 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        transform: translateX(0);
+        transform: translateX(-100px);
         transition: transform 0.3s ease;
-        z-index: -1;
+        z-index: 10;
+        font-weight: bold;
     }
 
     /* Clase para ocultar los overlays */
@@ -298,6 +299,7 @@
     // Variables para el swipe
     let startX = 0;
     let activeComment = null;
+    let isSwiping = false;
 
     function normalizeText(text) {
         if (!text) return "";
@@ -332,6 +334,7 @@
           startX = e.touches[0].clientX;
           activeComment = commentElement;
           activeComment.style.transition = 'none'; // Desactivar la transición para el movimiento
+          isSwiping = false; // Reset the swiping flag
       }
     });
 
@@ -343,6 +346,7 @@
 
       if (diffX > 0) { // Solo si se desliza hacia la derecha
         activeComment.style.transform = `translateX(${diffX}px)`;
+        isSwiping = true;
       }
     });
 
@@ -352,9 +356,10 @@
       const swipeThreshold = 50; // Mínimo de 50px de deslizamiento para activar el borrado
       const diffX = e.changedTouches[0].clientX - startX;
       
+      activeComment.style.transition = 'transform 0.3s ease';
+      
       if (diffX > swipeThreshold) {
-        // Revelar el botón de borrar
-        activeComment.style.transform = `translateX(100px)`; // Desplazar el comentario
+        activeComment.style.transform = `translateX(100px)`; 
         
         // Crear y mostrar el botón de borrado
         let deleteBtn = activeComment.querySelector('.delete-btn');
@@ -365,7 +370,7 @@
             activeComment.appendChild(deleteBtn);
 
             deleteBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation(); // Evitar que el clic se propague al contenedor
+                ev.stopPropagation(); // Evitar que el clic se propague
                 const commentData = activeComment.dataset;
                 const comentario = commentData.texto;
                 const autorCorreo = commentData.correo;
@@ -379,19 +384,14 @@
                 });
             });
         }
-        deleteBtn.style.transform = `translateX(${diffX}px)`;
         
       } else {
-        // Restaurar la posición original
         activeComment.style.transform = `translateX(0)`;
       }
 
-      // Restablecer variables
-      activeComment.style.transition = 'transform 0.3s ease';
       activeComment = null;
       startX = 0;
     });
-
 
     async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
         loader.style.display = 'block';
