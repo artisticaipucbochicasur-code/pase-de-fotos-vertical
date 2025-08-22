@@ -271,21 +271,13 @@
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
     
-    let isLongPress = false;
-    let pressTimer = null;
-    let currentAuthorEmail = ""; // Aquí debes almacenar el correo del usuario actual
-
-    // Simula la obtención del correo del usuario actual desde AppInventor.
-    // Esto debería ser proporcionado por la aplicación nativa.
-    function getAutorCorreo() {
-      // Reemplaza esto con la lógica real para obtener el correo del usuario.
-      // Por ejemplo, desde un componente de AppInventor que maneje la autenticación.
-      return "usuario@ejemplo.com"; 
-    }
+    let currentAuthorEmail = "deimer.herrera91@gmail.com"; // **👉 Aquí se debe obtener el correo del usuario actual de la aplicación**
     
-    document.addEventListener('DOMContentLoaded', () => {
-      currentAuthorEmail = getAutorCorreo();
-    });
+    // Función para normalizar texto para comparaciones seguras
+    function normalizeText(text) {
+        if (!text) return "";
+        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    }
 
     // Toggle para ocultar/mostrar overlays al tocar la imagen
     document.querySelector('.swiper').addEventListener('click', () => {
@@ -315,7 +307,7 @@
       const comentario = commentData.texto;
       const autorCorreo = commentData.correo;
       
-      if (autorCorreo === currentAuthorEmail) {
+      if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
         showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
           const activeIndex = swiperInstance.realIndex;
           const currentAnuncio = anunciosData[activeIndex];
@@ -328,9 +320,6 @@
       }
     });
 
-    function normalizeText(text) {
-        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-    }
     
     async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
         loader.style.display = 'block';
