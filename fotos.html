@@ -11,6 +11,21 @@
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+
+    /* 🔔 Estilo del aviso */
+    .aviso-nuevos {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 8px;
+      z-index: 9999;
+      font-size: 14px;
+      opacity: 0.95;
+    }
   </style>
 </head>
 
@@ -58,24 +73,18 @@ async function actualizarContador() {
     const data = await response.json();
     const totalActual = data.contador || 0;
 
-    // ✅ Primera carga → solo guardamos el valor inicial
     if (contadorTotalAnterior === -1) {
       contadorTotalAnterior = totalActual;
     } else {
-      // ✅ Si el número de anuncios cambió...
       if (totalActual !== contadorTotalAnterior) {
-        // 1. Calculamos cuántos anuncios nuevos hay
         const diferencia = totalActual - contadorTotalAnterior;
 
-        // 2. Si hay más anuncios → incrementamos contadorAcumulado
         if (diferencia > 0) {
           contadorAcumulado += diferencia;
         } else if (diferencia < 0) {
-          // Si se eliminaron anuncios → reseteamos contadorAcumulado
           contadorAcumulado = 0;
         }
 
-        // 3. Actualizamos el contador visual si tienes un Label para mostrarlo
         const lblContador = document.getElementById("lblContador");
         if (lblContador) {
           lblContador.textContent = contadorAcumulado > 0
@@ -83,10 +92,8 @@ async function actualizarContador() {
             : "";
         }
 
-        // 4. Guardamos el nuevo total
         contadorTotalAnterior = totalActual;
 
-        // 5. 🔄 Recargamos las imágenes automáticamente
         console.log("🔄 Cambio detectado: recargando anuncios...");
         await cargarImagenes();
       }
@@ -175,6 +182,16 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
 
+        // 🔔 Avisar si hay nuevos anuncios
+        if(anunciosData.length > 0 && newAnunciosData.length > anunciosData.length){
+          const nuevos = newAnunciosData.length - anunciosData.length;
+          const aviso = document.createElement('div');
+          aviso.className = 'aviso-nuevos';
+          aviso.textContent = `🔔 ${nuevos} nuevo${nuevos>1?'s':''} anuncio${nuevos>1?'s':''} disponible${nuevos>1?'s':''}`;
+          document.body.appendChild(aviso);
+          setTimeout(()=>aviso.remove(),4000);
+        }
+
         if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
           loader.style.display='none';
           return;
@@ -219,14 +236,11 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         if(window.AppInventor && anunciosData.length > 0) {
           const realIndex = swiperInstance.realIndex;
           const anuncioActual = anunciosData[realIndex];
-
-          // ✅ Solo sobreescribir si ya tenemos comentarios del servidor para ese ID
           const id = anuncioActual.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
           if (hayServidor) {
             anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
           }
-
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -238,15 +252,11 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         swiperInstance.slideToLoop(initialSlideIndex, 0);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
-
-          // ✅ Primer envío: usar los comentarios ya cargados;
-          // si ya hay en el mapa del servidor, los priorizamos.
           const id = anuncioInicial.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
           if (hayServidor) {
             anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
           }
-
           const listaTitulos = anunciosData.map(a => a.titulo);
           const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
           window.AppInventor.setWebViewString(JSON.stringify(payload));
@@ -257,9 +267,7 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
     setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    // 🔹 Carga inicial
     cargarImagenes();
-    // 🔹 Precarga del mapa de comentarios para que llegue lo antes posible
     verificarComentarios();
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -273,7 +281,6 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
               contadorTotalAnterior = -1; 
               cargarImagenes();
             }
-
             if(comando.startsWith("irATitulo:")) {
               const tituloBuscado = comando.replace("irATitulo:", "").trim();
               const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -297,4 +304,3 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
   </script>
 </body>
 </html>
-
