@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -31,9 +31,7 @@
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div>
-  <div id="lblContador"></div> <!-- 🔔 Aquí se muestra el aviso de nuevos anuncios -->
-
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <div id="lblContador"></div> <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
@@ -43,7 +41,7 @@
     const loader = document.getElementById('loader');
 
     let contadorComentariosAnterior = -1;
-    let comentariosPorAnuncio = {}; 
+    let comentariosPorAnuncio = {};
 
     // 🔹 Normalizar comentarios (más reciente primero)
     function normalizarComentarios(lista) {
@@ -134,10 +132,10 @@
       console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
 
       if (window.AppInventor) {
-        const payload = { 
-          ...anuncioActual, 
-          titulos: anunciosData.map(a => a.titulo), 
-          contador: contadorAcumulado 
+        const payload = {
+          ...anuncioActual,
+          titulos: anunciosData.map(a => a.titulo),
+          contador: contadorAcumulado
         };
         window.AppInventor.setWebViewString(JSON.stringify(payload));
       }
@@ -145,6 +143,9 @@
 
     async function cargarImagenes() {
       loader.style.display = 'block';
+      const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+      const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
         if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -170,13 +171,35 @@
 
         newAnunciosData.reverse();
 
-        const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-
-        if(JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)){
-          loader.style.display='none';
+        // Si no hay cambios, no hacemos nada
+        if (JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)) {
+          loader.style.display = 'none';
           return;
         }
 
+        // Si solo hay nuevos anuncios, los agregamos sin mover el slider
+        if (newAnunciosData.length > anunciosData.length) {
+          const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosData.length - anunciosData.length);
+          if (swiperInstance) {
+            nuevosAnuncios.forEach(anuncio => {
+              const slide = document.createElement('div');
+              slide.classList.add('swiper-slide');
+              const img = document.createElement('img');
+              img.src = anuncio.url;
+              img.alt = anuncio.titulo;
+              slide.appendChild(img);
+              swiperInstance.prependSlide(slide);
+            });
+            // Mantenemos la posición actual
+            swiperInstance.slideTo(currentIndex + nuevosAnuncios.length, 0, false);
+            // Actualizamos la data local
+            anunciosData = newAnunciosData;
+            loader.style.display = 'none';
+            return;
+          }
+        }
+
+        // Si hay cambios más complejos (borrados, reordenamientos, etc.), recreamos el slider
         anunciosData = newAnunciosData;
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         swiperWrapper.innerHTML = '';
@@ -194,15 +217,15 @@
           swiperWrapper.appendChild(slide);
         });
 
+        // Buscamos el nuevo índice de la imagen que estábamos viendo
+        const newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
+        const finalIndex = newIndex >= 0 ? newIndex : 0; // Si no se encuentra, vamos al inicio
+
         if(!swiperInstance) {
-          initSwiper(0);
+          initSwiper(finalIndex);
         } else {
           swiperInstance.update();
-          swiperInstance.slideTo(
-            (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex,
-            0,
-            false
-          );
+          swiperInstance.slideTo(finalIndex, 0, false);
         }
 
       } catch(error) {
@@ -213,13 +236,13 @@
     }
 
     function initSwiper(initialIndex = 0) {
-      if(swiperInstance) swiperInstance.destroy(true,true);
+      if(swiperInstance) swiperInstance.destroy(true, true);
       swiperInstance = new Swiper('.swiper', {
-        loop:false, 
-        direction:'vertical',
-        slidesPerView:1, 
-        spaceBetween:10,
-        zoom:{ maxRatio:3, minRatio:1 }
+        loop: true,
+        direction: 'vertical',
+        slidesPerView: 1,
+        spaceBetween: 10,
+        zoom: { maxRatio: 3, minRatio: 1 }
       });
 
       swiperInstance.on('slideChange', () => {
@@ -239,7 +262,7 @@
 
       if(anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideTo(initialSlideIndex, 0, false);
+        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
         if(window.AppInventor){
           const anuncioInicial = anunciosData[initialSlideIndex];
           const id = anuncioInicial.id;
@@ -268,7 +291,7 @@
             if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
               console.log("Reiniciando contador y cargando anuncios.");
               contadorAcumulado = 0;
-              contadorTotalAnterior = -1; 
+              contadorTotalAnterior = -1;
               cargarImagenes();
             }
             if(comando.startsWith("irATitulo:")) {
@@ -276,11 +299,11 @@
               const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
               const tituloNormalizado = normalizar(tituloBuscado);
               const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-              if(index >= 0 && swiperInstance) swiperInstance.slideTo(index, 0, false);
+              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
             }
             if(comando.startsWith("irAIndice:")) {
               const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideTo(indice, 0, false);
+              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
             }
           }
         }, 500);
