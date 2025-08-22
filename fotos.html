@@ -124,20 +124,23 @@
 
     function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
-
-      const anuncioActual = anunciosData[swiperInstance.realIndex];
-      const nuevosComentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
-      anuncioActual.comentarios = nuevosComentarios;
-
-      console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-
-      if (window.AppInventor) {
-        const payload = {
-          ...anuncioActual,
-          titulos: anunciosData.map(a => a.titulo),
-          contador: contadorAcumulado
-        };
-        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      const activeSlideEl = swiperInstance.slides[swiperInstance.activeIndex];
+      const anuncioId = activeSlideEl.dataset.id;
+      const anuncioActual = anunciosData.find(a => a.id === anuncioId);
+      
+      if (anuncioActual) {
+        anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[anuncioActual.id]);
+        
+        console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+        
+        if (window.AppInventor) {
+          const payload = {
+            ...anuncioActual,
+            titulos: anunciosData.map(a => a.titulo),
+            contador: contadorAcumulado
+          };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
       }
     }
 
@@ -184,6 +187,7 @@
             nuevosAnuncios.forEach(anuncio => {
               const slide = document.createElement('div');
               slide.classList.add('swiper-slide');
+              slide.dataset.id = anuncio.id; // Almacena el ID del anuncio
               const img = document.createElement('img');
               img.src = anuncio.url;
               img.alt = anuncio.titulo;
@@ -207,6 +211,7 @@
         anunciosData.forEach(anuncio => {
           const slide = document.createElement('div');
           slide.classList.add('swiper-slide');
+          slide.dataset.id = anuncio.id; // Almacena el ID del anuncio
           const zoomContainer = document.createElement('div');
           zoomContainer.classList.add('swiper-zoom-container');
           const img = document.createElement('img');
@@ -246,20 +251,12 @@
       });
 
       swiperInstance.on('slideChange', () => {
-        if(window.AppInventor && anunciosData.length > 0) {
-          const realIndex = swiperInstance.realIndex;
+        if(window.AppInventor && swiperInstance.slides.length > 0) {
+          const activeSlideEl = swiperInstance.slides[swiperInstance.activeIndex];
+          const anuncioId = activeSlideEl.dataset.id;
+          const anuncioActual = anunciosData.find(a => a.id === anuncioId);
           
-          // Buscar la diapositiva en el DOM para obtener el ID
-          const currentSlideEl = swiperInstance.slides[swiperInstance.activeIndex];
-          const imgEl = currentSlideEl ? currentSlideEl.querySelector('img') : null;
-          const currentUrl = imgEl ? imgEl.src : null;
-          
-          if (!currentUrl) return;
-
-          // Encontrar el objeto de datos que corresponde a la URL de la imagen actual
-          const anuncioActual = anunciosData.find(a => a.url === currentUrl);
-          
-          if (!anuncioActual) return; // Si no hay anuncio, salir
+          if (!anuncioActual) return;
 
           const id = anuncioActual.id;
           const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
