@@ -65,41 +65,35 @@
 
     const INTERVALO_VERIFICACION = 5000;
 
-    async function actualizarContador() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-        const data = await response.json();
-        const totalActual = data.contador || 0;
+    // 🔹 Función para actualizar el contador y refrescar si cambió
+async function actualizarContador() {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+    const data = await response.json();
+    const totalActual = data.contador || 0;
 
-        if (contadorTotalAnterior === -1) {
-          contadorTotalAnterior = totalActual;
-        } else {
-          if (totalActual !== contadorTotalAnterior) {
-            const diferencia = totalActual - contadorTotalAnterior;
-            if (diferencia > 0) {
-              contadorAcumulado += diferencia;
-            } else if (diferencia < 0) {
-              contadorAcumulado = 0;
-            }
-            const lblContador = document.getElementById("lblContador");
-            if (lblContador) {
-              if (contadorAcumulado > 0) {
-                lblContador.textContent = `🔔 ${contadorAcumulado} anuncios nuevos`;
-                lblContador.style.display = "block";
-              } else {
-                lblContador.textContent = "";
-                lblContador.style.display = "none";
-              }
-            }
-            contadorTotalAnterior = totalActual;
-            console.log("🔄 Cambio detectado: recargando anuncios...");
-            await cargarImagenes();
-          }
+    // Si es la primera vez, solo guardamos el valor
+    if (contadorTotalAnterior === -1) {
+      contadorTotalAnterior = totalActual;
+    } else {
+      // Si el número de anuncios cambió, recargamos imágenes
+      if (totalActual !== contadorTotalAnterior) {
+        console.log("🔄 Cambio detectado: recargando anuncios...");
+        contadorTotalAnterior = totalActual;
+        await cargarImagenes();
+      } else {
+        // Si no cambió, mantenemos el acumulado
+        let diferencia = totalActual - contadorTotalAnterior;
+        if (diferencia > 0) {
+          contadorAcumulado += diferencia;
         }
-      } catch (e) {
-        console.error("❌ Error al obtener contador:", e);
+        contadorTotalAnterior = totalActual;
       }
     }
+  } catch (e) {
+    console.error("Error al obtener contador:", e);
+  }
+}
     setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
     async function verificarComentarios() {
@@ -143,7 +137,8 @@
       }
     }
 
- async function cargarImagenes() {
+ // 🔹 Función para cargar imágenes (manteniendo el índice actual)
+async function cargarImagenes() {
   loader.style.display = 'block';
   try {
     const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
@@ -173,12 +168,6 @@
 
     // ✅ Guardar índice actual ANTES de refrescar
     const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-
-    // Si no hay cambios, salir
-    if (JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)) {
-      loader.style.display = 'none';
-      return;
-    }
 
     anunciosData = newAnunciosData;
     const swiperWrapper = document.querySelector('.swiper-wrapper');
@@ -295,5 +284,6 @@
   </script>
 </body>
 </html>
+
 
 
