@@ -50,6 +50,8 @@
         max-width: 80%;
         text-align: center;
         border: 2px solid #3498db; /* Borde azul */
+        display: flex;
+        flex-direction: column;
     }
 
     .custom-alert h2 {
@@ -79,6 +81,26 @@
         background-color: #5d6d7e; /* Gris más claro al pasar el mouse */
     }
 
+    /* Estilos para la lista de títulos */
+    .titles-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px;
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+    }
+
+    .titles-list li {
+        padding: 8px;
+        background-color: #34495e;
+        border-bottom: 1px solid #2c3e50;
+        cursor: pointer;
+    }
+    .titles-list li:hover {
+        background-color: #5d6d7e;
+    }
+
   </style>
 </head>
 
@@ -89,7 +111,7 @@
   <div id="customAlertOverlay">
       <div class="custom-alert">
           <h2 id="alertTitle"></h2>
-          <p id="alertMessage"></p>
+          <ul class="titles-list" id="alertMessage"></ul>
           <button id="closeAlertButton">Cerrar</button>
       </div>
   </div>
@@ -238,12 +260,11 @@
 
         newAnunciosData.reverse();
 
-        // Si no hay cambios, no hacemos nada
         if (JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)) {
           loader.style.display = 'none';
           return;
         }
-
+        
         // Si solo hay nuevos anuncios, los agregamos sin mover el slider
         if (newAnunciosData.length > anunciosData.length) {
           const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosData.length - anunciosData.length);
@@ -253,7 +274,7 @@
             nuevosAnuncios.forEach(anuncio => {
               const slide = document.createElement('div');
               slide.classList.add('swiper-slide');
-              slide.dataset.id = anuncio.id; // Almacena el ID del anuncio
+              slide.dataset.id = anuncio.id;
               const img = document.createElement('img');
               img.src = anuncio.url;
               img.alt = anuncio.titulo;
@@ -267,7 +288,6 @@
           }
         }
 
-        // Si hay cambios más complejos, recreamos el slider
         anunciosData = newAnunciosData;
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         swiperWrapper.innerHTML = '';
@@ -349,18 +369,45 @@
       }
     }
 
-    // 🆕 Nueva función para mostrar la alerta personalizada
-    function showCustomAlert(title, message) {
+    function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
         const alertTitle = document.getElementById('alertTitle');
         const alertMessage = document.getElementById('alertMessage');
         
         alertTitle.textContent = title;
-        alertMessage.textContent = message;
+        alertMessage.innerHTML = '';
+        
+        if (titlesList.length > 0) {
+            titlesList.forEach((titulo, index) => {
+                const li = document.createElement('li');
+                li.textContent = titulo;
+                li.dataset.index = index;
+                li.addEventListener('click', () => {
+                    const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                    if (selectedIndex !== -1) {
+                        swiperInstance.slideToLoop(selectedIndex, 500);
+                        // Elimina el título del array y actualiza el contador
+                        nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                        contadorAcumulado = nuevosTitulos.length;
+                        if (contadorAcumulado > 0) {
+                            lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                        } else {
+                            lblContador.style.display = 'none';
+                        }
+                        document.getElementById('customAlertOverlay').style.display = 'none';
+                    }
+                });
+                alertMessage.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = "No hay anuncios nuevos.";
+            alertMessage.appendChild(li);
+        }
+
         overlay.style.display = 'flex';
     }
 
-    // 🆕 Evento para cerrar la alerta personalizada
     document.getElementById('closeAlertButton').addEventListener('click', () => {
         document.getElementById('customAlertOverlay').style.display = 'none';
     });
@@ -371,16 +418,9 @@
     cargarImagenes();
     verificarComentarios();
 
-    // 🔔 Evento para manejar el clic en el aviso de nuevos anuncios
     if (lblContador) {
         lblContador.addEventListener('click', () => {
-            let mensaje = "";
-            if (nuevosTitulos.length > 0) {
-                mensaje += nuevosTitulos.join('\n');
-            } else {
-                mensaje += "No hay anuncios nuevos.";
-            }
-            showCustomAlert("DECOM BOCHICA SUR", mensaje);
+            showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
         });
     }
 
