@@ -260,29 +260,35 @@
           return;
         }
         
-        if (newAnunciosData.length > anunciosData.length) {
-          const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosData.length - anunciosData.length);
-          // ✅ Corrección: Agrega los nuevos títulos al principio del array, en lugar de sobrescribirlo
-          nuevosTitulos.unshift(...nuevosAnuncios.map(a => a.titulo));
-          
-          if (swiperInstance) {
-            nuevosAnuncios.forEach(anuncio => {
-              const slide = document.createElement('div');
-              slide.classList.add('swiper-slide');
-              slide.dataset.id = anuncio.id;
-              const img = document.createElement('img');
-              img.src = anuncio.url;
-              img.alt = anuncio.titulo;
-              slide.appendChild(img);
-              swiperInstance.prependSlide(slide);
-            });
-            swiperInstance.slideTo(currentIndex + nuevosAnuncios.length, 0, false);
-            anunciosData = newAnunciosData;
-            loader.style.display = 'none';
-            return;
-          }
-        }
+        const isInitialLoad = anunciosData.length === 0;
+        const newItemsCount = newAnunciosData.length - anunciosData.length;
 
+        if (newItemsCount > 0) {
+            const nuevosAnuncios = newAnunciosData.slice(0, newItemsCount);
+            nuevosTitulos.unshift(...nuevosAnuncios.map(a => a.titulo));
+            
+            if (swiperInstance) {
+                nuevosAnuncios.forEach(anuncio => {
+                    const slide = document.createElement('div');
+                    slide.classList.add('swiper-slide');
+                    slide.dataset.id = anuncio.id;
+                    const img = document.createElement('img');
+                    img.src = anuncio.url;
+                    img.alt = anuncio.titulo;
+                    slide.appendChild(img);
+                    swiperInstance.prependSlide(slide);
+                });
+                swiperInstance.slideTo(currentIndex + nuevosAnuncios.length, 0, false);
+            }
+        }
+        
+        // Reinicia el slider y el contador solo si no es un simple añadido
+        if (newItemsCount <= 0 && !isInitialLoad) {
+            nuevosTitulos = [];
+            contadorAcumulado = 0;
+            lblContador.style.display = "none";
+        }
+        
         anunciosData = newAnunciosData;
         const swiperWrapper = document.querySelector('.swiper-wrapper');
         swiperWrapper.innerHTML = '';
