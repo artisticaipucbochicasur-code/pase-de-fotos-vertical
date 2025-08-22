@@ -12,7 +12,7 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-    /* 🔔 Contador visual arriba */
+    /* 🔔 Estilos para el aviso de nuevos anuncios */
     #lblContador {
       position: fixed;
       top: 10px;
@@ -24,6 +24,8 @@
       font-weight: bold;
       z-index: 9999;
       display: none;
+      cursor: pointer; /* Para indicar que es clickeable */
+      user-select: none; /* Evita que el texto sea seleccionado */
     }
   </style>
 </head>
@@ -31,7 +33,9 @@
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div>
-  <div id="lblContador"></div> <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <div id="lblContador"></div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
@@ -39,6 +43,7 @@
     let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
     const loader = document.getElementById('loader');
+    const lblContador = document.getElementById("lblContador");
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -79,10 +84,9 @@
             } else if (diferencia < 0) {
               contadorAcumulado = 0;
             }
-            const lblContador = document.getElementById("lblContador");
             if (lblContador) {
               if (contadorAcumulado > 0) {
-                lblContador.textContent = `🔔 ${contadorAcumulado} anuncios nuevos`;
+                lblContador.textContent = `🔔 ${contadorAcumulado}`;
                 lblContador.style.display = "block";
               } else {
                 lblContador.textContent = "";
@@ -291,6 +295,13 @@
 
     cargarImagenes();
     verificarComentarios();
+
+    // 🔔 Evento para manejar el clic en el aviso de nuevos anuncios
+    if (lblContador) {
+        lblContador.addEventListener('click', () => {
+            alert("Nuevos por el momento");
+        });
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
       if(window.AppInventor) {
