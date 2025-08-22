@@ -143,7 +143,7 @@
       }
     }
 
-    async function cargarImagenes() {
+ async function cargarImagenes() {
   loader.style.display = 'block';
   try {
     const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
@@ -168,19 +168,18 @@
       });
     }
 
-    // 🔹 Invertir orden: el más reciente primero
+    // 🔹 Invertir orden: más reciente primero
     newAnunciosData.reverse();
 
-    // ✅ Si no hay cambios, no tocar nada
+    // ✅ Guardar índice actual ANTES de refrescar
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+
+    // Si no hay cambios, salir
     if (JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)) {
       loader.style.display = 'none';
       return;
     }
 
-    // Guardar índice actual (si existe Swiper)
-    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-
-    // Reemplazar data pero sin movernos
     anunciosData = newAnunciosData;
     const swiperWrapper = document.querySelector('.swiper-wrapper');
     swiperWrapper.innerHTML = '';
@@ -188,26 +187,22 @@
     anunciosData.forEach(anuncio => {
       const slide = document.createElement('div');
       slide.classList.add('swiper-slide');
-      const zoomContainer = document.createElement('div');
-      zoomContainer.classList.add('swiper-zoom-container');
-      const img = document.createElement('img');
-      img.src = anuncio.url;
-      img.alt = anuncio.titulo;
-      zoomContainer.appendChild(img);
-      slide.appendChild(zoomContainer);
+      slide.innerHTML = `
+        <div class="swiper-zoom-container">
+          <img src="${anuncio.url}" alt="${anuncio.titulo}" />
+        </div>
+      `;
       swiperWrapper.appendChild(slide);
     });
 
     if (!swiperInstance) {
-      // Primera carga → inicializamos Swiper
+      // Primera vez
       initSwiper(0);
     } else {
-      // ✅ Mantener posición actual SIEMPRE
+      // ✅ Refrescar slides pero volver al mismo índice
       swiperInstance.update();
-      swiperInstance.slideToLoop(
-        (currentIndex >= anunciosData.length) ? anunciosData.length - 1 : currentIndex,
-        0
-      );
+      const nuevoIndex = Math.min(currentIndex, anunciosData.length - 1);
+      swiperInstance.slideTo(nuevoIndex, 0, false);
     }
 
   } catch (error) {
@@ -300,4 +295,5 @@
   </script>
 </body>
 </html>
+
 
