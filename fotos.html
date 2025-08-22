@@ -103,7 +103,7 @@
         position: fixed;
         top: 10px;
         left: 10px;
-        background: rgba(0, 0, 0, 0.6);
+        background: transparent; /* Fondo transparente */
         color: #fff;
         padding: 10px 15px;
         border-radius: 5px;
@@ -118,12 +118,38 @@
         margin-bottom: 5px;
         font-size: 1.2rem;
         font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Sombra para mejorar legibilidad */
     }
 
     .content-overlay p {
         margin-top: 0;
         font-size: 0.9rem;
         line-height: 1.2;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Sombra para mejorar legibilidad */
+    }
+
+    /* Estilos para el overlay de comentarios */
+    .comments-overlay {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #eee;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-align: left;
+        max-width: 80%;
+        box-sizing: border-box;
+        z-index: 998;
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    .comments-overlay p {
+      margin: 0;
+    }
+    .comments-overlay strong {
+        font-weight: bold;
+        color: #fff;
     }
   </style>
 </head>
@@ -143,6 +169,9 @@
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
+  <div class="comments-overlay">
+    <p id="currentComment"></p>
+  </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -157,6 +186,7 @@
 
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
+    const currentComment = document.getElementById('currentComment');
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -351,6 +381,7 @@
             const anuncio = anunciosData[index];
             currentTitle.textContent = anuncio.titulo;
             currentDescription.textContent = anuncio.descripcion;
+            currentComment.textContent = anuncio.comentarios.length > 0 ? anuncio.comentarios[0] : "No hay comentarios aún.";
         }
     }
 
