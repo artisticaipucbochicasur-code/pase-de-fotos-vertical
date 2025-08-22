@@ -270,6 +270,52 @@
     .comments-counter .count {
         font-size: 0.9rem; /* Número más pequeño */
     }
+
+    /* Nuevo: Estilos para la barra de entrada de comentarios */
+    .comment-input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #1a1a1a;
+        padding: 10px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+        transform: translateY(100%);
+    }
+
+    .comment-input-container.visible {
+        transform: translateY(0);
+    }
+
+    .comment-input-container input {
+        flex-grow: 1;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 20px;
+        padding: 10px 15px;
+        color: white;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .comment-input-container .send-comment-btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    .comment-input-container .send-comment-btn:hover {
+        background: #2980b9;
+    }
   </style>
 </head>
 
@@ -295,6 +341,11 @@
       <span class="count" id="commentCountValue">0</span>
   </div>
   
+  <div class="comment-input-container">
+      <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+      <button class="send-comment-btn">Enviar</button>
+  </div>
+  
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -306,13 +357,16 @@
     const loader = document.getElementById('loader');
     const lblContador = document.getElementById("lblContador");
 
-    const contentOverlay = document.getElementById('contentOverlay');
+    const contentOverlay = document.getElementById('content-overlay');
     const commentsOverlay = document.getElementById('commentsOverlay');
     const commentsCounter = document.getElementById('commentsCounter');
     const commentCountValue = document.getElementById('commentCountValue');
     const commentsList = document.getElementById('commentsList');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
+    const commentInputContainer = document.querySelector('.comment-input-container');
+    const commentInput = document.getElementById('commentInput');
+    const sendCommentBtn = document.querySelector('.send-comment-btn');
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -337,6 +391,7 @@
             contentOverlay.classList.toggle('hidden-overlay');
             commentsOverlay.classList.toggle('hidden-overlay');
             commentsCounter.classList.toggle('hidden-overlay');
+            commentInputContainer.classList.toggle('hidden-overlay');
         }
         lastTapTime = currentTime;
     });
@@ -474,6 +529,54 @@
             loader.style.display = 'none';
         }
     }
+
+    async function enviarComentario() {
+        const comentarioTexto = commentInput.value.trim();
+        const activeIndex = swiperInstance.realIndex;
+        const currentAnuncio = anunciosData[activeIndex];
+
+        if (!comentarioTexto || !currentAnuncio) {
+            showInfoDialog("Error", "No puedes enviar un comentario vacío.");
+            return;
+        }
+
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'agregarComentario');
+            formData.append('anuncioId', currentAnuncio.id);
+            formData.append('comentario', comentarioTexto);
+            formData.append('autor', "Usuario Web");
+            formData.append('correo', currentAuthorEmail);
+
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.status === "🗣️ success") {
+                console.log("Comentario agregado con éxito.");
+                commentInput.value = ''; // Limpiar el campo
+                await verificarComentarios(); 
+            } else {
+                console.error("Error al agregar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al agregar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    sendCommentBtn.addEventListener('click', enviarComentario);
+    commentInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            enviarComentario();
+        }
+    });
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
