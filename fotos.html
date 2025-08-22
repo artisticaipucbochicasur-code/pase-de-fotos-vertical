@@ -12,7 +12,6 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-    /* 🔔 Estilos para el aviso de nuevos anuncios (más sensible) */
     #lblContador {
       position: fixed;
       top: 10px;
@@ -27,7 +26,6 @@
       cursor: pointer;
     }
 
-    /* 🆕 Estilos para la alerta personalizada */
     #customAlertOverlay {
         display: none;
         position: fixed;
@@ -42,20 +40,20 @@
     }
 
     .custom-alert {
-        background-color: #2c3e50; /* Azul oscuro */
-        color: #ecf0f1; /* Blanco claro */
+        background-color: #2c3e50;
+        color: #ecf0f1;
         padding: 25px;
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         max-width: 80%;
         text-align: center;
-        border: 2px solid #3498db; /* Borde azul */
+        border: 2px solid #3498db;
         display: flex;
         flex-direction: column;
     }
 
     .custom-alert h2 {
-        color: #3498db; /* Azul */
+        color: #3498db;
         margin-top: 0;
         margin-bottom: 15px;
         font-size: 1.5rem;
@@ -67,7 +65,7 @@
     }
 
     .custom-alert button {
-        background-color: #34495e; /* Gris oscuro */
+        background-color: #34495e;
         color: white;
         border: none;
         padding: 10px 20px;
@@ -78,10 +76,9 @@
     }
     
     .custom-alert button:hover {
-        background-color: #5d6d7e; /* Gris más claro al pasar el mouse */
+        background-color: #5d6d7e;
     }
 
-    /* Estilos para la lista de títulos */
     .titles-list {
         list-style: none;
         padding: 0;
@@ -100,7 +97,6 @@
     .titles-list li:hover {
         background-color: #5d6d7e;
     }
-
   </style>
 </head>
 
@@ -130,7 +126,6 @@
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
 
-    // 🔹 Normalizar comentarios (más reciente primero)
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
       return [...lista]
@@ -265,10 +260,10 @@
           return;
         }
         
-        // Si solo hay nuevos anuncios, los agregamos sin mover el slider
         if (newAnunciosData.length > anunciosData.length) {
           const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosData.length - anunciosData.length);
-          nuevosTitulos = nuevosAnuncios.map(a => a.titulo);
+          // ✅ Corrección: Agrega los nuevos títulos al principio del array, en lugar de sobrescribirlo
+          nuevosTitulos.unshift(...nuevosAnuncios.map(a => a.titulo));
           
           if (swiperInstance) {
             nuevosAnuncios.forEach(anuncio => {
@@ -386,7 +381,6 @@
                     const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
                     if (selectedIndex !== -1) {
                         swiperInstance.slideToLoop(selectedIndex, 500);
-                        // Elimina el título del array y actualiza el contador
                         nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
                         contadorAcumulado = nuevosTitulos.length;
                         if (contadorAcumulado > 0) {
