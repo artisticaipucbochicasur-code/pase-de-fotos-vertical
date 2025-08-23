@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳DH</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -555,17 +555,19 @@ function setAuthor(authorName, authorEmail) {
 
         loader.style.display = 'block';
         try {
-            const formData = new FormData();
-            formData.append('accion', 'agregarComentario');
-            formData.append('anuncioId', currentAnuncio.id);
-            formData.append('comentario', comentarioTexto);
-            formData.append('autor', currentAuthorName);
-            formData.append('correo', currentAuthorEmail);
+    const formData = new FormData();
+    formData.append('accion', 'agregarComentario');
+    formData.append('anuncioId', currentAnuncio.id);
+    formData.append('comentario', comentarioTexto);
+    
+    // **Añade estas dos líneas para enviar el nombre y correo del autor**
+    formData.append('autor', currentAuthorName);
+    formData.append('correo', currentAuthorEmail);
 
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+    const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+    });
 
             const result = await response.json();
             if (result.status === "🗣️ success") {
@@ -1051,4 +1053,5 @@ function setAuthor(authorName, authorEmail) {
   </script>
 </body>
 </html>
+
 
