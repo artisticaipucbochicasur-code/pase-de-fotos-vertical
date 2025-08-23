@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳dh</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -377,8 +377,8 @@
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
     
-   let currentAuthorEmail = ""; // Inicializar sin valor
-let currentAuthorName = ""; // Inicializar sin valor
+    let currentAuthorEmail = "deimer.herrera91@gmail.com";
+    let currentAuthorName = "Usuario Web";
     
     // Variables para el swipe
     let startX = 0;
@@ -536,47 +536,46 @@ let currentAuthorName = ""; // Inicializar sin valor
         }
     }
 
-   async function enviarComentario() {
-    const comentarioTexto = commentInput.value.trim();
-    const activeIndex = swiperInstance.realIndex;
-    const currentAnuncio = anunciosData[activeIndex];
+    async function enviarComentario() {
+        const comentarioTexto = commentInput.value.trim();
+        const activeIndex = swiperInstance.realIndex;
+        const currentAnuncio = anunciosData[activeIndex];
 
-    if (!comentarioTexto || !currentAnuncio) {
-        showInfoDialog("Error", "No puedes enviar un comentario vacío.");
-        return;
-    }
-
-    loader.style.display = 'block';
-    try {
-        const formData = new FormData();
-        formData.append('accion', 'agregarComentario');
-        formData.append('anuncioId', currentAnuncio.id);
-        formData.append('comentario', comentarioTexto);
-        // ¡Aquí se usan las variables que se actualizarán con los datos de App Inventor!
-        formData.append('autor', currentAuthorName);
-        formData.append('correo', currentAuthorEmail);
-
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        if (result.status === "🗣️ success") {
-            console.log("Comentario agregado con éxito.");
-            commentInput.value = ''; // Limpiar el campo
-            await verificarComentarios();
-        } else {
-            console.error("Error al agregar el comentario:", result.message);
-            showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
+        if (!comentarioTexto || !currentAnuncio) {
+            showInfoDialog("Error", "No puedes enviar un comentario vacío.");
+            return;
         }
-    } catch (error) {
-        console.error("Error de red al agregar el comentario:", error);
-        showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
-    } finally {
-        loader.style.display = 'none';
+
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'agregarComentario');
+            formData.append('anuncioId', currentAnuncio.id);
+            formData.append('comentario', comentarioTexto);
+            formData.append('autor', currentAuthorName);
+            formData.append('correo', currentAuthorEmail);
+
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.status === "🗣️ success") {
+                console.log("Comentario agregado con éxito.");
+                commentInput.value = ''; // Limpiar el campo
+                await verificarComentarios(); 
+            } else {
+                console.error("Error al agregar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al agregar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
     }
-}
 
     sendCommentBtn.addEventListener('click', enviarComentario);
     commentInput.addEventListener('keydown', (e) => {
@@ -596,28 +595,23 @@ let currentAuthorName = ""; // Inicializar sin valor
         document.body.style.transform = 'translateY(0)';
     });
 
- function normalizarComentarios(lista) {
-    if (!Array.isArray(lista)) return [];
-    return [...lista]
+    function normalizarComentarios(lista) {
+      if (!Array.isArray(lista)) return [];
+      return [...lista]
         .reverse()
         .map(c => {
-            try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
-            const autor = c?.autor ?? "";
-            const fecha = c?.fecha ?? "";
-            const comentario = c?.comentario ?? "";
-            const correo = c?.correo ?? "";
-            if (autor || fecha || comentario) {
-                return { 
-                    texto: `${autor} (${fecha}) - ${comentario}`, 
-                    autor: autor, // <-- ¡CORRECCIÓN APLICADA AQUÍ!
-                    autorCorreo: correo, 
-                    textoPuro: comentario 
-                };
-            }
-            return null;
+          try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+          const autor = c?.autor ?? "";
+          const fecha = c?.fecha ?? "";
+          const comentario = c?.comentario ?? "";
+          const correo = c?.correo ?? "";
+          if (autor || fecha || comentario) {
+            return { texto: `${autor} (${fecha}) - ${comentario}`, autorCorreo: correo, textoPuro: comentario };
+          }
+          return null;
         })
         .filter(Boolean);
-}
+    }
 
     const INTERVALO_VERIFICACION = 5000;
 
@@ -702,27 +696,6 @@ let currentAuthorName = ""; // Inicializar sin valor
       }
     }
 
-// 3. ¡Coloca la nueva función aquí!
-    /**
-     * Función que recibe los datos del usuario desde App Inventor.
-     * @param {string} jsonString - Una cadena JSON con el nombre y el correo.
-     */
-    function setWebViewString(jsonString) {
-        try {
-            const userData = JSON.parse(jsonString);
-            if (userData.autor) {
-                currentAuthorName = userData.autor;
-            }
-            if (userData.correo) {
-                currentAuthorEmail = userData.correo;
-            }
-            console.log("Datos de usuario de App Inventor recibidos. autor:", currentAuthorName, " Correo:", currentAuthorEmail);
-        } catch (e) {
-            console.error("Error al procesar los datos de App Inventor:", e);
-        }
-    }
-
-    
     async function cargarImagenes() {
       loader.style.display = 'block';
       const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
@@ -1071,6 +1044,3 @@ let currentAuthorName = ""; // Inicializar sin valor
   </script>
 </body>
 </html>
-
-
-
