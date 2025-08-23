@@ -3,8 +3,16 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    body { margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; }
+    body {
+        margin: 0;
+        padding: 0;
+        background: #111;
+        font-family: Arial, sans-serif;
+        color: white;
+        transition: transform 0.3s ease; /* Transición para el movimiento */
+    }
     .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -144,7 +152,7 @@
     /* Contenedor de comentarios (reducido por defecto) */
     .comments-overlay-container {
         position: fixed;
-        bottom: 10px;
+        bottom: 60px;
         left: 10px;
         width: calc(80% - 20px);
         background: rgba(0, 0, 0, 0.6);
@@ -154,8 +162,8 @@
         box-sizing: border-box;
         z-index: 998;
         overflow-y: auto;
-        transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-        max-height: 4em; /* Tamaño por defecto para 1-2 comentarios */
+        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+        max-height: 4em;
     }
 
     /* Estado expandido del contenedor de comentarios */
@@ -179,7 +187,7 @@
         padding-bottom: 8px;
         position: relative;
         overflow: hidden;
-        display: flex; /* Nuevo: usar flexbox */
+        display: flex;
         align-items: center;
     }
 
@@ -225,7 +233,7 @@
       box-sizing: border-box;
       transition: transform 0.3s ease;
       position: relative;
-      z-index: 1; /* Nuevo: para que el contenido esté por encima del botón */
+      z-index: 1;
     }
     
     .comment-content.swiped {
@@ -246,7 +254,7 @@
     /* Estilos del nuevo contador de comentarios */
     .comments-counter {
         position: fixed;
-        bottom: 10px;
+        bottom: 60px;
         right: 10px;
         background: rgba(0, 0, 0, 0.6);
         color: white;
@@ -260,16 +268,16 @@
         align-items: center;
         gap: 2px;
         cursor: pointer;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
     }
     
     .comments-counter .icon {
-        font-size: 1.5rem; /* Icono más grande */
+        font-size: 1.5rem;
         line-height: 1;
     }
     
     .comments-counter .count {
-        font-size: 0.9rem; /* Número más pequeño */
+        font-size: 0.9rem;
     }
 
     /* Nuevo: Estilos para la barra de entrada de comentarios */
@@ -285,7 +293,7 @@
         align-items: center;
         gap: 10px;
         z-index: 1000;
-        transition: transform 0.3s ease;
+        transition: bottom 0.3s ease;
     }
 
     .comment-input-container input {
@@ -307,6 +315,7 @@
         border-radius: 20px;
         cursor: pointer;
         font-weight: bold;
+        font-size: 1.2rem;
     }
     
     .comment-input-container .send-comment-btn:hover {
@@ -339,7 +348,7 @@
   
   <div class="comment-input-container">
       <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-      <button class="send-comment-btn">Enviar</button>
+      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -369,6 +378,7 @@
     let lastTapTime = 0;
     
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
+    let currentAuthorName = "Usuario Web";
     
     // Variables para el swipe
     let startX = 0;
@@ -542,7 +552,7 @@
             formData.append('accion', 'agregarComentario');
             formData.append('anuncioId', currentAnuncio.id);
             formData.append('comentario', comentarioTexto);
-            formData.append('autor', "Usuario Web");
+            formData.append('autor', currentAuthorName);
             formData.append('correo', currentAuthorEmail);
 
             const response = await fetch(SCRIPT_URL, {
@@ -572,6 +582,17 @@
         if (e.key === 'Enter') {
             enviarComentario();
         }
+    });
+
+    // Lógica para subir la barra de comentarios
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-50%)`;
+    });
+
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
     });
 
     function normalizarComentarios(lista) {
@@ -985,22 +1006,31 @@
         setInterval(() => {
           const comando = window.AppInventor.getWebViewString?.();
           if(comando) {
-            if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-              console.log("Reiniciando contador y cargando anuncios.");
-              contadorAcumulado = 0;
-              contadorTotalAnterior = -1;
-              verificarComentarios().then(() => cargarImagenes());
-            }
-            if(comando.startsWith("irATitulo:")) {
-              const tituloBuscado = comando.replace("irATitulo:", "").trim();
-              const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-              const tituloNormalizado = normalizar(tituloBuscado);
-              const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-              if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
-            }
-            if(comando.startsWith("irAIndice:")) {
-              const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-              if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+            try {
+              const data = JSON.parse(comando);
+              if(data.action === "updateUserData") {
+                currentAuthorEmail = data.email;
+                currentAuthorName = data.name;
+                console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+              }
+            } catch (e) {
+              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+                console.log("Reiniciando contador y cargando anuncios.");
+                contadorAcumulado = 0;
+                contadorTotalAnterior = -1;
+                verificarComentarios().then(() => cargarImagenes());
+              }
+              if(comando.startsWith("irATitulo:")) {
+                const tituloBuscado = comando.replace("irATitulo:", "").trim();
+                const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                const tituloNormalizado = normalizar(tituloBuscado);
+                const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+                if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+              }
+              if(comando.startsWith("irAIndice:")) {
+                const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+                if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+              }
             }
           }
         }, 500);
