@@ -2,8 +2,8 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css  "/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css  ">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     body {
         margin: 0;
@@ -11,7 +11,7 @@
         background: #111;
         font-family: Arial, sans-serif;
         color: white;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s ease; /* Transición para el movimiento */
     }
     .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
@@ -251,7 +251,7 @@
       transform: translateY(100%);
     }
 
-    /* Estilos del nuevo contador de comentarios */
+    /* Estilos del nuevo contedor de comentarios */
     .comments-counter {
         position: fixed;
         bottom: 60px;
@@ -321,34 +321,12 @@
     .comment-input-container .send-comment-btn:hover {
         background: #2980b9;
     }
-
-    /* Botón fijo de borrar anuncio */
-    #deleteAdButton {
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        background: transparent; /* Sin fondo */
-        border: none;
-        color: white;
-        font-size: 1.5rem;
-        cursor: pointer;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-        padding: 10px;
-    }
-
-    #deleteAdButton.visible {
-        opacity: 1;
-        visibility: visible;
-    }
   </style>
 </head>
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳6</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -372,13 +350,10 @@
       <input type="text" id="commentInput" placeholder="Escribe un comentario...">
       <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
-
-  <!-- Botón fijo de borrar anuncio -->
-  <button id="deleteAdButton"><i class="fas fa-trash"></i></button>
   
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js  "></script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec  ";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let swiperInstance = null;
     let contadorTotalAnterior = -1;
@@ -397,7 +372,6 @@
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
-    const deleteAdButton = document.getElementById('deleteAdButton'); // Referencia al botón fijo
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -783,12 +757,51 @@
           const zoomContainer = document.createElement('div');
           zoomContainer.classList.add('swiper-zoom-container');
           const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
+img.src = anuncio.url;
+img.alt = anuncio.titulo;
+zoomContainer.appendChild(img);
+slide.appendChild(zoomContainer);
 
-          swiperWrapper.appendChild(slide);
+// 🗑️ Agregar botón de eliminar SOLO si el anuncio es del usuario actual
+if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    deleteBtn.style.position = 'fixed'; // Cambiado a fixed para que sea fijo
+    deleteBtn.style.top = '10px';
+    deleteBtn.style.right = '10px';
+    deleteBtn.style.background = 'none'; // Sin fondo
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.color = 'rgba(255, 255, 255, 0.8)'; // Color más sutil
+    deleteBtn.style.padding = '8px 10px';
+    deleteBtn.style.borderRadius = '8px';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.style.fontSize = '1.5rem'; // Tamaño ligeramente mayor
+    deleteBtn.style.zIndex = '1000';
+    deleteBtn.style.transition = 'color 0.3s ease'; // Transición suave para hover
+    deleteBtn.title = 'Eliminar anuncio';
+
+    // Efecto hover para mejor visibilidad
+    deleteBtn.addEventListener('mouseover', () => {
+        deleteBtn.style.color = 'rgba(231, 76, 60, 0.9)';
+    });
+    
+    deleteBtn.addEventListener('mouseout', () => {
+        deleteBtn.style.color = 'rgba(255, 255, 255, 0.8)';
+    });
+
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showConfirmationDialog(
+            "¿Estás seguro de que quieres eliminar este anuncio?",
+            () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+        );
+    });
+
+    document.body.appendChild(deleteBtn); // Añadido al body en lugar del slide
+}
+
+swiperWrapper.appendChild(slide);
+
         });
 
         const newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
@@ -810,35 +823,37 @@
       }
     }
 
-    async function eliminarAnuncio(anuncioId, deleteUrl) {
-        loader.style.display = 'block';
-        try {
-            const formData = new FormData();
-            formData.append('accion', 'eliminarAnuncio');
-            formData.append('id', anuncioId);
-            formData.append('correo', currentAuthorEmail);
-            formData.append('deleteurl', deleteUrl);
+async function eliminarAnuncio(anuncioId, deleteUrl) {
+    loader.style.display = 'block';
+    try {
+        const formData = new FormData();
+        formData.append('accion', 'eliminarAnuncio');
+        formData.append('id', anuncioId);
+        formData.append('correo', currentAuthorEmail);
+        formData.append('deleteurl', deleteUrl);
 
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: formData
+        });
 
-            const result = await response.json();
-            if (result.status === "✅ success") {
-                showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
-                await cargarImagenes();
-            } else {
-                showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
-            }
-        } catch (error) {
-            console.error("Error eliminando anuncio:", error);
-            showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
-        } finally {
-            loader.style.display = 'none';
+        const result = await response.json();
+        if (result.status === "✅ success") {
+            showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
+            await cargarImagenes();
+        } else {
+            showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
         }
+    } catch (error) {
+        console.error("Error eliminando anuncio:", error);
+        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
+    } finally {
+        loader.style.display = 'none';
     }
+}
 
+
+    
     function updateContentOverlay(index) {
         if (anunciosData.length > index) {
             const anuncio = anunciosData[index];
@@ -890,13 +905,6 @@
               commentsList.appendChild(li);
               commentCountValue.textContent = 0;
             }
-
-            // Mostrar u ocultar el botón fijo de borrar anuncio
-            if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-                deleteAdButton.classList.add('visible');
-            } else {
-                deleteAdButton.classList.remove('visible');
-            }
         }
     }
 
@@ -947,19 +955,6 @@
         }
       }
     }
-
-    // Evento del botón fijo
-    deleteAdButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const activeIndex = swiperInstance.realIndex;
-        const anuncio = anunciosData[activeIndex];
-        if (anuncio && normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            showConfirmationDialog(
-                "¿Estás seguro de que quieres eliminar este anuncio?",
-                () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-            );
-        }
-    });
 
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1089,7 +1084,7 @@
                 console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
               }
             } catch (e) {
-              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html  ") {
+              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
                 console.log("Reiniciando contador y cargando anuncios.");
                 contadorAcumulado = 0;
                 contadorTotalAnterior = -1;
