@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳d</span></div>
+  <div id="loader"><span class="spinner">⏳dh</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -766,17 +766,21 @@ slide.appendChild(zoomContainer);
 if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
     const deleteBtn = document.createElement('button');
     deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-    deleteBtn.style.position = 'absolute';
+
+    // ✅ Cambiamos la posición a FIJA para que no se mueva
+    deleteBtn.style.position = 'fixed';
     deleteBtn.style.top = '10px';
     deleteBtn.style.right = '10px';
-    deleteBtn.style.background = 'rgba(231, 76, 60, 0.9)';
+
+    // ✅ Fondo transparente, solo se verá el ícono
+    deleteBtn.style.background = 'transparent';
+
+    // ✅ Ajustamos estilo visual
     deleteBtn.style.border = 'none';
-    deleteBtn.style.color = 'white';
-    deleteBtn.style.padding = '8px 10px';
-    deleteBtn.style.borderRadius = '8px';
+    deleteBtn.style.color = '#e74c3c';
+    deleteBtn.style.fontSize = '1.8rem';
     deleteBtn.style.cursor = 'pointer';
-    deleteBtn.style.fontSize = '1.2rem';
-    deleteBtn.style.zIndex = '1000';
+    deleteBtn.style.zIndex = '2000';
     deleteBtn.title = 'Eliminar anuncio';
 
     deleteBtn.addEventListener('click', (e) => {
@@ -787,8 +791,10 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
         );
     });
 
-    slide.appendChild(deleteBtn);
+    // ⚠️ IMPORTANTE: en vez de agregarlo a la diapositiva, lo agregamos al <body>
+    document.body.appendChild(deleteBtn);
 }
+
 
 swiperWrapper.appendChild(slide);
 
@@ -1104,5 +1110,4 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
-
 
