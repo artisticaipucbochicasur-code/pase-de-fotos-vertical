@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳h</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -596,23 +596,28 @@ let currentAuthorName = ""; // Inicializar sin valor
         document.body.style.transform = 'translateY(0)';
     });
 
-    function normalizarComentarios(lista) {
-      if (!Array.isArray(lista)) return [];
-      return [...lista]
+ function normalizarComentarios(lista) {
+    if (!Array.isArray(lista)) return [];
+    return [...lista]
         .reverse()
         .map(c => {
-          try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
-          const autor = c?.autor ?? "";
-          const fecha = c?.fecha ?? "";
-          const comentario = c?.comentario ?? "";
-          const correo = c?.correo ?? "";
-          if (autor || fecha || comentario) {
-            return { texto: `${autor} (${fecha}) - ${comentario}`, autorCorreo: correo, textoPuro: comentario };
-          }
-          return null;
+            try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+            const autor = c?.autor ?? "";
+            const fecha = c?.fecha ?? "";
+            const comentario = c?.comentario ?? "";
+            const correo = c?.correo ?? "";
+            if (autor || fecha || comentario) {
+                return { 
+                    texto: `${autor} (${fecha}) - ${comentario}`, 
+                    autor: autor, // <-- ¡CORRECCIÓN APLICADA AQUÍ!
+                    autorCorreo: correo, 
+                    textoPuro: comentario 
+                };
+            }
+            return null;
         })
         .filter(Boolean);
-    }
+}
 
     const INTERVALO_VERIFICACION = 5000;
 
@@ -1066,5 +1071,6 @@ let currentAuthorName = ""; // Inicializar sin valor
   </script>
 </body>
 </html>
+
 
 
