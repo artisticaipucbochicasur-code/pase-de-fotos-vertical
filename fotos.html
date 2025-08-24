@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳DH</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -808,15 +808,16 @@ async function actualizarAnunciosSilenciosamente() {
   try {
     if (!swiperInstance) return;
 
-    // Guardamos el ID actual
+    // Guardamos posición actual
     const currentIndex = swiperInstance.realIndex;
     const currentId = anunciosData[currentIndex]?.id || null;
 
-    // Obtenemos datos actualizados
+    // Pedimos la nueva data
     const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
 
+    // Generamos el nuevo array de anuncios
     let nuevos = [];
     if (data.url && data.url.length > 0) {
       data.url.forEach((url, index) => {
@@ -839,24 +840,17 @@ async function actualizarAnunciosSilenciosamente() {
     // Ordenamos recientes primero
     nuevos.reverse();
 
-    // Verificamos si hay nuevos anuncios (comparando IDs)
-    const idsActuales = anunciosData.map(a => a.id);
-    const idsNuevos = nuevos.map(a => a.id);
-    const nuevosAnuncios = nuevos.filter(a => !idsActuales.includes(a.id));
-
-    // Si no hay anuncios nuevos ni eliminados, no hacemos nada
-    if (
-      nuevosAnuncios.length === 0 &&
-      idsActuales.every(id => idsNuevos.includes(id)) &&
-      idsNuevos.length === idsActuales.length
-    ) {
+    // Si no hay cambios, no hacemos nada
+    if (JSON.stringify(anunciosData) === JSON.stringify(nuevos)) {
       return;
     }
 
-    // Insertamos nuevos anuncios al inicio del slider
-    if (nuevosAnuncios.length > 0) {
+    // Detectar si solo hay nuevos anuncios al inicio
+    if (nuevos.length > anunciosData.length) {
+      const nuevosAnuncios = nuevos.slice(0, nuevos.length - anunciosData.length);
+
+      // Insertamos cada nuevo anuncio sin reconstruir todo
       nuevosAnuncios.forEach(anuncio => {
-        // Creamos un nuevo slide
         const slide = document.createElement("div");
         slide.classList.add("swiper-slide");
         slide.dataset.id = anuncio.id;
@@ -901,25 +895,57 @@ async function actualizarAnunciosSilenciosamente() {
         swiperInstance.prependSlide(slide);
       });
 
-      // Ajustamos el índice actual para que no se mueva
+      // Mantenemos posición actual
       swiperInstance.slideTo(currentIndex + nuevosAnuncios.length, 0, false);
+
+      // Actualizamos datos locales
+      anunciosData = nuevos;
+
+      // Actualizamos overlay
+      const newIndex = currentId
+        ? anunciosData.findIndex(a => a.id === currentId)
+        : 0;
+      updateContentOverlay(newIndex);
+
+      return;
     }
 
-    // Actualizamos anunciosData con la lista completa
+    // Si hubo borrados o reordenamientos, reconstruimos todo
     anunciosData = nuevos;
+    const swiperWrapper = document.querySelector(".swiper-wrapper");
+    swiperWrapper.innerHTML = "";
 
-    // Buscamos el índice real del anuncio actual por ID
+    anunciosData.forEach(anuncio => {
+      const slide = document.createElement("div");
+      slide.classList.add("swiper-slide");
+      slide.dataset.id = anuncio.id;
+
+      const zoomContainer = document.createElement("div");
+      zoomContainer.classList.add("swiper-zoom-container");
+
+      const img = document.createElement("img");
+      img.src = anuncio.url;
+      img.alt = anuncio.titulo;
+      zoomContainer.appendChild(img);
+      slide.appendChild(zoomContainer);
+
+      swiperWrapper.appendChild(slide);
+    });
+
+    // Recuperamos índice correcto
     const newIndex = currentId
       ? anunciosData.findIndex(a => a.id === currentId)
       : 0;
 
-    // Actualizamos overlay correctamente
+    swiperInstance.update();
+    swiperInstance.slideTo(newIndex >= 0 ? newIndex : 0, 0, false);
     updateContentOverlay(newIndex);
 
   } catch (error) {
     console.error("Error al actualizar anuncios:", error);
   }
 }
+
 
     
 // ==========================
@@ -1204,6 +1230,7 @@ async function eliminarAnuncio(id, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
 
