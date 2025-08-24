@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳q</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -696,7 +696,8 @@
       }
     }
 
-    async function cargarImagenes() {
+   // FUNCIÓN MEJORADA: cargarImagenes
+async function cargarImagenes() {
   loader.style.display = 'block';
   // Guarda el id actual antes de recargar
   const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
@@ -777,18 +778,18 @@
     });
 
     // Busca el índice del anuncio que estaba activo antes de la recarga
-    const newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
-    const finalIndex = newIndex >= 0 ? newIndex : 0;
+    let newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
+    if (newIndex === -1) newIndex = 0; // Si fue eliminado, ve al primero
 
     // Actualiza Swiper y overlay
     if(!swiperInstance) {
-      initSwiper(finalIndex);
+      initSwiper(newIndex);
     } else {
       swiperInstance.update();
-      swiperInstance.slideTo(finalIndex, 0, false);
+      swiperInstance.slideTo(newIndex, 0, false);
+      // Forzar sincronización del overlay después del cambio de slide
+      setTimeout(() => updateContentOverlay(swiperInstance.realIndex), 0);
     }
-    updateContentOverlay(finalIndex);
-
   } catch(error) {
     console.error("Error al cargar las imágenes:", error);
   } finally {
@@ -853,6 +854,7 @@
     }
 }
 
+// FUNCIÓN MEJORADA: initSwiper
 function initSwiper(initialIndex = 0) {
     if (swiperInstance) swiperInstance.destroy(true, true);
     swiperInstance = new Swiper('.swiper', {
@@ -1065,5 +1067,6 @@ function initSwiper(initialIndex = 0) {
   </script>
 </body>
 </html>
+
 
 
