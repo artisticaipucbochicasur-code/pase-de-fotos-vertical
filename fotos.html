@@ -303,7 +303,7 @@
 </head>
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳3</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -838,10 +838,10 @@
         zoom: { maxRatio: 3, minRatio: 1 }
       });
 
-      swiperInstance.on('slideChange', () => {
-        const activeIndex = swiperInstance.realIndex;
-        updateContentOverlay(activeIndex);
-        updateFixedDeleteBtn();
+     swiperInstance.on('slideChange', () => {
+    const activeIndex = swiperInstance.realIndex;
+    updateContentOverlay(activeIndex);
+    updateFixedDeleteBtn && updateFixedDeleteBtn();
         // --- resto igual ---
         if(window.AppInventor && anunciosData.length > 0) {
           const anuncioActual = anunciosData[activeIndex];
@@ -956,10 +956,9 @@
         overlay.style.display = 'flex';
     }
 
-// Reemplaza tu función eliminarAnuncio por esta:
 async function eliminarAnuncio(anuncioId, deleteUrl) {
     loader.style.display = 'block';
-    // Guardar el índice actual ANTES de eliminar
+    // Guarda el índice antes de eliminar
     let currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
     try {
         const formData = new FormData();
@@ -974,9 +973,8 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         const result = await response.json();
         if (result.status === "✅ success") {
             showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
-            // Espera que cargarImagenes actualice el array anunciosData
             await cargarImagenes();
-            // Después de actualizar, calcula el índice que corresponde
+            // --- Después de recargar, calcula el índice correcto ---
             let numSlides = anunciosData.length;
             if (numSlides > 0) {
                 // Si eliminaste el último, ve al anterior. Si no, ve al mismo índice.
@@ -1071,6 +1069,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
 
