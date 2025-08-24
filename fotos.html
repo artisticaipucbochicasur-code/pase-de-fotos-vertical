@@ -46,6 +46,25 @@
         justify-content: center;
         align-items: center;
     }
+
+    /* 🔥 Textos truncados con "..." */
+.truncated {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* número de líneas visibles */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  position: relative;
+}
+
+/* 🔥 Al expandirse se muestra todo */
+.expanded-text {
+  display: block;
+  -webkit-line-clamp: unset;
+  cursor: pointer;
+}
+
 /* Botón de eliminar anuncio */
 .delete-announcement-btn {
     position: fixed;
@@ -424,6 +443,30 @@
     let startX = 0;
     let activeComment = null;
     let isSwiping = false;
+
+    // Función para truncar y agregar "más"
+function aplicarTruncado(elemento, texto, lineas = 2) {
+    elemento.textContent = texto;
+
+    if (texto.length > 80) { // 🔥 si es largo, se trunca
+        elemento.classList.add("truncated");
+        elemento.dataset.fulltext = texto;
+
+        // Detectar click para expandir/colapsar
+        elemento.addEventListener("click", () => {
+            if (elemento.classList.contains("truncated")) {
+                elemento.textContent = elemento.dataset.fulltext;
+                elemento.classList.remove("truncated");
+                elemento.classList.add("expanded-text");
+            } else {
+                elemento.textContent = texto;
+                elemento.classList.remove("expanded-text");
+                elemento.classList.add("truncated");
+            }
+        });
+    }
+}
+
 
     function normalizeText(text) {
         if (!text) return "";
@@ -904,11 +947,39 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
     
-   function updateContentOverlay(index) {
+  function updateContentOverlay(index) {
     if (anunciosData.length > index) {
         const anuncio = anunciosData[index];
-        currentTitle.textContent = anuncio.titulo;
-        currentDescription.textContent = anuncio.descripcion;
+
+        // ✅ Función local para truncar
+        function aplicarTruncado(elemento, texto, lineas = 2) {
+            elemento.textContent = texto;
+
+            if (texto.length > 80) { // 🔥 solo si es largo
+                elemento.classList.add("truncated");
+                elemento.dataset.fulltext = texto;
+
+                // evitar duplicar listeners
+                elemento.onclick = () => {
+                    if (elemento.classList.contains("truncated")) {
+                        elemento.textContent = elemento.dataset.fulltext;
+                        elemento.classList.remove("truncated");
+                        elemento.classList.add("expanded-text");
+                    } else {
+                        elemento.textContent = texto;
+                        elemento.classList.remove("expanded-text");
+                        elemento.classList.add("truncated");
+                    }
+                };
+            } else {
+                elemento.classList.remove("truncated", "expanded-text");
+                elemento.onclick = null;
+            }
+        }
+
+        // ✅ Título (máx 1 línea) y Descripción (máx 2 líneas)
+        aplicarTruncado(currentTitle, anuncio.titulo, 1);
+        aplicarTruncado(currentDescription, anuncio.descripcion, 2);
 
         // ✅ Mostrar/ocultar el botón fijo
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
@@ -969,6 +1040,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         }
     }
 }
+
 
 
    function initSwiper(initialIndex = 0) {
@@ -1179,6 +1251,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
 
