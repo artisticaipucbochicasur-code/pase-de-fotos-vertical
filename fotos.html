@@ -12,6 +12,10 @@
         font-family: Arial, sans-serif;
         color: white;
         transition: transform 0.3s ease; /* Transición para el movimiento */
+      margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; transition: transform 0.3s ease; }
+    .swiper { width: 100vw; height: 100vh; }
+    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
+    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain;
     }
     .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
@@ -20,6 +24,30 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
+ /* Estilo del botón fijo de eliminar anuncio */
+    #deleteAnnouncementBtn {
+      position: fixed;
+      /* Ubicarlo arriba del ícono de contador de comentarios */
+      bottom: 120px;
+      right: 10px;
+      background: rgba(231, 76, 60, 0.9);
+      border: none;
+      color: white;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      z-index: 1000;
+      display: none; /* oculto por defecto */
+    }
+
+    /* Clase para ocultar overlays y el botón */
+    .hidden-overlay {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(100%);
+    }
+    
     #lblContador {
       position: fixed;
       top: 10px;
@@ -33,23 +61,6 @@
       display: none;
       cursor: pointer;
     }
-
-    #deleteAdBtn {
-  position: fixed;
-  top: 50px;       /* separado del lblContador (que está en top:10px; right:10px) */
-  right: 10px;
-  background: rgba(231, 76, 60, 0.9);
-  border: none;
-  color: white;
-  padding: 10px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  z-index: 10001;  /* por encima de overlays */
-  box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-}
-#deleteAdBtn:active { transform: scale(0.98); }
-
 
     #customAlertOverlay {
         display: none;
@@ -301,12 +312,6 @@
         cursor: pointer;
         transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
     }
-
-    <!-- Botón flotante único para eliminar anuncio -->
-<button id="deleteAdBtn" title="Eliminar anuncio" class="hidden-overlay" style="display:none">
-  <i class="fas fa-trash"></i>
-</button>
-
     
     .comments-counter .icon {
         font-size: 1.5rem;
@@ -363,13 +368,10 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳f</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
-      <div class="custom-alert">
-          <h2 id="alertTitle"></h2>
-          <div class="titles-list" id="alertMessage"></div>
-      </div>
+      <!-- ... (Alertas personalizadas) ... -->
   </div>
   <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
@@ -382,11 +384,14 @@
       <span class="icon">💬</span>
       <span class="count" id="commentCountValue">0</span>
   </div>
-  
   <div class="comment-input-container">
       <input type="text" id="commentInput" placeholder="Escribe un comentario...">
       <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
+
+  <!-- Botón fijo para eliminar anuncio -->
+  <button id="deleteAnnouncementBtn" title="Eliminar anuncio"><i class="fas fa-trash"></i></button>
+
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -409,8 +414,6 @@
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
-    const deleteAdBtn = document.getElementById('deleteAdBtn');
-
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -429,21 +432,24 @@
         return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     }
 
-    // Toggle para ocultar/mostrar overlays al tocar la imagen
+     // Variables y elementos
+    const deleteAnnouncementBtn = document.getElementById('deleteAnnouncementBtn');
+    // ... (Otras variables existentes: SCRIPT_URL, anunciosData, swiperInstance, etc.) ...
+
+    // Al tocar el slider, se ocultan/mostrarán overlays y el botón
     document.querySelector('.swiper').addEventListener('click', () => {
-        const currentTime = new Date().getTime();
-        if (currentTime - lastTapTime > 300) {
+        const now = new Date().getTime();
+        if (now - lastTapTime > 300) {
             contentOverlay.classList.toggle('hidden-overlay');
             commentsOverlay.classList.toggle('hidden-overlay');
             commentsCounter.classList.toggle('hidden-overlay');
             commentInputContainer.classList.toggle('hidden-overlay');
-            // Solo tiene sentido ocultarlo si está visible (display != none)
-  if (deleteAdBtn.style.display !== 'none') {
-    deleteAdBtn.classList.toggle('hidden-overlay');
-  }
-
+            // Alternar el botón fijo de eliminar anuncio
+            if (deleteAnnouncementBtn.style.display !== 'none') {
+                deleteAnnouncementBtn.classList.toggle('hidden-overlay');
+            }
         }
-        lastTapTime = currentTime;
+        lastTapTime = now;
     });
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
@@ -827,6 +833,34 @@ contadorAcumulado = nuevosTitulos.length;
                 img.alt = anuncio.titulo;
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
+
+                // Agregar botón de eliminar si corresponde
+                if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.style.position = 'absolute';
+                    deleteBtn.style.top = '10px';
+                    deleteBtn.style.right = '10px';
+                    deleteBtn.style.background = 'rgba(231, 76, 60, 0.9)';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.color = 'white';
+                    deleteBtn.style.padding = '8px 10px';
+                    deleteBtn.style.borderRadius = '8px';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '1.2rem';
+                    deleteBtn.style.zIndex = '1000';
+                    deleteBtn.title = 'Eliminar anuncio';
+
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showConfirmationDialog(
+                            "¿Estás seguro de que quieres eliminar este anuncio?",
+                            () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+                        );
+                    });
+
+                    slide.appendChild(deleteBtn);
+                }
                 
                 swiperInstance.appendSlide(slide);
             });
@@ -857,6 +891,33 @@ contadorAcumulado = nuevosTitulos.length;
                 img.alt = anuncio.titulo;
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
+
+                if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.style.position = 'absolute';
+                    deleteBtn.style.top = '10px';
+                    deleteBtn.style.right = '10px';
+                    deleteBtn.style.background = 'rgba(231, 76, 60, 0.9)';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.color = 'white';
+                    deleteBtn.style.padding = '8px 10px';
+                    deleteBtn.style.borderRadius = '8px';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '1.2rem';
+                    deleteBtn.style.zIndex = '1000';
+                    deleteBtn.title = 'Eliminar anuncio';
+
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showConfirmationDialog(
+                            "¿Estás seguro de que quieres eliminar este anuncio?",
+                            () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+                        );
+                    });
+
+                    slide.appendChild(deleteBtn);
+                }
                 
                 swiperWrapper.appendChild(slide);
             });
@@ -864,10 +925,9 @@ contadorAcumulado = nuevosTitulos.length;
             initSwiper(0);
         }
 
-        // Actualizar el contenido overlay y el botón global
+        // Actualizar el contenido overlay
         const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
         updateContentOverlay(activeIndex);
-        updateDeleteButtonForIndex(activeIndex);
 
     } catch(error) {
         console.error("Error al cargar las imágenes:", error);
@@ -875,7 +935,6 @@ contadorAcumulado = nuevosTitulos.length;
         loader.style.display = 'none';
     }
 }
-
 
 async function eliminarAnuncio(anuncioId, deleteUrl) {
     loader.style.display = 'block';
@@ -906,51 +965,20 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         loader.style.display = 'none';
     }
 }
-deleteAdBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); // que no dispare el toggle de overlays del swiper
-  const id = deleteAdBtn.dataset.id;
-  const deleteurl = deleteAdBtn.dataset.deleteurl || "";
-  if (!id) return;
-  showConfirmationDialog(
-    "¿Estás seguro de que quieres eliminar este anuncio?",
-    () => eliminarAnuncio(id, deleteurl)
-  );
-});
-
-function updateDeleteButtonForIndex(index) {
-  const anuncio = anunciosData[index];
-  if (!anuncio) {
-    deleteAdBtn.style.display = 'none';
-    return;
-  }
-  const esPropietario = normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail);
-
-  if (esPropietario) {
-    // guarda datos en el botón para usarlos al hacer click
-    deleteAdBtn.dataset.id = anuncio.id;
-    deleteAdBtn.dataset.deleteurl = anuncio.deleteurl || "";
-    deleteAdBtn.style.display = 'block';
-  } else {
-    deleteAdBtn.style.display = 'none';
-    // por si venía oculto por toggle, dejamos la clase como esté
-    deleteAdBtn.removeAttribute('data-id');
-    deleteAdBtn.removeAttribute('data-deleteurl');
-  }
-}
 
     
-    function updateContentOverlay(index) {
-        if (anunciosData.length > index) {
-            const anuncio = anunciosData[index];
-            currentTitle.textContent = anuncio.titulo;
-            currentDescription.textContent = anuncio.descripcion;
-            
-            commentsList.innerHTML = '';
-            
-            commentsOverlay.classList.remove('expanded'); 
+   function updateContentOverlay(index) {
+    if (anunciosData.length > index) {
+        const anuncio = anunciosData[index];
+        currentTitle.textContent = anuncio.titulo;
+        currentDescription.textContent = anuncio.descripcion;
+        
+        commentsList.innerHTML = '';
+        commentsOverlay.classList.remove('expanded'); 
 
-            if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-              anuncio.comentarios.forEach(comentario => {
+        // Renderizar comentarios
+        if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+            anuncio.comentarios.forEach(comentario => {
                 const li = document.createElement('li');
                 li.classList.add('deletable');
 
@@ -976,22 +1004,42 @@ function updateDeleteButtonForIndex(index) {
                     ev.stopPropagation(); 
                     const activeIndex = swiperInstance.realIndex;
                     const currentAnuncio = anunciosData[activeIndex];
-                    if(currentAnuncio) {
+                    if (currentAnuncio) {
                         eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
                     }
                 });
                 
                 commentsList.appendChild(li);
-              });
-              commentCountValue.textContent = anuncio.comentarios.length;
-            } else {
-              const li = document.createElement('li');
-              li.textContent = "No hay comentarios aún.";
-              commentsList.appendChild(li);
-              commentCountValue.textContent = 0;
-            }
+            });
+            commentCountValue.textContent = anuncio.comentarios.length;
+        } else {
+            const li = document.createElement('li');
+            li.textContent = "No hay comentarios aún.";
+            commentsList.appendChild(li);
+            commentCountValue.textContent = 0;
+        }
+
+        // 👇 Mostrar u ocultar el botón de eliminar anuncio según autor
+        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+            deleteAnnouncementBtn.style.display = 'block';
+            deleteAnnouncementBtn.classList.remove('hidden-overlay');
+        } else {
+            deleteAnnouncementBtn.style.display = 'none';
         }
     }
+}
+
+    function mostrarOverlay(anuncio) {
+  const deleteBtn = document.querySelector(".delete-ad-btn");
+  if (anuncio.userId === currentUser.id) {
+    deleteBtn.style.display = "block";
+  } else {
+    deleteBtn.style.display = "none";
+  }
+
+  // Mostrar cantidad de comentarios
+  document.getElementById("commentCount").innerText = anuncio.comments.length;
+}
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
@@ -1006,8 +1054,6 @@ function updateDeleteButtonForIndex(index) {
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
             updateContentOverlay(activeIndex);
-          updateDeleteButtonForIndex(activeIndex);
-
 
             if(window.AppInventor && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
@@ -1030,8 +1076,6 @@ function updateDeleteButtonForIndex(index) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
         updateContentOverlay(initialSlideIndex);
-      updateDeleteButtonForIndex(initialSlideIndex);
-
         
         if(window.AppInventor){
             const anuncioInicial = anunciosData[initialSlideIndex];
@@ -1172,8 +1216,6 @@ function updateDeleteButtonForIndex(index) {
               if(data.action === "updateUserData") {
                 currentAuthorEmail = data.email;
                 currentAuthorName = data.name;
-                if (swiperInstance) updateDeleteButtonForIndex(swiperInstance.realIndex);
-
                 console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
               }
             } catch (e) {
