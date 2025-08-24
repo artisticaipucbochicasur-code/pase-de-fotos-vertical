@@ -368,7 +368,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳t</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <!-- ... (Alertas personalizadas) ... -->
@@ -926,9 +926,10 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         currentTitle.textContent = anuncio.titulo;
         currentDescription.textContent = anuncio.descripcion;
 
-        // Mostrar/ocultar botón eliminar anuncio
+        // ✅ Mostrar/ocultar botón eliminar anuncio SOLO una vez
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
             deleteAnnouncementBtn.style.display = "block";
+            deleteAnnouncementBtn.classList.remove('hidden-overlay');
             deleteAnnouncementBtn.onclick = () => {
                 showConfirmationDialog(
                     "¿Estás seguro de que quieres eliminar este anuncio?",
@@ -984,16 +985,9 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
             commentsList.appendChild(li);
             commentCountValue.textContent = 0;
         }
-
-        // 👇 Mostrar u ocultar el botón de eliminar anuncio según autor
-        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            deleteAnnouncementBtn.style.display = 'block';
-            deleteAnnouncementBtn.classList.remove('hidden-overlay');
-        } else {
-            deleteAnnouncementBtn.style.display = 'none';
-        }
     }
 }
+
 
     function mostrarOverlay(anuncio) {
   const deleteBtn = document.querySelector(".delete-ad-btn");
@@ -1215,5 +1209,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
