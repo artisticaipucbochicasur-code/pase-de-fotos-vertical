@@ -303,7 +303,7 @@
 </head>
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳1</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -832,55 +832,71 @@ async function cargarImagenes() {
     }
 
  
-    // --- Actualiza el botón fijo al cambiar de slide
-    function initSwiper(initialIndex = 0) {
-      if(swiperInstance) swiperInstance.destroy(true, true);
-      swiperInstance = new Swiper('.swiper', {
-        loop: true,
-        direction: 'vertical',
-        slidesPerView: 1,
-        spaceBetween: 10,
-        zoom: { maxRatio: 3, minRatio: 1 }
-      });
+   // --- Inicializa el swiper y actualiza overlays / AppInventor correctamente ---
+function initSwiper(initialIndex = 0) {
+  if (swiperInstance) swiperInstance.destroy(true, true);
 
-     swiperInstance.on('slideChange', () => {
+  swiperInstance = new Swiper('.swiper', {
+    loop: anunciosData.length > 1, // 🚀 solo activar loop si hay más de 1 anuncio
+    direction: 'vertical',
+    slidesPerView: 1,
+    spaceBetween: 10,
+    zoom: { maxRatio: 3, minRatio: 1 }
+  });
+
+  // --- Evento: cuando cambia el slide ---
+  swiperInstance.on('slideChange', () => {
     const activeIndex = swiperInstance.realIndex;
+
+    // Actualiza título, descripción, comentarios, etc.
     updateContentOverlay(activeIndex);
     updateFixedDeleteBtn && updateFixedDeleteBtn();
-        // --- resto igual ---
-        if(window.AppInventor && anunciosData.length > 0) {
-          const anuncioActual = anunciosData[activeIndex];
-          if (!anuncioActual) return;
-          const id = anuncioActual.id;
-          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-          if (hayServidor) {
-            anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-          }
-          const listaTitulos = anunciosData.map(a => a.titulo);
-          const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-          window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
-      });
 
-      if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-        updateFixedDeleteBtn();
-        // --- resto igual ---
-        if(window.AppInventor){
-          const anuncioInicial = anunciosData[initialSlideIndex];
-          const id = anuncioInicial.id;
-          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-          if (hayServidor) {
-            anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-          }
-          const listaTitulos = anunciosData.map(a => a.titulo);
-          const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-          window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
+    // Notifica a App Inventor con los datos correctos
+    if (window.AppInventor && anunciosData.length > 0) {
+      const anuncioActual = anunciosData[activeIndex];
+      if (!anuncioActual) return;
+
+      const id = anuncioActual.id;
+      const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+      if (hayServidor) {
+        anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
       }
+
+      const listaTitulos = anunciosData.map(a => a.titulo);
+      const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+      window.AppInventor.setWebViewString(JSON.stringify(payload));
     }
+  });
+
+  // --- Si hay anuncios, definimos el slide inicial ---
+  if (anunciosData.length > 0) {
+    const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+
+    if (anunciosData.length > 1) {
+      swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+    } else {
+      swiperInstance.slideTo(initialSlideIndex, 0, false);
+    }
+
+    updateContentOverlay(initialSlideIndex);
+    updateFixedDeleteBtn();
+
+    // Notifica a App Inventor también en la carga inicial
+    if (window.AppInventor) {
+      const anuncioInicial = anunciosData[initialSlideIndex];
+      const id = anuncioInicial.id;
+      const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+      if (hayServidor) {
+        anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+      }
+      const listaTitulos = anunciosData.map(a => a.titulo);
+      const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+      window.AppInventor.setWebViewString(JSON.stringify(payload));
+    }
+  }
+}
+
 
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -980,17 +996,29 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
             showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
             await cargarImagenes();
             // --- Después de recargar, calcula el índice correcto ---
-            let numSlides = anunciosData.length;
-            if (numSlides > 0) {
-                // Si eliminaste el último, ve al anterior. Si no, ve al mismo índice.
-                let goTo = currentIndex >= numSlides ? numSlides - 1 : currentIndex;
-                swiperInstance.slideTo(goTo, 0, false);
-                updateContentOverlay(goTo);
-                updateFixedDeleteBtn && updateFixedDeleteBtn();
-            }
-        } else {
-            showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
-        }
+          // Recalcular el índice actual tras eliminar un anuncio
+let numSlides = anunciosData.length;
+if (numSlides > 0) {
+  let goTo = currentIndex >= numSlides ? numSlides - 1 : currentIndex;
+
+  if (numSlides > 1) {
+    swiperInstance.slideToLoop(goTo, 0, false);
+  } else {
+    swiperInstance.slideTo(goTo, 0, false);
+  }
+
+  // Forzar actualización de overlays y App Inventor
+  updateContentOverlay(goTo);
+  updateFixedDeleteBtn && updateFixedDeleteBtn();
+} else {
+  // Si no hay anuncios, limpiar UI
+  currentTitle.textContent = "No hay anuncios disponibles";
+  currentDescription.textContent = "";
+  commentsList.innerHTML = "";
+  commentCountValue.textContent = 0;
+}
+
+
     } catch (error) {
         console.error("Error eliminando anuncio:", error);
         showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
@@ -1074,6 +1102,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
 
