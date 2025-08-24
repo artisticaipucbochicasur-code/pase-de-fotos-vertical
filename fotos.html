@@ -321,84 +321,6 @@
     .comment-input-container .send-comment-btn:hover {
         background: #2980b9;
     }
-
-    /* Botón flotante de subir anuncio */
-.upload-button {
-    position: fixed;
-    bottom: 120px; /* Justo encima del contador */
-    right: 10px;
-    width: 55px;
-    height: 55px;
-    background: #3498db;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    z-index: 1000;
-    font-size: 1.5rem;
-    transition: transform 0.2s ease, background 0.3s ease;
-}
-
-.upload-button:hover {
-    background: #2980b9;
-    transform: scale(1.1);
-}
-
-/* Modal para subir anuncios */
-#uploadModal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.7);
-    z-index: 10000;
-    justify-content: center;
-    align-items: center;
-}
-
-.upload-modal-content {
-    background: #2c3e50;
-    padding: 20px;
-    border-radius: 10px;
-    max-width: 90%;
-    width: 350px;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-.upload-modal-content input,
-.upload-modal-content textarea {
-    width: 100%;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #555;
-    background: #34495e;
-    color: white;
-}
-
-.upload-modal-content button {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.3s ease;
-}
-
-.upload-modal-content button:hover {
-    background: #2980b9;
-}
-
   </style>
 </head>
 
@@ -428,86 +350,9 @@
       <input type="text" id="commentInput" placeholder="Escribe un comentario...">
       <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
-  <!-- Botón flotante para subir anuncio -->
-<div class="upload-button" id="uploadButton" title="Subir anuncio">
-  <i class="fas fa-upload"></i>
-</div>
-<!-- Modal para subir anuncio -->
-<div id="uploadModal">
-  <div class="upload-modal-content">
-    <h2>Subir nuevo anuncio</h2>
-    <input type="text" id="tituloInput" placeholder="Título">
-    <textarea id="descripcionInput" placeholder="Descripción"></textarea>
-    <input type="file" id="imagenInput" accept="image/*">
-    <button id="confirmUploadBtn">Subir</button>
-    <button id="cancelUploadBtn" style="background:#e74c3c">Cancelar</button>
-  </div>
-</div>
-
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-    const uploadButton = document.getElementById("uploadButton");
-const uploadModal = document.getElementById("uploadModal");
-const confirmUploadBtn = document.getElementById("confirmUploadBtn");
-const cancelUploadBtn = document.getElementById("cancelUploadBtn");
-
-// Abrir modal o invocar App Inventor
-uploadButton.addEventListener("click", () => {
-    if (window.AppInventor) {
-        window.AppInventor.setWebViewString(JSON.stringify({ accion: "subirAnuncio" }));
-    } else {
-        uploadModal.style.display = "flex";
-    }
-});
-
-// Cerrar modal
-cancelUploadBtn.addEventListener("click", () => {
-    uploadModal.style.display = "none";
-});
-
-// Subir anuncio al Apps Script
-confirmUploadBtn.addEventListener("click", async () => {
-    const titulo = document.getElementById("tituloInput").value.trim();
-    const descripcion = document.getElementById("descripcionInput").value.trim();
-    const imagenFile = document.getElementById("imagenInput").files[0];
-
-    if (!titulo || !descripcion || !imagenFile) {
-        showInfoDialog("Error", "Por favor, completa todos los campos.");
-        return;
-    }
-
-    loader.style.display = "block";
-    try {
-        const formData = new FormData();
-        formData.append("accion", "subirAnuncio");
-        formData.append("titulo", titulo);
-        formData.append("descripcion", descripcion);
-        formData.append("imagen", imagenFile);
-        formData.append("autor", currentAuthorName);
-        formData.append("correo", currentAuthorEmail);
-
-        const response = await fetch(SCRIPT_URL, {
-            method: "POST",
-            body: formData
-        });
-
-        const result = await response.json();
-        if (result.status === "📢 success") {
-            showInfoDialog("Éxito", "Anuncio subido correctamente.");
-            uploadModal.style.display = "none";
-            await cargarImagenes();
-        } else {
-            showInfoDialog("Error", result.message || "No se pudo subir el anuncio.");
-        }
-    } catch (error) {
-        console.error("Error al subir anuncio:", error);
-        showInfoDialog("Error", "Ocurrió un problema al subir el anuncio.");
-    } finally {
-        loader.style.display = "none";
-    }
-});
-
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let swiperInstance = null;
@@ -770,40 +615,60 @@ confirmUploadBtn.addEventListener("click", async () => {
 
     const INTERVALO_VERIFICACION = 5000;
 
-    async function actualizarContador() {
-      try {
+   // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón
+lblContador.addEventListener("click", () => {
+    if (nuevosTitulos.length === 0) {
+        showCustomAlert("Nuevos anuncios", []);
+    } else {
+        showCustomAlert("Nuevos anuncios", nuevosTitulos);
+    }
+});
+
+// Modificamos actualizarContador para guardar títulos nuevos
+async function actualizarContador() {
+    try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
 
         if (contadorTotalAnterior === -1) {
-          contadorTotalAnterior = totalActual;
-        } else {
-          if (totalActual !== contadorTotalAnterior) {
-            const diferencia = totalActual - contadorTotalAnterior;
-            if (diferencia > 0) {
-              contadorAcumulado += diferencia;
-            } else if (diferencia < 0) {
-              contadorAcumulado = 0;
-            }
-            if (lblContador) {
-              if (contadorAcumulado > 0) {
-                lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                lblContador.style.display = "block";
-              } else {
-                lblContador.textContent = "";
-                lblContador.style.display = "none";
-              }
-            }
             contadorTotalAnterior = totalActual;
-            console.log("🔄 Cambio detectado: recargando anuncios...");
-            await cargarImagenes();
-          }
+        } else {
+            if (totalActual !== contadorTotalAnterior) {
+                const diferencia = totalActual - contadorTotalAnterior;
+                if (diferencia > 0) {
+                    // Guardar los títulos nuevos detectados
+                    const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+                    const dataAnuncios = await responseAnuncios.json();
+                    const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
+                    nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
+
+                    contadorAcumulado = nuevosTitulos.length;
+                } else if (diferencia < 0) {
+                    contadorAcumulado = 0;
+                    nuevosTitulos = [];
+                }
+
+                // Mostrar o esconder el botón de notificaciones
+                if (lblContador) {
+                    if (contadorAcumulado > 0) {
+                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                        lblContador.style.display = "block";
+                    } else {
+                        lblContador.textContent = "";
+                        lblContador.style.display = "none";
+                    }
+                }
+
+                contadorTotalAnterior = totalActual;
+                console.log("🔄 Cambio detectado: recargando anuncios...");
+                await cargarImagenes();
+            }
         }
-      } catch (e) {
+    } catch (e) {
         console.error("❌ Error al obtener contador:", e);
-      }
     }
+}
     setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
     async function verificarComentarios() {
