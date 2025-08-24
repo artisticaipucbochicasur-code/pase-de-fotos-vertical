@@ -362,7 +362,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳t</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -758,7 +758,7 @@ contadorAcumulado = nuevosTitulos.length;
       }
     }
 
- async function cargarImagenes() {
+async function cargarImagenes() {
     loader.style.display = 'block';
     const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
     const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
@@ -822,8 +822,18 @@ contadorAcumulado = nuevosTitulos.length;
                 swiperInstance.appendSlide(slide);
             });
             
-            const newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-            swiperInstance.slideToLoop(newIndex !== -1 ? newIndex : 0, 0, false);
+            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
+            let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
+            if (newIndex !== -1) {
+                swiperInstance.slideToLoop(newIndex, 0, false);
+            } else {
+                if (currentIndex < anunciosData.length) {
+                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
+                } else {
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
+                }
+            }
+
             swiperInstance.update();
         } else {
             const swiperWrapper = document.querySelector('.swiper-wrapper');
@@ -859,6 +869,7 @@ contadorAcumulado = nuevosTitulos.length;
         loader.style.display = 'none';
     }
 }
+
 
 
 async function eliminarAnuncio(anuncioId, deleteUrl) {
@@ -1167,6 +1178,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
 
