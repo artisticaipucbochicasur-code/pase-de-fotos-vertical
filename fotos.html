@@ -339,8 +339,24 @@
 </head>
 
 <body>
+<!-- Agregar esto dentro del <body>, fuera del swiper y slides -->
+<button id="deleteCurrentSlideBtn" style="
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    z-index: 1000;
+    cursor: pointer;
+    display: none;" title="Eliminar anuncio">
+    <i class="fas fa-trash"></i>
+</button>
+
+  
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳dh</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -367,6 +383,50 @@
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
+    const deleteCurrentSlideBtn = document.getElementById('deleteCurrentSlideBtn');
+
+// Mostrar/ocultar botón junto con otros overlays
+document.querySelector('.swiper').addEventListener('click', () => {
+    const currentTime = new Date().getTime();
+    if (currentTime - lastTapTime > 300) {
+        deleteCurrentSlideBtn.classList.toggle('hidden-overlay');
+    }
+    lastTapTime = currentTime;
+});
+
+// Lógica para eliminar el slide actual
+deleteCurrentSlideBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const activeIndex = swiperInstance.realIndex;
+    const currentAnuncio = anunciosData[activeIndex];
+    if(currentAnuncio) {
+        showConfirmationDialog(
+            "¿Estás seguro de que quieres eliminar este anuncio?",
+            () => eliminarAnuncio(currentAnuncio.id, currentAnuncio.deleteurl)
+        );
+    }
+});
+
+// Actualizar el botón según el slide activo y si es del usuario
+function actualizarDeleteBtn() {
+    if (!swiperInstance || anunciosData.length === 0) return;
+    const activeIndex = swiperInstance.realIndex;
+    const anuncioActual = anunciosData[activeIndex];
+    if (normalizeText(anuncioActual.correo) === normalizeText(currentAuthorEmail)) {
+        deleteCurrentSlideBtn.style.display = 'block';
+    } else {
+        deleteCurrentSlideBtn.style.display = 'none';
+    }
+}
+
+// Llamar cada vez que cambie de slide
+if (swiperInstance) {
+    swiperInstance.on('slideChange', actualizarDeleteBtn);
+}
+
+// Inicializar al cargar
+actualizarDeleteBtn();
+
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let swiperInstance = null;
@@ -799,32 +859,32 @@ contadorAcumulado = nuevosTitulos.length;
                 slide.appendChild(zoomContainer);
 
                 // Agregar botón de eliminar si corresponde
-                if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                    deleteBtn.style.position = 'absolute';
-                    deleteBtn.style.top = '10px';
-                    deleteBtn.style.right = '10px';
-                    deleteBtn.style.background = 'rgba(231, 76, 60, 0.9)';
-                    deleteBtn.style.border = 'none';
-                    deleteBtn.style.color = 'white';
-                    deleteBtn.style.padding = '8px 10px';
-                    deleteBtn.style.borderRadius = '8px';
-                    deleteBtn.style.cursor = 'pointer';
-                    deleteBtn.style.fontSize = '1.2rem';
-                    deleteBtn.style.zIndex = '1000';
-                    deleteBtn.title = 'Eliminar anuncio';
+               if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    deleteBtn.style.position = 'absolute';
+    deleteBtn.style.bottom = '80px'; // arriba del contador de comentarios
+    deleteBtn.style.right = '10px';
+    deleteBtn.style.background = 'transparent'; // sin fondo
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.color = 'white';
+    deleteBtn.style.padding = '5px';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.style.fontSize = '1.5rem';
+    deleteBtn.style.zIndex = '1000';
+    deleteBtn.title = 'Eliminar anuncio';
 
-                    deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        showConfirmationDialog(
-                            "¿Estás seguro de que quieres eliminar este anuncio?",
-                            () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-                        );
-                    });
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showConfirmationDialog(
+            "¿Estás seguro de que quieres eliminar este anuncio?",
+            () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+        );
+    });
 
-                    slide.appendChild(deleteBtn);
-                }
+    slide.appendChild(deleteBtn);
+}
+
                 
                 swiperInstance.appendSlide(slide);
             });
@@ -1193,5 +1253,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
