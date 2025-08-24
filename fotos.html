@@ -20,6 +20,41 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
+<!-- Botón flotante para subir anuncio -->
+<div class="upload-button" id="uploadButton" title="Subir anuncio">
+  <i class="fas fa-upload"></i>
+</div>
+
+<style>
+  /* Estilo del botón flotante de subir anuncio */
+  .upload-button {
+    position: fixed;
+    bottom: 120px; /* Justo encima del contador de comentarios */
+    right: 10px;
+    width: 55px;
+    height: 55px;
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 1000;
+    font-size: 1.5rem;
+    transition: transform 0.2s ease, background 0.3s ease;
+  }
+
+  .upload-button:hover {
+    background: #2980b9;
+    transform: scale(1.1);
+  }
+
+  .upload-button i {
+    pointer-events: none;
+  }
+    
     #lblContador {
       position: fixed;
       top: 10px;
@@ -46,6 +81,7 @@
         justify-content: center;
         align-items: center;
     }
+    
 
     .custom-alert {
         background-color: #2c3e50;
@@ -505,7 +541,16 @@
       activeComment = null;
       startX = 0;
     });
-
+// Lógica para manejar el clic en el botón de subir anuncio
+  document.getElementById("uploadButton").addEventListener("click", () => {
+    // Si existe integración con App Inventor, notificamos
+    if (window.AppInventor) {
+      window.AppInventor.setWebViewString(JSON.stringify({ accion: "subirAnuncio" }));
+    } else {
+      // Si no está App Inventor, mostramos un aviso en el navegador
+      showInfoDialog("Subir anuncio", "Esta función se maneja desde App Inventor.");
+    }
+  });
     async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
         loader.style.display = 'block';
         try {
@@ -1156,4 +1201,5 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
