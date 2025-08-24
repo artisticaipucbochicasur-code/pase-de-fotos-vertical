@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳5</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -696,7 +696,7 @@
       }
     }
 
-   // FUNCIÓN MEJORADA: cargarImagenes
+ // FUNCIÓN MEJORADA: cargarImagenes
 async function cargarImagenes() {
   loader.style.display = 'block';
   // Guarda el id actual antes de recargar
@@ -728,6 +728,7 @@ async function cargarImagenes() {
       });
     }
 
+    // Invertimos el orden para mostrar los más recientes primero
     newAnunciosData.reverse();
 
     anunciosData = newAnunciosData;
@@ -777,18 +778,27 @@ async function cargarImagenes() {
       swiperWrapper.appendChild(slide);
     });
 
-    // Busca el índice del anuncio que estaba activo antes de la recarga
-    let newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
-    if (newIndex === -1) newIndex = 0; // Si fue eliminado, ve al primero
+    // --- CORRECCIÓN: Buscar el índice por ID para mantener la sincronización ---
+    let finalIndex = 0;
+    if (currentId) {
+      const idx = anunciosData.findIndex(a => a.id === currentId);
+      if (idx >= 0) {
+        finalIndex = idx;
+      } else {
+        // Si el anuncio actual fue eliminado, mostramos el primero disponible
+        finalIndex = 0;
+      }
+    }
 
     // Actualiza Swiper y overlay
     if(!swiperInstance) {
-      initSwiper(newIndex);
+      initSwiper(finalIndex);
     } else {
       swiperInstance.update();
-      swiperInstance.slideTo(newIndex, 0, false);
+      // Usamos slideToLoop para que el overlay y la imagen coincidan incluso con loop activado
+      swiperInstance.slideToLoop(finalIndex, 0, false);
       // Forzar sincronización del overlay después del cambio de slide
-      setTimeout(() => updateContentOverlay(swiperInstance.realIndex), 0);
+      setTimeout(() => updateContentOverlay(finalIndex), 0);
     }
   } catch(error) {
     console.error("Error al cargar las imágenes:", error);
@@ -797,62 +807,71 @@ async function cargarImagenes() {
   }
 }
 
-    
-    function updateContentOverlay(index) {
-    // --- ARREGLO: Forzar índice válido ---
-    if (index < 0 || index >= anunciosData.length) index = 0;
-    if (anunciosData.length > 0) {
-        const anuncio = anunciosData[index];
-        currentTitle.textContent = anuncio.titulo;
-        currentDescription.textContent = anuncio.descripcion;
 
+// FUNCIÓN MEJORADA: updateContentOverlay
+function updateContentOverlay(index) {
+    // --- ARREGLO: Validamos que el índice sea válido ---
+    if (!anunciosData || anunciosData.length === 0) {
+        currentTitle.textContent = '';
+        currentDescription.textContent = '';
         commentsList.innerHTML = '';
-        commentsOverlay.classList.remove('expanded');
+        commentCountValue.textContent = 0;
+        return;
+    }
 
-        if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-            anuncio.comentarios.forEach(comentario => {
-                const li = document.createElement('li');
-                li.classList.add('deletable');
+    if (index < 0 || index >= anunciosData.length) index = 0;
 
-                const commentContent = document.createElement('div');
-                commentContent.classList.add('comment-content');
-                commentContent.textContent = comentario.texto;
+    const anuncio = anunciosData[index];
+    currentTitle.textContent = anuncio.titulo;
+    currentDescription.textContent = anuncio.descripcion;
 
-                const deleteBtnContainer = document.createElement('div');
-                deleteBtnContainer.className = 'delete-btn-container';
-                const deleteBtn = document.createElement('div');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Borrar';
-                deleteBtnContainer.appendChild(deleteBtn);
+    commentsList.innerHTML = '';
+    commentsOverlay.classList.remove('expanded');
 
-                li.appendChild(deleteBtnContainer);
-                li.appendChild(commentContent);
-
-                li.dataset.id = comentario.id;
-                li.dataset.correo = comentario.autorCorreo;
-                li.dataset.texto = comentario.textoPuro;
-
-                deleteBtn.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    const activeIndex = swiperInstance.realIndex;
-                    let safeIndex = (activeIndex < 0 || activeIndex >= anunciosData.length) ? 0 : activeIndex;
-                    const currentAnuncio = anunciosData[safeIndex];
-                    if (currentAnuncio) {
-                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
-                    }
-                });
-
-                commentsList.appendChild(li);
-            });
-            commentCountValue.textContent = anuncio.comentarios.length;
-        } else {
+    if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+        anuncio.comentarios.forEach(comentario => {
             const li = document.createElement('li');
-            li.textContent = "No hay comentarios aún.";
+            li.classList.add('deletable');
+
+            const commentContent = document.createElement('div');
+            commentContent.classList.add('comment-content');
+            commentContent.textContent = comentario.texto;
+
+            const deleteBtnContainer = document.createElement('div');
+            deleteBtnContainer.className = 'delete-btn-container';
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Borrar';
+            deleteBtnContainer.appendChild(deleteBtn);
+
+            li.appendChild(deleteBtnContainer);
+            li.appendChild(commentContent);
+
+            li.dataset.id = comentario.id;
+            li.dataset.correo = comentario.autorCorreo;
+            li.dataset.texto = comentario.textoPuro;
+
+            deleteBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const activeIndex = swiperInstance.realIndex;
+                let safeIndex = (activeIndex < 0 || activeIndex >= anunciosData.length) ? 0 : activeIndex;
+                const currentAnuncio = anunciosData[safeIndex];
+                if (currentAnuncio) {
+                    eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+                }
+            });
+
             commentsList.appendChild(li);
-            commentCountValue.textContent = 0;
-        }
+        });
+        commentCountValue.textContent = anuncio.comentarios.length;
+    } else {
+        const li = document.createElement('li');
+        li.textContent = "No hay comentarios aún.";
+        commentsList.appendChild(li);
+        commentCountValue.textContent = 0;
     }
 }
+
 
 // FUNCIÓN MEJORADA: initSwiper
 function initSwiper(initialIndex = 0) {
@@ -909,6 +928,52 @@ function initSwiper(initialIndex = 0) {
     }
 }
 
+
+async function eliminarAnuncio(anuncioId, deleteUrl) {
+    try {
+        // Mostrar loader
+        loader.style.display = 'block';
+
+        // Llamar al Apps Script para eliminar el anuncio
+        const response = await fetch(deleteUrl, {
+            method: 'POST'
+        });
+
+        // Verificar si la respuesta fue correcta
+        if (!response.ok) {
+            throw new Error(`Error al eliminar anuncio: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            console.log(`✅ Anuncio ${anuncioId} eliminado correctamente.`);
+
+            // Recargar imágenes y overlay
+            await cargarImagenes();
+            if (swiperInstance) {
+                const activeIndex = swiperInstance.realIndex;
+                updateContentOverlay(activeIndex);
+            }
+
+            // Mostrar mensaje de éxito
+            showAlert("Anuncio eliminado con éxito.");
+        } else {
+            console.error(`❌ No se pudo eliminar el anuncio ${anuncioId}.`);
+            showAlert("Hubo un problema al eliminar el anuncio. Intenta de nuevo.");
+        }
+    } catch (error) {
+        console.error("Error en eliminarAnuncio:", error);
+        showAlert("Error al eliminar el anuncio. Intenta más tarde.");
+    } finally {
+        // Ocultar loader
+        loader.style.display = 'none';
+
+        // Cerrar cualquier diálogo de confirmación si está abierto
+        closeConfirmationDialog();
+    }
+}
+
+    
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
         const alertDiv = overlay.querySelector('.custom-alert');
@@ -1067,6 +1132,7 @@ function initSwiper(initialIndex = 0) {
   </script>
 </body>
 </html>
+
 
 
 
