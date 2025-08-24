@@ -12,10 +12,6 @@
         font-family: Arial, sans-serif;
         color: white;
         transition: transform 0.3s ease; /* Transición para el movimiento */
-      margin: 0; padding: 0; background: #111; font-family: Arial, sans-serif; color: white; transition: transform 0.3s ease; }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain;
     }
     .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
@@ -24,30 +20,6 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
- /* Estilo del botón fijo de eliminar anuncio */
-    #deleteAnnouncementBtn {
-      position: fixed;
-      /* Ubicarlo arriba del ícono de contador de comentarios */
-      bottom: 120px;
-      right: 10px;
-      background: rgba(231, 76, 60, 0.9);
-      border: none;
-      color: white;
-      padding: 8px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1.2rem;
-      z-index: 1000;
-      display: none; /* oculto por defecto */
-    }
-
-    /* Clase para ocultar overlays y el botón */
-    .hidden-overlay {
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(100%);
-    }
-    
     #lblContador {
       position: fixed;
       top: 10px;
@@ -74,6 +46,27 @@
         justify-content: center;
         align-items: center;
     }
+    .delete-announcement-btn {
+    position: fixed;
+    top: 10px;
+    right: 60px; /* separado del lblContador */
+    background: rgba(231, 76, 60, 0.9);
+    border: none;
+    color: white;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  }
+
+  .delete-announcement-btn.visible {
+    opacity: 1;
+    visibility: visible;
+  }
 
     .custom-alert {
     background-color: #1e1e1e !important; /* Fondo oscuro */
@@ -368,15 +361,14 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳dt</span></div>
+  <div id="loader"><span class="spinner">⏳s</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
-  <div class="custom-alert">
-    <h2 id="alertTitle"></h2>
-    <div id="alertMessage"></div>
+      <div class="custom-alert">
+          <h2 id="alertTitle"></h2>
+          <div class="titles-list" id="alertMessage"></div>
+      </div>
   </div>
-</div>
-
   <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
@@ -388,15 +380,15 @@
       <span class="icon">💬</span>
       <span class="count" id="commentCountValue">0</span>
   </div>
+  
   <div class="comment-input-container">
       <input type="text" id="commentInput" placeholder="Escribe un comentario...">
       <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
-
   <!-- Botón fijo para eliminar anuncio -->
-  <button id="deleteAnnouncementBtn" title="Eliminar anuncio"><i class="fas fa-trash"></i></button>
-
-  
+<button id="deleteAnnouncementBtn" class="delete-announcement-btn">
+  <i class="fas fa-trash"></i>
+</button>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -436,24 +428,16 @@
         return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     }
 
-     // Variables y elementos
-    const deleteAnnouncementBtn = document.getElementById('deleteAnnouncementBtn');
-    // ... (Otras variables existentes: SCRIPT_URL, anunciosData, swiperInstance, etc.) ...
-
-    // Al tocar el slider, se ocultan/mostrarán overlays y el botón
+    // Toggle para ocultar/mostrar overlays al tocar la imagen
     document.querySelector('.swiper').addEventListener('click', () => {
-        const now = new Date().getTime();
-        if (now - lastTapTime > 300) {
+        const currentTime = new Date().getTime();
+        if (currentTime - lastTapTime > 300) {
             contentOverlay.classList.toggle('hidden-overlay');
             commentsOverlay.classList.toggle('hidden-overlay');
             commentsCounter.classList.toggle('hidden-overlay');
             commentInputContainer.classList.toggle('hidden-overlay');
-            // Alternar el botón fijo de eliminar anuncio
-            if (deleteAnnouncementBtn.style.display !== 'none') {
-                deleteAnnouncementBtn.classList.toggle('hidden-overlay');
-            }
         }
-        lastTapTime = now;
+        lastTapTime = currentTime;
     });
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
@@ -780,11 +764,11 @@ contadorAcumulado = nuevosTitulos.length;
 
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         let newAnunciosData = [];
 
-        if (data.url && data.url.length > 0) {
+        if(data.url && data.url.length > 0) {
             data.url.forEach((url, index) => {
                 const idAnuncio = data.id[index];
                 const comentarios = comentariosPorAnuncio[idAnuncio] || [];
@@ -805,27 +789,20 @@ contadorAcumulado = nuevosTitulos.length;
 
         newAnunciosData.reverse();
 
-        // Verificar si hay cambios
         const oldAnunciosIds = anunciosData.map(a => a.id);
         const newAnunciosIds = newAnunciosData.map(a => a.id);
         
-        // Si no hay cambios, no hacer nada
         if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
             loader.style.display = 'none';
             return;
         }
 
-        // Guardar la posición actual antes de actualizar
         const currentSlideId = currentId;
-        
-        // Actualizar los datos
         anunciosData = newAnunciosData;
         
-        // Actualizar el swiper sin destruirlo
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
             
-            // Agregar nuevos slides
             anunciosData.forEach(anuncio => {
                 const slide = document.createElement('div');
                 slide.classList.add('swiper-slide');
@@ -844,18 +821,10 @@ contadorAcumulado = nuevosTitulos.length;
                 swiperInstance.appendSlide(slide);
             });
             
-            // Buscar el slide que estaba viendo antes
             const newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-            if (newIndex !== -1) {
-                swiperInstance.slideToLoop(newIndex, 0, false);
-            } else {
-                // Si el slide ya no existe, ir al primero
-                swiperInstance.slideToLoop(0, 0, false);
-            }
-            
+            swiperInstance.slideToLoop(newIndex !== -1 ? newIndex : 0, 0, false);
             swiperInstance.update();
         } else {
-            // Primera carga
             const swiperWrapper = document.querySelector('.swiper-wrapper');
             swiperWrapper.innerHTML = '';
             
@@ -880,11 +849,10 @@ contadorAcumulado = nuevosTitulos.length;
             initSwiper(0);
         }
 
-        // Actualizar el contenido overlay
         const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
         updateContentOverlay(activeIndex);
 
-    } catch (error) {
+    } catch(error) {
         console.error("Error al cargar las imágenes:", error);
     } finally {
         loader.style.display = 'none';
@@ -892,36 +860,35 @@ contadorAcumulado = nuevosTitulos.length;
 }
 
 
-// Función para eliminar anuncio
 async function eliminarAnuncio(anuncioId, deleteUrl) {
     loader.style.display = 'block';
     try {
         const formData = new FormData();
         formData.append('accion', 'eliminarAnuncio');
-        formData.append('idAnuncio', anuncioId);
+        formData.append('id', anuncioId);
+        formData.append('correo', currentAuthorEmail);
         formData.append('deleteurl', deleteUrl);
 
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: formData
         });
-        const result = await response.json();
 
-        if (result.status === "✅ success") {
-            console.log("Anuncio eliminado con éxito.");
-            await cargarImagenes(); // recargar lista
-        } else {
-            console.error("Error al eliminar el anuncio:", result.message);
-            showInfoDialog("Error", `No se pudo eliminar el anuncio. ${result.message}`);
-        }
+        const result = await response.json();
+      if (result.status && result.status.toLowerCase().includes("success")) {
+    showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
+    await cargarImagenes();
+} else {
+    showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
+}
+
     } catch (error) {
-        console.error("Error de red al eliminar el anuncio:", error);
-        showInfoDialog("Error", "Ocurrió un error al intentar eliminar el anuncio.");
+        console.error("Error eliminando anuncio:", error);
+        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
     } finally {
         loader.style.display = 'none';
     }
 }
-
 
     
    function updateContentOverlay(index) {
@@ -930,10 +897,9 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         currentTitle.textContent = anuncio.titulo;
         currentDescription.textContent = anuncio.descripcion;
 
-        // ✅ Mostrar/ocultar botón eliminar anuncio SOLO una vez
+        // ✅ Mostrar/ocultar el botón fijo
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            deleteAnnouncementBtn.style.display = "block";
-            deleteAnnouncementBtn.classList.remove('hidden-overlay');
+            deleteAnnouncementBtn.classList.add("visible");
             deleteAnnouncementBtn.onclick = () => {
                 showConfirmationDialog(
                     "¿Estás seguro de que quieres eliminar este anuncio?",
@@ -941,13 +907,12 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
                 );
             };
         } else {
-            deleteAnnouncementBtn.style.display = "none";
+            deleteAnnouncementBtn.classList.remove("visible");
         }
-        
+
         commentsList.innerHTML = '';
         commentsOverlay.classList.remove('expanded'); 
 
-        // Renderizar comentarios
         if (anuncio.comentarios && anuncio.comentarios.length > 0) {
             anuncio.comentarios.forEach(comentario => {
                 const li = document.createElement('li');
@@ -975,7 +940,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
                     ev.stopPropagation(); 
                     const activeIndex = swiperInstance.realIndex;
                     const currentAnuncio = anunciosData[activeIndex];
-                    if (currentAnuncio) {
+                    if(currentAnuncio) {
                         eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
                     }
                 });
@@ -992,18 +957,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
-
-    function mostrarOverlay(anuncio) {
-  const deleteBtn = document.querySelector(".delete-ad-btn");
-  if (anuncio.userId === currentUser.id) {
-    deleteBtn.style.display = "block";
-  } else {
-    deleteBtn.style.display = "none";
-  }
-
-  // Mostrar cantidad de comentarios
-  document.getElementById("commentCount").innerText = anuncio.comments.length;
-}
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
@@ -1213,7 +1166,4 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
-
-
-
 
