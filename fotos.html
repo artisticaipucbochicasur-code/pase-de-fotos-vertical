@@ -304,7 +304,7 @@
 </head>
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳2</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -957,33 +957,45 @@
         overlay.style.display = 'flex';
     }
 
- // ---- Tu función eliminarAnuncio igual ----
-    async function eliminarAnuncio(anuncioId, deleteUrl) {
-        loader.style.display = 'block';
-        try {
-            const formData = new FormData();
-            formData.append('accion', 'eliminarAnuncio');
-            formData.append('id', anuncioId);
-            formData.append('correo', currentAuthorEmail);
-            formData.append('deleteurl', deleteUrl);
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            if (result.status === "✅ success") {
-                showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
-                await cargarImagenes();
-            } else {
-                showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
+// Reemplaza tu función eliminarAnuncio por esta:
+async function eliminarAnuncio(anuncioId, deleteUrl) {
+    loader.style.display = 'block';
+    // Guardar el índice actual ANTES de eliminar
+    let currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    try {
+        const formData = new FormData();
+        formData.append('accion', 'eliminarAnuncio');
+        formData.append('id', anuncioId);
+        formData.append('correo', currentAuthorEmail);
+        formData.append('deleteurl', deleteUrl);
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (result.status === "✅ success") {
+            showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
+            // Espera que cargarImagenes actualice el array anunciosData
+            await cargarImagenes();
+            // Después de actualizar, calcula el índice que corresponde
+            let numSlides = anunciosData.length;
+            if (numSlides > 0) {
+                // Si eliminaste el último, ve al anterior. Si no, ve al mismo índice.
+                let goTo = currentIndex >= numSlides ? numSlides - 1 : currentIndex;
+                swiperInstance.slideTo(goTo, 0, false);
+                updateContentOverlay(goTo);
+                updateFixedDeleteBtn && updateFixedDeleteBtn();
             }
-        } catch (error) {
-            console.error("Error eliminando anuncio:", error);
-            showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
-        } finally {
-            loader.style.display = 'none';
+        } else {
+            showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
         }
+    } catch (error) {
+        console.error("Error eliminando anuncio:", error);
+        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
+    } finally {
+        loader.style.display = 'none';
     }
+}
     
     function showInfoDialog(title, message) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1060,4 +1072,5 @@
   </script>
 </body>
 </html>
+
 
