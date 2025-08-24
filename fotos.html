@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳2</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -640,10 +640,13 @@ async function actualizarContador() {
                     // Guardar los títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
-                    const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-                    nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
+                   // Guardar los títulos nuevos detectados SIN duplicarlos
+const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
+nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
 
-                    contadorAcumulado = nuevosTitulos.length;
+// Eliminar duplicados conservando el orden
+nuevosTitulos = [...new Set(nuevosTitulos)];
+contadorAcumulado = nuevosTitulos.length;
                 } else if (diferencia < 0) {
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
@@ -1176,3 +1179,4 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
