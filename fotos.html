@@ -1,923 +1,1060 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #111;
-        font-family: Arial, sans-serif;
-        color: white;
-        transition: transform 0.3s ease;
-    }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
-    #lblContador {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(255, 0, 0, 0.8);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 9999;
-      display: none;
-      cursor: pointer;
-    }
-    #customAlertOverlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 10000;
-        justify-content: center;
-        align-items: center;
-    }
-    .custom-alert {
-        background-color: #2c3e50;
-        color: #ecf0f1;
-        padding: 25px;
-        border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        max-width: 80%;
-        text-align: center;
-        border: 2px solid #3498db;
-        display: flex;
-        flex-direction: column;
-    }
-    .custom-alert.confirm-delete {
-      width: 300px;
-      text-align: center;
-    }
-    .custom-alert.confirm-delete .btn-group {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 15px;
-    }
-    .custom-alert h2 {
-        color: #3498db;
-        margin-top: 0;
-        margin-bottom: 15px;
-        font-size: 1.5rem;
-    }
-    .custom-alert p {
-        margin: 0 0 20px;
-        white-space: pre-wrap;
-    }
-    .custom-alert button {
-        background-color: #34495e;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 1rem;
-        transition: background-color 0.3s ease;
-    }
-    .custom-alert button:hover {
-        background-color: #5d6d7e;
-    }
-    .titles-list {
-        list-style: none;
-        padding: 0;
-        margin: 0 0 20px;
-        max-height: 200px;
-        overflow-y: auto;
-        text-align: left;
-    }
-    .titles-list li {
-        padding: 8px;
-        background-color: #34495e;
-        border-bottom: 1px solid #2c3e50;
-        cursor: pointer;
-    }
-    .titles-list li:hover {
-        background-color: #5d6d7e;
-    }
-    .content-overlay {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.6);
-        color: #fff;
-        padding: 10px 15px;
-        border-radius: 5px;
-        text-align: left;
-        max-width: 80%;
-        box-sizing: border-box;
-        z-index: 999;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-    .content-overlay h3 {
-        margin-top: 0;
-        margin-bottom: 5px;
-        font-size: 1.2rem;
-        font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-    }
-    .content-overlay p {
-        margin-top: 0;
-        font-size: 0.9rem;
-        line-height: 1.2;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-    }
-    .comments-overlay-container {
-        position: fixed;
-        bottom: 60px;
-        left: 10px;
-        width: calc(80% - 20px);
-        background: rgba(0, 0, 0, 0.6);
-        color: #eee;
-        padding: 10px;
-        border-radius: 5px;
-        box-sizing: border-box;
-        z-index: 998;
-        overflow-y: auto;
-        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-        max-height: 4em;
-    }
-    .comments-overlay-container.expanded {
-      max-height: 25vh;
-    }
-    .comments-overlay-container ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    .comments-overlay-container li {
-        font-size: 0.8rem;
-        line-height: 1.2;
-        margin-bottom: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 8px;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-    }
-    .comments-overlay-container li:last-child {
-      border-bottom: none;
-    }
-    .comments-overlay-container li.deletable {
-        cursor: pointer;
-    }
-    .delete-btn-container {
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 100px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: #e74c3c;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        z-index: 0;
-    }
-    .delete-btn {
-        color: white;
-        font-weight: bold;
-        padding: 10px;
-        cursor: pointer;
-        user-select: none;
-    }
-    .comment-content {
-      width: 100%;
-      padding-left: 10px;
-      padding-right: 10px;
-      box-sizing: border-box;
-      transition: transform 0.3s ease;
-      position: relative;
-      z-index: 1;
-    }
-    .comment-content.swiped {
-      transform: translateX(100px);
-    }
-    .delete-btn-container.visible {
-        transform: translateX(0);
-    }
-    .hidden-overlay {
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(100%);
-    }
-    .comments-counter {
-        position: fixed;
-        bottom: 60px;
-        right: 10px;
-        background: rgba(0, 0, 0, 0.6);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 5px;
-        font-size: 14px;
-        font-weight: bold;
-        z-index: 999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        cursor: pointer;
-        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
-    }
-    .comments-counter .icon {
-        font-size: 1.5rem;
-        line-height: 1;
-    }
-    .comments-counter .count {
-        font-size: 0.9rem;
-    }
-    .comment-input-container {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: #1a1a1a;
-        padding: 10px;
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 1000;
-        transition: bottom 0.3s ease;
-    }
-    .comment-input-container input {
-        flex-grow: 1;
-        background: #333;
-        border: 1px solid #555;
-        border-radius: 20px;
-        padding: 10px 15px;
-        color: white;
-        font-size: 1rem;
-        outline: none;
-    }
-    .comment-input-container .send-comment-btn {
-        background: #3498db;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 1.2rem;
-    }
-    .comment-input-container .send-comment-btn:hover {
-        background: #2980b9;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #111;
+        font-family: Arial, sans-serif;
+        color: white;
+        transition: transform 0.3s ease; /* Transición para el movimiento */
+    }
+    .swiper { width: 100vw; height: 100vh; }
+    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
+    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+
+    #lblContador {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 9999;
+      display: none;
+      cursor: pointer;
+    }
+
+    #customAlertOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .custom-alert {
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        max-width: 80%;
+        text-align: center;
+        border: 2px solid #3498db;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .custom-alert.confirm-delete {
+      width: 300px;
+      text-align: center;
+    }
+    
+    .custom-alert.confirm-delete .btn-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .custom-alert h2 {
+        color: #3498db;
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+    }
+
+    .custom-alert p {
+        margin: 0 0 20px;
+        white-space: pre-wrap;
+    }
+
+    .custom-alert button {
+        background-color: #34495e;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+    }
+    
+    .custom-alert button:hover {
+        background-color: #5d6d7e;
+    }
+
+    .titles-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px;
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+    }
+
+    .titles-list li {
+        padding: 8px;
+        background-color: #34495e;
+        border-bottom: 1px solid #2c3e50;
+        cursor: pointer;
+    }
+    .titles-list li:hover {
+        background-color: #5d6d7e;
+    }
+
+    /* Estilos para el overlay de título y descripción */
+    .content-overlay {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-align: left;
+        max-width: 80%;
+        box-sizing: border-box;
+        z-index: 999;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .content-overlay h3 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .content-overlay p {
+        margin-top: 0;
+        font-size: 0.9rem;
+        line-height: 1.2;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Contenedor de comentarios (reducido por defecto) */
+    .comments-overlay-container {
+        position: fixed;
+        bottom: 60px;
+        left: 10px;
+        width: calc(80% - 20px);
+        background: rgba(0, 0, 0, 0.6);
+        color: #eee;
+        padding: 10px;
+        border-radius: 5px;
+        box-sizing: border-box;
+        z-index: 998;
+        overflow-y: auto;
+        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+        max-height: 4em;
+    }
+
+    /* Estado expandido del contenedor de comentarios */
+    .comments-overlay-container.expanded {
+      max-height: 25vh;
+    }
+
+    /* Estilos para la lista de comentarios */
+    .comments-overlay-container ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Estilos para cada comentario individual */
+    .comments-overlay-container li {
+        font-size: 0.8rem;
+        line-height: 1.2;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 8px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+    }
+
+    .comments-overlay-container li:last-child {
+      border-bottom: none;
+    }
+    
+    /* Estilo para los comentarios que se pueden borrar */
+    .comments-overlay-container li.deletable {
+        cursor: pointer;
+    }
+    
+    /* Contenedor del botón de borrado */
+    .delete-btn-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #e74c3c;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 0; 
+    }
+    
+    /* Botón de borrado en sí mismo */
+    .delete-btn {
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    /* El comentario se desliza */
+    .comment-content {
+      width: 100%;
+      padding-left: 10px;
+      padding-right: 10px;
+      box-sizing: border-box;
+      transition: transform 0.3s ease;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .comment-content.swiped {
+      transform: translateX(100px);
+    }
+    
+    .delete-btn-container.visible {
+        transform: translateX(0);
+    }
+    
+    /* Clase para ocultar los overlays */
+    .hidden-overlay {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(100%);
+    }
+
+    /* Estilos del nuevo contador de comentarios */
+    .comments-counter {
+        position: fixed;
+        bottom: 60px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        cursor: pointer;
+        transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .comments-counter .icon {
+        font-size: 1.5rem;
+        line-height: 1;
+    }
+    
+    .comments-counter .count {
+        font-size: 0.9rem;
+    }
+
+    /* Nuevo: Estilos para la barra de entrada de comentarios */
+    .comment-input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #1a1a1a;
+        padding: 10px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+        transition: bottom 0.3s ease;
+    }
+
+    .comment-input-container input {
+        flex-grow: 1;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 20px;
+        padding: 10px 15px;
+        color: white;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .comment-input-container .send-comment-btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .comment-input-container .send-comment-btn:hover {
+        background: #2980b9;
+    }
+  </style>
 </head>
 
 <body>
-  <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
-  <div id="lblContador"></div>
-  <div id="customAlertOverlay">
-      <div class="custom-alert">
-          <h2 id="alertTitle"></h2>
-          <div class="titles-list" id="alertMessage"></div>
-      </div>
-  </div>
-  <div class="content-overlay" id="contentOverlay">
-    <h3 id="currentTitle"></h3>
-    <p id="currentDescription"></p>
-  </div>
-  <div class="comments-overlay-container" id="commentsOverlay">
-    <ul id="commentsList"></ul>
-  </div>
-  <div class="comments-counter" id="commentsCounter">
-      <span class="icon">💬</span>
-      <span class="count" id="commentCountValue">0</span>
-  </div>
-  <div class="comment-input-container">
-      <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-    let anunciosData = [];
-    let swiperInstance = null;
-    let contadorTotalAnterior = -1;
-    let contadorAcumulado = 0;
-    let nuevosTitulos = [];
-    const loader = document.getElementById('loader');
-    const lblContador = document.getElementById("lblContador");
+  <div class="swiper"><div class="swiper-wrapper"></div></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="lblContador"></div>
+  <div id="customAlertOverlay">
+      <div class="custom-alert">
+          <h2 id="alertTitle"></h2>
+          <div class="titles-list" id="alertMessage"></div>
+      </div>
+  </div>
+  <div class="content-overlay" id="contentOverlay">
+    <h3 id="currentTitle"></h3>
+    <p id="currentDescription"></p>
+  </div>
+  <div class="comments-overlay-container" id="commentsOverlay">
+    <ul id="commentsList"></ul>
+  </div>
+  <div class="comments-counter" id="commentsCounter">
+      <span class="icon">💬</span>
+      <span class="count" id="commentCountValue">0</span>
+  </div>
+  
+  <div class="comment-input-container">
+      <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+    let anunciosData = [];
+    let swiperInstance = null;
+    let contadorTotalAnterior = -1;
+    let contadorAcumulado = 0;
+    let nuevosTitulos = []; 
+    const loader = document.getElementById('loader');
+    const lblContador = document.getElementById("lblContador");
 
-    const contentOverlay = document.getElementById('contentOverlay');
-    const commentsOverlay = document.getElementById('commentsOverlay');
-    const commentsCounter = document.getElementById('commentsCounter');
-    const commentCountValue = document.getElementById('commentCountValue');
-    const commentsList = document.getElementById('commentsList');
-    const currentTitle = document.getElementById('currentTitle');
-    const currentDescription = document.getElementById('currentDescription');
-    const commentInputContainer = document.querySelector('.comment-input-container');
-    const commentInput = document.getElementById('commentInput');
-    const sendCommentBtn = document.querySelector('.send-comment-btn');
+    const contentOverlay = document.getElementById('contentOverlay');
+    const commentsOverlay = document.getElementById('commentsOverlay');
+    const commentsCounter = document.getElementById('commentsCounter');
+    const commentCountValue = document.getElementById('commentCountValue');
+    const commentsList = document.getElementById('commentsList');
+    const currentTitle = document.getElementById('currentTitle');
+    const currentDescription = document.getElementById('currentDescription');
+    const commentInputContainer = document.querySelector('.comment-input-container');
+    const commentInput = document.getElementById('commentInput');
+    const sendCommentBtn = document.querySelector('.send-comment-btn');
 
-    let contadorComentariosAnterior = -1;
-    let comentariosPorAnuncio = {};
-    let lastTapTime = 0;
-    
-    let currentAuthorEmail = "deimer.herrera91@gmail.com";
-    let currentAuthorName = "AnónimoDH";
-    
-    // Variables para el swipe
-    let startX = 0;
-    let activeComment = null;
-    let isSwiping = false;
+    let contadorComentariosAnterior = -1;
+    let comentariosPorAnuncio = {};
+    let lastTapTime = 0;
+    
+    let currentAuthorEmail = "deimer.herrera91@gmail.com";
+    let currentAuthorName = "AnónimoDH";
+    
+    // Variables para el swipe
+    let startX = 0;
+    let activeComment = null;
+    let isSwiping = false;
 
-    function normalizeText(text) {
-        if (!text) return "";
-        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-    }
+    function normalizeText(text) {
+        if (!text) return "";
+        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    }
 
-    // Toggle para ocultar/mostrar overlays al tocar la imagen
-    document.querySelector('.swiper').addEventListener('click', () => {
-        const currentTime = new Date().getTime();
-        if (currentTime - lastTapTime > 300) {
-            contentOverlay.classList.toggle('hidden-overlay');
-            commentsOverlay.classList.toggle('hidden-overlay');
-            commentsCounter.classList.toggle('hidden-overlay');
-            commentInputContainer.classList.toggle('hidden-overlay');
-        }
-        lastTapTime = currentTime;
-    });
+    // Toggle para ocultar/mostrar overlays al tocar la imagen
+    document.querySelector('.swiper').addEventListener('click', () => {
+        const currentTime = new Date().getTime();
+        if (currentTime - lastTapTime > 300) {
+            contentOverlay.classList.toggle('hidden-overlay');
+            commentsOverlay.classList.toggle('hidden-overlay');
+            commentsCounter.classList.toggle('hidden-overlay');
+            commentInputContainer.classList.toggle('hidden-overlay');
+        }
+        lastTapTime = currentTime;
+    });
 
-    // Toggle para expandir/colapsar el contenedor de comentarios con un toque
-    commentsOverlay.addEventListener('click', (e) => {
-        if (!isSwiping) {
-            commentsOverlay.classList.toggle('expanded');
-        }
-        isSwiping = false;
-    });
+    // Toggle para expandir/colapsar el contenedor de comentarios con un toque
+    commentsOverlay.addEventListener('click', (e) => {
+        if (!isSwiping) {
+            commentsOverlay.classList.toggle('expanded');
+        }
+        isSwiping = false; 
+    });
 
-    // Lógica para el swipe
-    commentsList.addEventListener('touchstart', (e) => {
-      const commentElement = e.target.closest('li');
-      if (!commentElement) return;
+    // Lógica para el swipe
+    commentsList.addEventListener('touchstart', (e) => {
+      const commentElement = e.target.closest('li');
+      if (!commentElement) return;
 
-      const commentData = commentElement.dataset;
-      const autorCorreo = commentData.correo;
+      const commentData = commentElement.dataset;
+      const autorCorreo = commentData.correo;
 
-      if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
-          startX = e.touches[0].clientX;
-          activeComment = commentElement;
-          activeComment.querySelector('.comment-content').style.transition = 'none';
-          isSwiping = false;
-      }
-    });
+      if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
+          startX = e.touches[0].clientX;
+          activeComment = commentElement;
+          activeComment.querySelector('.comment-content').style.transition = 'none';
+          isSwiping = false; 
+      }
+    });
 
-    commentsList.addEventListener('touchmove', (e) => {
-      if (!activeComment) return;
+    commentsList.addEventListener('touchmove', (e) => {
+      if (!activeComment) return;
 
-      const currentX = e.touches[0].clientX;
-      const diffX = currentX - startX;
+      const currentX = e.touches[0].clientX;
+      const diffX = currentX - startX;
+      
+      if (Math.abs(diffX) > 10) { 
+        isSwiping = true;
+      }
+      
+      if (diffX > 0) { 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(${diffX}px)`;
+        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(0)`;
+        }
+      } else { 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`; 
+        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(-100%)`;
+        }
+      }
+    });
 
-      if (Math.abs(diffX) > 10) {
-        isSwiping = true;
-      }
+    commentsList.addEventListener('touchend', (e) => {
+      if (!activeComment) return;
+      
+      const swipeThreshold = 50;
+      const diffX = e.changedTouches[0].clientX - startX;
+      
+      const commentContent = activeComment.querySelector('.comment-content');
+      let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
 
-      if (diffX > 0) {
-        activeComment.querySelector('.comment-content').style.transform = `translateX(${diffX}px)`;
-        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
-        if (deleteBtnContainer) {
-            deleteBtnContainer.style.transform = `translateX(0)`;
-        }
-      } else {
-        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`;
-        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
-        if (deleteBtnContainer) {
-            deleteBtnContainer.style.transform = `translateX(-100%)`;
-        }
-      }
-    });
+      commentContent.style.transition = 'transform 0.3s ease';
 
-    commentsList.addEventListener('touchend', (e) => {
-      if (!activeComment) return;
+      if (diffX > swipeThreshold) {
+        commentContent.style.transform = `translateX(100px)`; 
+        
+        if (!deleteBtnContainer) {
+            deleteBtnContainer = document.createElement('div');
+            deleteBtnContainer.className = 'delete-btn-container';
+            
+            let deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Borrar';
+            deleteBtnContainer.appendChild(deleteBtn);
+            
+            activeComment.insertBefore(deleteBtnContainer, commentContent);
+            deleteBtnContainer.style.transform = `translateX(0)`;
+            
+            deleteBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation(); 
+                const commentData = activeComment.dataset;
+                const comentario = commentData.texto;
+                const autorCorreo = commentData.correo;
+                
+                showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
+                  const activeIndex = swiperInstance.realIndex;
+                  const currentAnuncio = anunciosData[activeIndex];
+                  if(currentAnuncio) {
+                    eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
+                  }
+                });
+            });
+        } else {
+            deleteBtnContainer.style.transform = `translateX(0)`;
+        }
+        
+      } else {
+        commentContent.style.transform = `translateX(0)`;
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(-100%)`;
+        }
+      }
 
-      const swipeThreshold = 50;
-      const diffX = e.changedTouches[0].clientX - startX;
+      activeComment = null;
+      startX = 0;
+    });
 
-      const commentContent = activeComment.querySelector('.comment-content');
-      let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+    async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'eliminarComentario');
+            formData.append('idAnuncio', anuncioId);
+            formData.append('textoComentario', comentarioTexto);
+            formData.append('correoAutor', autorCorreo);
+            
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
 
-      commentContent.style.transition = 'transform 0.3s ease';
+            const result = await response.json();
+            if (result.status === "✅ success") {
+                console.log("Comentario eliminado con éxito.");
+                await verificarComentarios(); 
+            } else {
+                console.error("Error al eliminar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo eliminar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al eliminar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar eliminar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
 
-      if (diffX > swipeThreshold) {
-        commentContent.style.transform = `translateX(100px)`;
-        
-        if (!deleteBtnContainer) {
-            deleteBtnContainer = document.createElement('div');
-            deleteBtnContainer.className = 'delete-btn-container';
-            
-            let deleteBtn = document.createElement('div');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.textContent = 'Borrar';
-            deleteBtnContainer.appendChild(deleteBtn);
-            
-            activeComment.insertBefore(deleteBtnContainer, commentContent);
-            deleteBtnContainer.style.transform = `translateX(0)`;
-            
-            deleteBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                const commentData = activeComment.dataset;
-                const comentario = commentData.texto;
-                const autorCorreo = commentData.correo;
-                
-                showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
-                  const activeIndex = swiperInstance.realIndex;
-                  const currentAnuncio = anunciosData[activeIndex];
-                  if(currentAnuncio) {
-                    eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
-                  }
-                });
-            });
-        } else {
-            deleteBtnContainer.style.transform = `translateX(0)`;
-        }
-        
-      } else {
-        commentContent.style.transform = `translateX(0)`;
-        if (deleteBtnContainer) {
-            deleteBtnContainer.style.transform = `translateX(-100%)`;
-        }
-      }
+    async function enviarComentario() {
+        const comentarioTexto = commentInput.value.trim();
+        const activeIndex = swiperInstance.realIndex;
+        const currentAnuncio = anunciosData[activeIndex];
 
-      activeComment = null;
-      startX = 0;
-    });
+        if (!comentarioTexto || !currentAnuncio) {
+            showInfoDialog("Error", "No puedes enviar un comentario vacío.");
+            return;
+        }
 
-    async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
-        loader.style.display = 'block';
-        try {
-            const formData = new FormData();
-            formData.append('accion', 'eliminarComentario');
-            formData.append('idAnuncio', anuncioId);
-            formData.append('textoComentario', comentarioTexto);
-            formData.append('correoAutor', autorCorreo);
-            
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'agregarComentario');
+            formData.append('anuncioId', currentAnuncio.id);
+            formData.append('comentario', comentarioTexto);
+            formData.append('autor', currentAuthorName);
+            formData.append('correo', currentAuthorEmail);
 
-            const result = await response.json();
-            if (result.status === "✅ success") {
-                console.log("Comentario eliminado con éxito.");
-                await verificarComentarios();
-            } else {
-                console.error("Error al eliminar el comentario:", result.message);
-                showInfoDialog("Error", `No se pudo eliminar el comentario. ${result.message}`);
-            }
-        } catch (error) {
-            console.error("Error de red al eliminar el comentario:", error);
-            showInfoDialog("Error", "Ocurrió un error al intentar eliminar el comentario.");
-        } finally {
-            loader.style.display = 'none';
-        }
-    }
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
 
-    async function enviarComentario() {
-        const comentarioTexto = commentInput.value.trim();
-        const activeIndex = swiperInstance.realIndex;
-        const currentAnuncio = anunciosData[activeIndex];
+            const result = await response.json();
+            if (result.status === "🗣️ success") {
+                console.log("Comentario agregado con éxito.");
+                commentInput.value = ''; // Limpiar el campo
+                await verificarComentarios(); 
+            } else {
+                console.error("Error al agregar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al agregar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
 
-        if (!comentarioTexto || !currentAnuncio) {
-            showInfoDialog("Error", "No puedes enviar un comentario vacío.");
-            return;
-        }
+    sendCommentBtn.addEventListener('click', enviarComentario);
+    commentInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            enviarComentario();
+        }
+    });
 
-        loader.style.display = 'block';
-        try {
-            const formData = new FormData();
-            formData.append('accion', 'agregarComentario');
-            formData.append('anuncioId', currentAnuncio.id);
-            formData.append('comentario', comentarioTexto);
-            formData.append('autor', currentAuthorName);
-            formData.append('correo', currentAuthorEmail);
+    // Lógica para subir la barra de comentarios
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-50%)`;
+    });
 
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
+    });
 
-            const result = await response.json();
-            if (result.status === "🗣️ success") {
-                console.log("Comentario agregado con éxito.");
-                commentInput.value = '';
-                await verificarComentarios();
-            } else {
-                console.error("Error al agregar el comentario:", result.message);
-                showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
-            }
-        } catch (error) {
-            console.error("Error de red al agregar el comentario:", error);
-            showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
-        } finally {
-            loader.style.display = 'none';
-        }
-    }
+    function normalizarComentarios(lista) {
+      if (!Array.isArray(lista)) return [];
+      return [...lista]
+        .reverse()
+        .map(c => {
+          try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+          const autor = c?.autor ?? "";
+          const fecha = c?.fecha ?? "";
+          const comentario = c?.comentario ?? "";
+          const correo = c?.correo ?? "";
+          if (autor || fecha || comentario) {
+            return { texto: `${autor} (${fecha}) - ${comentario}`, autorCorreo: correo, textoPuro: comentario };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    }
 
-    sendCommentBtn.addEventListener('click', enviarComentario);
-    commentInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            enviarComentario();
-        }
-    });
+    const INTERVALO_VERIFICACION = 5000;
 
-    commentInput.addEventListener('focus', () => {
-        document.body.style.transform = `translateY(-50%)`;
-    });
+    async function actualizarContador() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+        const data = await response.json();
+        const totalActual = data.contador || 0;
 
-    commentInput.addEventListener('blur', () => {
-        document.body.style.transform = 'translateY(0)';
-    });
+        if (contadorTotalAnterior === -1) {
+          contadorTotalAnterior = totalActual;
+        } else {
+          if (totalActual !== contadorTotalAnterior) {
+            const diferencia = totalActual - contadorTotalAnterior;
+            if (diferencia > 0) {
+              contadorAcumulado += diferencia;
+            } else if (diferencia < 0) {
+              contadorAcumulado = 0;
+            }
+            if (lblContador) {
+              if (contadorAcumulado > 0) {
+                lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                lblContador.style.display = "block";
+              } else {
+                lblContador.textContent = "";
+                lblContador.style.display = "none";
+              }
+            }
+            contadorTotalAnterior = totalActual;
+            console.log("🔄 Cambio detectado: recargando anuncios...");
+            await cargarImagenes();
+          }
+        }
+      } catch (e) {
+        console.error("❌ Error al obtener contador:", e);
+      }
+    }
+    setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
-    function normalizarComentarios(lista) {
-      if (!Array.isArray(lista)) return [];
-      return [...lista]
-        .reverse()
-        .map(c => {
-          try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
-          const autor = c?.autor ?? "";
-          const fecha = c?.fecha ?? "";
-          const comentario = c?.comentario ?? "";
-          const correo = c?.correo ?? "";
-          if (autor || fecha || comentario) {
-            return { texto: `${autor} (${fecha}) - ${comentario}`, autorCorreo: correo, textoPuro: comentario };
-          }
-          return null;
-        })
-        .filter(Boolean);
-    }
+    async function verificarComentarios() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
+        const data = await response.json();
+        const totalComentariosActual = data.contadorComentarios || 0;
 
-    const INTERVALO_VERIFICACION = 5000;
+        if (data.comentarios) {
+          comentariosPorAnuncio = data.comentarios;
+        }
 
-    async function actualizarContador() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-        const data = await response.json();
-        const totalActual = data.contador || 0;
+        if (contadorComentariosAnterior === -1) {
+          contadorComentariosAnterior = totalComentariosActual;
+        } else if (totalComentariosActual !== contadorComentariosAnterior) {
+          console.log("💬 Cambio detectado en comentarios, recargando...");
+          contadorComentariosAnterior = totalComentariosActual;
+          recargarComentariosDelAnuncioActual();
+        }
+      } catch (e) {
+        console.error("Error al verificar comentarios:", e);
+      }
+    }
 
-        if (contadorTotalAnterior === -1) {
-          contadorTotalAnterior = totalActual;
-        } else {
-          if (totalActual !== contadorTotalAnterior) {
-            const diferencia = totalActual - contadorTotalAnterior;
-            if (diferencia > 0) {
-              contadorAcumulado += diferencia;
-            } else if (diferencia < 0) {
-              contadorAcumulado = 0;
-            }
-            if (lblContador) {
-              if (contadorAcumulado > 0) {
-                lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                lblContador.style.display = "block";
-              } else {
-                lblContador.textContent = "";
-                lblContador.style.display = "none";
-              }
-            }
-            contadorTotalAnterior = totalActual;
-            console.log("🔄 Cambio detectado: recargando anuncios...");
-            await cargarImagenes();
-          }
-        }
-      } catch (e) {
-        console.error("❌ Error al obtener contador:", e);
-      }
-    }
-    setInterval(actualizarContador, INTERVALO_VERIFICACION);
+    function recargarComentariosDelAnuncioActual() {
+      if (!swiperInstance || anunciosData.length === 0) return;
+      const activeIndex = swiperInstance.realIndex;
+      const anuncioActual = anunciosData[activeIndex];
+      
+      if (anuncioActual) {
+        const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+        anuncioActual.comentarios = normalizarComentarios(comentarios);
+        updateContentOverlay(activeIndex);
+        
+        console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+        
+        if (window.AppInventor) {
+          const payload = {
+            ...anuncioActual,
+            titulos: anunciosData.map(a => a.titulo),
+            contador: contadorAcumulado
+          };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+      }
+    }
 
-    async function verificarComentarios() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
-        const data = await response.json();
-        const totalComentariosActual = data.contadorComentarios || 0;
+    async function cargarImagenes() {
+  loader.style.display = 'block';
+  // Guarda el id actual antes de recargar
+  const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-        if (data.comentarios) {
-          comentariosPorAnuncio = data.comentarios;
-        }
+  try {
+    // Fetch y procesamiento de anuncios
+    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+    if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    let newAnunciosData = [];
 
-        if (contadorComentariosAnterior === -1) {
-          contadorComentariosAnterior = totalComentariosActual;
-        } else if (totalComentariosActual !== contadorComentariosAnterior) {
-          console.log("💬 Cambio detectado en comentarios, recargando...");
-          contadorComentariosAnterior = totalComentariosActual;
-          recargarComentariosDelAnuncioActual();
-        }
-      } catch (e) {
-        console.error("Error al verificar comentarios:", e);
-      }
-    }
+    if(data.url && data.url.length > 0) {
+      data.url.forEach((url, index) => {
+        const idAnuncio = data.id[index];
+        const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+        const comentariosFormateados = normalizarComentarios(comentarios);
+        newAnunciosData.push({
+          titulo: data.titulo[index] || "",
+          descripcion: data.descripcion[index] || "",
+          comentarios: comentariosFormateados,
+          url: url,
+          deleteurl: data.deleteurl[index] || "",
+          autor: data.autor[index] || "",
+          correo: data.correo[index] || "",
+          fecha: data.fecha[index] || "",
+          id: idAnuncio || ""
+        });
+      });
+    }
 
-    function recargarComentariosDelAnuncioActual() {
-      if (!swiperInstance || anunciosData.length === 0) return;
-      const activeIndex = swiperInstance.realIndex;
-      const anuncioActual = anunciosData[activeIndex];
-      
-      if (anuncioActual) {
-        const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
-        anuncioActual.comentarios = normalizarComentarios(comentarios);
-        updateContentOverlay(activeIndex);
-        
-        console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
-        
-        if (window.AppInventor) {
-          const payload = {
-            ...anuncioActual,
-            titulos: anunciosData.map(a => a.titulo),
-            contador: contadorAcumulado
-          };
-          window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
-      }
-    }
+    newAnunciosData.reverse();
 
-    async function cargarImagenes() {
-      loader.style.display = 'block';
-      const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+    anunciosData = newAnunciosData;
+    const swiperWrapper = document.querySelector('.swiper-wrapper');
+    swiperWrapper.innerHTML = '';
 
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        let newAnunciosData = [];
+    anunciosData.forEach(anuncio => {
+      const slide = document.createElement('div');
+      slide.classList.add('swiper-slide');
+      slide.dataset.id = anuncio.id;
+      const zoomContainer = document.createElement('div');
+      zoomContainer.classList.add('swiper-zoom-container');
+      const img = document.createElement('img');
+      img.src = anuncio.url;
+      img.alt = anuncio.titulo;
+      zoomContainer.appendChild(img);
+      slide.appendChild(zoomContainer);
 
-        if(data.url && data.url.length > 0) {
-          data.url.forEach((url, index) => {
-            const idAnuncio = data.id[index];
-            const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-            const comentariosFormateados = normalizarComentarios(comentarios);
-            newAnunciosData.push({
-              titulo: data.titulo[index] || "",
-              descripcion: data.descripcion[index] || "",
-              comentarios: comentariosFormateados,
-              url: url,
-              deleteurl: data.deleteurl[index] || "",
-              autor: data.autor[index] || "",
-              correo: data.correo[index] || "",
-              fecha: data.fecha[index] || "",
-              id: idAnuncio || ""
-            });
-          });
-        }
+      // Botón eliminar si es el usuario actual
+      if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        deleteBtn.style.position = 'absolute';
+        deleteBtn.style.top = '10px';
+        deleteBtn.style.right = '10px';
+        deleteBtn.style.background = 'rgba(231, 76, 60, 0.9)';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.color = 'white';
+        deleteBtn.style.padding = '8px 10px';
+        deleteBtn.style.borderRadius = '8px';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.style.fontSize = '1.2rem';
+        deleteBtn.style.zIndex = '1000';
+        deleteBtn.title = 'Eliminar anuncio';
 
-        newAnunciosData.reverse();
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showConfirmationDialog(
+            "¿Estás seguro de que quieres eliminar este anuncio?",
+            () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+          );
+        });
 
-        if (JSON.stringify(anunciosData) === JSON.stringify(newAnunciosData)) {
-          loader.style.display = 'none';
-          return;
-        }
+        slide.appendChild(deleteBtn);
+      }
 
-        const oldAnunciosDataLength = anunciosData.length;
-        const newAnunciosDataLength = newAnunciosData.length;
-        const isInitialLoad = oldAnunciosDataLength === 0;
+      swiperWrapper.appendChild(slide);
+    });
 
-        if (!isInitialLoad && newAnunciosDataLength > oldAnunciosDataLength) {
-            const nuevosAnuncios = newAnunciosData.slice(0, newAnunciosDataLength - oldAnunciosDataLength);
-            nuevosTitulos.unshift(...nuevosAnuncios.map(a => a.titulo));
-        } else {
-            nuevosTitulos = [];
-            contadorAcumulado = 0;
-            lblContador.style.display = "none";
-        }
+    // Busca el índice del anuncio que estaba activo antes de la recarga
+    const newIndex = currentId ? anunciosData.findIndex(a => a.id === currentId) : 0;
+    const finalIndex = newIndex >= 0 ? newIndex : 0;
 
-        anunciosData = newAnunciosData;
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        swiperWrapper.innerHTML = '';
+    // Actualiza Swiper y overlay
+    if(!swiperInstance) {
+      initSwiper(finalIndex);
+    } else {
+      swiperInstance.update();
+      swiperInstance.slideTo(finalIndex, 0, false);
+    }
+    updateContentOverlay(finalIndex);
 
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id;
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
-
-          if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            deleteBtn.style.position = 'absolute';
-            deleteBtn.style.top = '10px';
-            deleteBtn.style.right = '10px';
-            deleteBtn.style.background = 'rgba(231, 76, 60, 0.9)';
-            deleteBtn.style.border = 'none';
-            deleteBtn.style.color = 'white';
-            deleteBtn.style.padding = '8px 10px';
-            deleteBtn.style.borderRadius = '8px';
-            deleteBtn.style.cursor = 'pointer';
-            deleteBtn.style.fontSize = '1.2rem';
-            deleteBtn.style.zIndex = '1000';
-            deleteBtn.title = 'Eliminar anuncio';
-
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                showConfirmationDialog(
-                    "¿Estás seguro de que quieres eliminar este anuncio?",
-                    () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-                );
-            });
-            slide.appendChild(deleteBtn);
-          }
-          swiperWrapper.appendChild(slide);
-        });
-
-        const newIndex = currentId ? newAnunciosData.findIndex(a => a.id === currentId) : 0;
-        const finalIndex = newIndex >= 0 ? newIndex : 0;
-        
-        if(!swiperInstance) {
-          initSwiper(finalIndex);
-        } else {
-          swiperInstance.destroy(true, true);
-          initSwiper(finalIndex);
-        }
-        updateContentOverlay(finalIndex);
-      } catch(error) {
-        console.error("Error al cargar las imágenes:", error);
-      } finally {
-        loader.style.display = 'none';
-      }
-    }
-
-async function eliminarAnuncio(anuncioId, deleteUrl) {
-    loader.style.display = 'block';
-    try {
-        const formData = new FormData();
-        formData.append('accion', 'eliminarAnuncio');
-        formData.append('id', anuncioId);
-        formData.append('correo', currentAuthorEmail);
-        formData.append('deleteurl', deleteUrl);
-
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        if (result.status === "✅ success") {
-            showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
-            await cargarImagenes();
-        } else {
-            showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
-        }
-    } catch (error) {
-        console.error("Error eliminando anuncio:", error);
-        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
-    } finally {
-        loader.style.display = 'none';
-    }
+  } catch(error) {
+    console.error("Error al cargar las imágenes:", error);
+  } finally {
+    loader.style.display = 'none';
+  }
 }
 
+    
+    function updateContentOverlay(index) {
+        if (anunciosData.length > index) {
+            const anuncio = anunciosData[index];
+            currentTitle.textContent = anuncio.titulo;
+            currentDescription.textContent = anuncio.descripcion;
+            
+            commentsList.innerHTML = '';
+            
+            commentsOverlay.classList.remove('expanded'); 
 
-    
-    function updateContentOverlay(index) {
-        if (anunciosData.length > index) {
-            const anuncio = anunciosData[index];
-            currentTitle.textContent = anuncio.titulo;
-            currentDescription.textContent = anuncio.descripcion;
-            
-            commentsList.innerHTML = '';
-            
-            commentsOverlay.classList.remove('expanded'); 
+            if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+              anuncio.comentarios.forEach(comentario => {
+                const li = document.createElement('li');
+                li.classList.add('deletable');
 
-            if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-              anuncio.comentarios.forEach(comentario => {
-                const li = document.createElement('li');
-                li.classList.add('deletable');
+                const commentContent = document.createElement('div');
+                commentContent.classList.add('comment-content');
+                commentContent.textContent = comentario.texto;
+                
+                const deleteBtnContainer = document.createElement('div');
+                deleteBtnContainer.className = 'delete-btn-container';
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Borrar';
+                deleteBtnContainer.appendChild(deleteBtn);
+                
+                li.appendChild(deleteBtnContainer);
+                li.appendChild(commentContent);
 
-                const commentContent = document.createElement('div');
-                commentContent.classList.add('comment-content');
-                commentContent.textContent = comentario.texto;
-                
-                const deleteBtnContainer = document.createElement('div');
-                deleteBtnContainer.className = 'delete-btn-container';
-                const deleteBtn = document.createElement('div');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Borrar';
-                deleteBtnContainer.appendChild(deleteBtn);
-                
-                li.appendChild(deleteBtnContainer);
-                li.appendChild(commentContent);
+                li.dataset.id = comentario.id;
+                li.dataset.correo = comentario.autorCorreo;
+                li.dataset.texto = comentario.textoPuro;
+                
+                deleteBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation(); 
+                    const activeIndex = swiperInstance.realIndex;
+                    const currentAnuncio = anunciosData[activeIndex];
+                    if(currentAnuncio) {
+                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+                    }
+                });
+                
+                commentsList.appendChild(li);
+              });
+              commentCountValue.textContent = anuncio.comentarios.length;
+            } else {
+              const li = document.createElement('li');
+              li.textContent = "No hay comentarios aún.";
+              commentsList.appendChild(li);
+              commentCountValue.textContent = 0;
+            }
+        }
+    }
 
-                li.dataset.id = comentario.id;
-                li.dataset.correo = comentario.autorCorreo;
-                li.dataset.texto = comentario.textoPuro;
-                
-                deleteBtn.addEventListener('click', (ev) => {
-                    ev.stopPropagation(); 
-                    const activeIndex = swiperInstance.realIndex;
-                    const currentAnuncio = anunciosData[activeIndex];
-                    if(currentAnuncio) {
-                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
-                    }
-                });
-                
-                commentsList.appendChild(li);
-              });
-              commentCountValue.textContent = anuncio.comentarios.length;
-            } else {
-              const li = document.createElement('li');
-              li.textContent = "No hay comentarios aún.";
-              commentsList.appendChild(li);
-              commentCountValue.textContent = 0;
-            }
-        }
-    }
+    function initSwiper(initialIndex = 0) {
+      if(swiperInstance) swiperInstance.destroy(true, true);
+      swiperInstance = new Swiper('.swiper', {
+        loop: true,
+        direction: 'vertical',
+        slidesPerView: 1,
+        spaceBetween: 10,
+        zoom: { maxRatio: 3, minRatio: 1 }
+      });
 
-    function initSwiper(initialIndex = 0) {
-      if(swiperInstance) swiperInstance.destroy(true, true);
-      swiperInstance = new Swiper('.swiper', {
-        loop: true,
-        direction: 'vertical',
-        slidesPerView: 1,
-        spaceBetween: 10,
-        zoom: { maxRatio: 3, minRatio: 1 }
-      });
+      swiperInstance.on('slideChange', () => {
+        const activeIndex = swiperInstance.realIndex;
+        updateContentOverlay(activeIndex);
 
-      swiperInstance.on('slideChange', () => {
-        const activeIndex = swiperInstance.realIndex;
-        updateContentOverlay(activeIndex);
+        if(window.AppInventor && anunciosData.length > 0) {
+          const anuncioActual = anunciosData[activeIndex];
+          
+          if (!anuncioActual) return;
 
-        if(window.AppInventor && anunciosData.length > 0) {
-          const anuncioActual = anunciosData[activeIndex];
-          
-          if (!anuncioActual) return;
+          const id = anuncioActual.id;
+          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+          if (hayServidor) {
+            anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+          }
+          const listaTitulos = anunciosData.map(a => a.titulo);
+          const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+      });
 
-          const id = anuncioActual.id;
-          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-          if (hayServidor) {
-            anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-          }
-          const listaTitulos = anunciosData.map(a => a.titulo);
-          const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-          window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
-      });
+      if(anunciosData.length > 0) {
+        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+        updateContentOverlay(initialSlideIndex);
+        if(window.AppInventor){
+          const anuncioInicial = anunciosData[initialSlideIndex];
+          const id = anuncioInicial.id;
+          const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+          if (hayServidor) {
+            anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+          }
+          const listaTitulos = anunciosData.map(a => a.titulo);
+          const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+      }
+    }
 
-      if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-      }
-    }
+    function showCustomAlert(title, titlesList) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert';
+        alertMessage.innerHTML = '';
+        
+        alertTitle.textContent = title;
+        
+        if (titlesList.length > 0) {
+            const list = document.createElement('ul');
+            list.className = 'titles-list';
+            titlesList.forEach((titulo, index) => {
+                const li = document.createElement('li');
+                li.textContent = titulo;
+                li.dataset.index = index;
+                li.addEventListener('click', () => {
+                    const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                    if (selectedIndex !== -1) {
+                        swiperInstance.slideToLoop(selectedIndex, 500);
+                        nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                        contadorAcumulado = nuevosTitulos.length;
+                        if (contadorAcumulado > 0) {
+                            lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                        } else {
+                            lblContador.style.display = 'none';
+                        }
+                        document.getElementById('customAlertOverlay').style.display = 'none';
+                    }
+                });
+                list.appendChild(li);
+            });
+            alertMessage.appendChild(list);
+        } else {
+            const p = document.createElement('p');
+            p.textContent = "No hay anuncios nuevos.";
+            alertMessage.appendChild(p);
+        }
 
-    // Diálogos de alerta y confirmación
-    function showInfoDialog(title, message) {
-      const overlay = document.getElementById('customAlertOverlay');
-      const alertBox = overlay.querySelector('.custom-alert');
-      const alertTitle = document.getElementById('alertTitle');
-      const alertMessage = document.getElementById('alertMessage');
-      
-      alertBox.classList.remove('confirm-delete');
-      alertTitle.textContent = title;
-      alertMessage.innerHTML = `<p>${message}</p><button onclick="closeCustomAlert()">OK</button>`;
-      overlay.style.display = 'flex';
-    }
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = "Cerrar";
+        closeBtn.id = "closeAlertButton";
+        closeBtn.onclick = () => overlay.style.display = 'none';
+        alertMessage.appendChild(closeBtn);
 
-    function showConfirmationDialog(message, onConfirm) {
-      const overlay = document.getElementById('customAlertOverlay');
-      const alertBox = overlay.querySelector('.custom-alert');
-      const alertTitle = document.getElementById('alertTitle');
-      const alertMessage = document.getElementById('alertMessage');
-      
-      alertBox.classList.add('confirm-delete');
-      alertTitle.textContent = "Confirmar";
-      alertMessage.innerHTML = `<p>${message}</p><div class="btn-group"><button onclick="closeCustomAlert()">Cancelar</button><button onclick="confirmAction()">Aceptar</button></div>`;
-      overlay.style.display = 'flex';
-      
-      window.confirmAction = () => {
-        onConfirm();
-        closeCustomAlert();
-      }
-    }
+        overlay.style.display = 'flex';
+    }
 
-    function closeCustomAlert() {
-      document.getElementById('customAlertOverlay').style.display = 'none';
-      window.confirmAction = null;
-    }
-    
-    // Inicio
-    window.onload = async () => {
-      await verificarComentarios();
-      await cargarImagenes();
-    };
-  </script>
+    function showConfirmationDialog(message, onConfirm) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert confirm-delete';
+        alertTitle.textContent = "Confirmar eliminación";
+        alertMessage.innerHTML = `<p>${message}</p>`;
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'btn-group';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Sí, borrar';
+        confirmBtn.style.backgroundColor = '#e74c3c';
+        confirmBtn.onclick = () => {
+            onConfirm();
+            overlay.style.display = 'none';
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.onclick = () => {
+            overlay.style.display = 'none';
+        };
+
+        buttonGroup.appendChild(confirmBtn);
+        buttonGroup.appendChild(cancelBtn);
+        alertMessage.appendChild(buttonGroup);
+
+        overlay.style.display = 'flex';
+    }
+    
+    function showInfoDialog(title, message) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert';
+        alertTitle.textContent = title;
+        alertMessage.innerHTML = `<p>${message}</p>`;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Aceptar';
+        closeBtn.onclick = () => overlay.style.display = 'none';
+        alertMessage.appendChild(closeBtn);
+        
+        overlay.style.display = 'flex';
+    }
+
+    setInterval(actualizarContador, 5000);
+    setInterval(verificarComentarios, 5000);
+
+    verificarComentarios().then(() => {
+        cargarImagenes();
+    });
+
+    if (lblContador) {
+        lblContador.addEventListener('click', () => {
+            showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if(window.AppInventor) {
+        setInterval(() => {
+          const comando = window.AppInventor.getWebViewString?.();
+          if(comando) {
+            try {
+              const data = JSON.parse(comando);
+              if(data.action === "updateUserData") {
+                currentAuthorEmail = data.email;
+                currentAuthorName = data.name;
+                console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+              }
+            } catch (e) {
+              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+                console.log("Reiniciando contador y cargando anuncios.");
+                contadorAcumulado = 0;
+                contadorTotalAnterior = -1;
+                verificarComentarios().then(() => cargarImagenes());
+              }
+              if(comando.startsWith("irATitulo:")) {
+                const tituloBuscado = comando.replace("irATitulo:", "").trim();
+                const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                const tituloNormalizado = normalizar(tituloBuscado);
+                const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+                if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+              }
+              if(comando.startsWith("irAIndice:")) {
+                const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+                if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+              }
+            }
+          }
+        }, 500);
+      }
+    });
+
+    function recargarDatos() {
+      verificarComentarios().then(() => cargarImagenes());
+      console.log("Datos recargados por solicitud externa.");
+    }
+  </script>
 </body>
 </html>
+
