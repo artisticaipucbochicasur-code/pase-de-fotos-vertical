@@ -34,6 +34,23 @@
       cursor: pointer;
     }
 
+    #deleteAdBtn {
+  position: fixed;
+  top: 50px;       /* separado del lblContador (que está en top:10px; right:10px) */
+  right: 10px;
+  background: rgba(231, 76, 60, 0.9);
+  border: none;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  z-index: 10001;  /* por encima de overlays */
+  box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+}
+#deleteAdBtn:active { transform: scale(0.98); }
+
+
     #customAlertOverlay {
         display: none;
         position: fixed;
@@ -284,6 +301,12 @@
         cursor: pointer;
         transition: bottom 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
     }
+
+    <!-- Botón flotante único para eliminar anuncio -->
+<button id="deleteAdBtn" title="Eliminar anuncio" class="hidden-overlay" style="display:none">
+  <i class="fas fa-trash"></i>
+</button>
+
     
     .comments-counter .icon {
         font-size: 1.5rem;
@@ -339,24 +362,8 @@
 </head>
 
 <body>
-<!-- Agregar esto dentro del <body>, fuera del swiper y slides -->
-<button id="deleteCurrentSlideBtn" style="
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    z-index: 1000;
-    cursor: pointer;
-    display: none;" title="Eliminar anuncio">
-    <i class="fas fa-trash"></i>
-</button>
-
-  
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳f</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -383,8 +390,6 @@
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-   
-
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let swiperInstance = null;
@@ -404,6 +409,8 @@
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
+    const deleteAdBtn = document.getElementById('deleteAdBtn');
+
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -430,6 +437,11 @@
             commentsOverlay.classList.toggle('hidden-overlay');
             commentsCounter.classList.toggle('hidden-overlay');
             commentInputContainer.classList.toggle('hidden-overlay');
+            // Solo tiene sentido ocultarlo si está visible (display != none)
+  if (deleteAdBtn.style.display !== 'none') {
+    deleteAdBtn.classList.toggle('hidden-overlay');
+  }
+
         }
         lastTapTime = currentTime;
     });
@@ -751,7 +763,7 @@ contadorAcumulado = nuevosTitulos.length;
       }
     }
 
-async function cargarImagenes() {
+ async function cargarImagenes() {
     loader.style.display = 'block';
     const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
     const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
@@ -787,22 +799,27 @@ async function cargarImagenes() {
         const oldAnunciosIds = anunciosData.map(a => a.id);
         const newAnunciosIds = newAnunciosData.map(a => a.id);
         
+        // Si no hay cambios, no hacer nada
         if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
             loader.style.display = 'none';
             return;
         }
 
+        // Guardar la posición actual antes de actualizar
         const currentSlideId = currentId;
+        
+        // Actualizar los datos
         anunciosData = newAnunciosData;
-
+        
+        // Actualizar el swiper sin destruirlo
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
             
+            // Agregar nuevos slides
             anunciosData.forEach(anuncio => {
                 const slide = document.createElement('div');
                 slide.classList.add('swiper-slide');
                 slide.dataset.id = anuncio.id;
-
                 const zoomContainer = document.createElement('div');
                 zoomContainer.classList.add('swiper-zoom-container');
                 const img = document.createElement('img');
@@ -810,14 +827,22 @@ async function cargarImagenes() {
                 img.alt = anuncio.titulo;
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
-
+                
                 swiperInstance.appendSlide(slide);
             });
             
+            // Buscar el slide que estaba viendo antes
             const newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-            swiperInstance.slideToLoop(newIndex !== -1 ? newIndex : 0, 0, false);
+            if (newIndex !== -1) {
+                swiperInstance.slideToLoop(newIndex, 0, false);
+            } else {
+                // Si el slide ya no existe, ir al primero
+                swiperInstance.slideToLoop(0, 0, false);
+            }
+            
             swiperInstance.update();
         } else {
+            // Primera carga
             const swiperWrapper = document.querySelector('.swiper-wrapper');
             swiperWrapper.innerHTML = '';
             
@@ -825,7 +850,6 @@ async function cargarImagenes() {
                 const slide = document.createElement('div');
                 slide.classList.add('swiper-slide');
                 slide.dataset.id = anuncio.id;
-
                 const zoomContainer = document.createElement('div');
                 zoomContainer.classList.add('swiper-zoom-container');
                 const img = document.createElement('img');
@@ -833,15 +857,17 @@ async function cargarImagenes() {
                 img.alt = anuncio.titulo;
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
-
+                
                 swiperWrapper.appendChild(slide);
             });
             
             initSwiper(0);
         }
 
+        // Actualizar el contenido overlay y el botón global
         const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
         updateContentOverlay(activeIndex);
+        updateDeleteButtonForIndex(activeIndex);
 
     } catch(error) {
         console.error("Error al cargar las imágenes:", error);
@@ -879,6 +905,37 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     } finally {
         loader.style.display = 'none';
     }
+}
+deleteAdBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); // que no dispare el toggle de overlays del swiper
+  const id = deleteAdBtn.dataset.id;
+  const deleteurl = deleteAdBtn.dataset.deleteurl || "";
+  if (!id) return;
+  showConfirmationDialog(
+    "¿Estás seguro de que quieres eliminar este anuncio?",
+    () => eliminarAnuncio(id, deleteurl)
+  );
+});
+
+function updateDeleteButtonForIndex(index) {
+  const anuncio = anunciosData[index];
+  if (!anuncio) {
+    deleteAdBtn.style.display = 'none';
+    return;
+  }
+  const esPropietario = normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail);
+
+  if (esPropietario) {
+    // guarda datos en el botón para usarlos al hacer click
+    deleteAdBtn.dataset.id = anuncio.id;
+    deleteAdBtn.dataset.deleteurl = anuncio.deleteurl || "";
+    deleteAdBtn.style.display = 'block';
+  } else {
+    deleteAdBtn.style.display = 'none';
+    // por si venía oculto por toggle, dejamos la clase como esté
+    deleteAdBtn.removeAttribute('data-id');
+    deleteAdBtn.removeAttribute('data-deleteurl');
+  }
 }
 
     
@@ -949,12 +1006,8 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
             updateContentOverlay(activeIndex);
+          updateDeleteButtonForIndex(activeIndex);
 
-            // ====== NUEVO: actualizar botón de eliminar ======
-            if (typeof actualizarDeleteBtn === "function") {
-                actualizarDeleteBtn();
-            }
-            // ===============================================
 
             if(window.AppInventor && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
@@ -977,13 +1030,9 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
         updateContentOverlay(initialSlideIndex);
+      updateDeleteButtonForIndex(initialSlideIndex);
 
-        // ====== NUEVO: actualizar botón de eliminar en la primera carga ======
-        if (typeof actualizarDeleteBtn === "function") {
-            actualizarDeleteBtn();
-        }
-        // ===============================================
-
+        
         if(window.AppInventor){
             const anuncioInicial = anunciosData[initialSlideIndex];
             const id = anuncioInicial.id;
@@ -997,21 +1046,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         }
     }
 }
-
-let lastTapTime = 0;
-
-document.querySelector('.swiper').addEventListener('click', () => {
-    const now = Date.now();
-    
-    if (now - lastTapTime < 300) return;
-    lastTapTime = now;
-
-    contentOverlay.classList.toggle('hidden');
-    commentsOverlay.classList.toggle('hidden');
-    commentInputContainer.classList.toggle('hidden');
-
-    actualizarDeleteBtn();
-});
 
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1138,6 +1172,8 @@ document.querySelector('.swiper').addEventListener('click', () => {
               if(data.action === "updateUserData") {
                 currentAuthorEmail = data.email;
                 currentAuthorName = data.name;
+                if (swiperInstance) updateDeleteButtonForIndex(swiperInstance.realIndex);
+
                 console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
               }
             } catch (e) {
@@ -1171,7 +1207,4 @@ document.querySelector('.swiper').addEventListener('click', () => {
   </script>
 </body>
 </html>
-
-
-
 
