@@ -326,7 +326,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳9</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -696,129 +696,104 @@
       }
     }
 
- // ===== REEMPLAZA COMPLETO: cargarImagenes =====
+// ==========================
+// 1. CARGAR IMÁGENES (INICIAL)
+// ==========================
 async function cargarImagenes() {
   loader.style.display = 'block';
-
-  // Guardar referencia del anuncio visible (por ID) y el índice actual
-  const hadSwiper = !!swiperInstance;
-  const currentIndex = hadSwiper ? swiperInstance.realIndex : 0;
-  const currentId = (anunciosData.length > 0 && anunciosData[currentIndex]) ? anunciosData[currentIndex].id : null;
-
   try {
     const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
+    let newAnunciosData = [];
 
-    // Construir nueva data
-    const next = [];
-    if (Array.isArray(data.url) && data.url.length > 0) {
-      for (let i = 0; i < data.url.length; i++) {
-        const idAnuncio = data.id[i];
+    if (data.url && data.url.length > 0) {
+      data.url.forEach((url, index) => {
+        const idAnuncio = data.id[index];
         const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-        next.push({
-          titulo: data.titulo[i] || "",
-          descripcion: data.descripcion[i] || "",
-          comentarios: normalizarComentarios(comentarios),
-          url: data.url[i],
-          deleteurl: data.deleteurl[i] || "",
-          autor: data.autor[i] || "",
-          correo: data.correo[i] || "",
-          fecha: data.fecha[i] || "",
+        const comentariosFormateados = normalizarComentarios(comentarios);
+        newAnunciosData.push({
+          titulo: data.titulo[index] || "",
+          descripcion: data.descripcion[index] || "",
+          comentarios: comentariosFormateados,
+          url: url,
+          deleteurl: data.deleteurl[index] || "",
+          autor: data.autor[index] || "",
+          correo: data.correo[index] || "",
+          fecha: data.fecha[index] || "",
           id: idAnuncio || ""
         });
-      }
+      });
     }
 
-    // Mostrar más recientes primero
-    next.reverse();
-    anunciosData = next;
+    // Invertimos el orden: recientes primero
+    newAnunciosData.reverse();
 
-    // Si no hay anuncios, limpiar overlay y salir
-    if (anunciosData.length === 0) {
-      const wrapper = document.querySelector('.swiper-wrapper');
-      if (wrapper) wrapper.innerHTML = '';
-      if (swiperInstance) {
-        try { swiperInstance.destroy(true, true); } catch(_) {}
-        swiperInstance = null;
-      }
-      currentTitle.textContent = '';
-      currentDescription.textContent = '';
-      commentsList.innerHTML = '';
-      commentCountValue.textContent = 0;
-      return;
-    }
+    // Actualizamos datos globales
+    anunciosData = newAnunciosData;
 
-    // Reconstruir el wrapper para evitar inconsistencias con clones en loop
-    const wrapper = document.querySelector('.swiper-wrapper');
-    wrapper.innerHTML = '';
+    // Construir el slider completo la primera vez
+    const swiperWrapper = document.querySelector('.swiper-wrapper');
+    swiperWrapper.innerHTML = '';
+
     anunciosData.forEach(anuncio => {
       const slide = document.createElement('div');
-      slide.className = 'swiper-slide';
+      slide.classList.add('swiper-slide');
       slide.dataset.id = anuncio.id;
 
-      const zoom = document.createElement('div');
-      zoom.className = 'swiper-zoom-container';
+      const zoomContainer = document.createElement('div');
+      zoomContainer.classList.add('swiper-zoom-container');
 
       const img = document.createElement('img');
       img.src = anuncio.url;
       img.alt = anuncio.titulo;
+      zoomContainer.appendChild(img);
+      slide.appendChild(zoomContainer);
 
-      zoom.appendChild(img);
-      slide.appendChild(zoom);
-
-      // Botón eliminar si es el autor
+      // Botón eliminar (solo para dueño)
       if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-        const btn = document.createElement('button');
-        btn.innerHTML = '<i class="fas fa-trash"></i>';
-        btn.style.position = 'absolute';
-        btn.style.top = '10px';
-        btn.style.right = '10px';
-        btn.style.background = 'rgba(231, 76, 60, 0.9)';
-        btn.style.border = 'none';
-        btn.style.color = 'white';
-        btn.style.padding = '8px 10px';
-        btn.style.borderRadius = '8px';
-        btn.style.cursor = 'pointer';
-        btn.style.fontSize = '1.2rem';
-        btn.style.zIndex = '1000';
-        btn.title = 'Eliminar anuncio';
-        btn.addEventListener('click', (e) => {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        Object.assign(deleteBtn.style, {
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(231, 76, 60, 0.9)',
+          border: 'none',
+          color: 'white',
+          padding: '8px 10px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '1.2rem',
+          zIndex: '1000'
+        });
+        deleteBtn.title = 'Eliminar anuncio';
+
+        deleteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           showConfirmationDialog(
             "¿Estás seguro de que quieres eliminar este anuncio?",
             () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
           );
         });
-        slide.appendChild(btn);
+
+        slide.appendChild(deleteBtn);
       }
 
-      wrapper.appendChild(slide);
+      swiperWrapper.appendChild(slide);
     });
 
-    // Mantenernos en el mismo anuncio por ID (si existe); si no, usar índice cercano
-    let finalIndex = 0;
-    if (currentId) {
-      const idx = anunciosData.findIndex(a => a.id === currentId);
-      if (idx >= 0) {
-        finalIndex = idx;
-      } else {
-        finalIndex = Math.min(currentIndex, Math.max(0, anunciosData.length - 1));
-      }
-    }
+    // Iniciar Swiper solo una vez
+    if (!swiperInstance) {
+      initSwiper(0);
+      updateContentOverlay(0); // Mostrar el título y descripción del primer anuncio
 
-    // Inicializar Swiper si no existe; si ya existe, solo actualizar y posicionar
-    if (!hadSwiper) {
-      initSwiper(finalIndex); // tu initSwiper ya se encarga de llamar updateContentOverlay en slideChange
-      // Asegurar overlay visible en la primera carga
-      updateContentOverlay(finalIndex);
+      swiperInstance.on('slideChange', () => {
+        updateContentOverlay(swiperInstance.realIndex);
+      });
     } else {
       swiperInstance.update();
-      const go = typeof swiperInstance.slideToLoop === 'function' ? 'slideToLoop' : 'slideTo';
-      swiperInstance[go](finalIndex, 0, false);
-      updateContentOverlay(finalIndex);
     }
-
   } catch (error) {
     console.error("Error al cargar las imágenes:", error);
   } finally {
@@ -826,33 +801,82 @@ async function cargarImagenes() {
   }
 }
 
+// ==========================
+// 2. ACTUALIZAR ANUNCIOS (SILENCIOSO)
+// ==========================
+async function actualizarAnunciosSilenciosamente() {
+  try {
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const currentId = anunciosData.length > 0 ? anunciosData[currentIndex].id : null;
 
-// ===== REEMPLAZA INICIO DE updateContentOverlay (pequeño refuerzo de visibilidad) =====
-function updateContentOverlay(index) {
-  // Asegurar que el overlay esté visible (por si quedó oculto por el toggle)
-  contentOverlay.classList.remove('hidden-overlay');
-  commentsOverlay.classList.remove('hidden-overlay');
-  commentsCounter.classList.remove('hidden-overlay');
-  commentInputContainer.classList.remove('hidden-overlay');
+    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    let nuevos = [];
 
-  // Índice seguro + estados vacíos
-  if (!anunciosData || anunciosData.length === 0) {
-    currentTitle.textContent = '';
-    currentDescription.textContent = '';
-    commentsList.innerHTML = '';
-    commentCountValue.textContent = 0;
-    return;
+    if (data.url && data.url.length > 0) {
+      data.url.forEach((url, index) => {
+        const idAnuncio = data.id[index];
+        const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+        const comentariosFormateados = normalizarComentarios(comentarios);
+        nuevos.push({
+          titulo: data.titulo[index] || "",
+          descripcion: data.descripcion[index] || "",
+          comentarios: comentariosFormateados,
+          url: url,
+          deleteurl: data.deleteurl[index] || "",
+          autor: data.autor[index] || "",
+          correo: data.correo[index] || "",
+          fecha: data.fecha[index] || "",
+          id: idAnuncio || ""
+        });
+      });
+    }
+
+    nuevos.reverse();
+
+    // Si no hay cambios, no hacemos nada
+    if (JSON.stringify(nuevos) === JSON.stringify(anunciosData)) return;
+
+    // Actualizamos solo las imágenes
+    anunciosData = nuevos;
+    anunciosData.forEach((anuncio, i) => {
+      const slide = document.querySelectorAll('.swiper-slide')[i];
+      if (slide) {
+        const img = slide.querySelector('img');
+        if (img && img.src !== anuncio.url) img.src = anuncio.url;
+      }
+    });
+
+    // Si el anuncio actual se eliminó, movemos el slider al más cercano
+    let newIndex = currentId
+      ? anunciosData.findIndex(a => a.id === currentId)
+      : 0;
+    if (newIndex === -1) newIndex = 0;
+
+    swiperInstance.update();
+    swiperInstance.slideTo(newIndex, 0, false);
+    updateContentOverlay(newIndex);
+  } catch (error) {
+    console.error("Error al actualizar anuncios:", error);
   }
-  if (index < 0 || index >= anunciosData.length) index = 0;
+}
+    
+// ==========================
+// 3. ACTUALIZAR OVERLAY (TÍTULOS + DESCRIPCIONES)
+// ==========================
+function updateContentOverlay(index) {
+  if (index < 0 || index >= anunciosData.length) return;
 
   const anuncio = anunciosData[index];
-  currentTitle.textContent = anuncio.titulo || '';
-  currentDescription.textContent = anuncio.descripcion || '';
+  currentTitle.textContent = anuncio.titulo || "";
+  currentDescription.textContent = anuncio.descripcion || "";
 
+  // Actualizamos comentarios del anuncio actual
   commentsList.innerHTML = '';
   commentsOverlay.classList.remove('expanded');
 
-  if (Array.isArray(anuncio.comentarios) && anuncio.comentarios.length > 0) {
+  if (anuncio.comentarios && anuncio.comentarios.length > 0) {
     anuncio.comentarios.forEach(comentario => {
       const li = document.createElement('li');
       li.classList.add('deletable');
@@ -877,12 +901,7 @@ function updateContentOverlay(index) {
 
       deleteBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const activeIndex = swiperInstance.realIndex;
-        let safeIndex = (activeIndex < 0 || activeIndex >= anunciosData.length) ? 0 : activeIndex;
-        const currentAnuncio = anunciosData[safeIndex];
-        if (currentAnuncio) {
-          eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
-        }
+        eliminarComentario(anuncio.id, comentario.textoPuro, comentario.autorCorreo);
       });
 
       commentsList.appendChild(li);
@@ -895,8 +914,6 @@ function updateContentOverlay(index) {
     commentCountValue.textContent = 0;
   }
 }
-
-
 // FUNCIÓN MEJORADA: initSwiper
 function initSwiper(initialIndex = 0) {
     if (swiperInstance) swiperInstance.destroy(true, true);
@@ -953,50 +970,21 @@ function initSwiper(initialIndex = 0) {
 }
 
 
-async function eliminarAnuncio(anuncioId, deleteUrl) {
-    try {
-        // Mostrar loader
-        loader.style.display = 'block';
+// ==========================
+// 4. ELIMINAR ANUNCIO
+// ==========================
+async function eliminarAnuncio(id, deleteUrl) {
+  try {
+    const response = await fetch(deleteUrl, { method: 'POST' });
+    if (!response.ok) throw new Error("Error eliminando anuncio");
 
-        // Llamar al Apps Script para eliminar el anuncio
-        const response = await fetch(deleteUrl, {
-            method: 'POST'
-        });
-
-        // Verificar si la respuesta fue correcta
-        if (!response.ok) {
-            throw new Error(`Error al eliminar anuncio: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (result.success) {
-            console.log(`✅ Anuncio ${anuncioId} eliminado correctamente.`);
-
-            // Recargar imágenes y overlay
-            await cargarImagenes();
-            if (swiperInstance) {
-                const activeIndex = swiperInstance.realIndex;
-                updateContentOverlay(activeIndex);
-            }
-
-            // Mostrar mensaje de éxito
-            showAlert("Anuncio eliminado con éxito.");
-        } else {
-            console.error(`❌ No se pudo eliminar el anuncio ${anuncioId}.`);
-            showAlert("Hubo un problema al eliminar el anuncio. Intenta de nuevo.");
-        }
-    } catch (error) {
-        console.error("Error en eliminarAnuncio:", error);
-        showAlert("Error al eliminar el anuncio. Intenta más tarde.");
-    } finally {
-        // Ocultar loader
-        loader.style.display = 'none';
-
-        // Cerrar cualquier diálogo de confirmación si está abierto
-        closeConfirmationDialog();
-    }
+    // Actualizamos el slider en segundo plano
+    await actualizarAnunciosSilenciosamente();
+  } catch (error) {
+    console.error("Error al eliminar el anuncio:", error);
+    alert("No se pudo eliminar el anuncio. Intenta de nuevo.");
+  }
 }
-
     
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1156,6 +1144,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
+
 
 
 
