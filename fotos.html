@@ -46,29 +46,6 @@
         justify-content: center;
         align-items: center;
     }
-
-   /* 🔥 Siempre el mismo display */
-.truncated, 
-.expanded-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-
-/* 🔥 Texto truncado */
-.truncated {
-  -webkit-line-clamp: 2; /* número de líneas visibles */
-}
-
-/* 🔥 Texto expandido (sin límite de líneas) */
-.expanded-text {
-  -webkit-line-clamp: unset;
-  overflow: visible;
-  text-overflow: unset;
-}
-
 /* Botón de eliminar anuncio */
 .delete-announcement-btn {
     position: fixed;
@@ -93,6 +70,17 @@
 }
 
 
+ /* 🔹 Estilo para texto truncado con "más" */
+  .truncated {
+    cursor: pointer;
+  }
+  .more-link {
+    color: #00acee;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 5px;
+  }
+    
     .custom-alert {
     background-color: #1e1e1e !important; /* Fondo oscuro */
     color: #fff !important; /* Texto blanco */
@@ -386,7 +374,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳h</span></div>
+  <div id="loader"><span class="spinner">⏳90</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -447,30 +435,6 @@
     let startX = 0;
     let activeComment = null;
     let isSwiping = false;
-
-    // Función para truncar y agregar "más"
-function aplicarTruncado(elemento, texto, lineas = 2) {
-    elemento.textContent = texto;
-
-    if (texto.length > 80) { // 🔥 si es largo, se trunca
-        elemento.classList.add("truncated");
-        elemento.dataset.fulltext = texto;
-
-        // Detectar click para expandir/colapsar
-        elemento.addEventListener("click", () => {
-            if (elemento.classList.contains("truncated")) {
-                elemento.textContent = elemento.dataset.fulltext;
-                elemento.classList.remove("truncated");
-                elemento.classList.add("expanded-text");
-            } else {
-                elemento.textContent = texto;
-                elemento.classList.remove("expanded-text");
-                elemento.classList.add("truncated");
-            }
-        });
-    }
-}
-
 
     function normalizeText(text) {
         if (!text) return "";
@@ -951,39 +915,15 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
     
-  function updateContentOverlay(index) {
+   function updateContentOverlay(index) {
     if (anunciosData.length > index) {
         const anuncio = anunciosData[index];
+        currentTitle.textContent = anuncio.titulo;
+        currentDescription.textContent = anuncio.descripcion;
 
-        // ✅ Función local para truncar
-        function aplicarTruncado(elemento, texto, lineas = 2) {
-            elemento.textContent = texto;
-
-            if (texto.length > 80) { // 🔥 solo si es largo
-                elemento.classList.add("truncated");
-                elemento.dataset.fulltext = texto;
-
-                // evitar duplicar listeners
-                elemento.onclick = () => {
-                    if (elemento.classList.contains("truncated")) {
-                        elemento.textContent = elemento.dataset.fulltext;
-                        elemento.classList.remove("truncated");
-                        elemento.classList.add("expanded-text");
-                    } else {
-                        elemento.textContent = texto;
-                        elemento.classList.remove("expanded-text");
-                        elemento.classList.add("truncated");
-                    }
-                };
-            } else {
-                elemento.classList.remove("truncated", "expanded-text");
-                elemento.onclick = null;
-            }
-        }
-
-        // ✅ Título (máx 1 línea) y Descripción (máx 2 líneas)
-        aplicarTruncado(currentTitle, anuncio.titulo, 1);
-        aplicarTruncado(currentDescription, anuncio.descripcion, 2);
+        // 🔹 Aplicar truncado a título y descripción
+        aplicarTruncado(currentTitle, 40);       // máximo 40 caracteres
+        aplicarTruncado(currentDescription, 100); // máximo 100 caracteres
 
         // ✅ Mostrar/ocultar el botón fijo
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
@@ -1046,7 +986,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
 
-
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
@@ -1097,6 +1036,36 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
+function aplicarTruncado(element, maxLength = 80) {
+    const fullText = element.textContent.trim();
+
+    if (fullText.length > maxLength) {
+        const shortText = fullText.substring(0, maxLength) + "...";
+        element.innerHTML = shortText + 
+          ` <span class="more-link">más</span>`;
+        element.dataset.fullText = fullText;
+        element.dataset.shortText = shortText;
+        element.dataset.expanded = "false";
+
+        element.onclick = () => {
+            const expanded = element.dataset.expanded === "true";
+            if (expanded) {
+                element.innerHTML = element.dataset.shortText + 
+                  ` <span class="more-link">más</span>`;
+                element.dataset.expanded = "false";
+            } else {
+                element.textContent = element.dataset.fullText + " ";
+                const menos = document.createElement("span");
+                menos.textContent = "menos";
+                menos.classList.add("more-link");
+                element.appendChild(menos);
+                element.dataset.expanded = "true";
+            }
+        };
+    }
+}
+
+    
     function showCustomAlert(title, titlesList) {
         const overlay = document.getElementById('customAlertOverlay');
         const alertDiv = overlay.querySelector('.custom-alert');
@@ -1255,9 +1224,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   </script>
 </body>
 </html>
-
-
-
 
 
 
