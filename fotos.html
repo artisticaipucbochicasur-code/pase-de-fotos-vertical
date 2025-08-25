@@ -479,32 +479,57 @@
 
 // Función para compartir anuncio
 // Función para compartir anuncio
-function compartirAnuncio(anuncio) {
+async function compartirAnuncio(anuncio, imagenURL) {
   const contenido = `${anuncio.titulo}\n${anuncio.descripcion}\n${window.location.href}`;
 
   if (navigator.share) {
-    // Navegador compatible con share
-    navigator.share({
-      title: anuncio.titulo,
-      text: anuncio.descripcion,
-      url: window.location.href
-    })
-    .then(() => console.log("Compartido con éxito"))
-    .catch(err => console.error("Error al compartir:", err));
-  } else if (navigator.clipboard) {
-    // Copiar automáticamente al portapapeles
-    navigator.clipboard.writeText(contenido)
-      .then(() => {
-        alert("Tu navegador no soporta compartir, pero el contenido se copió al portapapeles ✅");
-      })
-      .catch(() => mostrarModal(contenido));
+    try {
+      // Intentar compartir con imagen si soporta files
+      if (navigator.canShare && imagenURL) {
+        const response = await fetch(imagenURL);
+        const blob = await response.blob();
+        const file = new File([blob], 'imagen.jpg', { type: blob.type });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: anuncio.titulo,
+            text: anuncio.descripcion,
+            files: [file],
+            url: window.location.href
+          });
+          console.log("Compartido con imagen con éxito");
+          return;
+        }
+      }
+
+      // Si no puede compartir archivos, solo compartir texto y link
+      await navigator.share({
+        title: anuncio.titulo,
+        text: anuncio.descripcion,
+        url: window.location.href
+      });
+      console.log("Compartido con éxito (sin imagen)");
+    } catch (err) {
+      console.error("Error al compartir:", err);
+      fallbackCopiar(contenido);
+    }
   } else {
-    // Mostrar modal para copiar manualmente
-    mostrarModal(contenido);
+    fallbackCopiar(contenido);
   }
 }
 
-// Mostrar modal fallback
+// Fallback copiar al portapapeles o mostrar modal
+function fallbackCopiar(texto) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(texto)
+      .then(() => alert("Tu navegador no soporta compartir, pero se copió el contenido ✅"))
+      .catch(() => mostrarModal(texto));
+  } else {
+    mostrarModal(texto);
+  }
+}
+
+// Modal para copiar manualmente
 function mostrarModal(texto) {
   let modal = document.getElementById("modalFallback");
   if (!modal) {
@@ -515,6 +540,7 @@ function mostrarModal(texto) {
       <div style="background:#fff; padding:20px; border-radius:10px; max-width:300px; text-align:center;">
         <p>Tu navegador no soporta compartir automáticamente. Copia este contenido:</p>
         <textarea id="fallbackContent" style="width:100%; height:100px;"></textarea>
+        <button id="copyBtn">Copiar</button>
         <button id="closeModal">Cerrar</button>
       </div>
     `;
@@ -523,21 +549,28 @@ function mostrarModal(texto) {
     document.getElementById("closeModal").addEventListener("click", () => {
       modal.style.display = "none";
     });
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      const textarea = document.getElementById("fallbackContent");
+      textarea.select();
+      document.execCommand("copy");
+      alert("Contenido copiado ✅");
+    });
   }
   modal.style.display = "flex";
-  const textarea = document.getElementById("fallbackContent");
-  textarea.value = texto;
-  textarea.select();
+  document.getElementById("fallbackContent").value = texto;
 }
 
 // Evento del botón
 document.getElementById("shareBtn").addEventListener("click", () => {
   const activeIndex = swiperInstance.realIndex;
   const anuncio = anunciosData[activeIndex];
+  const imagenURL = document.querySelector('.swiper-slide-active img')?.src; // Imagen actual del slider
   if (anuncio) {
-    compartirAnuncio(anuncio);
+    compartirAnuncio(anuncio, imagenURL);
   }
 });
+
 
 
 
@@ -1372,6 +1405,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
