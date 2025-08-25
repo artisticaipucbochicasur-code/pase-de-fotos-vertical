@@ -477,48 +477,48 @@
     let activeComment = null;
     let isSwiping = false;
 
+// Función para compartir anuncio
 async function compartirAnuncio(anuncio, imagenURL) {
   const contenido = `${anuncio.titulo}\n${anuncio.descripcion}\n${window.location.href}`;
 
   if (navigator.share) {
     try {
       if (imagenURL) {
-        // Obtenemos la imagen como un Blob para compartirla como un archivo
+        // Intenta obtener la imagen y convertirla en un archivo para compartir
         const response = await fetch(imagenURL);
         const blob = await response.blob();
-        const file = new File([blob], 'imagen.jpg', { type: blob.type });
+        const file = new File([blob], 'anuncio.jpg', { type: blob.type });
 
-        // Verificamos si el navegador puede compartir archivos
+        // Verifica si el navegador puede compartir archivos
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: anuncio.titulo,
             text: anuncio.descripcion,
-            files: [file], // Aquí es donde enviamos la imagen como archivo
+            files: [file],
             url: window.location.href
           });
           console.log("Compartido con imagen con éxito");
-          return; // Salimos de la función si el proceso fue exitoso
+          return; // Finaliza la función si se comparte la imagen
         }
       }
 
       // Si no hay imagen, o el navegador no soporta compartir archivos,
-      // compartimos solo texto y enlace
+      // comparte el texto y el enlace.
       await navigator.share({
         title: anuncio.titulo,
         text: anuncio.descripcion,
         url: window.location.href
       });
       console.log("Compartido con éxito (sin imagen)");
-
     } catch (err) {
       console.error("Error al compartir:", err);
       fallbackCopiar(contenido);
     }
   } else {
+    // Si la API Web Share no está disponible, utiliza el método de respaldo.
     fallbackCopiar(contenido);
   }
 }
-
 
 
 
@@ -1353,6 +1353,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
