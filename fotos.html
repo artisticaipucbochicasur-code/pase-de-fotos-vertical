@@ -69,6 +69,19 @@
   visibility: visible;
 }
 
+    /* Estilo botón compartir */
+.share-btn {
+  position: fixed;
+  bottom: 180px; /* 🔥 debajo del de borrar */
+  right: 60px; /* separado del botón eliminar */
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  z-index: 9999;
+}
+
 
  /* 🔹 Estilo para texto truncado con "más" */
   .truncated {
@@ -397,7 +410,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳old</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -425,6 +438,11 @@
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
 </button>
+  <!-- Botón fijo de compartir -->
+<button id="shareBtn" class="share-btn">
+  <i class="fas fa-share-alt"></i>
+</button>
+
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -458,6 +476,31 @@
     let startX = 0;
     let activeComment = null;
     let isSwiping = false;
+
+    // Función para compartir anuncio
+function compartirAnuncio(anuncio) {
+  if (navigator.share) {
+    navigator.share({
+      title: anuncio.titulo,
+      text: anuncio.descripcion,
+      url: window.location.href // o un link específico del anuncio
+    })
+    .then(() => console.log("Compartido con éxito"))
+    .catch(err => console.error("Error al compartir:", err));
+  } else {
+    alert("Tu navegador no soporta la función de compartir.");
+  }
+}
+
+// Evento del botón
+document.getElementById("shareBtn").addEventListener("click", () => {
+  const activeIndex = swiperInstance.realIndex;
+  const anuncio = anunciosData[activeIndex];
+  if (anuncio) {
+    compartirAnuncio(anuncio);
+  }
+});
+
 
     // 🔹 Toggle título y descripción (expandir/colapsar)
 function updateInfo(title, description) {
@@ -1290,6 +1333,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
