@@ -397,7 +397,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳h</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -459,42 +459,9 @@
     let activeComment = null;
     let isSwiping = false;
 
- // 🔹 Toggle título y descripción (expandir/colapsar)
-function updateInfo(title, description) {
-  // Guardar valores completos en atributos
-  currentTitle.setAttribute("data-full", title);
-  currentDescription.setAttribute("data-full", description);
-
-  // Aplicar truncado dinámico con el helper
-  aplicarTruncado(currentTitle, 80);
-  aplicarTruncado(currentDescription, 120);
-
-  // Quitar estado expandido
-  currentTitle.classList.remove("expanded");
-  currentDescription.classList.remove("expanded");
-}
 
 
-// Eventos de click
-currentTitle.addEventListener("click", function () {
-  if (this.classList.contains("expanded")) {
-    this.textContent = this.getAttribute("data-short");
-    this.classList.remove("expanded");
-  } else {
-    this.textContent = this.getAttribute("data-full");
-    this.classList.add("expanded");
-  }
-});
 
-currentDescription.addEventListener("click", function () {
-  if (this.classList.contains("expanded")) {
-    this.textContent = this.getAttribute("data-short");
-    this.classList.remove("expanded");
-  } else {
-    this.textContent = this.getAttribute("data-full");
-    this.classList.add("expanded");
-  }
-});
 
 
     function normalizeText(text) {
@@ -1095,14 +1062,12 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
-// 🔹 Nuevo: función para truncar y mostrar ... más/menos
+// 🔹 Única función para truncar y expandir/cerrar con ... más / menos
 function aplicarTruncado(element, maxLength = 80) {
-    const fullText = element.textContent.trim();
+    const fullText = element.getAttribute("data-full") || element.textContent.trim();
 
     if (fullText.length > maxLength) {
         const shortText = fullText.substring(0, maxLength);
-
-        // Mostrar texto truncado con "... más"
         element.innerHTML = `${shortText} <span class="more-link">... más</span>`;
 
         element.dataset.fullText = fullText;
@@ -1119,8 +1084,12 @@ function aplicarTruncado(element, maxLength = 80) {
                 element.dataset.expanded = "true";
             }
         };
+    } else {
+        // Si no supera el límite, mostrarlo completo sin nada extra
+        element.textContent = fullText;
     }
 }
+
 
 
 
@@ -1283,6 +1252,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
