@@ -74,12 +74,12 @@
   .truncated {
     cursor: pointer;
   }
-  .more-link {
-    color: #00acee;
-    font-weight: bold;
-    cursor: pointer;
-    margin-left: 5px;
-  }
+ .more-link {
+  color: #00acee;   /* azul tipo Twitter */
+  font-weight: bold;
+  cursor: pointer;
+}
+
 
     /* 🔹 Para truncar y expandir título/descripcion */
 .truncate-text {
@@ -397,7 +397,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳o</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -465,16 +465,21 @@ function updateInfo(title, description) {
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
 
-  // Guardar versiones cortas
-  const shortTitle = title.length > 50 ? title.substring(0, 50) + "...más" : title;
-  const shortDescription = description.length > 80 ? description.substring(0, 80) + "...más" : description;
+  // Guardar versiones cortas con span estilizado
+  const shortTitle = title.length > 50 
+    ? title.substring(0, 50) + ` <span class="more-link">...más</span>` 
+    : title;
+
+  const shortDescription = description.length > 80 
+    ? description.substring(0, 80) + ` <span class="more-link">...más</span>` 
+    : description;
 
   currentTitle.setAttribute("data-short", shortTitle);
   currentDescription.setAttribute("data-short", shortDescription);
 
   // Mostrar versión corta por defecto
-  currentTitle.textContent = shortTitle;
-  currentDescription.textContent = shortDescription;
+  currentTitle.innerHTML = shortTitle;
+  currentDescription.innerHTML = shortDescription;
 
   // Quitar estado expandido
   currentTitle.classList.remove("expanded");
@@ -484,23 +489,24 @@ function updateInfo(title, description) {
 // Eventos de click
 currentTitle.addEventListener("click", function () {
   if (this.classList.contains("expanded")) {
-    this.textContent = this.getAttribute("data-short");
+    this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.textContent = this.getAttribute("data-full");
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">menos</span>`;
     this.classList.add("expanded");
   }
 });
 
 currentDescription.addEventListener("click", function () {
   if (this.classList.contains("expanded")) {
-    this.textContent = this.getAttribute("data-short");
+    this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.textContent = this.getAttribute("data-full");
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">menos</span>`;
     this.classList.add("expanded");
   }
 });
+
 
 
     function normalizeText(text) {
@@ -1290,6 +1296,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
