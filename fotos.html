@@ -1107,25 +1107,23 @@ function aplicarTruncado(element, maxLength = 80) {
     if (fullText.length > maxLength) {
         const shortText = fullText.substring(0, maxLength);
 
-        element.innerHTML = shortText + 
-          ` <span class="more-link">... más</span>`;
-        
+        // Mostrar texto truncado con "... más"
+        element.innerHTML = `${shortText} <span class="more-link">... más</span>`;
+
         element.dataset.fullText = fullText;
         element.dataset.shortText = shortText;
         element.dataset.expanded = "false";
 
-        element.onclick = () => {
+        element.onclick = (e) => {
+            // Evita que solo el span sea clickeable, sino todo el elemento
+            e.stopPropagation();
+
             const expanded = element.dataset.expanded === "true";
             if (expanded) {
-                element.innerHTML = element.dataset.shortText + 
-                  ` <span class="more-link">... más</span>`;
+                element.innerHTML = `${element.dataset.shortText} <span class="more-link">... más</span>`;
                 element.dataset.expanded = "false";
             } else {
-                element.textContent = element.dataset.fullText + " ";
-                const menos = document.createElement("span");
-                menos.textContent = "menos";
-                menos.classList.add("more-link");
-                element.appendChild(menos);
+                element.innerHTML = `${element.dataset.fullText} <span class="more-link">menos</span>`;
                 element.dataset.expanded = "true";
             }
         };
@@ -1292,6 +1290,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
