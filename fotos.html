@@ -69,19 +69,6 @@
   visibility: visible;
 }
 
-    /* Estilo botón compartir */
-.share-btn {
-  position: fixed;
-  bottom: 180px; /* 🔥 debajo del de borrar */
-  right: 10px; /* separado del botón eliminar */
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 1.8rem;
-  cursor: pointer;
-  z-index: 9999;
-}
-
 
  /* 🔹 Estilo para texto truncado con "más" */
   .truncated {
@@ -438,11 +425,6 @@
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
 </button>
-  <!-- Botón fijo de compartir -->
-<button id="shareBtn" class="share-btn">
-  <i class="fas fa-share-alt"></i>
-</button>
-
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -476,51 +458,6 @@
     let startX = 0;
     let activeComment = null;
     let isSwiping = false;
-
-// Función para compartir anuncio
-async function compartirAnuncio(anuncio, imagenURL) {
-  const contenido = `${anuncio.titulo}\n${anuncio.descripcion}\n${window.location.href}`;
-
-  if (navigator.share) {
-    try {
-      if (imagenURL) {
-        // Intenta obtener la imagen y convertirla en un archivo para compartir
-        const response = await fetch(imagenURL);
-        const blob = await response.blob();
-        const file = new File([blob], 'anuncio.jpg', { type: blob.type });
-
-        // Verifica si el navegador puede compartir archivos
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: anuncio.titulo,
-            text: anuncio.descripcion,
-            files: [file],
-            url: window.location.href
-          });
-          console.log("Compartido con imagen con éxito");
-          return; // Finaliza la función si se comparte la imagen
-        }
-      }
-
-      // Si no hay imagen, o el navegador no soporta compartir archivos,
-      // comparte el texto y el enlace.
-      await navigator.share({
-        title: anuncio.titulo,
-        text: anuncio.descripcion,
-        url: window.location.href
-      });
-      console.log("Compartido con éxito (sin imagen)");
-    } catch (err) {
-      console.error("Error al compartir:", err);
-      fallbackCopiar(contenido);
-    }
-  } else {
-    // Si la API Web Share no está disponible, utiliza el método de respaldo.
-    fallbackCopiar(contenido);
-  }
-}
-
-
 
     // 🔹 Toggle título y descripción (expandir/colapsar)
 function updateInfo(title, description) {
@@ -1353,13 +1290,6 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
 
 
 
