@@ -397,7 +397,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳o</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -459,9 +459,48 @@
     let activeComment = null;
     let isSwiping = false;
 
+    // 🔹 Toggle título y descripción (expandir/colapsar)
+function updateInfo(title, description) {
+  // Guardar valores completos
+  currentTitle.setAttribute("data-full", title);
+  currentDescription.setAttribute("data-full", description);
 
+  // Guardar versiones cortas
+  const shortTitle = title.length > 50 ? title.substring(0, 50) + "...más" : title;
+  const shortDescription = description.length > 80 ? description.substring(0, 80) + "...más" : description;
 
+  currentTitle.setAttribute("data-short", shortTitle);
+  currentDescription.setAttribute("data-short", shortDescription);
 
+  // Mostrar versión corta por defecto
+  currentTitle.textContent = shortTitle;
+  currentDescription.textContent = shortDescription;
+
+  // Quitar estado expandido
+  currentTitle.classList.remove("expanded");
+  currentDescription.classList.remove("expanded");
+}
+
+// Eventos de click
+currentTitle.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.textContent = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.textContent = this.getAttribute("data-full");
+    this.classList.add("expanded");
+  }
+});
+
+currentDescription.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.textContent = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.textContent = this.getAttribute("data-full");
+    this.classList.add("expanded");
+  }
+});
 
 
     function normalizeText(text) {
@@ -1062,19 +1101,23 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
-// 🔹 Única función para truncar y expandir/cerrar con ... más / menos
 function aplicarTruncado(element, maxLength = 80) {
-    const fullText = element.getAttribute("data-full") || element.textContent.trim();
+    const fullText = element.textContent.trim();
 
     if (fullText.length > maxLength) {
         const shortText = fullText.substring(0, maxLength);
+
+        // Mostrar texto truncado con "... más"
         element.innerHTML = `${shortText} <span class="more-link">... más</span>`;
 
         element.dataset.fullText = fullText;
         element.dataset.shortText = shortText;
         element.dataset.expanded = "false";
 
-        element.onclick = () => {
+        element.onclick = (e) => {
+            // Evita que solo el span sea clickeable, sino todo el elemento
+            e.stopPropagation();
+
             const expanded = element.dataset.expanded === "true";
             if (expanded) {
                 element.innerHTML = `${element.dataset.shortText} <span class="more-link">... más</span>`;
@@ -1084,13 +1127,8 @@ function aplicarTruncado(element, maxLength = 80) {
                 element.dataset.expanded = "true";
             }
         };
-    } else {
-        // Si no supera el límite, mostrarlo completo sin nada extra
-        element.textContent = fullText;
     }
 }
-
-
 
 
     
@@ -1252,9 +1290,6 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
-
-
-
 
 
 
