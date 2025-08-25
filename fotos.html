@@ -71,11 +71,14 @@
 
 #searchOverlay {
   position: fixed;
-  top:0; left:0; right:0; bottom:0;
+  top: 0; 
+  left: 0; 
+  right: 0; 
   background: rgba(0,0,0,0.6);
   display: none;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* 👈 ahora aparece arriba */
+  padding-top: 20px; /* separacion desde arriba */
   z-index: 2000;
 }
 
@@ -91,6 +94,7 @@
   background: yellow;
   transition: background 1s ease;
 }
+
 
 
     
@@ -447,7 +451,7 @@
           <div class="titles-list" id="alertMessage"></div>
       </div>
   </div>
-  <!-- 🔍 Overlay de búsqueda -->
+<!-- 🔍 Overlay de búsqueda -->
 <div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
   <div class="custom-alert">
     <h2>Buscar anuncio</h2>
@@ -456,6 +460,7 @@
     <button onclick="cerrarBusqueda()">Cerrar</button>
   </div>
 </div>
+
 
   <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
@@ -516,8 +521,8 @@
 function normalizar(txt) {
   return txt
     .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .replace(/\s+/g, " ") // unifica espacios
     .trim();
 }
 
@@ -542,6 +547,7 @@ document.getElementById("searchInput").addEventListener("input", function () {
 
   if (query.length < 2) return;
 
+  // 👇 Buscar en TODOS los anuncios de anunciosData
   anunciosData.forEach((anuncio, index) => {
     const titulo = normalizar(anuncio.titulo);
     const descripcion = normalizar(anuncio.descripcion);
@@ -1419,6 +1425,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
