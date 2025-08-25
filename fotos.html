@@ -73,7 +73,7 @@
 .share-btn {
   position: fixed;
   bottom: 180px; /* 🔥 debajo del de borrar */
-  right: 60px; /* separado del botón eliminar */
+  right: 10px; /* separado del botón eliminar */
   background: transparent;
   border: none;
   color: white;
@@ -410,7 +410,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳old</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -477,7 +477,7 @@
     let activeComment = null;
     let isSwiping = false;
 
-    // Función para compartir anuncio
+// Función para compartir anuncio
 function compartirAnuncio(anuncio) {
   if (navigator.share) {
     navigator.share({
@@ -488,7 +488,15 @@ function compartirAnuncio(anuncio) {
     .then(() => console.log("Compartido con éxito"))
     .catch(err => console.error("Error al compartir:", err));
   } else {
-    alert("Tu navegador no soporta la función de compartir.");
+    // Fallback: copiar link
+    const link = window.location.href;
+    navigator.clipboard.writeText(link)
+      .then(() => {
+        alert("Tu navegador no soporta compartir, pero el enlace se copió al portapapeles ✅");
+      })
+      .catch(() => {
+        alert("Tu navegador no soporta compartir ni copiar automáticamente.");
+      });
   }
 }
 
@@ -1333,6 +1341,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
