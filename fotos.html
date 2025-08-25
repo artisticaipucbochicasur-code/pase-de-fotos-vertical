@@ -69,6 +69,31 @@
   visibility: visible;
 }
 
+#searchOverlay {
+  position: fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.resultado-item {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+.resultado-item:hover {
+  background: #f0f0f0;
+}
+
+.highlight {
+  background: yellow;
+  transition: background 1s ease;
+}
+
+
+    
 
  /* 🔹 Estilo para texto truncado con "más" */
   .truncated {
@@ -422,6 +447,16 @@
           <div class="titles-list" id="alertMessage"></div>
       </div>
   </div>
+  <!-- 🔍 Overlay de búsqueda -->
+<div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
+  <div class="custom-alert">
+    <h2>Buscar anuncio</h2>
+    <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
+    <div id="searchResults" class="titles-list"></div>
+    <button onclick="cerrarBusqueda()">Cerrar</button>
+  </div>
+</div>
+
   <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
@@ -475,6 +510,77 @@
     let startX = 0;
     let activeComment = null;
     let isSwiping = false;
+
+
+// Normalizar texto (ignora tildes, mayúsculas y espacios de más)
+function normalizar(txt) {
+  return txt
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Abrir buscador
+function abrirBusqueda() {
+  document.getElementById("searchOverlay").style.display = "flex";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchResults").innerHTML = "";
+  document.getElementById("searchInput").focus();
+}
+
+// Cerrar buscador
+function cerrarBusqueda() {
+  document.getElementById("searchOverlay").style.display = "none";
+}
+
+// Buscar en anuncios
+document.getElementById("searchInput").addEventListener("input", function () {
+  const query = normalizar(this.value);
+  const resultadosDiv = document.getElementById("searchResults");
+  resultadosDiv.innerHTML = "";
+
+  if (query.length < 2) return;
+
+  anunciosData.forEach((anuncio, index) => {
+    const titulo = normalizar(anuncio.titulo);
+    const descripcion = normalizar(anuncio.descripcion);
+
+    if (titulo.includes(query) || descripcion.includes(query)) {
+      const li = document.createElement("div");
+      li.textContent = anuncio.titulo;
+      li.classList.add("resultado-item");
+      li.style.cursor = "pointer";
+      li.onclick = () => {
+        cerrarBusqueda();
+        swiperInstance.slideToLoop(index, 500);
+        setTimeout(() => {
+          document.getElementById("currentTitle").classList.add("highlight");
+          setTimeout(() => document.getElementById("currentTitle").classList.remove("highlight"), 2000);
+        }, 400);
+      };
+      resultadosDiv.appendChild(li);
+    }
+  });
+
+  if (!resultadosDiv.hasChildNodes()) {
+    resultadosDiv.innerHTML = "<p>No se encontraron coincidencias</p>";
+  }
+});
+
+// 🔗 Escuchar desde App Inventor
+setInterval(() => {
+  if (window.AppInventor && window.AppInventor.getWebViewString) {
+    let command = window.AppInventor.getWebViewString();
+    if (command === "buscar") {
+      abrirBusqueda();
+      window.AppInventor.setWebViewString(""); // limpiar
+    }
+  }
+}, 1000);
+
+
+    
 
     // 🔹 Toggle título y descripción (expandir/colapsar)
 function updateInfo(title, description) {
@@ -1313,6 +1419,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
