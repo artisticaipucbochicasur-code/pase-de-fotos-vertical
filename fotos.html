@@ -69,17 +69,27 @@
   visibility: visible;
 }
 
+/* Asegura que el overlay de búsqueda quede arriba y pegado al top */
 #searchOverlay {
   position: fixed;
-  top: 0; 
-  left: 0; 
-  right: 0; 
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6);
   display: none;
   justify-content: center;
-  align-items: flex-start; /* 👈 ahora aparece arriba */
-  padding-top: 20px; /* separacion desde arriba */
-  z-index: 2000;
+  align-items: flex-start;   /* 👈 arriba, no centrado */
+  padding-top: 12px;         /* separadito del borde superior */
+  z-index: 9999;             /* más alto que cualquier otro overlay */
+}
+
+    /* La tarjeta interior puede tener un ancho máximo razonable */
+#searchOverlay .custom-alert {
+  width: 90%;
+  max-width: 700px;
+}
+/* La lista de resultados con scroll para no “cortar” resultados */
+#searchResults.titles-list {
+  max-height: 60vh;          /* 👈 hace visible muchos resultados */
+  overflow: auto;
 }
 
 .resultado-item {
@@ -443,7 +453,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳2</span></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -486,6 +496,8 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
+    let indiceBusqueda = []; // [{ i, key, titulo }]
+
     let swiperInstance = null;
     let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
@@ -516,6 +528,15 @@
     let activeComment = null;
     let isSwiping = false;
 
+function reconstruirIndiceBusqueda() {
+  indiceBusqueda = anunciosData.map((a, i) => {
+    const titulo = a?.titulo || "";
+    const descripcion = a?.descripcion || "";
+    // Clave normalizada: título + descripción
+    const key = normalizar(`${titulo} ${descripcion}`);
+    return { i, key, titulo: titulo || "(Sin título)" };
+  });
+}
 
 // 🔹 Normalizar texto (ignora tildes, mayúsculas y espacios de más)
 function normalizar(txt) {
@@ -539,7 +560,6 @@ function cerrarBusqueda() {
   document.getElementById("searchOverlay").style.display = "none";
 }
 
-// 🔹 Buscar en anuncios (usando anunciosData actualizado)
 document.getElementById("searchInput").addEventListener("input", function () {
   const query = normalizar(this.value);
   const resultadosDiv = document.getElementById("searchResults");
@@ -547,35 +567,36 @@ document.getElementById("searchInput").addEventListener("input", function () {
 
   if (query.length < 2) return;
 
-  anunciosData.forEach((anuncio, index) => {
-    const titulo = normalizar(anuncio.titulo || "");
-    const descripcion = normalizar(anuncio.descripcion || "");
+  if (!Array.isArray(indiceBusqueda) || indiceBusqueda.length === 0) {
+    resultadosDiv.innerHTML = "<p>Todavía no se han cargado anuncios</p>";
+    return;
+  }
 
-    if (titulo.includes(query) || descripcion.includes(query)) {
-      const li = document.createElement("div");
-      li.textContent = anuncio.titulo;
-      li.classList.add("resultado-item");
-      li.style.cursor = "pointer";
-      li.onclick = () => {
-        cerrarBusqueda();
+  // Buscar sobre el índice ya normalizado
+  const coincidencias = indiceBusqueda.filter(item => item.key.includes(query));
 
-        // 👇 Ir al slide correspondiente
-        swiperInstance.slideToLoop(index, 500);
-
-        // 👇 Resaltar el título mostrado
+  coincidencias.forEach(item => {
+    const li = document.createElement("div");
+    li.textContent = item.titulo;
+    li.classList.add("resultado-item");
+    li.onclick = () => {
+      cerrarBusqueda();
+      if (swiperInstance) {
+        swiperInstance.slideToLoop(item.i, 500);
         setTimeout(() => {
           currentTitle.classList.add("highlight");
           setTimeout(() => currentTitle.classList.remove("highlight"), 2000);
         }, 400);
-      };
-      resultadosDiv.appendChild(li);
-    }
+      }
+    };
+    resultadosDiv.appendChild(li);
   });
 
   if (!resultadosDiv.hasChildNodes()) {
     resultadosDiv.innerHTML = "<p>No se encontraron coincidencias</p>";
   }
 });
+
 
 // 🔗 Escuchar desde App Inventor
 setInterval(() => {
@@ -1004,12 +1025,10 @@ async function cargarImagenes() {
             });
         }
 
-        // CORRECCIÓN: Asegúrate de guardar TODOS los anuncios.
-        // Puedes invertir el orden si lo necesitas, pero NO hagas un slice ni filtro aquí.
-        anunciosData = [...newAnunciosData].reverse(); // <-- todos los anuncios, invertidos si lo deseas
+        newAnunciosData.reverse();
 
-        const oldAnunciosIds = (anunciosData || []).map(a => a.id);
-        const newAnunciosIds = (newAnunciosData || []).map(a => a.id);
+        const oldAnunciosIds = anunciosData.map(a => a.id);
+        const newAnunciosIds = newAnunciosData.map(a => a.id);
         
         if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
             loader.style.display = 'none';
@@ -1017,8 +1036,10 @@ async function cargarImagenes() {
         }
 
         const currentSlideId = currentId;
-
-        // ... resto de tu lógica permanece igual ...
+        anunciosData = newAnunciosData;
+      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+reconstruirIndiceBusqueda();
+        
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
             
@@ -1087,6 +1108,9 @@ async function cargarImagenes() {
         loader.style.display = 'none';
     }
 }
+
+
+
 async function eliminarAnuncio(anuncioId, deleteUrl) {
     loader.style.display = 'block';
     try {
@@ -1116,6 +1140,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         loader.style.display = 'none';
     }
 }
+
 
     
    function updateContentOverlay(index) {
@@ -1426,6 +1451,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
