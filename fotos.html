@@ -443,7 +443,7 @@
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="loader"><span class="spinner">⏳2</span></div>
   <div id="lblContador"></div>
   <div id="customAlertOverlay">
       <div class="custom-alert">
@@ -1004,10 +1004,12 @@ async function cargarImagenes() {
             });
         }
 
-        newAnunciosData.reverse();
+        // CORRECCIÓN: Asegúrate de guardar TODOS los anuncios.
+        // Puedes invertir el orden si lo necesitas, pero NO hagas un slice ni filtro aquí.
+        anunciosData = [...newAnunciosData].reverse(); // <-- todos los anuncios, invertidos si lo deseas
 
-        const oldAnunciosIds = anunciosData.map(a => a.id);
-        const newAnunciosIds = newAnunciosData.map(a => a.id);
+        const oldAnunciosIds = (anunciosData || []).map(a => a.id);
+        const newAnunciosIds = (newAnunciosData || []).map(a => a.id);
         
         if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
             loader.style.display = 'none';
@@ -1015,8 +1017,8 @@ async function cargarImagenes() {
         }
 
         const currentSlideId = currentId;
-        anunciosData = newAnunciosData;
-        
+
+        // ... resto de tu lógica permanece igual ...
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
             
@@ -1085,9 +1087,6 @@ async function cargarImagenes() {
         loader.style.display = 'none';
     }
 }
-
-
-
 async function eliminarAnuncio(anuncioId, deleteUrl) {
     loader.style.display = 'block';
     try {
@@ -1427,6 +1426,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
