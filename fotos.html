@@ -517,7 +517,7 @@
     let isSwiping = false;
 
 
-// Normalizar texto (ignora tildes, mayúsculas y espacios de más)
+// 🔹 Normalizar texto (ignora tildes, mayúsculas y espacios de más)
 function normalizar(txt) {
   return txt
     .toLowerCase()
@@ -526,7 +526,7 @@ function normalizar(txt) {
     .trim();
 }
 
-// Abrir buscador
+// 🔹 Abrir buscador
 function abrirBusqueda() {
   document.getElementById("searchOverlay").style.display = "flex";
   document.getElementById("searchInput").value = "";
@@ -534,12 +534,12 @@ function abrirBusqueda() {
   document.getElementById("searchInput").focus();
 }
 
-// Cerrar buscador
+// 🔹 Cerrar buscador
 function cerrarBusqueda() {
   document.getElementById("searchOverlay").style.display = "none";
 }
 
-// Buscar en anuncios
+// 🔹 Buscar en anuncios (usando anunciosData actualizado)
 document.getElementById("searchInput").addEventListener("input", function () {
   const query = normalizar(this.value);
   const resultadosDiv = document.getElementById("searchResults");
@@ -547,10 +547,9 @@ document.getElementById("searchInput").addEventListener("input", function () {
 
   if (query.length < 2) return;
 
-  // 👇 Buscar en TODOS los anuncios de anunciosData
   anunciosData.forEach((anuncio, index) => {
-    const titulo = normalizar(anuncio.titulo);
-    const descripcion = normalizar(anuncio.descripcion);
+    const titulo = normalizar(anuncio.titulo || "");
+    const descripcion = normalizar(anuncio.descripcion || "");
 
     if (titulo.includes(query) || descripcion.includes(query)) {
       const li = document.createElement("div");
@@ -559,10 +558,14 @@ document.getElementById("searchInput").addEventListener("input", function () {
       li.style.cursor = "pointer";
       li.onclick = () => {
         cerrarBusqueda();
+
+        // 👇 Ir al slide correspondiente
         swiperInstance.slideToLoop(index, 500);
+
+        // 👇 Resaltar el título mostrado
         setTimeout(() => {
-          document.getElementById("currentTitle").classList.add("highlight");
-          setTimeout(() => document.getElementById("currentTitle").classList.remove("highlight"), 2000);
+          currentTitle.classList.add("highlight");
+          setTimeout(() => currentTitle.classList.remove("highlight"), 2000);
         }, 400);
       };
       resultadosDiv.appendChild(li);
@@ -584,7 +587,6 @@ setInterval(() => {
     }
   }
 }, 1000);
-
 
     
 
@@ -1425,6 +1427,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
