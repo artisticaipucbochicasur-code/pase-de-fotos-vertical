@@ -1415,11 +1415,17 @@ function aplicarTruncado(element, maxLength = 80) {
           if(comando) {
             try {
               const data = JSON.parse(comando);
-              if(data.action === "updateUserData") {
-                currentAuthorEmail = data.email;
-                currentAuthorName = data.name;
-                console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
-              }
+             if(data.action === "updateUserData") {
+  currentAuthorEmail = data.email;
+  currentAuthorName = data.name;
+
+  // Guardar en localStorage para que el HTML de subir videos también los pueda usar
+  localStorage.setItem("autor", currentAuthorName || "");
+  localStorage.setItem("correo", currentAuthorEmail || "");
+
+  console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+}
+
             } catch (e) {
               if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
                 console.log("Reiniciando contador y cargando anuncios.");
@@ -1451,6 +1457,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
