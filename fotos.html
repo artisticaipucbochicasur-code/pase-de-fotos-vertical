@@ -1025,24 +1025,20 @@ async function actualizarContador() {
             }
         }
 
-        // 🔔 actualizar badge SIEMPRE con transición
+        // 🔔 actualizar badge SIEMPRE (oculta inmediato)
         if (contadorAcumulado > 0) {
             notificationCount.textContent = contadorAcumulado;
-            notificationCount.classList.add("visible");
+            notificationCount.style.display = "flex";
         } else {
-            notificationCount.classList.remove("visible");
-            setTimeout(() => {
-                // después de la transición quitamos el número
-                if (!notificationCount.classList.contains("visible")) {
-                    notificationCount.textContent = "";
-                }
-            }, 300); // coincide con el transition del CSS
+            notificationCount.style.display = "none"; // 👈 ocultar primero
+            notificationCount.textContent = "";       // 👈 borrar número después
         }
 
     } catch (e) {
         console.error("❌ Error al obtener contador:", e);
     }
 }
+
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -1573,6 +1569,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
