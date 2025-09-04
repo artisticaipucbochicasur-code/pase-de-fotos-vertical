@@ -988,7 +988,7 @@ async function actualizarContador() {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
-        const notificationCount = document.getElementById('notificationCount'); // 🔔 span del número
+        const notificationCount = document.getElementById('notificationCount');
 
         if (contadorTotalAnterior === -1) {
             contadorTotalAnterior = totalActual;
@@ -996,30 +996,16 @@ async function actualizarContador() {
             if (totalActual !== contadorTotalAnterior) {
                 const diferencia = totalActual - contadorTotalAnterior;
                 if (diferencia > 0) {
-                    // Guardar los títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
-                    
-                    // Guardar los títulos nuevos detectados SIN duplicarlos
+
                     const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
                     nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
-
-                    // Eliminar duplicados conservando el orden
                     nuevosTitulos = [...new Set(nuevosTitulos)];
                     contadorAcumulado = nuevosTitulos.length;
                 } else if (diferencia < 0 || totalActual === 0) {
-                    // 👈 ajuste para que desaparezca el circulito
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
-                }
-
-                // 🔔 actualizar badge
-                if (contadorAcumulado > 0) {
-                    notificationCount.textContent = contadorAcumulado;
-                    notificationCount.style.display = "flex";  // mostrar circulito rojo
-                } else {
-                    notificationCount.textContent = "";
-                    notificationCount.style.display = "none";  // ocultar circulito
                 }
 
                 contadorTotalAnterior = totalActual;
@@ -1027,10 +1013,21 @@ async function actualizarContador() {
                 await cargarImagenes();
             }
         }
+
+        // 🔔 actualizar badge SIEMPRE
+        if (contadorAcumulado > 0) {
+            notificationCount.textContent = contadorAcumulado;
+            notificationCount.style.display = "flex";
+        } else {
+            notificationCount.textContent = "";
+            notificationCount.style.display = "none";
+        }
+
     } catch (e) {
         console.error("❌ Error al obtener contador:", e);
     }
 }
+
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -1561,6 +1558,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
