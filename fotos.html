@@ -56,9 +56,20 @@
     border-radius: 50%;
     align-items: center;
     justify-content: center;
+    opacity: 0;                 /* 👈 empieza invisible */
+    transition: opacity 0.25s ease-in-out;
+}
+
+#notificationCount.visible {
+    display: flex;              /* 👈 se asegura que se muestre */
+    opacity: 1;                 /* 👈 efecto fade-in */
 }
 
 
+#notificationCount.visible {
+    display: flex;
+    opacity: 1;
+}
 
 
 
@@ -1014,20 +1025,24 @@ async function actualizarContador() {
             }
         }
 
-        // 🔔 actualizar badge SIEMPRE
+        // 🔔 actualizar badge SIEMPRE con transición
         if (contadorAcumulado > 0) {
             notificationCount.textContent = contadorAcumulado;
-            notificationCount.style.display = "flex";
+            notificationCount.classList.add("visible");
         } else {
-            notificationCount.textContent = "";
-            notificationCount.style.display = "none";
+            notificationCount.classList.remove("visible");
+            setTimeout(() => {
+                // después de la transición quitamos el número
+                if (!notificationCount.classList.contains("visible")) {
+                    notificationCount.textContent = "";
+                }
+            }, 300); // coincide con el transition del CSS
         }
 
     } catch (e) {
         console.error("❌ Error al obtener contador:", e);
     }
 }
-
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -1558,6 +1573,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
