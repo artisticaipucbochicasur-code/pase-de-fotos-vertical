@@ -970,7 +970,7 @@ lblContador.addEventListener("click", () => {
     }
 });
 
-// Modificamos actualizarContador para guardar títulos nuevos
+// ✅ Actualizar contador y manejar notificaciones
 async function actualizarContador() {
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
@@ -982,12 +982,12 @@ async function actualizarContador() {
         } else {
             if (totalActual !== contadorTotalAnterior) {
                 const diferencia = totalActual - contadorTotalAnterior;
+
                 if (diferencia > 0) {
-                    // Guardar los títulos nuevos detectados
+                    // Guardar títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
 
-                    // Guardar los títulos nuevos detectados SIN duplicarlos
                     const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
                     nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
 
@@ -1022,7 +1022,10 @@ async function actualizarContador() {
         console.error("❌ Error al obtener contador:", e);
     }
 }
+
+// 🔄 Ejecutar periódicamente
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
 
     async function verificarComentarios() {
@@ -1532,4 +1535,5 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
