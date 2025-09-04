@@ -20,43 +20,19 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-/* 🔔 Notificaciones */
-#notification-wrapper {
-    position: fixed;
-    right: 10px;
-    bottom: 190px; /* 👆 arriba del contador de comentarios */
-    z-index: 5000;
-}
-
-#notification-btn {
-    position: relative;
-    background: transparent;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-}
-
-/* 🔴 Badge rojo */
-#notification-count {
-    display: none; /* por defecto oculto */
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: red;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 50%;
-}
+    #lblContador {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 9999;
+      display: none;
+      cursor: pointer;
+    }
 
     #customAlertOverlay {
         display: none;
@@ -501,22 +477,15 @@ padding: 8px 10px;
 </head>
 
 <body>
-<div class="swiper"><div class="swiper-wrapper"></div></div>
-<div id="loader"><span class="spinner">⏳</span></div>
-
-<!-- 🔔 Botón de notificaciones -->
-<div id="notification-wrapper">
-  <button id="notification-btn">🔔</button>
-  <span id="notification-count">0</span>
-</div>
-
-<div id="customAlertOverlay">
-    <div class="custom-alert">
-        <h2 id="alertTitle"></h2>
-        <div class="titles-list" id="alertMessage"></div>
-    </div>
-</div>
-
+  <div class="swiper"><div class="swiper-wrapper"></div></div>
+  <div id="loader"><span class="spinner">⏳</span></div>
+  <div id="lblContador"></div>
+  <div id="customAlertOverlay">
+      <div class="custom-alert">
+          <h2 id="alertTitle"></h2>
+          <div class="titles-list" id="alertMessage"></div>
+      </div>
+  </div>
 <!-- 🔍 Overlay de búsqueda -->
 <div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
   <div class="custom-alert">
@@ -527,12 +496,12 @@ padding: 8px 10px;
   </div>
 </div>
 
-<div class="content-overlay" id="contentOverlay">
-  <h3 id="currentTitle"></h3>
-  <p id="currentDescription"></p>
-</div>
 
-<div class="comments-overlay-container" id="commentsOverlay">
+  <div class="content-overlay" id="contentOverlay">
+    <h3 id="currentTitle"></h3>
+    <p id="currentDescription"></p>
+  </div>
+ <div class="comments-overlay-container" id="commentsOverlay">
   <ul id="commentsList"></ul>
 </div>
 
@@ -548,11 +517,12 @@ padding: 8px 10px;
   </div>
 </div>
 
-<!-- Botón fijo para eliminar anuncio -->
+
+
+  <!-- Botón fijo para eliminar anuncio -->
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
 </button>
-
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -564,7 +534,7 @@ padding: 8px 10px;
     let contadorAcumulado = 0;
     let nuevosTitulos = []; 
     const loader = document.getElementById('loader');
-    
+    const lblContador = document.getElementById("lblContador");
 
     const contentOverlay = document.getElementById('contentOverlay');
     const commentsOverlay = document.getElementById('commentsOverlay');
@@ -959,48 +929,16 @@ document.querySelector('.swiper').addEventListener('click', () => {
 
     const INTERVALO_VERIFICACION = 5000;
 
-  // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón de notificaciones
-notificationBtn.addEventListener("click", () => {
+   // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón
+lblContador.addEventListener("click", () => {
     if (nuevosTitulos.length === 0) {
         showCustomAlert("Nuevos anuncios", []);
     } else {
-        // Creamos lista interactiva
-        showCustomAlert("Nuevos anuncios", nuevosTitulos.map((titulo, index) => {
-            return {
-                text: titulo,
-                onClick: () => {
-                    // 1️⃣ Ir al anuncio en el swiper
-                    const foundIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                    if (foundIndex !== -1 && swiperInstance) {
-                        swiperInstance.slideToLoop(foundIndex, 500);
-                    }
-
-                    // 2️⃣ Eliminar este título de la lista de nuevos
-                    nuevosTitulos.splice(index, 1);
-
-                    // 3️⃣ Actualizar contador
-                    contadorAcumulado = nuevosTitulos.length;
-                    const notificationCount = document.getElementById("notification-count");
-                    if (contadorAcumulado > 0) {
-                        notificationCount.textContent = contadorAcumulado;
-                        notificationCount.style.display = "block";
-                    } else {
-                        notificationCount.textContent = "0";
-                        notificationCount.style.display = "none";
-                    }
-
-                    // 4️⃣ Cerrar alerta
-                    cerrarCustomAlert();
-                }
-            };
-        }));
+        showCustomAlert("Nuevos anuncios", nuevosTitulos);
     }
 });
 
-}
-
-
-// ✅ Actualizar contador y manejar notificaciones
+// Modificamos actualizarContador para guardar títulos nuevos
 async function actualizarContador() {
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
@@ -1012,34 +950,30 @@ async function actualizarContador() {
         } else {
             if (totalActual !== contadorTotalAnterior) {
                 const diferencia = totalActual - contadorTotalAnterior;
-
                 if (diferencia > 0) {
-                    // Guardar títulos nuevos detectados
+                    // Guardar los títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
+                   // Guardar los títulos nuevos detectados SIN duplicarlos
+const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
+nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
 
-                    const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-                    nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
-
-                    // Eliminar duplicados conservando el orden
-                    nuevosTitulos = [...new Set(nuevosTitulos)];
-                    contadorAcumulado = nuevosTitulos.length;
+// Eliminar duplicados conservando el orden
+nuevosTitulos = [...new Set(nuevosTitulos)];
+contadorAcumulado = nuevosTitulos.length;
                 } else if (diferencia < 0) {
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
                 }
 
-                // ✅ Mostrar u ocultar badge de notificación
-                const notificationBtn = document.getElementById("notification-btn");
-                const notificationCount = document.getElementById("notification-count");
-
-                if (notificationBtn && notificationCount) {
+                // Mostrar o esconder el botón de notificaciones
+                if (lblContador) {
                     if (contadorAcumulado > 0) {
-                        notificationCount.textContent = contadorAcumulado;
-                        notificationCount.style.display = "block"; // se muestra el badge
+                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                        lblContador.style.display = "block";
                     } else {
-                        notificationCount.textContent = "0";
-                        notificationCount.style.display = "none"; // badge oculto
+                        lblContador.textContent = "";
+                        lblContador.style.display = "none";
                     }
                 }
 
@@ -1052,11 +986,7 @@ async function actualizarContador() {
         console.error("❌ Error al obtener contador:", e);
     }
 }
-
-// 🔄 Ejecutar periódicamente
-setInterval(actualizarContador, INTERVALO_VERIFICACION);
-
-
+    setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
     async function verificarComentarios() {
       try {
@@ -1402,64 +1332,54 @@ function aplicarTruncado(element, maxLength = 80) {
 
     
     function showCustomAlert(title, titlesList) {
-    const overlay = document.getElementById('customAlertOverlay');
-    const alertDiv = overlay.querySelector('.custom-alert');
-    const alertTitle = document.getElementById('alertTitle');
-    const alertMessage = document.getElementById('alertMessage');
-    
-    alertDiv.className = 'custom-alert';
-    alertMessage.innerHTML = '';
-    
-    alertTitle.textContent = title;
-    
-    if (titlesList.length > 0) {
-        const list = document.createElement('ul');
-        list.className = 'titles-list';
-        titlesList.forEach((titulo, index) => {
-            const li = document.createElement('li');
-            li.textContent = titulo;
-            li.dataset.index = index;
-            li.addEventListener('click', () => {
-                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                if (selectedIndex !== -1) {
-                    swiperInstance.slideToLoop(selectedIndex, 500);
-
-                    // 🔄 Quitar este título de la lista
-                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
-                    contadorAcumulado = nuevosTitulos.length;
-
-                    // 🔔 Actualizar badge en el botón de notificaciones
-                    const notificationCount = document.getElementById("notification-count");
-                    if (contadorAcumulado > 0) {
-                        notificationCount.textContent = contadorAcumulado;
-                        notificationCount.style.display = "block";
-                    } else {
-                        notificationCount.textContent = "0";
-                        notificationCount.style.display = "none";
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert';
+        alertMessage.innerHTML = '';
+        
+        alertTitle.textContent = title;
+        
+        if (titlesList.length > 0) {
+            const list = document.createElement('ul');
+            list.className = 'titles-list';
+            titlesList.forEach((titulo, index) => {
+                const li = document.createElement('li');
+                li.textContent = titulo;
+                li.dataset.index = index;
+                li.addEventListener('click', () => {
+                    const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                    if (selectedIndex !== -1) {
+                        swiperInstance.slideToLoop(selectedIndex, 500);
+                        nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                        contadorAcumulado = nuevosTitulos.length;
+                        if (contadorAcumulado > 0) {
+                            lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                        } else {
+                            lblContador.style.display = 'none';
+                        }
+                        document.getElementById('customAlertOverlay').style.display = 'none';
                     }
-
-                    // ❌ Cerrar alerta
-                    document.getElementById('customAlertOverlay').style.display = 'none';
-                }
+                });
+                list.appendChild(li);
             });
-            list.appendChild(li);
-        });
-        alertMessage.appendChild(list);
-    } else {
-        const p = document.createElement('p');
-        p.textContent = "No hay anuncios nuevos.";
-        alertMessage.appendChild(p);
+            alertMessage.appendChild(list);
+        } else {
+            const p = document.createElement('p');
+            p.textContent = "No hay anuncios nuevos.";
+            alertMessage.appendChild(p);
+        }
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = "Cerrar";
+        closeBtn.id = "closeAlertButton";
+        closeBtn.onclick = () => overlay.style.display = 'none';
+        alertMessage.appendChild(closeBtn);
+
+        overlay.style.display = 'flex';
     }
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = "Cerrar";
-    closeBtn.id = "closeAlertButton";
-    closeBtn.onclick = () => overlay.style.display = 'none';
-    alertMessage.appendChild(closeBtn);
-
-    overlay.style.display = 'flex';
-}
-
 
     function showConfirmationDialog(message, onConfirm) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1575,9 +1495,3 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
