@@ -960,15 +960,43 @@ document.querySelector('.swiper').addEventListener('click', () => {
     const INTERVALO_VERIFICACION = 5000;
 
   // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón de notificaciones
-const notificationBtn = document.getElementById("notification-btn");
-if (notificationBtn) {
-  notificationBtn.addEventListener("click", () => {
-      if (nuevosTitulos.length === 0) {
-          showCustomAlert("Nuevos anuncios", []);
-      } else {
-          showCustomAlert("Nuevos anuncios", nuevosTitulos);
-      }
-  });
+notificationBtn.addEventListener("click", () => {
+    if (nuevosTitulos.length === 0) {
+        showCustomAlert("Nuevos anuncios", []);
+    } else {
+        // Creamos lista interactiva
+        showCustomAlert("Nuevos anuncios", nuevosTitulos.map((titulo, index) => {
+            return {
+                text: titulo,
+                onClick: () => {
+                    // 1️⃣ Ir al anuncio en el swiper
+                    const foundIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                    if (foundIndex !== -1 && swiperInstance) {
+                        swiperInstance.slideToLoop(foundIndex, 500);
+                    }
+
+                    // 2️⃣ Eliminar este título de la lista de nuevos
+                    nuevosTitulos.splice(index, 1);
+
+                    // 3️⃣ Actualizar contador
+                    contadorAcumulado = nuevosTitulos.length;
+                    const notificationCount = document.getElementById("notification-count");
+                    if (contadorAcumulado > 0) {
+                        notificationCount.textContent = contadorAcumulado;
+                        notificationCount.style.display = "block";
+                    } else {
+                        notificationCount.textContent = "0";
+                        notificationCount.style.display = "none";
+                    }
+
+                    // 4️⃣ Cerrar alerta
+                    cerrarCustomAlert();
+                }
+            };
+        }));
+    }
+});
+
 }
 
 
@@ -1537,6 +1565,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
