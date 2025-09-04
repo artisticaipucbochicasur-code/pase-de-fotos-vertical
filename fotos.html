@@ -20,19 +20,49 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-    #lblContador {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(255, 0, 0, 0.8);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 9999;
-      display: none;
-      cursor: pointer;
-    }
+#lblContador {
+  position: absolute;
+  bottom: 200px; /* un poco arriba del icono de comentarios */
+  right: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: white;
+  font-size: 24px; /* tamaño del ícono */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  z-index: 5000;
+}
+
+
+
+
+#lblContador span {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: red;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    width: 20px;       /* ancho fijo */
+    height: 20px;      /* alto fijo */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+
+
+
 
     #customAlertOverlay {
         display: none;
@@ -46,23 +76,29 @@
         justify-content: center;
         align-items: center;
     }
-/* Botón de eliminar anuncio */
 .delete-announcement-btn {
-    position: fixed;
-    bottom: 130px; /* 🔥 lo subimos más arriba */
-    right: 10px;
-    background: transparent;
+  position: fixed;
+bottom: 90px;
+  right: 18px;
+padding: 8px 10px;
+  z-index: 2000;
+   flex-direction: column;
+    gap: 12px;
+  width: 40px;
+    height: 40px;
+    border-radius: 50%;
     border: none;
+    background: transparent;
     color: white;
-    padding: 8px 10px;
-    border-radius: 8px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 1.8rem; /* grande pero sin tapar */
-    z-index: 9999;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
+
 
 .delete-announcement-btn.visible {
   opacity: 1;
@@ -271,29 +307,31 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-    /* Contenedor de comentarios (reducido por defecto) */
-   .comments-overlay-container {
-    position: fixed;
-    bottom: 60px;
-    left: 10px;
-    width: calc(80% - 20px);
-    background: rgba(0, 0, 0, 0.6);
-    color: #eee;
-    padding: 10px;
-    border-radius: 5px;
-    box-sizing: border-box;
-    z-index: 998;
-    overflow-y: auto;
-    transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-    max-height: 4em;
+  /* Contenedor de comentarios */
+.comments-overlay-container {
+  position: fixed;
+  bottom: 47px; /* 👈 ahora justo arriba de la barra de escribir */
+  left: 10px;
+  width: calc(80% - 20px);
+  background: rgba(0, 0, 0, 0.2); /* más transparente */
+  color: #eee;
+  padding: 8px;
+  border-radius: 5px;
+  box-sizing: border-box;
+  z-index: 998;
+  overflow-y: auto;
+  transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+  max-height: 4em;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 
-    /* Estado expandido del contenedor de comentarios */
-    .comments-overlay-container.expanded {
-      max-height: 25vh;
-    }
-
+  /* expandido */
+.comments-overlay-container.expanded {
+  max-height: 70vh;
+}
     /* Estilos para la lista de comentarios */
     .comments-overlay-container ul {
         list-style: none;
@@ -369,8 +407,9 @@
     
     /* Clase para ocultar los overlays */
 .hidden-overlay {
-    opacity: 0;
-    visibility: hidden;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s;
 }
 
 
@@ -378,12 +417,12 @@
     /* Estilos del nuevo contador de comentarios */
  .comments-counter {
     position: fixed;
-    bottom: 80px;
+    bottom: 135px;
     right: 10px;
-    background: rgba(0, 0, 0, 0.6);
+    background: transparent;
     color: white;
     padding: 8px 12px;
-    border-radius: 5px;
+    border-radius: 60px;
     font-size: 14px;
     font-weight: bold;
     z-index: 999;
@@ -393,6 +432,7 @@
     gap: 2px;
     cursor: pointer;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+     box-shadow: 0 4px 10px rgba(0,0,0,0.4);
 }
 
     
@@ -405,56 +445,76 @@
         font-size: 0.9rem;
     }
 
-    /* Nuevo: Estilos para la barra de entrada de comentarios */
- .comment-input-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #1a1a1a;
-    padding: 10px 15px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 1000;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+/* Barra de entrada de comentarios */
+.comment-input-container {
+  position: fixed;
+  bottom: 0px;
+  left: 0;
+  width: 100%;
+  background: transparent;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  z-index: 1000;
 }
 
 
-  .comment-input-container input {
-    flex-grow: 1;
-    background: #333;
-    border: 1px solid #555;
-    border-radius: 25px; /* más redondeado */
-    padding: 12px 20px;  /* 🔥 más alto y largo */
-    color: white;
-    font-size: 1rem;
-    outline: none;
-}
 
-
-    .comment-input-container .send-comment-btn {
-        background: transparent;
-        color: white;
-        border: none;
-        padding: 12px 17px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 1.8rem;
-    }
     
     .comment-input-container .send-comment-btn:hover {
         background: transparent;
     }
+
+  /* ✅ Nuevo diseño: óvalo completo */
+.comment-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 1px solid #888;
+  border-radius: 25px;   /* ovalado completo */
+  width: 95%;            /* 👈 solo ocupa el 80% */
+  margin: 0 auto;        /* 👈 centrado */
+  padding: 4px 8px;      /* 👈 menos alto */
+}
+
+
+.comment-input-wrapper input {
+  flex-grow: 1;
+  background: transparent;
+  border: none;          /* 👈 quita borde extra */
+  outline: none;
+  padding: 6px 8px;      /* 👈 más compacto */
+  font-size: 0.9rem;
+  color: white;
+}
+
+.comment-input-wrapper input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+
+.comment-input-wrapper button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.2rem;    /* 👈 tamaño justo */
+  cursor: pointer;
+  padding: 4px 6px;
+}
+/* Oculta el modal por defecto */
+.hidden {
+  display: none !important;
+}
   </style>
 </head>
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
-  <div id="lblContador"></div>
+  <div id="loader"><span class="spinner">⏳</span></div> 
+  
+ <div id="lblContador">
+  <i class="fas fa-bell"></i>
+  <span id="notificationCount"></span>
+</div>
+
   <div id="customAlertOverlay">
       <div class="custom-alert">
           <h2 id="alertTitle"></h2>
@@ -476,18 +536,24 @@
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
-  <div class="comments-overlay-container" id="commentsOverlay">
-    <ul id="commentsList"></ul>
+ <div class="comments-overlay-container" id="commentsOverlay">
+  <ul id="commentsList"></ul>
+</div>
+
+<div class="comments-counter" id="commentsCounter">
+  <span class="icon">💬</span>
+  <span class="count" id="commentCountValue">0</span>
+</div>
+
+<div class="comment-input-container" id="commentInputContainer">
+  <div class="comment-input-wrapper">
+    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
-  <div class="comments-counter" id="commentsCounter">
-      <span class="icon">💬</span>
-      <span class="count" id="commentCountValue">0</span>
-  </div>
-  
-  <div class="comment-input-container">
-      <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
-  </div>
+</div>
+
+
+
   <!-- Botón fijo para eliminar anuncio -->
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
@@ -522,6 +588,9 @@
     
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
     let currentAuthorName = "AnónimoDH";
+
+  
+
     
     // Variables para el swipe
     let startX = 0;
@@ -644,7 +713,7 @@ currentTitle.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">Mostrar menos</span>`;
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -654,7 +723,7 @@ currentDescription.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">Mostrar menos</span>`;
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -665,8 +734,7 @@ currentDescription.addEventListener("click", function () {
         if (!text) return "";
         return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     }
-
-    // Toggle para ocultar/mostrar overlays al tocar la imagen
+// Toggle para ocultar/mostrar overlays al tocar la imagen
     document.querySelector('.swiper').addEventListener('click', () => {
         const currentTime = new Date().getTime();
         if (currentTime - lastTapTime > 300) {
@@ -677,6 +745,9 @@ currentDescription.addEventListener("click", function () {
         }
         lastTapTime = currentTime;
     });
+
+
+
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
     commentsOverlay.addEventListener('click', (e) => {
@@ -863,7 +934,7 @@ currentDescription.addEventListener("click", function () {
     // Lógica para subir la barra de comentarios
     commentInput.addEventListener('focus', () => {
         // Mueve el cuerpo del documento para que el input sea visible
-        document.body.style.transform = `translateY(-50%)`;
+        document.body.style.transform = `translateY(-58%)`;
     });
 
     commentInput.addEventListener('blur', () => {
@@ -906,6 +977,7 @@ async function actualizarContador() {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
+        const notificationCount = document.getElementById('notificationCount'); // 🔔 span del número
 
         if (contadorTotalAnterior === -1) {
             contadorTotalAnterior = totalActual;
@@ -916,27 +988,26 @@ async function actualizarContador() {
                     // Guardar los títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
-                   // Guardar los títulos nuevos detectados SIN duplicarlos
-const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
+                    
+                    // Guardar los títulos nuevos detectados SIN duplicarlos
+                    const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
+                    nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
 
-// Eliminar duplicados conservando el orden
-nuevosTitulos = [...new Set(nuevosTitulos)];
-contadorAcumulado = nuevosTitulos.length;
+                    // Eliminar duplicados conservando el orden
+                    nuevosTitulos = [...new Set(nuevosTitulos)];
+                    contadorAcumulado = nuevosTitulos.length;
                 } else if (diferencia < 0) {
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
                 }
 
-                // Mostrar o esconder el botón de notificaciones
-                if (lblContador) {
-                    if (contadorAcumulado > 0) {
-                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                        lblContador.style.display = "block";
-                    } else {
-                        lblContador.textContent = "";
-                        lblContador.style.display = "none";
-                    }
+                // 🔔 actualizar badge
+                if (contadorAcumulado > 0) {
+                    notificationCount.textContent = contadorAcumulado;
+                    notificationCount.style.display = "flex";  // mostrar circulito rojo
+                } else {
+                    notificationCount.textContent = "";
+                    notificationCount.style.display = "none"; // ocultar circulito
                 }
 
                 contadorTotalAnterior = totalActual;
@@ -948,7 +1019,9 @@ contadorAcumulado = nuevosTitulos.length;
         console.error("❌ Error al obtener contador:", e);
     }
 }
-    setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
+setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
     async function verificarComentarios() {
       try {
@@ -1293,55 +1366,63 @@ function aplicarTruncado(element, maxLength = 80) {
 
 
     
-    function showCustomAlert(title, titlesList) {
-        const overlay = document.getElementById('customAlertOverlay');
-        const alertDiv = overlay.querySelector('.custom-alert');
-        const alertTitle = document.getElementById('alertTitle');
-        const alertMessage = document.getElementById('alertMessage');
-        
-        alertDiv.className = 'custom-alert';
-        alertMessage.innerHTML = '';
-        
-        alertTitle.textContent = title;
-        
-        if (titlesList.length > 0) {
-            const list = document.createElement('ul');
-            list.className = 'titles-list';
-            titlesList.forEach((titulo, index) => {
-                const li = document.createElement('li');
-                li.textContent = titulo;
-                li.dataset.index = index;
-                li.addEventListener('click', () => {
-                    const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                    if (selectedIndex !== -1) {
-                        swiperInstance.slideToLoop(selectedIndex, 500);
-                        nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
-                        contadorAcumulado = nuevosTitulos.length;
-                        if (contadorAcumulado > 0) {
-                            lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                        } else {
-                            lblContador.style.display = 'none';
-                        }
-                        document.getElementById('customAlertOverlay').style.display = 'none';
-                    }
-                });
-                list.appendChild(li);
+function showCustomAlert(title, titlesList) {
+    const overlay = document.getElementById('customAlertOverlay');
+    const alertDiv = overlay.querySelector('.custom-alert');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertMessage = document.getElementById('alertMessage');
+    const notificationCount = document.getElementById('notificationCount'); // 🔔 span del contador
+    
+    alertDiv.className = 'custom-alert';
+    alertMessage.innerHTML = '';
+    
+    alertTitle.textContent = title;
+    
+    if (titlesList.length > 0) {
+        const list = document.createElement('ul');
+        list.className = 'titles-list';
+        titlesList.forEach((titulo, index) => {
+            const li = document.createElement('li');
+            li.textContent = titulo;
+            li.dataset.index = index;
+            li.addEventListener('click', () => {
+                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                if (selectedIndex !== -1) {
+                    swiperInstance.slideToLoop(selectedIndex, 500);
+                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                    contadorAcumulado = nuevosTitulos.length;
+
+                    // 🔔 actualizar solo el número
+if (contadorAcumulado > 0) {
+    notificationCount.textContent = contadorAcumulado;
+    notificationCount.style.display = "flex";  // mostrar circulito
+} else {
+    notificationCount.textContent = "";
+    notificationCount.style.display = "none";  // ocultar circulito
+}
+
+document.getElementById('customAlertOverlay').style.display = 'none';
+
+                }
             });
-            alertMessage.appendChild(list);
-        } else {
-            const p = document.createElement('p');
-            p.textContent = "No hay anuncios nuevos.";
-            alertMessage.appendChild(p);
-        }
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = "Cerrar";
-        closeBtn.id = "closeAlertButton";
-        closeBtn.onclick = () => overlay.style.display = 'none';
-        alertMessage.appendChild(closeBtn);
-
-        overlay.style.display = 'flex';
+            list.appendChild(li);
+        });
+        alertMessage.appendChild(list);
+    } else {
+        const p = document.createElement('p');
+        p.textContent = "No hay anuncios nuevos.";
+        alertMessage.appendChild(p);
     }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = "Cerrar";
+    closeBtn.id = "closeAlertButton";
+    closeBtn.onclick = () => overlay.style.display = 'none';
+    alertMessage.appendChild(closeBtn);
+
+    overlay.style.display = 'flex';
+}
+
 
     function showConfirmationDialog(message, onConfirm) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1408,47 +1489,59 @@ function aplicarTruncado(element, maxLength = 80) {
         });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      if(window.AppInventor) {
-        setInterval(() => {
-          const comando = window.AppInventor.getWebViewString?.();
-          if(comando) {
-            try {
-              const data = JSON.parse(comando);
-             if(data.action === "updateUserData") {
-  currentAuthorEmail = data.email;
-  currentAuthorName = data.name;
+document.addEventListener("DOMContentLoaded", () => {
+  // 🔔 Inicializar el icono de notificaciones visible desde el inicio
+  const lblContador = document.getElementById('lblContador');
+  if (lblContador) {
+  lblContador.innerHTML = `
+  <i class="fas fa-bell"></i>
+  <span id="notificationCount" style="display:none"></span>
+`;
+lblContador.style.display = "flex"; 
 
-  // Guardar en localStorage para que el HTML de subir videos también los pueda usar
-  localStorage.setItem("autor", currentAuthorName || "");
-  localStorage.setItem("correo", currentAuthorEmail || "");
+  }
 
-  console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
-}
+  if(window.AppInventor) {
+    setInterval(() => {
+      const comando = window.AppInventor.getWebViewString?.();
+      if(comando) {
+        try {
+          const data = JSON.parse(comando);
+          if(data.action === "updateUserData") {
+            currentAuthorEmail = data.email;
+            currentAuthorName = data.name;
 
-            } catch (e) {
-              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-                console.log("Reiniciando contador y cargando anuncios.");
-                contadorAcumulado = 0;
-                contadorTotalAnterior = -1;
-                verificarComentarios().then(() => cargarImagenes());
-              }
-              if(comando.startsWith("irATitulo:")) {
-                const tituloBuscado = comando.replace("irATitulo:", "").trim();
-                const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-                const tituloNormalizado = normalizar(tituloBuscado);
-                const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-                if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
-              }
-              if(comando.startsWith("irAIndice:")) {
-                const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-                if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
-              }
-            }
+            // Guardar en localStorage para que el HTML de subir videos también los pueda usar
+            localStorage.setItem("autor", currentAuthorName || "");
+            localStorage.setItem("correo", currentAuthorEmail || "");
+
+            console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
           }
-        }, 500);
+        } catch (e) {
+          if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+            console.log("Reiniciando contador y cargando anuncios.");
+            contadorAcumulado = 0;
+            contadorTotalAnterior = -1;
+            verificarComentarios().then(() => cargarImagenes());
+          }
+          if(comando.startsWith("irATitulo:")) {
+            const tituloBuscado = comando.replace("irATitulo:", "").trim();
+            const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const tituloNormalizado = normalizar(tituloBuscado);
+            const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+            if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+          }
+          if(comando.startsWith("irAIndice:")) {
+            const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+            if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+          }
+        }
       }
-    });
+    }, 500);
+  }
+});
+
+
 
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
@@ -1457,12 +1550,6 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
 
 
 
