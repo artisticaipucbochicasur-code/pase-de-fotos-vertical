@@ -562,9 +562,7 @@ padding: 8px 10px;
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
     let currentAuthorName = "AnónimoDH";
 
-    const lblContador = document.getElementById('lblContador');
-lblContador.textContent = "🔔"; // mostrar icono desde el inicio
-lblContador.style.display = "flex"; // aseguramos que esté visible
+  
 
     
     // Variables para el swipe
@@ -1462,47 +1460,54 @@ function aplicarTruncado(element, maxLength = 80) {
         });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      if(window.AppInventor) {
-        setInterval(() => {
-          const comando = window.AppInventor.getWebViewString?.();
-          if(comando) {
-            try {
-              const data = JSON.parse(comando);
-             if(data.action === "updateUserData") {
-  currentAuthorEmail = data.email;
-  currentAuthorName = data.name;
+ document.addEventListener("DOMContentLoaded", () => {
+  // 🔔 Inicializar el icono de notificaciones visible desde el inicio
+  const lblContador = document.getElementById('lblContador');
+  if (lblContador) {
+    lblContador.textContent = "🔔"; // siempre visible con solo el icono
+    lblContador.style.display = "flex"; 
+  }
 
-  // Guardar en localStorage para que el HTML de subir videos también los pueda usar
-  localStorage.setItem("autor", currentAuthorName || "");
-  localStorage.setItem("correo", currentAuthorEmail || "");
+  if(window.AppInventor) {
+    setInterval(() => {
+      const comando = window.AppInventor.getWebViewString?.();
+      if(comando) {
+        try {
+          const data = JSON.parse(comando);
+          if(data.action === "updateUserData") {
+            currentAuthorEmail = data.email;
+            currentAuthorName = data.name;
 
-  console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
-}
+            // Guardar en localStorage para que el HTML de subir videos también los pueda usar
+            localStorage.setItem("autor", currentAuthorName || "");
+            localStorage.setItem("correo", currentAuthorEmail || "");
 
-            } catch (e) {
-              if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-                console.log("Reiniciando contador y cargando anuncios.");
-                contadorAcumulado = 0;
-                contadorTotalAnterior = -1;
-                verificarComentarios().then(() => cargarImagenes());
-              }
-              if(comando.startsWith("irATitulo:")) {
-                const tituloBuscado = comando.replace("irATitulo:", "").trim();
-                const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-                const tituloNormalizado = normalizar(tituloBuscado);
-                const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-                if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
-              }
-              if(comando.startsWith("irAIndice:")) {
-                const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-                if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
-              }
-            }
+            console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
           }
-        }, 500);
+        } catch (e) {
+          if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+            console.log("Reiniciando contador y cargando anuncios.");
+            contadorAcumulado = 0;
+            contadorTotalAnterior = -1;
+            verificarComentarios().then(() => cargarImagenes());
+          }
+          if(comando.startsWith("irATitulo:")) {
+            const tituloBuscado = comando.replace("irATitulo:", "").trim();
+            const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const tituloNormalizado = normalizar(tituloBuscado);
+            const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+            if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+          }
+          if(comando.startsWith("irAIndice:")) {
+            const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+            if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+          }
+        }
       }
-    });
+    }, 500);
+  }
+});
+
 
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
@@ -1511,6 +1516,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
