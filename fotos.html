@@ -1402,54 +1402,64 @@ function aplicarTruncado(element, maxLength = 80) {
 
     
     function showCustomAlert(title, titlesList) {
-        const overlay = document.getElementById('customAlertOverlay');
-        const alertDiv = overlay.querySelector('.custom-alert');
-        const alertTitle = document.getElementById('alertTitle');
-        const alertMessage = document.getElementById('alertMessage');
-        
-        alertDiv.className = 'custom-alert';
-        alertMessage.innerHTML = '';
-        
-        alertTitle.textContent = title;
-        
-        if (titlesList.length > 0) {
-            const list = document.createElement('ul');
-            list.className = 'titles-list';
-            titlesList.forEach((titulo, index) => {
-                const li = document.createElement('li');
-                li.textContent = titulo;
-                li.dataset.index = index;
-                li.addEventListener('click', () => {
-                    const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                    if (selectedIndex !== -1) {
-                        swiperInstance.slideToLoop(selectedIndex, 500);
-                        nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
-                        contadorAcumulado = nuevosTitulos.length;
-                        if (contadorAcumulado > 0) {
-                            lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                        } else {
-                            lblContador.style.display = 'none';
-                        }
-                        document.getElementById('customAlertOverlay').style.display = 'none';
+    const overlay = document.getElementById('customAlertOverlay');
+    const alertDiv = overlay.querySelector('.custom-alert');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertMessage = document.getElementById('alertMessage');
+    
+    alertDiv.className = 'custom-alert';
+    alertMessage.innerHTML = '';
+    
+    alertTitle.textContent = title;
+    
+    if (titlesList.length > 0) {
+        const list = document.createElement('ul');
+        list.className = 'titles-list';
+        titlesList.forEach((titulo, index) => {
+            const li = document.createElement('li');
+            li.textContent = titulo;
+            li.dataset.index = index;
+            li.addEventListener('click', () => {
+                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                if (selectedIndex !== -1) {
+                    swiperInstance.slideToLoop(selectedIndex, 500);
+
+                    // 🔄 Quitar este título de la lista
+                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                    contadorAcumulado = nuevosTitulos.length;
+
+                    // 🔔 Actualizar badge en el botón de notificaciones
+                    const notificationCount = document.getElementById("notification-count");
+                    if (contadorAcumulado > 0) {
+                        notificationCount.textContent = contadorAcumulado;
+                        notificationCount.style.display = "block";
+                    } else {
+                        notificationCount.textContent = "0";
+                        notificationCount.style.display = "none";
                     }
-                });
-                list.appendChild(li);
+
+                    // ❌ Cerrar alerta
+                    document.getElementById('customAlertOverlay').style.display = 'none';
+                }
             });
-            alertMessage.appendChild(list);
-        } else {
-            const p = document.createElement('p');
-            p.textContent = "No hay anuncios nuevos.";
-            alertMessage.appendChild(p);
-        }
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = "Cerrar";
-        closeBtn.id = "closeAlertButton";
-        closeBtn.onclick = () => overlay.style.display = 'none';
-        alertMessage.appendChild(closeBtn);
-
-        overlay.style.display = 'flex';
+            list.appendChild(li);
+        });
+        alertMessage.appendChild(list);
+    } else {
+        const p = document.createElement('p');
+        p.textContent = "No hay anuncios nuevos.";
+        alertMessage.appendChild(p);
     }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = "Cerrar";
+    closeBtn.id = "closeAlertButton";
+    closeBtn.onclick = () => overlay.style.display = 'none';
+    alertMessage.appendChild(closeBtn);
+
+    overlay.style.display = 'flex';
+}
+
 
     function showConfirmationDialog(message, onConfirm) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1565,6 +1575,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
