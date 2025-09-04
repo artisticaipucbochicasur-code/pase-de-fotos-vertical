@@ -21,19 +21,19 @@
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
 #lblContador {
-  position: fixed;
-  bottom: 175px;   /* 👈 justo encima del contador de comentarios */
-  right: 10px;
+  position: absolute;
+  bottom: 185px; /* un poco arriba del icono de comentarios */
+  right: 15px;
   width: 40px;
   height: 40px;
   background: transparent;
   color: #fff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   z-index: 9999;
-  display: flex;  
+  display: flex; 
   align-items: center;
   justify-content: center;
 }
@@ -975,14 +975,13 @@ contadorAcumulado = nuevosTitulos.length;
                 }
 
                 // Mostrar o esconder el botón de notificaciones
-              if (lblContador) {
-    if (contadorAcumulado > 0) {
-        lblContador.textContent = `🔔 ${contadorAcumulado}`;
-    } else {
-        lblContador.textContent = "🔔 vacío";
-    }
-    lblContador.style.display = "flex"; // 👈 siempre visible
+  if (contadorAcumulado > 0) {
+    lblContador.textContent = `🔔 ${contadorAcumulado}`;
+} else {
+    lblContador.textContent = "🔔"; // solo el icono
 }
+lblContador.style.display = "flex"; // siempre visible
+
 
 
                 contadorTotalAnterior = totalActual;
@@ -1339,57 +1338,59 @@ function aplicarTruncado(element, maxLength = 80) {
 
 
     
-    function showCustomAlert(title, titlesList) {
-        const overlay = document.getElementById('customAlertOverlay');
-        const alertDiv = overlay.querySelector('.custom-alert');
-        const alertTitle = document.getElementById('alertTitle');
-        const alertMessage = document.getElementById('alertMessage');
-        
-        alertDiv.className = 'custom-alert';
-        alertMessage.innerHTML = '';
-        
-        alertTitle.textContent = title;
-        
-        if (titlesList.length > 0) {
-            const list = document.createElement('ul');
-            list.className = 'titles-list';
-            titlesList.forEach((titulo, index) => {
-                const li = document.createElement('li');
-                li.textContent = titulo;
-                li.dataset.index = index;
-                li.addEventListener('click', () => {
-                    const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                    if (selectedIndex !== -1) {
-                        swiperInstance.slideToLoop(selectedIndex, 500);
-                        nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
-                        contadorAcumulado = nuevosTitulos.length;
-                      if (contadorAcumulado > 0) {
-    lblContador.textContent = `🔔 ${contadorAcumulado}`;
-} else {
-    lblContador.textContent = "🔔 vacío";
-    lblContador.style.display = 'flex'; // siempre visible
+   function showCustomAlert(title, titlesList) {
+    const overlay = document.getElementById('customAlertOverlay');
+    const alertDiv = overlay.querySelector('.custom-alert');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertMessage = document.getElementById('alertMessage');
+    
+    alertDiv.className = 'custom-alert';
+    alertMessage.innerHTML = '';
+    
+    alertTitle.textContent = title;
+    
+    if (titlesList.length > 0) {
+        const list = document.createElement('ul');
+        list.className = 'titles-list';
+        titlesList.forEach((titulo, index) => {
+            const li = document.createElement('li');
+            li.textContent = titulo;
+            li.dataset.index = index;
+            li.addEventListener('click', () => {
+                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                if (selectedIndex !== -1) {
+                    swiperInstance.slideToLoop(selectedIndex, 500);
+                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                    contadorAcumulado = nuevosTitulos.length;
+
+                    if (contadorAcumulado > 0) {
+                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                    } else {
+                        lblContador.textContent = "🔔"; // solo el icono
+                    }
+                    lblContador.style.display = 'flex'; // siempre visible
+
+                    document.getElementById('customAlertOverlay').style.display = 'none';
+                }
+            });
+            list.appendChild(li);
+        });
+        alertMessage.appendChild(list);
+    } else {
+        const p = document.createElement('p');
+        p.textContent = "No hay anuncios nuevos.";
+        alertMessage.appendChild(p);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = "Cerrar";
+    closeBtn.id = "closeAlertButton";
+    closeBtn.onclick = () => overlay.style.display = 'none';
+    alertMessage.appendChild(closeBtn);
+
+    overlay.style.display = 'flex';
 }
 
-                        document.getElementById('customAlertOverlay').style.display = 'none';
-                    }
-                });
-                list.appendChild(li);
-            });
-            alertMessage.appendChild(list);
-        } else {
-            const p = document.createElement('p');
-            p.textContent = "No hay anuncios nuevos.";
-            alertMessage.appendChild(p);
-        }
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = "Cerrar";
-        closeBtn.id = "closeAlertButton";
-        closeBtn.onclick = () => overlay.style.display = 'none';
-        alertMessage.appendChild(closeBtn);
-
-        overlay.style.display = 'flex';
-    }
 
     function showConfirmationDialog(message, onConfirm) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -1505,6 +1506,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
