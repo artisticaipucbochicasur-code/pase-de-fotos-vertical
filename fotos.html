@@ -27,16 +27,36 @@
   width: 40px;
   height: 40px;
   background: transparent;
-  color: #fff;
-  font-size: 14px;
-  font-weight: bold;
   border-radius: 50%;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   z-index: 9999;
-  display: flex; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+#lblContador i {
+  font-size: 20px;
+}
+
+#lblContador span {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  background: red;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
   align-items: center;
   justify-content: center;
 }
+
 
 
 
@@ -486,8 +506,13 @@ padding: 8px 10px;
 
 <body>
   <div class="swiper"><div class="swiper-wrapper"></div></div>
-  <div id="loader"><span class="spinner">⏳</span></div>
-  <div id="lblContador"></div>
+  <div id="loader"><span class="spinner">⏳</span></div> 
+  
+ <div id="lblContador">
+  <i class="fas fa-bell"></i>
+  <span id="notificationCount"></span>
+</div>
+
   <div id="customAlertOverlay">
       <div class="custom-alert">
           <h2 id="alertTitle"></h2>
@@ -955,6 +980,7 @@ async function actualizarContador() {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
+        const notificationCount = document.getElementById('notificationCount'); // 🔔 span del número
 
         if (contadorTotalAnterior === -1) {
             contadorTotalAnterior = totalActual;
@@ -965,27 +991,25 @@ async function actualizarContador() {
                     // Guardar los títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
-                   // Guardar los títulos nuevos detectados SIN duplicarlos
-const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
+                    
+                    // Guardar los títulos nuevos detectados SIN duplicarlos
+                    const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
+                    nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
 
-// Eliminar duplicados conservando el orden
-nuevosTitulos = [...new Set(nuevosTitulos)];
-contadorAcumulado = nuevosTitulos.length;
+                    // Eliminar duplicados conservando el orden
+                    nuevosTitulos = [...new Set(nuevosTitulos)];
+                    contadorAcumulado = nuevosTitulos.length;
                 } else if (diferencia < 0) {
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
                 }
 
-                // Mostrar o esconder el botón de notificaciones
-  if (contadorAcumulado > 0) {
-    lblContador.textContent = `🔔 ${contadorAcumulado}`;
-} else {
-    lblContador.textContent = "🔔"; // solo el icono
-}
-lblContador.style.display = "flex"; // siempre visible
-
-
+                // 🔔 actualizar solo el número (no borrar el icono)
+                if (contadorAcumulado > 0) {
+                    notificationCount.textContent = contadorAcumulado;
+                } else {
+                    notificationCount.textContent = ""; // solo icono
+                }
 
                 contadorTotalAnterior = totalActual;
                 console.log("🔄 Cambio detectado: recargando anuncios...");
@@ -996,7 +1020,9 @@ lblContador.style.display = "flex"; // siempre visible
         console.error("❌ Error al obtener contador:", e);
     }
 }
-    setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
+setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
     async function verificarComentarios() {
       try {
@@ -1341,11 +1367,12 @@ function aplicarTruncado(element, maxLength = 80) {
 
 
     
-   function showCustomAlert(title, titlesList) {
+function showCustomAlert(title, titlesList) {
     const overlay = document.getElementById('customAlertOverlay');
     const alertDiv = overlay.querySelector('.custom-alert');
     const alertTitle = document.getElementById('alertTitle');
     const alertMessage = document.getElementById('alertMessage');
+    const notificationCount = document.getElementById('notificationCount'); // 🔔 span del contador
     
     alertDiv.className = 'custom-alert';
     alertMessage.innerHTML = '';
@@ -1366,12 +1393,12 @@ function aplicarTruncado(element, maxLength = 80) {
                     nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
                     contadorAcumulado = nuevosTitulos.length;
 
+                    // 🔔 actualizar solo el número
                     if (contadorAcumulado > 0) {
-                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
+                        notificationCount.textContent = contadorAcumulado;
                     } else {
-                        lblContador.textContent = "🔔"; // solo el icono
+                        notificationCount.textContent = ""; // solo el icono
                     }
-                    lblContador.style.display = 'flex'; // siempre visible
 
                     document.getElementById('customAlertOverlay').style.display = 'none';
                 }
@@ -1460,11 +1487,14 @@ function aplicarTruncado(element, maxLength = 80) {
         });
     }
 
- document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
   // 🔔 Inicializar el icono de notificaciones visible desde el inicio
   const lblContador = document.getElementById('lblContador');
   if (lblContador) {
-    lblContador.textContent = "🔔"; // siempre visible con solo el icono
+    lblContador.innerHTML = `
+      <i class="fas fa-bell"></i>
+      <span id="notificationCount"></span>
+    `;
     lblContador.style.display = "flex"; 
   }
 
@@ -1509,6 +1539,7 @@ function aplicarTruncado(element, maxLength = 80) {
 });
 
 
+
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -1516,6 +1547,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
