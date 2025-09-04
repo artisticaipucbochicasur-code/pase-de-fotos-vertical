@@ -20,19 +20,25 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-    #lblContador {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(255, 0, 0, 0.8);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 9999;
-      display: none;
-      cursor: pointer;
-    }
+#lblContador {
+  position: fixed;
+  bottom: 190px; /* 🔼 más arriba que commentsCounter */
+  right: 10px;
+  background: transparent;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  z-index: 1000; /* encima de los demás */
+}
 
     #customAlertOverlay {
         display: none;
@@ -968,13 +974,13 @@ contadorAcumulado = nuevosTitulos.length;
 
                 // Mostrar o esconder el botón de notificaciones
                 if (lblContador) {
-                    if (contadorAcumulado > 0) {
-                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                        lblContador.style.display = "block";
-                    } else {
-                        lblContador.textContent = "";
-                        lblContador.style.display = "none";
-                    }
+                   if (contadorAcumulado > 0) {
+    lblContador.textContent = `🔔 ${contadorAcumulado}`;
+} else {
+    lblContador.textContent = "🔔 0"; // 👈 siempre visible
+}
+lblContador.style.display = "flex"; // nunca se oculta
+
                 }
 
                 contadorTotalAnterior = totalActual;
@@ -1495,6 +1501,7 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
 
 
 
