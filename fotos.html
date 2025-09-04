@@ -20,19 +20,43 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-    #lblContador {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(255, 0, 0, 0.8);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 9999;
-      display: none;
-      cursor: pointer;
-    }
+/* 🔔 Notificaciones */
+#notification-wrapper {
+    position: fixed;
+    right: 10px;
+    bottom: 190px; /* 👆 arriba del contador de comentarios */
+    z-index: 5000;
+}
+
+#notification-btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* 🔴 Badge rojo */
+#notification-count {
+    display: none; /* por defecto oculto */
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: red;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 50%;
+}
 
     #customAlertOverlay {
         display: none;
@@ -477,47 +501,55 @@ padding: 8px 10px;
 </head>
 
 <body>
-  <div class="swiper"><div class="swiper-wrapper"></div></div>
+ <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div>
-  <div id="lblContador"></div>
+
+  <!-- 🔔 Botón de notificaciones -->
+  <div id="notification-wrapper">
+    <button id="notification-btn">
+      🔔
+      <span id="notification-count"></span>
+    </button>
+    <div id="notification-list" class="hidden"></div>
+  </div>
+
   <div id="customAlertOverlay">
       <div class="custom-alert">
           <h2 id="alertTitle"></h2>
           <div class="titles-list" id="alertMessage"></div>
       </div>
   </div>
-<!-- 🔍 Overlay de búsqueda -->
-<div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
-  <div class="custom-alert">
-    <h2>Buscar anuncio</h2>
-    <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
-    <div id="searchResults" class="titles-list"></div>
-    <button onclick="cerrarBusqueda()">Cerrar</button>
+  
+  <!-- 🔍 Overlay de búsqueda -->
+  <div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
+    <div class="custom-alert">
+      <h2>Buscar anuncio</h2>
+      <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
+      <div id="searchResults" class="titles-list"></div>
+      <button onclick="cerrarBusqueda()">Cerrar</button>
+    </div>
   </div>
-</div>
-
 
   <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
- <div class="comments-overlay-container" id="commentsOverlay">
-  <ul id="commentsList"></ul>
-</div>
 
-<div class="comments-counter" id="commentsCounter">
-  <span class="icon">💬</span>
-  <span class="count" id="commentCountValue">0</span>
-</div>
-
-<div class="comment-input-container" id="commentInputContainer">
-  <div class="comment-input-wrapper">
-    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+  <div class="comments-overlay-container" id="commentsOverlay">
+    <ul id="commentsList"></ul>
   </div>
-</div>
 
+  <div class="comments-counter" id="commentsCounter">
+    <span class="icon">💬</span>
+    <span class="count" id="commentCountValue">0</span>
+  </div>
 
+  <div class="comment-input-container" id="commentInputContainer">
+    <div class="comment-input-wrapper">
+      <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
 
   <!-- Botón fijo para eliminar anuncio -->
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
@@ -954,26 +986,30 @@ async function actualizarContador() {
                     // Guardar los títulos nuevos detectados
                     const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                     const dataAnuncios = await responseAnuncios.json();
-                   // Guardar los títulos nuevos detectados SIN duplicarlos
-const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
 
-// Eliminar duplicados conservando el orden
-nuevosTitulos = [...new Set(nuevosTitulos)];
-contadorAcumulado = nuevosTitulos.length;
+                    // Guardar los títulos nuevos detectados SIN duplicarlos
+                    const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
+                    nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
+
+                    // Eliminar duplicados conservando el orden
+                    nuevosTitulos = [...new Set(nuevosTitulos)];
+                    contadorAcumulado = nuevosTitulos.length;
                 } else if (diferencia < 0) {
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
                 }
 
-                // Mostrar o esconder el botón de notificaciones
-                if (lblContador) {
+                // ✅ Mostrar u ocultar badge de notificación
+                const notificationBtn = document.getElementById("notification-btn");
+                const notificationCount = document.getElementById("notification-count");
+
+                if (notificationBtn && notificationCount) {
                     if (contadorAcumulado > 0) {
-                        lblContador.textContent = `🔔 ${contadorAcumulado}`;
-                        lblContador.style.display = "block";
+                        notificationCount.textContent = contadorAcumulado;
+                        notificationCount.style.display = "block"; // se muestra el badge
                     } else {
-                        lblContador.textContent = "";
-                        lblContador.style.display = "none";
+                        notificationCount.textContent = "0";
+                        notificationCount.style.display = "none"; // badge oculto
                     }
                 }
 
@@ -986,7 +1022,8 @@ contadorAcumulado = nuevosTitulos.length;
         console.error("❌ Error al obtener contador:", e);
     }
 }
-    setInterval(actualizarContador, INTERVALO_VERIFICACION);
+setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
     async function verificarComentarios() {
       try {
@@ -1495,4 +1532,40 @@ function aplicarTruncado(element, maxLength = 80) {
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
