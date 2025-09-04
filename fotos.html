@@ -76,27 +76,22 @@
         justify-content: center;
         align-items: center;
     }
+/* Botón de eliminar anuncio */
 .delete-announcement-btn {
-  position: fixed;
-bottom: 90px;
-  right: 18px;
-padding: 8px 10px;
-  z-index: 2000;
-   flex-direction: column;
-    gap: 12px;
-  width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
+    position: fixed;
+    bottom: 130px; /* 🔥 lo subimos más arriba */
+    right: 10px;
     background: transparent;
+    border: none;
     color: white;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 8px 10px;
+    border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    font-size: 1.8rem; /* grande pero sin tapar */
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
 
 
@@ -735,16 +730,30 @@ currentDescription.addEventListener("click", function () {
         return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     }
 // Toggle para ocultar/mostrar overlays al tocar la imagen
-    document.querySelector('.swiper').addEventListener('click', () => {
-        const currentTime = new Date().getTime();
-        if (currentTime - lastTapTime > 300) {
-            contentOverlay.classList.toggle('hidden-overlay');
-            commentsOverlay.classList.toggle('hidden-overlay');
-            commentsCounter.classList.toggle('hidden-overlay');
-            commentInputContainer.classList.toggle('hidden-overlay');
+document.querySelector('.swiper').addEventListener('click', () => {
+    const currentTime = new Date().getTime();
+    if (currentTime - lastTapTime > 300) {
+        // ✅ Estos se alternan normal
+        commentsOverlay.classList.toggle('hidden-overlay');
+        commentsCounter.classList.toggle('hidden-overlay');
+        commentInputContainer.classList.toggle('hidden-overlay');
+
+        // ✅ contentOverlay invertido → lo forzamos al mismo sentido
+        if (contentOverlay.classList.contains('hidden-overlay')) {
+            contentOverlay.classList.remove('hidden-overlay'); // se hace visible
+        } else {
+            contentOverlay.classList.add('hidden-overlay'); // se oculta
         }
-        lastTapTime = currentTime;
-    });
+
+        // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
+        const lblContador = document.getElementById('lblContador');
+        if (lblContador) {
+            lblContador.classList.toggle('hidden-overlay');
+        }
+    }
+    lastTapTime = currentTime;
+});
+
 
 
 
@@ -1550,6 +1559,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
