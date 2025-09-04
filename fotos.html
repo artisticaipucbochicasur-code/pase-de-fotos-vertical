@@ -1007,21 +1007,20 @@ async function actualizarContador() {
                     // Eliminar duplicados conservando el orden
                     nuevosTitulos = [...new Set(nuevosTitulos)];
                     contadorAcumulado = nuevosTitulos.length;
-                } else if (diferencia < 0) {
+                } else if (diferencia < 0 || totalActual === 0) {
+                    // 👈 ajuste para que desaparezca el circulito
                     contadorAcumulado = 0;
                     nuevosTitulos = [];
                 }
 
-// 🔔 actualizar badge
-if (contadorAcumulado > 0) {
-    notificationCount.textContent = contadorAcumulado;
-    notificationCount.style.display = "flex";  // mostrar circulito rojo
-} else {
-    notificationCount.textContent = "";
-    notificationCount.style.display = "none";  // ocultar circulito
-}
-
-
+                // 🔔 actualizar badge
+                if (contadorAcumulado > 0) {
+                    notificationCount.textContent = contadorAcumulado;
+                    notificationCount.style.display = "flex";  // mostrar circulito rojo
+                } else {
+                    notificationCount.textContent = "";
+                    notificationCount.style.display = "none";  // ocultar circulito
+                }
 
                 contadorTotalAnterior = totalActual;
                 console.log("🔄 Cambio detectado: recargando anuncios...");
@@ -1034,6 +1033,7 @@ if (contadorAcumulado > 0) {
 }
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
 
 
 
@@ -1561,6 +1561,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
