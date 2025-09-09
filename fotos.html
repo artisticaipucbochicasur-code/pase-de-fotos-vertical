@@ -1022,29 +1022,40 @@ function showToast(msg) {
 
 
 
-// 📌 Ajustar posición del modal al enfocar el input en móviles
+<script>
+// 📌 Ajustar posición del modal al enfocar el input en móviles (estable y sin saltos)
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalEl = document.getElementById("savedModal");
 const savedModalInner = savedSearchInputEl.closest("div");
 
 const isMobile = () => window.innerWidth <= 768;
 
+// Variable para saber si ya se ajustó una vez
+let modalFijado = false;
+
 savedSearchInputEl.addEventListener("focus", () => {
     if (isMobile()) {
         setTimeout(() => {
-            // Siempre centramos el modal para que el input sea visible
-            savedModalInner.style.position = "relative";
-            savedModalInner.style.transform = "translateY(-58%)";
-            savedModalInner.style.transition = "transform 0.25s ease";
+            // Solo aplicamos el desplazamiento la PRIMERA vez
+            if (!modalFijado) {
+                savedModalInner.style.position = "relative";
+                savedModalInner.style.transform = "translateY(-58%)";
+                savedModalInner.style.transition = "transform 0.25s ease";
+                modalFijado = true; // Marcamos que ya está fijado
+            }
         }, 300);
     }
 });
 
 savedSearchInputEl.addEventListener("blur", () => {
     if (isMobile()) {
+        // Restauramos el estado inicial
         savedModalInner.style.transform = "translateY(0)";
+        modalFijado = false; // Para que la próxima vez se reposicione bien
     }
 });
+</script>
+
 
 
     
@@ -2068,6 +2079,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
