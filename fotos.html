@@ -587,16 +587,16 @@
 
 <body>
 
-<!-- BOTÓN GUARDAR -->
+<!-- BOTÓN GUARDAR/VER -->
 <button id="saveBtn" style="
     position: fixed;
     bottom: 300px;
     right: 18px;
     width: 40px;
     height: 40px;
-   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
-    backdrop-filter: blur(10px); /* Efecto de desenfoque */
-    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: white;
     border: none;
     border-radius: 50%;
@@ -607,32 +607,9 @@
     cursor: pointer;
     z-index: 2000;
 ">
-    <i class="fa-solid fa-bookmark" style="font-size: 24px;"></i>
+    <i class="far fa-bookmark" style="font-size: 24px;"></i>
 </button>
-
-<!-- BOTÓN VER GUARDADOS -->
-<button id="viewSavedBtn" style="
-    position: fixed;
-    bottom: 350px;
-    right: 18px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
-    backdrop-filter: blur(10px); /* Efecto de desenfoque */
-    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
-    color: white;
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    z-index: 9999;
-">
-    <i class="fa-solid fa-list" style="font-size: 24px;"></i>
-</button>
-
+  
 <!-- 📌 Modal Guardados -->
 <div id="savedModal" style="
     display: none;
@@ -847,61 +824,86 @@ function normalizeText(text) {
 
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
-// ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo" y animación
+// ==========================
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
 
-   const filtered = saved.filter(item =>
-    normalizeText(item.titulo).includes(normalizeText(filter))
-);
+    const filtered = saved.filter(item =>
+        normalizeText(item.titulo).includes(normalizeText(filter))
+    );
 
+    // 🔹 Contenedor de botones (Guardar actual + Eliminar todo)
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.style.display = "flex";
+    buttonsContainer.style.justifyContent = "flex-end";
+    buttonsContainer.style.gap = "10px";
+    buttonsContainer.style.margin = "8px 0 10px";
 
-    if (filtered.length === 0) {
-        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
+    // Botón Guardar actual
+    const saveCurrentBtn = document.createElement("button");
+    saveCurrentBtn.textContent = "Guardar actual";
+    saveCurrentBtn.style.background = "#2c2c2c";
+    saveCurrentBtn.style.color = "#ccc";
+    saveCurrentBtn.style.border = "1px solid #444";
+    saveCurrentBtn.style.borderRadius = "6px";
+    saveCurrentBtn.style.padding = "6px 12px";
+    saveCurrentBtn.style.cursor = "pointer";
+    saveCurrentBtn.style.fontSize = "13px";
+    saveCurrentBtn.style.transition = "background 0.2s ease";
 
-        // 🔹 Subir la ventana cuando no hay resultados
-        savedModalInner.style.transform = "translateY(-60px)";
+    saveCurrentBtn.addEventListener("mouseenter", () => {
+        saveCurrentBtn.style.background = "#3a3a3a";
+    });
+    saveCurrentBtn.addEventListener("mouseleave", () => {
+        saveCurrentBtn.style.background = "#2c2c2c";
+    });
+    saveCurrentBtn.addEventListener("click", () => {
+        saveCurrentTitle();
+        renderSavedTitles(filter); // refresca lista
+    });
 
-        return;
-    } else {
-        // 🔹 Volver al centro si sí hay resultados
-        savedModalInner.style.transform = "translateY(0)";
-    }
+    buttonsContainer.appendChild(saveCurrentBtn);
 
-    // 🔹 Agregar botón "Eliminar todo" solo si hay MÁS DE 1 guardado
+    // Botón Eliminar todo (solo si hay más de uno)
     if (filtered.length > 1) {
         const clearAllBtn = document.createElement("button");
         clearAllBtn.textContent = "Eliminar todo";
-        clearAllBtn.style.background = "#2c2c2c";          // Gris oscuro
-        clearAllBtn.style.color = "#ccc";                  // Gris claro
-        clearAllBtn.style.border = "1px solid #444";       // Borde sutil
+        clearAllBtn.style.background = "#2c2c2c";
+        clearAllBtn.style.color = "#ccc";
+        clearAllBtn.style.border = "1px solid #444";
         clearAllBtn.style.borderRadius = "6px";
         clearAllBtn.style.padding = "6px 12px";
-        clearAllBtn.style.margin = "8px 0 10px";
         clearAllBtn.style.cursor = "pointer";
-        clearAllBtn.style.alignSelf = "flex-end";
         clearAllBtn.style.fontSize = "13px";
         clearAllBtn.style.transition = "background 0.2s ease";
 
         clearAllBtn.addEventListener("mouseenter", () => {
-            clearAllBtn.style.background = "#3a3a3a"; // Hover gris más claro
+            clearAllBtn.style.background = "#3a3a3a";
         });
-
         clearAllBtn.addEventListener("mouseleave", () => {
-            clearAllBtn.style.background = "#2c2c2c"; // Regresa al gris oscuro
+            clearAllBtn.style.background = "#2c2c2c";
         });
-
         clearAllBtn.addEventListener("click", () => {
-            setSavedTitles([]); // Vaciar cookie
+            setSavedTitles([]);
             renderSavedTitles();
-            showToast("✅ Todos los guardados fueron eliminados");
+            showToast("✅ Todos los anuncios fueron eliminados");
         });
 
-        savedList.appendChild(clearAllBtn);
+        buttonsContainer.appendChild(clearAllBtn);
     }
 
-    // 🔹 Renderizamos títulos uno por uno
+    savedList.appendChild(buttonsContainer);
+
+    if (filtered.length === 0) {
+        savedList.innerHTML += "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
+        savedModalInner.style.transform = "translateY(-60px)";
+        return;
+    } else {
+        savedModalInner.style.transform = "translateY(0)";
+    }
+
+    // 🔹 Renderizar cada título guardado
     filtered.forEach(item => {
         const li = document.createElement("li");
         li.style.display = "flex";
@@ -910,15 +912,14 @@ function renderSavedTitles(filter = "") {
         li.style.padding = "10px";
         li.style.borderBottom = "1px solid #333";
         li.style.color = "#fff";
-        li.style.transition = "opacity 0.3s ease, transform 0.3s ease"; // Animación de salida
+        li.style.transition = "opacity 0.3s ease, transform 0.3s ease";
 
-        // Texto del título
         const titleSpan = document.createElement("span");
         titleSpan.textContent = item.titulo;
         titleSpan.style.cursor = "pointer";
         titleSpan.style.flex = "1";
 
-        // Click en título → navegar al anuncio
+        // Click → ir al anuncio
         titleSpan.addEventListener("click", () => {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
 
@@ -926,7 +927,6 @@ function renderSavedTitles(filter = "") {
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
                 savedModal.style.display = "none";
 
-                // Resaltado azul del título
                 setTimeout(() => {
                     const tituloActual = document.querySelector(".content-overlay h3");
                     if (tituloActual) {
@@ -941,29 +941,26 @@ function renderSavedTitles(filter = "") {
             }
         });
 
-        // Botón eliminar individual ❌ (discreto)
+        // Botón eliminar ❌
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "✕";
         deleteBtn.style.background = "transparent";
         deleteBtn.style.border = "none";
-        deleteBtn.style.color = "#aaa";              // Gris suave
+        deleteBtn.style.color = "#aaa";
         deleteBtn.style.fontSize = "14px";
         deleteBtn.style.cursor = "pointer";
         deleteBtn.style.marginLeft = "10px";
         deleteBtn.style.transition = "color 0.2s ease";
 
         deleteBtn.addEventListener("mouseenter", () => {
-            deleteBtn.style.color = "#fff"; // Hover más visible
+            deleteBtn.style.color = "#fff";
         });
-
         deleteBtn.addEventListener("mouseleave", () => {
-            deleteBtn.style.color = "#aaa"; // Regresa al gris discreto
+            deleteBtn.style.color = "#aaa";
         });
 
         deleteBtn.addEventListener("click", (e) => {
-            e.stopPropagation(); // Evita abrir el anuncio al borrar
-
-            // Animación de desvanecimiento y desplazamiento
+            e.stopPropagation();
             li.style.opacity = "0";
             li.style.transform = "translateX(30px)";
 
@@ -972,7 +969,7 @@ function renderSavedTitles(filter = "") {
                 setSavedTitles(updated);
                 renderSavedTitles(filter);
                 showToast("🗑️ Eliminado de guardados");
-            }, 300); // Esperamos a que termine la animación
+            }, 300);
         });
 
         li.appendChild(titleSpan);
@@ -982,26 +979,18 @@ function renderSavedTitles(filter = "") {
 }
 
 
-// ==========================
-// 📌 EVENTOS DE LOS BOTONES
-// ==========================
-saveBtn.addEventListener("click", saveCurrentTitle);
 
-viewSavedBtn.addEventListener("click", () => {
+// ==========================
+// 📌 EVENTOS DEL BOTÓN ÚNICO (Guardar / Ver Anuncios)
+// ==========================
+saveBtn.addEventListener("click", () => {
     savedSearchInput.value = "";
-
-    // Renderizamos primero los títulos
     renderSavedTitles();
-
-    // Mostramos modal y reseteamos scroll
     setTimeout(() => {
         savedModal.style.display = "flex";
         savedList.scrollTop = 0;
     }, 50);
 });
-
-
-
 
 savedSearchInput.addEventListener("input", (e) => {
     renderSavedTitles(e.target.value);
@@ -1016,6 +1005,7 @@ savedModal.addEventListener("click", (e) => {
         savedModal.style.display = "none";
     }
 });
+
 
 // ==========================
 // 🍞 TOASTS PERSONALIZADOS
@@ -2095,6 +2085,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
