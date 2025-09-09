@@ -1007,6 +1007,33 @@ function showToast(msg) {
 
 
 
+// 📌 Ajustar posición del modal al enfocar el input en móviles
+const savedSearchInputEl = document.getElementById("savedSearchInput");
+const savedModalEl = document.getElementById("savedModal");
+
+// Detectar si es móvil
+const isMobile = () => window.innerWidth <= 768;
+
+savedSearchInputEl.addEventListener("focus", () => {
+    if (isMobile()) {
+        setTimeout(() => {
+            // Movemos el modal hacia arriba dejando visible la mitad superior de la pantalla
+            savedModalEl.style.alignItems = "flex-start";
+            savedModalEl.firstElementChild.style.marginTop = "10vh"; // Más o menos 1/10 del alto de la pantalla
+        }, 300); // Esperamos a que aparezca el teclado
+    }
+});
+
+savedSearchInputEl.addEventListener("blur", () => {
+    if (isMobile()) {
+        // Restauramos la posición original del modal cuando se cierra el teclado
+        savedModalEl.style.alignItems = "center";
+        savedModalEl.firstElementChild.style.marginTop = "0";
+    }
+});
+
+
+    
     
 
     let swiperInstance = null;
@@ -2027,6 +2054,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
