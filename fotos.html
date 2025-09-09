@@ -772,9 +772,148 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
+let lastVideos = []; // 👈 Evita ReferenceError en WebViewer
 
 
+// ==============================
+// 🎥 GUARDAR Y VER VIDEOS
+// ==============================
+const saveBtn = document.getElementById("saveBtn");
+const viewSavedBtn = document.getElementById("viewSavedBtn");
+const savedModal = document.getElementById("savedModal");
+const savedList = document.getElementById("savedList");
+const savedSearchInput = document.getElementById("savedSearchInput");
+const closeSavedBtn = document.getElementById("closeSavedBtn");
 
+// ✅ Para WebViewer usamos cookies en lugar de localStorage
+function setSavedVideos(data) {
+    document.cookie = "savedVideos=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
+}
+
+function getSavedVideos() {
+    const match = document.cookie.match(/(^| )savedVideos=([^;]+)/);
+    return match ? JSON.parse(decodeURIComponent(match[2])) : [];
+}
+
+// ✅ Notificaciones personalizadas
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.textContent = msg;
+    toast.style.position = "fixed";
+    toast.style.bottom = "80px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.background = "rgba(0,0,0,0.85)";
+    toast.style.color = "white";
+    toast.style.padding = "10px 16px";
+    toast.style.borderRadius = "6px";
+    toast.style.fontSize = "14px";
+    toast.style.zIndex = "10001";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
+// ✅ Guardar video actual
+function saveCurrentVideo() {
+   if (typeof swiper === "undefined" || !lastVideos || lastVideos.length === 0) {
+
+        showToast("⚠️ No hay videos para guardar");
+        return;
+    }
+
+    const currentIndex = swiper.realIndex;
+    const currentVideo = lastVideos[currentIndex];
+
+    let saved = getSavedVideos();
+
+    if (!saved.find(item => item.id === currentVideo.id)) {
+        saved.push({ id: currentVideo.id, titulo: currentVideo.titulo });
+        setSavedVideos(saved);
+        showToast("✅ Video guardado");
+    } else {
+        showToast("ℹ️ Este video ya está guardado");
+    }
+}
+
+// ✅ Renderizar lista de guardados
+function renderSavedVideos(filter = "") {
+    const saved = getSavedVideos();
+    savedList.innerHTML = "";
+
+    const filtered = saved.filter(item =>
+        item.titulo.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay videos guardados</li>";
+        return;
+    }
+
+    filtered.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.titulo;
+        li.style.cursor = "pointer";
+        li.style.padding = "10px";
+        li.style.borderBottom = "1px solid #333";
+        li.style.color = "#fff";
+
+        li.addEventListener("click", () => {
+           if (!lastVideos || lastVideos.length === 0) {
+    showToast("⚠️ Los videos aún no se han cargado");
+    return;
+}
+
+
+            if (videoIndex !== -1) {
+                // Movemos el swiper al video
+                swiper.slideToLoop(videoIndex, 0, false);
+
+                // Cerramos modal
+                savedModal.style.display = "none";
+
+                // 🔹 Resaltamos el título del video seleccionado
+                setTimeout(() => {
+                    const tituloActual = document.querySelector(".content-overlay h3");
+                    if (tituloActual) {
+                        tituloActual.classList.add("highlight-video-zoom");
+
+                        // Quitamos el resaltado después de 2 segundos
+                        setTimeout(() => {
+                            tituloActual.classList.remove("highlight-video-zoom");
+                        }, 2000);
+                    }
+                }, 400); // Pequeño delay para que cargue el video
+            } else {
+                showToast("⚠️ Este video ya no está disponible");
+            }
+        });
+
+        savedList.appendChild(li);
+    });
+}
+
+// ✅ Eventos principales
+saveBtn.addEventListener("click", saveCurrentVideo);
+
+viewSavedBtn.addEventListener("click", () => {
+    savedSearchInput.value = "";
+    renderSavedVideos();
+    savedModal.style.display = "flex";
+});
+
+savedSearchInput.addEventListener("input", (e) => {
+    renderSavedVideos(e.target.value);
+});
+
+closeSavedBtn.addEventListener("click", () => {
+    savedModal.style.display = "none";
+});
+
+savedModal.addEventListener("click", (e) => {
+    if (e.target === savedModal) {
+        savedModal.style.display = "none";
+    }
+});
 
 
 
@@ -806,15 +945,6 @@
 
   
 
-
-
-
-
-
-
-    
-
-    
     
     // Variables para el swipe
     let startX = 0;
@@ -1797,147 +1927,6 @@ lblContador.style.display = "flex";
   }
 });
 
-
-
-
-
-    
-// ==============================
-// 🎥 GUARDAR Y VER VIDEOS
-// ==============================
-const saveBtn = document.getElementById("saveBtn");
-const viewSavedBtn = document.getElementById("viewSavedBtn");
-const savedModal = document.getElementById("savedModal");
-const savedList = document.getElementById("savedList");
-const savedSearchInput = document.getElementById("savedSearchInput");
-const closeSavedBtn = document.getElementById("closeSavedBtn");
-
-// ✅ Para WebViewer usamos cookies en lugar de localStorage
-function setSavedVideos(data) {
-    document.cookie = "savedVideos=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
-}
-
-function getSavedVideos() {
-    const match = document.cookie.match(/(^| )savedVideos=([^;]+)/);
-    return match ? JSON.parse(decodeURIComponent(match[2])) : [];
-}
-
-// ✅ Notificaciones personalizadas
-function showToast(msg) {
-    const toast = document.createElement("div");
-    toast.textContent = msg;
-    toast.style.position = "fixed";
-    toast.style.bottom = "80px";
-    toast.style.left = "50%";
-    toast.style.transform = "translateX(-50%)";
-    toast.style.background = "rgba(0,0,0,0.85)";
-    toast.style.color = "white";
-    toast.style.padding = "10px 16px";
-    toast.style.borderRadius = "6px";
-    toast.style.fontSize = "14px";
-    toast.style.zIndex = "10001";
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2500);
-}
-
-// ✅ Guardar video actual
-function saveCurrentVideo() {
-    if (!swiper || !lastVideos || lastVideos.length === 0) {
-        showToast("⚠️ No hay videos para guardar");
-        return;
-    }
-
-    const currentIndex = swiper.realIndex;
-    const currentVideo = lastVideos[currentIndex];
-
-    let saved = getSavedVideos();
-
-    if (!saved.find(item => item.id === currentVideo.id)) {
-        saved.push({ id: currentVideo.id, titulo: currentVideo.titulo });
-        setSavedVideos(saved);
-        showToast("✅ Video guardado");
-    } else {
-        showToast("ℹ️ Este video ya está guardado");
-    }
-}
-
-// ✅ Renderizar lista de guardados
-function renderSavedVideos(filter = "") {
-    const saved = getSavedVideos();
-    savedList.innerHTML = "";
-
-    const filtered = saved.filter(item =>
-        item.titulo.toLowerCase().includes(filter.toLowerCase())
-    );
-
-    if (filtered.length === 0) {
-        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay videos guardados</li>";
-        return;
-    }
-
-    filtered.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = item.titulo;
-        li.style.cursor = "pointer";
-        li.style.padding = "10px";
-        li.style.borderBottom = "1px solid #333";
-        li.style.color = "#fff";
-
-        li.addEventListener("click", () => {
-            const videoIndex = lastVideos.findIndex(v => v.id === item.id);
-
-            if (videoIndex !== -1) {
-                // Movemos el swiper al video
-                swiper.slideToLoop(videoIndex, 0, false);
-
-                // Cerramos modal
-                savedModal.style.display = "none";
-
-                // 🔹 Resaltamos el título del video seleccionado
-                setTimeout(() => {
-                    const tituloActual = document.querySelector(".content-overlay h3");
-                    if (tituloActual) {
-                        tituloActual.classList.add("highlight-video-zoom");
-
-                        // Quitamos el resaltado después de 2 segundos
-                        setTimeout(() => {
-                            tituloActual.classList.remove("highlight-video-zoom");
-                        }, 2000);
-                    }
-                }, 400); // Pequeño delay para que cargue el video
-            } else {
-                showToast("⚠️ Este video ya no está disponible");
-            }
-        });
-
-        savedList.appendChild(li);
-    });
-}
-
-// ✅ Eventos principales
-saveBtn.addEventListener("click", saveCurrentVideo);
-
-viewSavedBtn.addEventListener("click", () => {
-    savedSearchInput.value = "";
-    renderSavedVideos();
-    savedModal.style.display = "flex";
-});
-
-savedSearchInput.addEventListener("input", (e) => {
-    renderSavedVideos(e.target.value);
-});
-
-closeSavedBtn.addEventListener("click", () => {
-    savedModal.style.display = "none";
-});
-
-savedModal.addEventListener("click", (e) => {
-    if (e.target === savedModal) {
-        savedModal.style.display = "none";
-    }
-});
-
-
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -1945,6 +1934,7 @@ savedModal.addEventListener("click", (e) => {
   </script>
 </body>
 </html>
+
 
 
 
