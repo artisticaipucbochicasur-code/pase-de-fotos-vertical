@@ -555,9 +555,9 @@
 }
 
 
- /* ✨ Resaltado temporal + zoom del título */
+/* ✨ Resaltado temporal + zoom del título */
 .highlight-title-zoom {
-    background-color: #a7d8ff;
+    background-color: rgba(0, 150, 255, 0.3);
     padding: 3px 6px;
     border-radius: 5px;
     animation: highlightZoom 0.4s ease-in-out;
@@ -586,11 +586,13 @@
 <!-- BOTÓN GUARDAR -->
 <button id="saveBtn" style="
     position: fixed;
-    bottom: 260px;
+    bottom: 300px;
     right: 18px;
-    width: 55px;
-    height: 55px;
-    background-color: #4CAF50;
+    width: 40px;
+    height: 40px;
+   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
     color: white;
     border: none;
     border-radius: 50%;
@@ -599,19 +601,21 @@
     justify-content: center;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    z-index: 9999;
+    z-index: 2000;
 ">
-    <i class="fa-solid fa-bookmark" style="font-size: 22px;"></i>
+    <i class="fa-solid fa-bookmark" style="font-size: 24px;"></i>
 </button>
 
 <!-- BOTÓN VER GUARDADOS -->
 <button id="viewSavedBtn" style="
     position: fixed;
-    bottom: 200px;
+    bottom: 350px;
     right: 18px;
-    width: 55px;
-    height: 55px;
-    background-color: #2196F3;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
     color: white;
     border: none;
     border-radius: 50%;
@@ -622,7 +626,7 @@
     cursor: pointer;
     z-index: 9999;
 ">
-    <i class="fa-solid fa-list" style="font-size: 22px;"></i>
+    <i class="fa-solid fa-list" style="font-size: 24px;"></i>
 </button>
 
 <!-- 📌 Modal Guardados -->
@@ -692,6 +696,7 @@
         "></ul>
     </div>
 </div>
+
 
 
 
@@ -817,7 +822,7 @@ function saveCurrentTitle() {
 
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
-// ==========================
+// ✅ Renderizar lista de guardados
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -825,7 +830,7 @@ function renderSavedTitles(filter = "") {
     const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
 
     if (filtered.length === 0) {
-        savedList.innerHTML = "<li style='color: #777; text-align:center; padding: 8px;'>No hay títulos guardados</li>";
+        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
         return;
     }
 
@@ -834,16 +839,36 @@ function renderSavedTitles(filter = "") {
         li.textContent = item.titulo;
         li.style.cursor = "pointer";
         li.style.padding = "10px";
-        li.style.borderBottom = "1px solid #ddd";
+        li.style.borderBottom = "1px solid #333";
+        li.style.color = "#fff";
+
         li.addEventListener("click", () => {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
+
             if (anuncioIndex !== -1) {
+                // Nos movemos al anuncio correspondiente
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
+
+                // Cerramos modal
                 savedModal.style.display = "none";
+
+                // 🔹 Resaltamos SOLO el título con animación
+                setTimeout(() => {
+                    const tituloActual = document.querySelector(".content-overlay h3");
+                    if (tituloActual) {
+                        tituloActual.classList.add("highlight-title-zoom");
+
+                        // Quitamos el resaltado después de 2 segundos
+                        setTimeout(() => {
+                            tituloActual.classList.remove("highlight-title-zoom");
+                        }, 2000);
+                    }
+                }, 400); // Delay para asegurar que se cargue el nuevo anuncio
             } else {
                 showToast("⚠️ Este anuncio ya no está disponible");
             }
         });
+
         savedList.appendChild(li);
     });
 }
@@ -1915,6 +1940,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
