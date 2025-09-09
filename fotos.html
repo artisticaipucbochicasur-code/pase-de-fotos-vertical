@@ -708,19 +708,27 @@
             />
         </div>
 
-        <!-- Lista de guardados (scrollable) -->
+        <!-- Lista de guardados -->
         <ul id="savedList" style="
             list-style: none;
             padding: 0;
             margin: 15px 0 0;
             flex-grow: 1;
+            min-height: 120px;  /* 🔹 Mantiene el espacio incluso sin resultados */
             max-height: 300px;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: #555 #1c1c1c;
-        "></ul>
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        ">
+            <!-- Cuando no hay títulos, mostramos un mensaje -->
+        </ul>
     </div>
 </div>
+
 
 
 
@@ -841,12 +849,24 @@ function saveCurrentTitle() {
 
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
-// ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo" y animación
+// ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo", animación y input fijo
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
 
     const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
+
+    // 🔹 Ajustar posición del input según si hay o no coincidencias
+    if (window.innerWidth <= 768) {
+        const savedModalInner = document.getElementById("savedModalInner");
+        if (filtered.length === 0) {
+            // Si no hay títulos, subimos un poco el modal
+            savedModalInner.style.transform = "translateY(-20%)";
+        } else {
+            // Si hay títulos, mantenemos input en posición inicial
+            savedModalInner.style.transform = "translateY(0)";
+        }
+    }
 
     if (filtered.length === 0) {
         savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
@@ -964,6 +984,7 @@ function renderSavedTitles(filter = "") {
         savedList.appendChild(li);
     });
 }
+
 
 // ==========================
 // 📌 EVENTOS DE LOS BOTONES
@@ -2070,6 +2091,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
