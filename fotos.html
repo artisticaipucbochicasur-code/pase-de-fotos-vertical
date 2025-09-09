@@ -561,7 +561,7 @@
 <body>
 
 
-<div id="saveContainer" style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+<div id="saveContainer" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
     <button id="saveBtn" style="
         background-color: #4CAF50;
         color: white;
@@ -572,7 +572,6 @@
         display: flex;
         align-items: center;
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     ">
         <i class="fa-solid fa-bookmark" style="margin-right: 6px;"></i> Guardar
     </button>
@@ -586,9 +585,7 @@
         font-size: 16px;
         display: flex;
         align-items: center;
-        margin-left: 10px;
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     ">
         <i class="fa-solid fa-list" style="margin-right: 6px;"></i> Ver guardados
     </button>
@@ -608,18 +605,24 @@
 ">
     <div style="
         background-color: white;
-        padding: 20px;
+        padding: 15px;
         border-radius: 10px;
-        width: 80%;
-        max-width: 400px;
+        width: 85%;
+        max-width: 450px;
         max-height: 70%;
-        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     ">
-        <h3 style="margin-bottom: 10px; color: #333;">Anuncios guardados</h3>
-        <ul id="savedList" style="list-style: none; padding: 0; margin: 0;"></ul>
+        <input
+            type="text"
+            id="savedSearchInput"
+            placeholder="Buscar en guardados..."
+            style="padding: 8px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px;"
+        />
+        <ul id="savedList" style="list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;"></ul>
         <button id="closeSavedBtn" style="
-            margin-top: 15px;
+            margin-top: 10px;
             background-color: #f44336;
             color: white;
             border: none;
@@ -630,6 +633,8 @@
     </div>
 </div>
 
+
+  
 
   
   <div class="swiper"><div class="swiper-wrapper"></div></div>
@@ -700,49 +705,59 @@
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
-// =======================
-// 🔖 FUNCIONALIDAD GUARDAR ANUNCIOS
-// =======================
-
+// ==========================
+// 🔖 GUARDAR Y VER TITULOS
+// ==========================
 const saveBtn = document.getElementById("saveBtn");
 const viewSavedBtn = document.getElementById("viewSavedBtn");
 const savedModal = document.getElementById("savedModal");
 const savedList = document.getElementById("savedList");
+const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
-function getSavedAnuncios() {
-    return JSON.parse(localStorage.getItem("savedAnuncios") || "[]");
+function getSavedTitles() {
+    return JSON.parse(localStorage.getItem("savedTitles") || "[]");
 }
 
-function saveAnuncio(anuncio) {
-    let saved = getSavedAnuncios();
-    // Evita duplicados
-    if (!saved.find(item => item.id === anuncio.id)) {
-        saved.push(anuncio);
-        localStorage.setItem("savedAnuncios", JSON.stringify(saved));
-        alert("✅ Anuncio guardado correctamente");
+function saveCurrentTitle() {
+    if (!swiperInstance || anunciosData.length === 0) {
+        alert("⚠️ No hay anuncios para guardar");
+        return;
+    }
+
+    const currentIndex = swiperInstance.realIndex;
+    const currentAnuncio = anunciosData[currentIndex];
+
+    let saved = getSavedTitles();
+
+    // Evitamos duplicados por ID
+    if (!saved.find(item => item.id === currentAnuncio.id)) {
+        saved.push({ id: currentAnuncio.id, titulo: currentAnuncio.titulo });
+        localStorage.setItem("savedTitles", JSON.stringify(saved));
+        alert("✅ Anuncio guardado");
     } else {
         alert("ℹ️ Este anuncio ya está guardado");
     }
 }
 
-function updateSavedList() {
-    const saved = getSavedAnuncios();
+function renderSavedTitles(filter = "") {
+    const saved = getSavedTitles();
     savedList.innerHTML = "";
 
-    if (saved.length === 0) {
-        savedList.innerHTML = "<li style='color: #777;'>No hay anuncios guardados.</li>";
+    const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
+
+    if (filtered.length === 0) {
+        savedList.innerHTML = "<li style='color: #777;'>No hay títulos guardados</li>";
         return;
     }
 
-    saved.forEach((item, index) => {
+    filtered.forEach(item => {
         const li = document.createElement("li");
         li.textContent = item.titulo;
         li.style.cursor = "pointer";
         li.style.padding = "8px";
         li.style.borderBottom = "1px solid #ddd";
         li.addEventListener("click", () => {
-            // Buscar el índice real del anuncio en anunciosData
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
             if (anuncioIndex !== -1) {
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
@@ -755,19 +770,16 @@ function updateSavedList() {
     });
 }
 
-saveBtn.addEventListener("click", () => {
-    if (!swiperInstance || anunciosData.length === 0) {
-        alert("⚠️ No hay anuncios disponibles");
-        return;
-    }
-    const currentIndex = swiperInstance.realIndex;
-    const currentAnuncio = anunciosData[currentIndex];
-    saveAnuncio(currentAnuncio);
-});
+saveBtn.addEventListener("click", saveCurrentTitle);
 
 viewSavedBtn.addEventListener("click", () => {
-    updateSavedList();
+    savedSearchInput.value = "";
+    renderSavedTitles();
     savedModal.style.display = "flex";
+});
+
+savedSearchInput.addEventListener("input", (e) => {
+    renderSavedTitles(e.target.value);
 });
 
 closeSavedBtn.addEventListener("click", () => {
@@ -779,6 +791,7 @@ savedModal.addEventListener("click", (e) => {
         savedModal.style.display = "none";
     }
 });
+
 
 
     
@@ -1800,3 +1813,4 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
