@@ -1023,27 +1023,42 @@ function showToast(msg) {
 
 
 
-// 📌 Ajustar posición estable del modal al tocar el input en móviles
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalEl = document.getElementById("savedModal");
 const savedModalInner = savedSearchInputEl.closest("div");
 
 const isMobile = () => window.innerWidth <= 768;
 
-// Detectar el primer toque y mover el modal inmediatamente
+let manualPosition = false;
+
+// 📌 Ajustar posición fija del modal desde que tocas el input
 savedSearchInputEl.addEventListener("focus", () => {
     if (isMobile()) {
-        // Fijamos la posición inmediatamente
+        manualPosition = true;
+
+        // Evitamos que el navegador salte hacia arriba
+        window.scrollTo(0, 0);
+
+        // Fijamos la posición desde el primer toque
         savedModalInner.style.position = "relative";
         savedModalInner.style.transform = "translateY(-58%)";
         savedModalInner.style.transition = "transform 0.25s ease";
     }
 });
 
-// Cuando el teclado se cierra, restauramos la posición normal
+// 📌 Cuando el teclado se cierra, restauramos la posición normal
 savedSearchInputEl.addEventListener("blur", () => {
     if (isMobile()) {
+        manualPosition = false;
         savedModalInner.style.transform = "translateY(0)";
+    }
+});
+
+// 📌 Prevenir que el navegador haga scroll automático al enfocar
+savedSearchInputEl.addEventListener("touchstart", (e) => {
+    if (isMobile()) {
+        e.preventDefault();
+        savedSearchInputEl.focus();
     }
 });
 
@@ -2073,6 +2088,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
