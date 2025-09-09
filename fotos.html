@@ -826,7 +826,7 @@ function saveCurrentTitle() {
 
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
-// ✅ Renderizar lista de guardados
+// ✅ Renderizar lista de guardados con eliminar individual y "Eliminar todo"
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -838,41 +838,84 @@ function renderSavedTitles(filter = "") {
         return;
     }
 
+    // 🔹 Agregar botón "Eliminar todo" solo si hay guardados
+    const clearAllBtn = document.createElement("button");
+    clearAllBtn.textContent = "Eliminar todo";
+    clearAllBtn.style.background = "#ff4444";
+    clearAllBtn.style.color = "white";
+    clearAllBtn.style.border = "none";
+    clearAllBtn.style.borderRadius = "6px";
+    clearAllBtn.style.padding = "6px 12px";
+    clearAllBtn.style.margin = "10px 0";
+    clearAllBtn.style.cursor = "pointer";
+    clearAllBtn.style.alignSelf = "flex-end";
+    clearAllBtn.style.fontSize = "14px";
+    clearAllBtn.addEventListener("click", () => {
+        setSavedTitles([]); // Vaciar cookie
+        renderSavedTitles();
+        showToast("🗑️ Se eliminaron todos los guardados");
+    });
+    savedList.appendChild(clearAllBtn);
+
+    // 🔹 Renderizamos títulos uno por uno
     filtered.forEach(item => {
         const li = document.createElement("li");
-        li.textContent = item.titulo;
-        li.style.cursor = "pointer";
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.alignItems = "center";
         li.style.padding = "10px";
         li.style.borderBottom = "1px solid #333";
         li.style.color = "#fff";
 
-        li.addEventListener("click", () => {
+        // Texto del título
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = item.titulo;
+        titleSpan.style.cursor = "pointer";
+        titleSpan.style.flex = "1";
+
+        // Click en título → navegar al anuncio
+        titleSpan.addEventListener("click", () => {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
 
             if (anuncioIndex !== -1) {
-                // Nos movemos al anuncio correspondiente
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
-
-                // Cerramos modal
                 savedModal.style.display = "none";
 
-                // 🔹 Resaltamos SOLO el título con animación
+                // Resaltado azul del título
                 setTimeout(() => {
                     const tituloActual = document.querySelector(".content-overlay h3");
                     if (tituloActual) {
                         tituloActual.classList.add("highlight-title-zoom");
-
-                        // Quitamos el resaltado después de 2 segundos
                         setTimeout(() => {
                             tituloActual.classList.remove("highlight-title-zoom");
                         }, 2000);
                     }
-                }, 400); // Delay para asegurar que se cargue el nuevo anuncio
+                }, 400);
             } else {
                 showToast("⚠️ Este anuncio ya no está disponible");
             }
         });
 
+        // Botón eliminar individual ❌
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "❌";
+        deleteBtn.style.background = "transparent";
+        deleteBtn.style.border = "none";
+        deleteBtn.style.color = "#ff5c5c";
+        deleteBtn.style.fontSize = "16px";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.style.marginLeft = "10px";
+
+        deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Evita abrir el anuncio al borrar
+            const updated = saved.filter(s => s.id !== item.id);
+            setSavedTitles(updated);
+            renderSavedTitles(filter);
+            showToast("🗑️ Eliminado de guardados");
+        });
+
+        li.appendChild(titleSpan);
+        li.appendChild(deleteBtn);
         savedList.appendChild(li);
     });
 }
@@ -888,11 +931,9 @@ viewSavedBtn.addEventListener("click", () => {
     // Renderizamos primero los títulos
     renderSavedTitles();
 
-    // Mostramos el modal y reseteamos el scroll al inicio
+    // Mostramos modal y reseteamos scroll
     setTimeout(() => {
         savedModal.style.display = "flex";
-
-        // 🔹 Nos aseguramos de que la lista siempre inicie desde arriba
         savedList.scrollTop = 0;
     }, 50);
 });
@@ -1955,6 +1996,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
