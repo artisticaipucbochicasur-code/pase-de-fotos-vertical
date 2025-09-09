@@ -817,6 +817,7 @@ function saveCurrentTitle() {
     }
 }
 // ✅ Renderizar lista de guardados
+// ✅ Renderizar lista de guardados
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -840,24 +841,24 @@ function renderSavedTitles(filter = "") {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
 
             if (anuncioIndex !== -1) {
-                // Nos movemos al anuncio correspondiente
+                // Ir al anuncio correspondiente
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
 
-                // Cerramos el modal
+                // Cerrar modal
                 savedModal.style.display = "none";
 
-                // 🔹 Resaltamos el contenedor del anuncio actual
+                // 🔹 Resaltar SOLO el título del anuncio
                 setTimeout(() => {
-                    const activeSlide = document.querySelector(".swiper-slide-active");
-                    if (activeSlide) {
-                        activeSlide.classList.add("highlight-guardado");
+                    const tituloActual = document.querySelector(".content-overlay h3");
+                    if (tituloActual) {
+                        tituloActual.classList.add("highlight-title");
 
                         // Quitamos el resaltado después de 2 segundos
                         setTimeout(() => {
-                            activeSlide.classList.remove("highlight-guardado");
+                            tituloActual.classList.remove("highlight-title");
                         }, 2000);
                     }
-                }, 400); // Pequeño delay para que cargue el slide
+                }, 400); // Delay para asegurar que se cargue el nuevo anuncio
             } else {
                 showToast("⚠️ Este anuncio ya no está disponible");
             }
@@ -866,6 +867,7 @@ function renderSavedTitles(filter = "") {
         savedList.appendChild(li);
     });
 }
+
 
 
 // ✅ Eventos principales
@@ -1913,6 +1915,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
