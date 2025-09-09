@@ -654,18 +654,27 @@
         color: white;
         width: 90%;
         max-width: 420px;
-        height: 80%; /* 🔹 Fijamos altura total */
+        max-height: 80%;
         border-radius: 12px;
         padding: 16px;
         display: flex;
         flex-direction: column;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        transform: translateY(0);
+        overflow: hidden; /* 🔹 Aislamos scroll interno */
+        transform: translateY(0); /* 🔹 Siempre inicia centrado */
         transition: transform 0.25s ease;
-        overflow: hidden; /* 🔹 Evita que crezca por los elementos */
     ">
         <!-- Encabezado -->
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background-color: #1c1c1c;
+            z-index: 20;
+            padding-bottom: 8px;
+        ">
             <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
             <button id="closeSavedBtn" style="
                 background: none;
@@ -684,8 +693,8 @@
             placeholder="Buscar guardados..."
             style="
                 position: sticky;
-                top: 0;
-                z-index: 10;
+                top: 40px; /* 🔹 Debajo del encabezado */
+                z-index: 15;
                 margin-top: 12px;
                 padding: 10px;
                 border: none;
@@ -701,8 +710,10 @@
             list-style: none;
             padding: 0;
             margin: 15px 0 0;
-            flex: 1; /* 🔹 Hace que la lista use el espacio disponible */
+            max-height: 250px;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #1c1c1c;
         "></ul>
     </div>
 </div>
@@ -1017,16 +1028,24 @@ function showToast(msg) {
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalInner = document.getElementById("savedModalInner");
 
-// 📌 Siempre fijar posición al enfocar, incluso antes de escribir
+// ✅ Mantener posición fija siempre
 savedSearchInputEl.addEventListener("focus", () => {
     if (window.innerWidth <= 768) {
-        savedModalInner.style.transform = "translateY(-58%)";
+        // Cuando se toca, NO movemos nada
+        savedModalInner.style.transform = "translateY(0)";
     }
 });
 
-// 📌 Restaurar posición al cerrar teclado
+savedSearchInputEl.addEventListener("input", () => {
+    if (window.innerWidth <= 768) {
+        // Cuando escribes, tampoco movemos nada
+        savedModalInner.style.transform = "translateY(0)";
+    }
+});
+
 savedSearchInputEl.addEventListener("blur", () => {
     if (window.innerWidth <= 768) {
+        // Cuando cierras teclado, vuelve igual
         savedModalInner.style.transform = "translateY(0)";
     }
 });
@@ -2056,6 +2075,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
