@@ -554,12 +554,26 @@
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
 }
 
-/* ✨ Resaltado temporal del título */
-.highlight-title {
+/* ✨ Resaltado temporal + zoom del título */
+.highlight-title-zoom {
     background-color: rgba(0, 150, 255, 0.3);
     padding: 3px 6px;
     border-radius: 5px;
+    animation: highlightZoom 0.4s ease-in-out;
     transition: background-color 1s ease;
+}
+
+/* 🎥 Animación de zoom */
+@keyframes highlightZoom {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 
@@ -819,7 +833,6 @@ function saveCurrentTitle() {
     }
 }
 // ✅ Renderizar lista de guardados
-// ✅ Renderizar lista de guardados
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -843,21 +856,21 @@ function renderSavedTitles(filter = "") {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
 
             if (anuncioIndex !== -1) {
-                // Ir al anuncio correspondiente
+                // Nos movemos al anuncio correspondiente
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
 
-                // Cerrar modal
+                // Cerramos modal
                 savedModal.style.display = "none";
 
-                // 🔹 Resaltar SOLO el título del anuncio
+                // 🔹 Resaltamos SOLO el título con animación
                 setTimeout(() => {
                     const tituloActual = document.querySelector(".content-overlay h3");
                     if (tituloActual) {
-                        tituloActual.classList.add("highlight-title");
+                        tituloActual.classList.add("highlight-title-zoom");
 
                         // Quitamos el resaltado después de 2 segundos
                         setTimeout(() => {
-                            tituloActual.classList.remove("highlight-title");
+                            tituloActual.classList.remove("highlight-title-zoom");
                         }, 2000);
                     }
                 }, 400); // Delay para asegurar que se cargue el nuevo anuncio
@@ -869,6 +882,7 @@ function renderSavedTitles(filter = "") {
         savedList.appendChild(li);
     });
 }
+
 
 
 
@@ -1917,6 +1931,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
