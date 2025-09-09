@@ -554,7 +554,13 @@
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
 }
 
-    
+    /* ✨ Resaltado temporal */
+.highlight-guardado {
+    background-color: rgba(0, 150, 255, 0.25);
+    border-radius: 8px;
+    transition: background-color 1s ease;
+}
+
   </style>
 </head>
 
@@ -810,7 +816,6 @@ function saveCurrentTitle() {
         showToast("ℹ️ Este anuncio ya está guardado");
     }
 }
-
 // ✅ Renderizar lista de guardados
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
@@ -830,18 +835,38 @@ function renderSavedTitles(filter = "") {
         li.style.padding = "10px";
         li.style.borderBottom = "1px solid #333";
         li.style.color = "#fff";
+
         li.addEventListener("click", () => {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
+
             if (anuncioIndex !== -1) {
+                // Nos movemos al anuncio correspondiente
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
+
+                // Cerramos el modal
                 savedModal.style.display = "none";
+
+                // 🔹 Resaltamos el contenedor del anuncio actual
+                setTimeout(() => {
+                    const activeSlide = document.querySelector(".swiper-slide-active");
+                    if (activeSlide) {
+                        activeSlide.classList.add("highlight-guardado");
+
+                        // Quitamos el resaltado después de 2 segundos
+                        setTimeout(() => {
+                            activeSlide.classList.remove("highlight-guardado");
+                        }, 2000);
+                    }
+                }, 400); // Pequeño delay para que cargue el slide
             } else {
                 showToast("⚠️ Este anuncio ya no está disponible");
             }
         });
+
         savedList.appendChild(li);
     });
 }
+
 
 // ✅ Eventos principales
 saveBtn.addEventListener("click", saveCurrentTitle);
@@ -1888,6 +1913,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
