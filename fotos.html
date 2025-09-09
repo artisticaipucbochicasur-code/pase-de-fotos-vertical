@@ -559,6 +559,79 @@
 </head>
 
 <body>
+
+
+<div id="saveContainer" style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+    <button id="saveBtn" style="
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    ">
+        <i class="fa-solid fa-bookmark" style="margin-right: 6px;"></i> Guardar
+    </button>
+
+    <button id="viewSavedBtn" style="
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        margin-left: 10px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    ">
+        <i class="fa-solid fa-list" style="margin-right: 6px;"></i> Ver guardados
+    </button>
+</div>
+
+<div id="savedModal" style="
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+">
+    <div style="
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 400px;
+        max-height: 70%;
+        overflow-y: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    ">
+        <h3 style="margin-bottom: 10px; color: #333;">Anuncios guardados</h3>
+        <ul id="savedList" style="list-style: none; padding: 0; margin: 0;"></ul>
+        <button id="closeSavedBtn" style="
+            margin-top: 15px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        ">Cerrar</button>
+    </div>
+</div>
+
+
+  
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div> 
   
@@ -626,6 +699,89 @@
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+
+// =======================
+// 🔖 FUNCIONALIDAD GUARDAR ANUNCIOS
+// =======================
+
+const saveBtn = document.getElementById("saveBtn");
+const viewSavedBtn = document.getElementById("viewSavedBtn");
+const savedModal = document.getElementById("savedModal");
+const savedList = document.getElementById("savedList");
+const closeSavedBtn = document.getElementById("closeSavedBtn");
+
+function getSavedAnuncios() {
+    return JSON.parse(localStorage.getItem("savedAnuncios") || "[]");
+}
+
+function saveAnuncio(anuncio) {
+    let saved = getSavedAnuncios();
+    // Evita duplicados
+    if (!saved.find(item => item.id === anuncio.id)) {
+        saved.push(anuncio);
+        localStorage.setItem("savedAnuncios", JSON.stringify(saved));
+        alert("✅ Anuncio guardado correctamente");
+    } else {
+        alert("ℹ️ Este anuncio ya está guardado");
+    }
+}
+
+function updateSavedList() {
+    const saved = getSavedAnuncios();
+    savedList.innerHTML = "";
+
+    if (saved.length === 0) {
+        savedList.innerHTML = "<li style='color: #777;'>No hay anuncios guardados.</li>";
+        return;
+    }
+
+    saved.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.textContent = item.titulo;
+        li.style.cursor = "pointer";
+        li.style.padding = "8px";
+        li.style.borderBottom = "1px solid #ddd";
+        li.addEventListener("click", () => {
+            // Buscar el índice real del anuncio en anunciosData
+            const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
+            if (anuncioIndex !== -1) {
+                swiperInstance.slideToLoop(anuncioIndex, 0, false);
+                savedModal.style.display = "none";
+            } else {
+                alert("⚠️ Este anuncio ya no está disponible");
+            }
+        });
+        savedList.appendChild(li);
+    });
+}
+
+saveBtn.addEventListener("click", () => {
+    if (!swiperInstance || anunciosData.length === 0) {
+        alert("⚠️ No hay anuncios disponibles");
+        return;
+    }
+    const currentIndex = swiperInstance.realIndex;
+    const currentAnuncio = anunciosData[currentIndex];
+    saveAnuncio(currentAnuncio);
+});
+
+viewSavedBtn.addEventListener("click", () => {
+    updateSavedList();
+    savedModal.style.display = "flex";
+});
+
+closeSavedBtn.addEventListener("click", () => {
+    savedModal.style.display = "none";
+});
+
+savedModal.addEventListener("click", (e) => {
+    if (e.target === savedModal) {
+        savedModal.style.display = "none";
+    }
+});
+
+
+    
     let swiperInstance = null;
     let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
@@ -1644,17 +1800,3 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
