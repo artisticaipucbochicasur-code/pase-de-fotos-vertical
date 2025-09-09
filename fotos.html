@@ -660,9 +660,8 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        overflow: hidden; /* 🔹 Aislamos scroll interno */
-        transform: translateY(0); /* 🔹 Siempre inicia centrado */
-        transition: transform 0.25s ease;
+        overflow: hidden;
+        position: relative; /* 🔹 Cambiado para evitar desplazamientos */
     ">
         <!-- Encabezado -->
         <div style="
@@ -702,6 +701,8 @@
                 background-color: #2c2c2c;
                 color: white;
                 font-size: 15px;
+                width: 100%; /* 🔹 Asegura que ocupe todo el ancho */
+                box-sizing: border-box;
             "
         />
 
@@ -714,6 +715,7 @@
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: #555 #1c1c1c;
+            flex-grow: 1; /* 🔹 Ocupa espacio restante sin mover el input */
         "></ul>
     </div>
 </div>
@@ -1027,26 +1029,58 @@ function showToast(msg) {
 
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalInner = document.getElementById("savedModalInner");
+const savedModal = document.getElementById("savedModal");
 
-// ✅ Mantener posición fija siempre
+// Función para mantener el modal y el input en posición fija
+function keepInputFixed() {
+    if (window.innerWidth <= 768) {
+        // Aseguramos que el contenedor no se desplace
+        savedModalInner.style.transform = "translateY(0)";
+        savedModalInner.style.position = "relative";
+        savedModalInner.style.top = "0";
+    }
+}
+
+// Manejar el teclado virtual en móviles
+function handleVirtualKeyboard() {
+    if (window.innerWidth <= 768 && window.visualViewport) {
+        window.visualViewport.addEventListener("resize", () => {
+            // Cuando el teclado aparece, el viewport se reduce
+            const viewportHeight = window.visualViewport.height;
+            const modalHeight = savedModalInner.offsetHeight;
+            const inputRect = savedSearchInputEl.getBoundingClientRect();
+
+            // Si el input está demasiado abajo (cerca del teclado), ajustamos
+            if (inputRect.bottom > viewportHeight - 58) {
+                savedModal.scrollTop = inputRect.top - 100; // Mantiene el input visible
+            }
+        });
+    }
+}
+
+// Evento para cuando el input recibe foco
 savedSearchInputEl.addEventListener("focus", () => {
-    if (window.innerWidth <= 768) {
-        // Cuando se toca, NO movemos nada
-        savedModalInner.style.transform = "translateY(0)";
-    }
+    keepInputFixed();
+    handleVirtualKeyboard();
 });
 
+// Evento para cuando se escribe en el input
 savedSearchInputEl.addEventListener("input", () => {
-    if (window.innerWidth <= 768) {
-        // Cuando escribes, tampoco movemos nada
-        savedModalInner.style.transform = "translateY(0)";
-    }
+    keepInputFixed();
+    // Aquí iría la lógica de filtrado de la lista, pero no afecta la posición
 });
 
+// Evento para cuando el input pierde el foco
 savedSearchInputEl.addEventListener("blur", () => {
-    if (window.innerWidth <= 768) {
-        // Cuando cierras teclado, vuelve igual
-        savedModalInner.style.transform = "translateY(0)";
+    keepInputFixed();
+    // Restaurar scroll si es necesario
+    savedModal.scrollTop = 0;
+});
+
+// Restaurar posición al abrir el modal
+savedModal.addEventListener("transitionend", () => {
+    if (savedModal.style.display !== "none") {
+        keepInputFixed();
     }
 });
 
@@ -2075,6 +2109,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
