@@ -835,6 +835,16 @@ function saveCurrentTitle() {
     }
 }
 
+    // 🔧 Normaliza texto: minúsculas, sin tildes, sin espacios extras
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .normalize("NFD")                  // separa acentos
+        .replace(/[\u0300-\u036f]/g, "")  // elimina tildes
+        .replace(/\s+/g, " ")              // colapsa espacios múltiples
+        .trim();                           // quita espacios al inicio/fin
+}
+
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
 // ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo" y animación
@@ -842,7 +852,10 @@ function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
 
-    const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
+   const filtered = saved.filter(item =>
+    normalizeText(item.titulo).includes(normalizeText(filter))
+);
+
 
     if (filtered.length === 0) {
         savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
@@ -2077,6 +2090,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
