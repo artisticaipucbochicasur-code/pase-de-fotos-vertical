@@ -702,7 +702,7 @@
   <div id="loader"><span class="spinner">⏳</span></div> 
   
  <div id="lblContador">
-  <i class="fas fa-bell"></i>
+  <i class="far fa-bell"></i>
   <span id="notificationCount"></span>
 </div>
 
@@ -823,7 +823,7 @@ function normalizeText(text) {
 }
 
 // ==========================
-// 📜 RENDERIZAR TITULOS GUARDADOS
+// 📜 RENDERIZAR TITULOS GUARDADOS (ANUNCIOS)
 // ==========================
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
@@ -836,16 +836,17 @@ function renderSavedTitles(filter = "") {
     // 🔹 Contenedor de botones (Guardar actual + Eliminar todo)
     const buttonsContainer = document.createElement("div");
     buttonsContainer.style.display = "flex";
-    buttonsContainer.style.justifyContent = "flex-end";
+    buttonsContainer.style.justifyContent = "space-between";
     buttonsContainer.style.gap = "10px";
     buttonsContainer.style.margin = "8px 0 10px";
 
     // Botón Guardar actual (siempre visible)
     const saveCurrentBtn = document.createElement("button");
-    saveCurrentBtn.textContent = "Guardar actual";
-    saveCurrentBtn.style.background = "#2c2c2c";
-    saveCurrentBtn.style.color = "#ccc";
-    saveCurrentBtn.style.border = "1px solid #444";
+    saveCurrentBtn.textContent = "💾 Guardar actual";
+    saveCurrentBtn.style.flex = "1";
+    saveCurrentBtn.style.background = "#007bff";
+    saveCurrentBtn.style.color = "#fff";
+    saveCurrentBtn.style.border = "none";
     saveCurrentBtn.style.borderRadius = "6px";
     saveCurrentBtn.style.padding = "6px 12px";
     saveCurrentBtn.style.cursor = "pointer";
@@ -853,14 +854,14 @@ function renderSavedTitles(filter = "") {
     saveCurrentBtn.style.transition = "background 0.2s ease";
 
     saveCurrentBtn.addEventListener("mouseenter", () => {
-        saveCurrentBtn.style.background = "#3a3a3a";
+        saveCurrentBtn.style.background = "#3399ff";
     });
     saveCurrentBtn.addEventListener("mouseleave", () => {
-        saveCurrentBtn.style.background = "#2c2c2c";
+        saveCurrentBtn.style.background = "#007bff";
     });
     saveCurrentBtn.addEventListener("click", () => {
         saveCurrentTitle();
-        renderSavedTitles(filter); // refresca lista
+        renderSavedTitles(filter); // refresca la lista
     });
 
     buttonsContainer.appendChild(saveCurrentBtn);
@@ -869,6 +870,7 @@ function renderSavedTitles(filter = "") {
     if (filtered.length > 1) {
         const clearAllBtn = document.createElement("button");
         clearAllBtn.textContent = "Eliminar todo";
+        clearAllBtn.style.flex = "1";
         clearAllBtn.style.background = "#2c2c2c";
         clearAllBtn.style.color = "#ccc";
         clearAllBtn.style.border = "1px solid #444";
@@ -893,13 +895,17 @@ function renderSavedTitles(filter = "") {
         buttonsContainer.appendChild(clearAllBtn);
     }
 
-    // 🔹 Siempre agregamos el contenedor de botones primero
     savedList.appendChild(buttonsContainer);
 
     if (filtered.length === 0) {
-        savedList.innerHTML += "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
+        // ⬇️ Crear mensaje vacío sin borrar el botón
+        const emptyMsg = document.createElement("li");
+        emptyMsg.textContent = "No hay títulos guardados";
+        emptyMsg.style.color = "#777";
+        emptyMsg.style.padding = "10px";
+        savedList.appendChild(emptyMsg);
+
         savedModalInner.style.transform = "translateY(-60px)";
-        return;
     } else {
         savedModalInner.style.transform = "translateY(0)";
     }
@@ -932,6 +938,7 @@ function renderSavedTitles(filter = "") {
                     const tituloActual = document.querySelector(".content-overlay h3");
                     if (tituloActual) {
                         tituloActual.classList.add("highlight-title-zoom");
+                        tituloActual.scrollIntoView({ behavior: "smooth", block: "center" });
                         setTimeout(() => {
                             tituloActual.classList.remove("highlight-title-zoom");
                         }, 2000);
@@ -978,6 +985,7 @@ function renderSavedTitles(filter = "") {
         savedList.appendChild(li);
     });
 }
+
 
 
 
@@ -2087,6 +2095,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
