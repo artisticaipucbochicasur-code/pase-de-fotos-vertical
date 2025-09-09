@@ -649,30 +649,23 @@
     flex-direction: column;
     padding: 15px;
 ">
-    <div style="
+    <div id="savedModalInner" style="
         background-color: #1c1c1c;
         color: white;
         width: 90%;
         max-width: 420px;
-        max-height: 80%;
+        height: 80%; /* 🔹 Fijamos altura total */
         border-radius: 12px;
         padding: 16px;
         display: flex;
         flex-direction: column;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        overflow: hidden; /* 🔹 Importante para aislar el scroll interno */
+        transform: translateY(0);
+        transition: transform 0.25s ease;
+        overflow: hidden; /* 🔹 Evita que crezca por los elementos */
     ">
         <!-- Encabezado -->
-        <div style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background-color: #1c1c1c;
-            z-index: 20;
-            padding-bottom: 8px;
-        ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
             <button id="closeSavedBtn" style="
                 background: none;
@@ -691,8 +684,8 @@
             placeholder="Buscar guardados..."
             style="
                 position: sticky;
-                top: 40px; /* 🔹 Mantener siempre debajo del encabezado */
-                z-index: 15;
+                top: 0;
+                z-index: 10;
                 margin-top: 12px;
                 padding: 10px;
                 border: none;
@@ -708,10 +701,8 @@
             list-style: none;
             padding: 0;
             margin: 15px 0 0;
-            max-height: 250px; /* 🔹 Controlamos el scroll interno */
+            flex: 1; /* 🔹 Hace que la lista use el espacio disponible */
             overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #555 #1c1c1c;
         "></ul>
     </div>
 </div>
@@ -1024,44 +1015,21 @@ function showToast(msg) {
 
 
 const savedSearchInputEl = document.getElementById("savedSearchInput");
-const savedModalEl = document.getElementById("savedModal");
-const savedModalInner = savedSearchInputEl.closest("div");
+const savedModalInner = document.getElementById("savedModalInner");
 
-const isMobile = () => window.innerWidth <= 768;
-
-let manualPosition = false;
-
-// 📌 Ajustar posición fija del modal desde que tocas el input
+// 📌 Siempre fijar posición al enfocar, incluso antes de escribir
 savedSearchInputEl.addEventListener("focus", () => {
-    if (isMobile()) {
-        manualPosition = true;
-
-        // Evitamos que el navegador salte hacia arriba
-        window.scrollTo(0, 0);
-
-        // Fijamos la posición desde el primer toque
-        savedModalInner.style.position = "relative";
+    if (window.innerWidth <= 768) {
         savedModalInner.style.transform = "translateY(-58%)";
-        savedModalInner.style.transition = "transform 0.25s ease";
     }
 });
 
-// 📌 Cuando el teclado se cierra, restauramos la posición normal
+// 📌 Restaurar posición al cerrar teclado
 savedSearchInputEl.addEventListener("blur", () => {
-    if (isMobile()) {
-        manualPosition = false;
+    if (window.innerWidth <= 768) {
         savedModalInner.style.transform = "translateY(0)";
     }
 });
-
-// 📌 Prevenir que el navegador haga scroll automático al enfocar
-savedSearchInputEl.addEventListener("touchstart", (e) => {
-    if (isMobile()) {
-        e.preventDefault();
-        savedSearchInputEl.focus();
-    }
-});
-
 
 
 
@@ -2088,6 +2056,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
