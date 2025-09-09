@@ -674,21 +674,25 @@
             ">&times;</button>
         </div>
 
-        <!-- Input de búsqueda -->
-        <input
-            id="savedSearchInput"
-            type="text"
-            placeholder="Buscar guardados..."
-            style="
-                margin-top: 12px;
-                padding: 10px;
-                border: none;
-                border-radius: 6px;
-                background-color: #2c2c2c;
-                color: white;
-                font-size: 15px;
-            "
-        />
+     <!-- Input de búsqueda -->
+<input
+    id="savedSearchInput"
+    type="text"
+    placeholder="Buscar guardados..."
+    style="
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        margin-top: 12px;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        background-color: #2c2c2c;
+        color: white;
+        font-size: 15px;
+    "
+/>
+
 
         <!-- Lista de guardados -->
         <ul id="savedList" style="
@@ -1010,6 +1014,7 @@ function showToast(msg) {
 // 📌 Ajustar posición del modal al enfocar el input en móviles
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalEl = document.getElementById("savedModal");
+const savedModalInner = savedModalEl.querySelector("div"); // Contenedor interno principal
 
 // Detectar si es móvil
 const isMobile = () => window.innerWidth <= 768;
@@ -1017,20 +1022,20 @@ const isMobile = () => window.innerWidth <= 768;
 savedSearchInputEl.addEventListener("focus", () => {
     if (isMobile()) {
         setTimeout(() => {
-            // Movemos el modal hacia arriba dejando visible la mitad superior de la pantalla
-            savedModalEl.style.alignItems = "flex-start";
-            savedModalEl.firstElementChild.style.marginTop = "10vh"; // Más o menos 1/10 del alto de la pantalla
+            // Subimos el modal para que el input quede visible
+            savedModalInner.style.transform = "translateY(-58%)";
+            savedModalInner.style.transition = "transform 0.25s ease";
         }, 300); // Esperamos a que aparezca el teclado
     }
 });
 
 savedSearchInputEl.addEventListener("blur", () => {
     if (isMobile()) {
-        // Restauramos la posición original del modal cuando se cierra el teclado
-        savedModalEl.style.alignItems = "center";
-        savedModalEl.firstElementChild.style.marginTop = "0";
+        // Restauramos el modal a su posición original
+        savedModalInner.style.transform = "translateY(0)";
     }
 });
+
 
 
     
@@ -2054,6 +2059,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
