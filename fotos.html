@@ -554,8 +554,8 @@
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
 }
 
-/* ✨ Resaltado temporal + zoom del título */
-.highlight-title-zoom {
+/* ✨ Resaltado temporal + zoom del título del video */
+.highlight-video-zoom {
     background-color: #a7d8ff;
     padding: 3px 6px;
     border-radius: 5px;
@@ -774,9 +774,9 @@
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
-// ==========================
-// 🔖 GUARDAR Y VER TÍTULOS
-// ==========================
+// ==============================
+// 🎥 GUARDAR Y VER VIDEOS
+// ==============================
 const saveBtn = document.getElementById("saveBtn");
 const viewSavedBtn = document.getElementById("viewSavedBtn");
 const savedModal = document.getElementById("savedModal");
@@ -784,17 +784,17 @@ const savedList = document.getElementById("savedList");
 const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
-// ✅ Para compatibilidad con WebViewer usamos cookies en vez de localStorage
-function setSavedTitles(data) {
-    document.cookie = "savedTitles=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
+// ✅ Para WebViewer usamos cookies en lugar de localStorage
+function setSavedVideos(data) {
+    document.cookie = "savedVideos=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
 }
 
-function getSavedTitles() {
-    const match = document.cookie.match(/(^| )savedTitles=([^;]+)/);
+function getSavedVideos() {
+    const match = document.cookie.match(/(^| )savedVideos=([^;]+)/);
     return match ? JSON.parse(decodeURIComponent(match[2])) : [];
 }
 
-// ✅ Mostrar notificaciones amigables en WebViewer
+// ✅ Notificaciones personalizadas
 function showToast(msg) {
     const toast = document.createElement("div");
     toast.textContent = msg;
@@ -812,35 +812,38 @@ function showToast(msg) {
     setTimeout(() => toast.remove(), 2500);
 }
 
-// ✅ Guardar título actual
-function saveCurrentTitle() {
-    if (!swiperInstance || anunciosData.length === 0) {
-        showToast("⚠️ No hay anuncios para guardar");
+// ✅ Guardar video actual
+function saveCurrentVideo() {
+    if (!swiper || !lastVideos || lastVideos.length === 0) {
+        showToast("⚠️ No hay videos para guardar");
         return;
     }
 
-    const currentIndex = swiperInstance.realIndex;
-    const currentAnuncio = anunciosData[currentIndex];
+    const currentIndex = swiper.realIndex;
+    const currentVideo = lastVideos[currentIndex];
 
-    let saved = getSavedTitles();
+    let saved = getSavedVideos();
 
-    if (!saved.find(item => item.id === currentAnuncio.id)) {
-        saved.push({ id: currentAnuncio.id, titulo: currentAnuncio.titulo });
-        setSavedTitles(saved);
-        showToast("✅ Anuncio guardado");
+    if (!saved.find(item => item.id === currentVideo.id)) {
+        saved.push({ id: currentVideo.id, titulo: currentVideo.titulo });
+        setSavedVideos(saved);
+        showToast("✅ Video guardado");
     } else {
-        showToast("ℹ️ Este anuncio ya está guardado");
+        showToast("ℹ️ Este video ya está guardado");
     }
 }
+
 // ✅ Renderizar lista de guardados
-function renderSavedTitles(filter = "") {
-    const saved = getSavedTitles();
+function renderSavedVideos(filter = "") {
+    const saved = getSavedVideos();
     savedList.innerHTML = "";
 
-    const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
+    const filtered = saved.filter(item =>
+        item.titulo.toLowerCase().includes(filter.toLowerCase())
+    );
 
     if (filtered.length === 0) {
-        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
+        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay videos guardados</li>";
         return;
     }
 
@@ -853,29 +856,29 @@ function renderSavedTitles(filter = "") {
         li.style.color = "#fff";
 
         li.addEventListener("click", () => {
-            const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
+            const videoIndex = lastVideos.findIndex(v => v.id === item.id);
 
-            if (anuncioIndex !== -1) {
-                // Nos movemos al anuncio correspondiente
-                swiperInstance.slideToLoop(anuncioIndex, 0, false);
+            if (videoIndex !== -1) {
+                // Movemos el swiper al video
+                swiper.slideToLoop(videoIndex, 0, false);
 
                 // Cerramos modal
                 savedModal.style.display = "none";
 
-                // 🔹 Resaltamos SOLO el título con animación
+                // 🔹 Resaltamos el título del video seleccionado
                 setTimeout(() => {
                     const tituloActual = document.querySelector(".content-overlay h3");
                     if (tituloActual) {
-                        tituloActual.classList.add("highlight-title-zoom");
+                        tituloActual.classList.add("highlight-video-zoom");
 
                         // Quitamos el resaltado después de 2 segundos
                         setTimeout(() => {
-                            tituloActual.classList.remove("highlight-title-zoom");
+                            tituloActual.classList.remove("highlight-video-zoom");
                         }, 2000);
                     }
-                }, 400); // Delay para asegurar que se cargue el nuevo anuncio
+                }, 400); // Pequeño delay para que cargue el video
             } else {
-                showToast("⚠️ Este anuncio ya no está disponible");
+                showToast("⚠️ Este video ya no está disponible");
             }
         });
 
@@ -883,20 +886,17 @@ function renderSavedTitles(filter = "") {
     });
 }
 
-
-
-
 // ✅ Eventos principales
-saveBtn.addEventListener("click", saveCurrentTitle);
+saveBtn.addEventListener("click", saveCurrentVideo);
 
 viewSavedBtn.addEventListener("click", () => {
     savedSearchInput.value = "";
-    renderSavedTitles();
+    renderSavedVideos();
     savedModal.style.display = "flex";
 });
 
 savedSearchInput.addEventListener("input", (e) => {
-    renderSavedTitles(e.target.value);
+    renderSavedVideos(e.target.value);
 });
 
 closeSavedBtn.addEventListener("click", () => {
@@ -1931,6 +1931,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
