@@ -561,36 +561,43 @@
 <body>
 
 
-<div id="saveContainer" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-    <button id="saveBtn" style="
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-    ">
-        <i class="fa-solid fa-bookmark" style="margin-right: 6px;"></i> Guardar
-    </button>
+<!-- 🔖 Botón Guardar -->
+<button id="saveBtn" style="
+    position: fixed;
+    bottom: 260px;
+    right: 18px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 50%;
+    font-size: 18px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 9999;
+">
+    <i class="fa-solid fa-bookmark"></i>
+</button>
 
-    <button id="viewSavedBtn" style="
-        background-color: #2196F3;
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-    ">
-        <i class="fa-solid fa-list" style="margin-right: 6px;"></i> Ver guardados
-    </button>
-</div>
+<!-- 📂 Botón Ver Guardados -->
+<button id="viewSavedBtn" style="
+    position: fixed;
+    bottom: 200px;
+    right: 18px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 50%;
+    font-size: 18px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 9999;
+">
+    <i class="fa-solid fa-list"></i>
+</button>
 
+<!-- 📌 Modal Guardados -->
 <div id="savedModal" style="
     display: none;
     position: fixed;
@@ -598,40 +605,44 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
     align-items: center;
-    z-index: 9999;
+    justify-content: center;
 ">
     <div style="
-        background-color: white;
-        padding: 15px;
-        border-radius: 10px;
-        width: 85%;
-        max-width: 450px;
-        max-height: 70%;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        background: gray;
+        color: black;
+        width: 90%;
+        max-width: 400px;
+        max-height: 80%;
+        overflow-y: auto;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     ">
+        <h2 style="margin-top: 0; text-align: center;">🔖 Guardados</h2>
         <input
             type="text"
             id="savedSearchInput"
-            placeholder="Buscar en guardados..."
-            style="padding: 8px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px;"
+            placeholder="Buscar guardados..."
+            style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #ccc;"
         />
-        <ul id="savedList" style="list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto;"></ul>
+        <ul id="savedList" style="list-style: none; padding: 0; margin: 0;"></ul>
         <button id="closeSavedBtn" style="
-            margin-top: 10px;
-            background-color: #f44336;
+            margin-top: 12px;
+            background: #f44336;
             color: white;
             border: none;
             padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
+            width: 100%;
         ">Cerrar</button>
     </div>
 </div>
+
 
 
   
@@ -715,13 +726,24 @@ const savedList = document.getElementById("savedList");
 const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
-function getSavedTitles() {
-    return JSON.parse(localStorage.getItem("savedTitles") || "[]");
+// ==========================
+// ✅ FUNCIONES DE COOKIES (Compatibilidad WebViewer)
+// ==========================
+function setSavedTitles(data) {
+    document.cookie = "savedTitles=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
 }
 
+function getSavedTitles() {
+    const match = document.cookie.match(/(^| )savedTitles=([^;]+)/);
+    return match ? JSON.parse(decodeURIComponent(match[2])) : [];
+}
+
+// ==========================
+// 💾 GUARDAR ANUNCIO ACTUAL
+// ==========================
 function saveCurrentTitle() {
     if (!swiperInstance || anunciosData.length === 0) {
-        alert("⚠️ No hay anuncios para guardar");
+        showToast("⚠️ No hay anuncios para guardar");
         return;
     }
 
@@ -733,13 +755,16 @@ function saveCurrentTitle() {
     // Evitamos duplicados por ID
     if (!saved.find(item => item.id === currentAnuncio.id)) {
         saved.push({ id: currentAnuncio.id, titulo: currentAnuncio.titulo });
-        localStorage.setItem("savedTitles", JSON.stringify(saved));
-        alert("✅ Anuncio guardado");
+        setSavedTitles(saved);
+        showToast("✅ Anuncio guardado");
     } else {
-        alert("ℹ️ Este anuncio ya está guardado");
+        showToast("ℹ️ Este anuncio ya está guardado");
     }
 }
 
+// ==========================
+// 📜 RENDERIZAR TITULOS GUARDADOS
+// ==========================
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -747,7 +772,7 @@ function renderSavedTitles(filter = "") {
     const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
 
     if (filtered.length === 0) {
-        savedList.innerHTML = "<li style='color: #777;'>No hay títulos guardados</li>";
+        savedList.innerHTML = "<li style='color: #777; text-align:center; padding: 8px;'>No hay títulos guardados</li>";
         return;
     }
 
@@ -755,7 +780,7 @@ function renderSavedTitles(filter = "") {
         const li = document.createElement("li");
         li.textContent = item.titulo;
         li.style.cursor = "pointer";
-        li.style.padding = "8px";
+        li.style.padding = "10px";
         li.style.borderBottom = "1px solid #ddd";
         li.addEventListener("click", () => {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
@@ -763,13 +788,16 @@ function renderSavedTitles(filter = "") {
                 swiperInstance.slideToLoop(anuncioIndex, 0, false);
                 savedModal.style.display = "none";
             } else {
-                alert("⚠️ Este anuncio ya no está disponible");
+                showToast("⚠️ Este anuncio ya no está disponible");
             }
         });
         savedList.appendChild(li);
     });
 }
 
+// ==========================
+// 📌 EVENTOS DE LOS BOTONES
+// ==========================
 saveBtn.addEventListener("click", saveCurrentTitle);
 
 viewSavedBtn.addEventListener("click", () => {
@@ -791,6 +819,26 @@ savedModal.addEventListener("click", (e) => {
         savedModal.style.display = "none";
     }
 });
+
+// ==========================
+// 🍞 TOASTS PERSONALIZADOS
+// ==========================
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.textContent = msg;
+    toast.style.position = "fixed";
+    toast.style.bottom = "80px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.background = "rgba(0,0,0,0.85)";
+    toast.style.color = "white";
+    toast.style.padding = "10px 16px";
+    toast.style.borderRadius = "6px";
+    toast.style.fontSize = "14px";
+    toast.style.zIndex = "100000";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
 
 
 
@@ -1813,4 +1861,5 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
