@@ -826,7 +826,7 @@ function saveCurrentTitle() {
 
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
-// ✅ Renderizar lista de guardados con eliminar individual y "Eliminar todo"
+// ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo" y animación
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -838,24 +838,37 @@ function renderSavedTitles(filter = "") {
         return;
     }
 
-    // 🔹 Agregar botón "Eliminar todo" solo si hay guardados
-    const clearAllBtn = document.createElement("button");
-    clearAllBtn.textContent = "Eliminar todo";
-    clearAllBtn.style.background = "#ff4444";
-    clearAllBtn.style.color = "white";
-    clearAllBtn.style.border = "none";
-    clearAllBtn.style.borderRadius = "6px";
-    clearAllBtn.style.padding = "6px 12px";
-    clearAllBtn.style.margin = "10px 0";
-    clearAllBtn.style.cursor = "pointer";
-    clearAllBtn.style.alignSelf = "flex-end";
-    clearAllBtn.style.fontSize = "14px";
-    clearAllBtn.addEventListener("click", () => {
-        setSavedTitles([]); // Vaciar cookie
-        renderSavedTitles();
-        showToast("🗑️ Se eliminaron todos los guardados");
-    });
-    savedList.appendChild(clearAllBtn);
+    // 🔹 Agregar botón "Eliminar todo" solo si hay MÁS DE 1 guardado
+    if (filtered.length > 1) {
+        const clearAllBtn = document.createElement("button");
+        clearAllBtn.textContent = "Eliminar todo";
+        clearAllBtn.style.background = "#2c2c2c";          // Gris oscuro
+        clearAllBtn.style.color = "#ccc";                  // Gris claro
+        clearAllBtn.style.border = "1px solid #444";       // Borde sutil
+        clearAllBtn.style.borderRadius = "6px";
+        clearAllBtn.style.padding = "6px 12px";
+        clearAllBtn.style.margin = "8px 0 10px";
+        clearAllBtn.style.cursor = "pointer";
+        clearAllBtn.style.alignSelf = "flex-end";
+        clearAllBtn.style.fontSize = "13px";
+        clearAllBtn.style.transition = "background 0.2s ease";
+
+        clearAllBtn.addEventListener("mouseenter", () => {
+            clearAllBtn.style.background = "#3a3a3a"; // Hover gris más claro
+        });
+
+        clearAllBtn.addEventListener("mouseleave", () => {
+            clearAllBtn.style.background = "#2c2c2c"; // Regresa al gris oscuro
+        });
+
+        clearAllBtn.addEventListener("click", () => {
+            setSavedTitles([]); // Vaciar cookie
+            renderSavedTitles();
+            showToast("✅ Todos los guardados fueron eliminados");
+        });
+
+        savedList.appendChild(clearAllBtn);
+    }
 
     // 🔹 Renderizamos títulos uno por uno
     filtered.forEach(item => {
@@ -866,6 +879,7 @@ function renderSavedTitles(filter = "") {
         li.style.padding = "10px";
         li.style.borderBottom = "1px solid #333";
         li.style.color = "#fff";
+        li.style.transition = "opacity 0.3s ease, transform 0.3s ease"; // Animación de salida
 
         // Texto del título
         const titleSpan = document.createElement("span");
@@ -896,22 +910,38 @@ function renderSavedTitles(filter = "") {
             }
         });
 
-        // Botón eliminar individual ❌
+        // Botón eliminar individual ❌ (discreto)
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "❌";
+        deleteBtn.textContent = "✕";
         deleteBtn.style.background = "transparent";
         deleteBtn.style.border = "none";
-        deleteBtn.style.color = "#ff5c5c";
-        deleteBtn.style.fontSize = "16px";
+        deleteBtn.style.color = "#aaa";              // Gris suave
+        deleteBtn.style.fontSize = "14px";
         deleteBtn.style.cursor = "pointer";
         deleteBtn.style.marginLeft = "10px";
+        deleteBtn.style.transition = "color 0.2s ease";
+
+        deleteBtn.addEventListener("mouseenter", () => {
+            deleteBtn.style.color = "#fff"; // Hover más visible
+        });
+
+        deleteBtn.addEventListener("mouseleave", () => {
+            deleteBtn.style.color = "#aaa"; // Regresa al gris discreto
+        });
 
         deleteBtn.addEventListener("click", (e) => {
             e.stopPropagation(); // Evita abrir el anuncio al borrar
-            const updated = saved.filter(s => s.id !== item.id);
-            setSavedTitles(updated);
-            renderSavedTitles(filter);
-            showToast("🗑️ Eliminado de guardados");
+
+            // Animación de desvanecimiento y desplazamiento
+            li.style.opacity = "0";
+            li.style.transform = "translateX(30px)";
+
+            setTimeout(() => {
+                const updated = saved.filter(s => s.id !== item.id);
+                setSavedTitles(updated);
+                renderSavedTitles(filter);
+                showToast("🗑️ Eliminado de guardados");
+            }, 300); // Esperamos a que termine la animación
         });
 
         li.appendChild(titleSpan);
@@ -937,6 +967,7 @@ viewSavedBtn.addEventListener("click", () => {
         savedList.scrollTop = 0;
     }, 50);
 });
+
 
 
 
@@ -1996,6 +2027,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
