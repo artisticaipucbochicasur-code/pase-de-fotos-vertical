@@ -577,6 +577,10 @@
     }
 }
 
+    #savedList {
+    scroll-behavior: smooth;
+}
+
     
   </style>
 </head>
@@ -880,9 +884,20 @@ saveBtn.addEventListener("click", saveCurrentTitle);
 
 viewSavedBtn.addEventListener("click", () => {
     savedSearchInput.value = "";
+
+    // Renderizamos primero los títulos
     renderSavedTitles();
-    savedModal.style.display = "flex";
+
+    // Mostramos el modal y reseteamos el scroll al inicio
+    setTimeout(() => {
+        savedModal.style.display = "flex";
+
+        // 🔹 Nos aseguramos de que la lista siempre inicie desde arriba
+        savedList.scrollTop = 0;
+    }, 50);
 });
+
+
 
 savedSearchInput.addEventListener("input", (e) => {
     renderSavedTitles(e.target.value);
@@ -1940,6 +1955,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
