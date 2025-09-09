@@ -774,7 +774,6 @@
     let indiceBusqueda = []; // [{ i, key, titulo }]
 let lastVideos = []; // 👈 Evita ReferenceError en WebViewer
 
-
 // ==============================
 // 🎥 GUARDAR Y VER VIDEOS
 // ==============================
@@ -815,8 +814,7 @@ function showToast(msg) {
 
 // ✅ Guardar video actual
 function saveCurrentVideo() {
-   if (typeof swiper === "undefined" || !lastVideos || lastVideos.length === 0) {
-
+    if (typeof swiper === "undefined" || !lastVideos || lastVideos.length === 0) {
         showToast("⚠️ No hay videos para guardar");
         return;
     }
@@ -858,11 +856,12 @@ function renderSavedVideos(filter = "") {
         li.style.color = "#fff";
 
         li.addEventListener("click", () => {
-           if (!lastVideos || lastVideos.length === 0) {
-    showToast("⚠️ Los videos aún no se han cargado");
-    return;
-}
+            if (!lastVideos || lastVideos.length === 0) {
+                showToast("⚠️ Los videos aún no se han cargado");
+                return;
+            }
 
+            const videoIndex = lastVideos.findIndex(v => v.id === item.id);
 
             if (videoIndex !== -1) {
                 // Movemos el swiper al video
@@ -882,7 +881,7 @@ function renderSavedVideos(filter = "") {
                             tituloActual.classList.remove("highlight-video-zoom");
                         }, 2000);
                     }
-                }, 400); // Pequeño delay para que cargue el video
+                }, 400);
             } else {
                 showToast("⚠️ Este video ya no está disponible");
             }
@@ -914,7 +913,6 @@ savedModal.addEventListener("click", (e) => {
         savedModal.style.display = "none";
     }
 });
-
 
 
     
@@ -1934,6 +1932,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
