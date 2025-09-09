@@ -660,75 +660,63 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        overflow: hidden;
-        transform: translateY(0);
+        overflow: hidden; /* 🔹 Aislamos scroll interno */
+        transform: translateY(0); /* 🔹 Siempre inicia centrado */
         transition: transform 0.25s ease;
     ">
-        <!-- Contenedor fijo -->
+        <!-- Encabezado -->
         <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             position: sticky;
             top: 0;
             background-color: #1c1c1c;
-            z-index: 30;
-            padding-bottom: 10px;
+            z-index: 20;
+            padding-bottom: 8px;
         ">
-            <!-- Encabezado -->
-            <div style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            ">
-                <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
-                <button id="closeSavedBtn" style="
-                    background: none;
-                    border: none;
-                    color: white;
-                    font-size: 24px;
-                    cursor: pointer;
-                    line-height: 1;
-                ">&times;</button>
-            </div>
-
-            <!-- Input de búsqueda -->
-            <input
-                id="savedSearchInput"
-                type="text"
-                placeholder="Buscar guardados..."
-                style="
-                    width: 100%;
-                    margin-top: 12px;
-                    padding: 10px;
-                    border: none;
-                    border-radius: 6px;
-                    background-color: #2c2c2c;
-                    color: white;
-                    font-size: 15px;
-                    box-sizing: border-box;
-                "
-            />
+            <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
+            <button id="closeSavedBtn" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                line-height: 1;
+            ">&times;</button>
         </div>
+
+        <!-- Input de búsqueda -->
+        <input
+            id="savedSearchInput"
+            type="text"
+            placeholder="Buscar guardados..."
+            style="
+                position: sticky;
+                top: 40px; /* 🔹 Debajo del encabezado */
+                z-index: 15;
+                margin-top: 12px;
+                padding: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #2c2c2c;
+                color: white;
+                font-size: 15px;
+            "
+        />
 
         <!-- Lista de guardados -->
         <ul id="savedList" style="
             list-style: none;
             padding: 0;
             margin: 15px 0 0;
-            flex-grow: 1;
-            min-height: 120px;  /* 🔹 Mantiene el espacio incluso sin resultados */
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: #555 #1c1c1c;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-        ">
-            <!-- Cuando no hay títulos, mostramos un mensaje -->
-        </ul>
+        "></ul>
     </div>
 </div>
-
 
 
 
@@ -849,24 +837,12 @@ function saveCurrentTitle() {
 
 // ==========================
 // 📜 RENDERIZAR TITULOS GUARDADOS
-// ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo", animación y input fijo
+// ✅ Renderizar lista de guardados con eliminar individual, "Eliminar todo" y animación
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
 
     const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
-
-    // 🔹 Ajustar posición del input según si hay o no coincidencias
-    if (window.innerWidth <= 768) {
-        const savedModalInner = document.getElementById("savedModalInner");
-        if (filtered.length === 0) {
-            // Si no hay títulos, subimos un poco el modal
-            savedModalInner.style.transform = "translateY(-20%)";
-        } else {
-            // Si hay títulos, mantenemos input en posición inicial
-            savedModalInner.style.transform = "translateY(10)";
-        }
-    }
 
     if (filtered.length === 0) {
         savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
@@ -985,7 +961,6 @@ function renderSavedTitles(filter = "") {
     });
 }
 
-
 // ==========================
 // 📌 EVENTOS DE LOS BOTONES
 // ==========================
@@ -1047,21 +1022,24 @@ function showToast(msg) {
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalInner = document.getElementById("savedModalInner");
 
-// ✅ Mantener siempre el buscador en la misma posición
+// ✅ Mantener posición fija siempre
 savedSearchInputEl.addEventListener("focus", () => {
     if (window.innerWidth <= 768) {
+        // Cuando se toca, NO movemos nada
         savedModalInner.style.transform = "translateY(0)";
     }
 });
 
 savedSearchInputEl.addEventListener("input", () => {
     if (window.innerWidth <= 768) {
+        // Cuando escribes, tampoco movemos nada
         savedModalInner.style.transform = "translateY(0)";
     }
 });
 
 savedSearchInputEl.addEventListener("blur", () => {
     if (window.innerWidth <= 768) {
+        // Cuando cierras teclado, vuelve igual
         savedModalInner.style.transform = "translateY(0)";
     }
 });
@@ -2091,6 +2069,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
