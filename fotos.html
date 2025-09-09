@@ -573,6 +573,7 @@
   -webkit-backdrop-filter: blur(10px);
    align-items: center;
     justify-content: center;
+  display: flex;
     color: white;
     border: none;
     padding: 10px 14px;
@@ -597,6 +598,7 @@
   -webkit-backdrop-filter: blur(10px);
    align-items: center;
     justify-content: center;
+  display: flex;
     color: white;
     border: none;
     padding: 10px 14px;
@@ -729,7 +731,7 @@
 
 
 // ==========================
-// 🔖 GUARDAR Y VER TITULOS
+// 🔖 GUARDAR Y VER TÍTULOS
 // ==========================
 const saveBtn = document.getElementById("saveBtn");
 const viewSavedBtn = document.getElementById("viewSavedBtn");
@@ -738,9 +740,7 @@ const savedList = document.getElementById("savedList");
 const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
-// ==========================
-// ✅ FUNCIONES DE COOKIES (Compatibilidad WebViewer)
-// ==========================
+// ✅ Para compatibilidad con WebViewer usamos cookies en vez de localStorage
 function setSavedTitles(data) {
     document.cookie = "savedTitles=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
 }
@@ -750,9 +750,25 @@ function getSavedTitles() {
     return match ? JSON.parse(decodeURIComponent(match[2])) : [];
 }
 
-// ==========================
-// 💾 GUARDAR ANUNCIO ACTUAL
-// ==========================
+// ✅ Mostrar notificaciones amigables en WebViewer
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.textContent = msg;
+    toast.style.position = "fixed";
+    toast.style.bottom = "80px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.background = "rgba(0,0,0,0.85)";
+    toast.style.color = "white";
+    toast.style.padding = "10px 16px";
+    toast.style.borderRadius = "6px";
+    toast.style.fontSize = "14px";
+    toast.style.zIndex = "10001";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
+// ✅ Guardar título actual
 function saveCurrentTitle() {
     if (!swiperInstance || anunciosData.length === 0) {
         showToast("⚠️ No hay anuncios para guardar");
@@ -764,7 +780,6 @@ function saveCurrentTitle() {
 
     let saved = getSavedTitles();
 
-    // Evitamos duplicados por ID
     if (!saved.find(item => item.id === currentAnuncio.id)) {
         saved.push({ id: currentAnuncio.id, titulo: currentAnuncio.titulo });
         setSavedTitles(saved);
@@ -774,9 +789,7 @@ function saveCurrentTitle() {
     }
 }
 
-// ==========================
-// 📜 RENDERIZAR TITULOS GUARDADOS
-// ==========================
+// ✅ Renderizar lista de guardados
 function renderSavedTitles(filter = "") {
     const saved = getSavedTitles();
     savedList.innerHTML = "";
@@ -784,7 +797,7 @@ function renderSavedTitles(filter = "") {
     const filtered = saved.filter(item => item.titulo.toLowerCase().includes(filter.toLowerCase()));
 
     if (filtered.length === 0) {
-        savedList.innerHTML = "<li style='color: #777; text-align:center; padding: 8px;'>No hay títulos guardados</li>";
+        savedList.innerHTML = "<li style='color: #777; padding: 10px;'>No hay títulos guardados</li>";
         return;
     }
 
@@ -793,7 +806,8 @@ function renderSavedTitles(filter = "") {
         li.textContent = item.titulo;
         li.style.cursor = "pointer";
         li.style.padding = "10px";
-        li.style.borderBottom = "1px solid #ddd";
+        li.style.borderBottom = "1px solid #333";
+        li.style.color = "#fff";
         li.addEventListener("click", () => {
             const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
             if (anuncioIndex !== -1) {
@@ -807,9 +821,7 @@ function renderSavedTitles(filter = "") {
     });
 }
 
-// ==========================
-// 📌 EVENTOS DE LOS BOTONES
-// ==========================
+// ✅ Eventos principales
 saveBtn.addEventListener("click", saveCurrentTitle);
 
 viewSavedBtn.addEventListener("click", () => {
@@ -832,25 +844,6 @@ savedModal.addEventListener("click", (e) => {
     }
 });
 
-// ==========================
-// 🍞 TOASTS PERSONALIZADOS
-// ==========================
-function showToast(msg) {
-    const toast = document.createElement("div");
-    toast.textContent = msg;
-    toast.style.position = "fixed";
-    toast.style.bottom = "80px";
-    toast.style.left = "50%";
-    toast.style.transform = "translateX(-50%)";
-    toast.style.background = "rgba(0,0,0,0.85)";
-    toast.style.color = "white";
-    toast.style.padding = "10px 16px";
-    toast.style.borderRadius = "6px";
-    toast.style.fontSize = "14px";
-    toast.style.zIndex = "100000";
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2500);
-}
 
 
 
@@ -1873,6 +1866,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
