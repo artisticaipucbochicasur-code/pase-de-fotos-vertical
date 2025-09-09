@@ -1022,37 +1022,32 @@ function showToast(msg) {
 
 
 
-// 📌 Ajustar posición del modal al enfocar el input en móviles (estable y sin saltos)
+
+// 📌 Ajustar posición estable del modal al tocar el input en móviles
 const savedSearchInputEl = document.getElementById("savedSearchInput");
 const savedModalEl = document.getElementById("savedModal");
 const savedModalInner = savedSearchInputEl.closest("div");
 
 const isMobile = () => window.innerWidth <= 768;
 
-// Variable para saber si ya se ajustó una vez
-let modalFijado = false;
-
+// Detectar el primer toque y mover el modal inmediatamente
 savedSearchInputEl.addEventListener("focus", () => {
     if (isMobile()) {
-        setTimeout(() => {
-            // Solo aplicamos el desplazamiento la PRIMERA vez
-            if (!modalFijado) {
-                savedModalInner.style.position = "relative";
-                savedModalInner.style.transform = "translateY(-58%)";
-                savedModalInner.style.transition = "transform 0.25s ease";
-                modalFijado = true; // Marcamos que ya está fijado
-            }
-        }, 300);
+        // Fijamos la posición inmediatamente
+        savedModalInner.style.position = "relative";
+        savedModalInner.style.transform = "translateY(-58%)";
+        savedModalInner.style.transition = "transform 0.25s ease";
     }
 });
 
+// Cuando el teclado se cierra, restauramos la posición normal
 savedSearchInputEl.addEventListener("blur", () => {
     if (isMobile()) {
-        // Restauramos el estado inicial
         savedModalInner.style.transform = "translateY(0)";
-        modalFijado = false; // Para que la próxima vez se reposicione bien
     }
 });
+
+
 
 
 
@@ -2078,6 +2073,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
