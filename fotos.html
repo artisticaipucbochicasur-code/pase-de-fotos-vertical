@@ -1516,6 +1516,9 @@ lblContador.addEventListener("click", () => {
     }
 });
 
+// 🔹 Guardamos los IDs ya vistos
+let anunciosVistosIds = new Set();
+
 // Modificamos actualizarContador para guardar títulos nuevos
 async function actualizarContador() {
     try {
@@ -1535,13 +1538,23 @@ async function actualizarContador() {
                 const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                 const dataAnuncios = await responseAnuncios.json();
 
-                const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-                nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
-                nuevosTitulos = [...new Set(nuevosTitulos)];
-                contadorAcumulado = nuevosTitulos.length;
+                const nuevos = [];
+                dataAnuncios.id.forEach((id, idx) => {
+                    if (!anunciosVistosIds.has(id)) {
+                        nuevos.push(dataAnuncios.titulo[idx]);
+                        anunciosVistosIds.add(id);
+                    }
+                });
+
+                if (nuevos.length > 0) {
+                    nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
+                    nuevosTitulos = [...new Set(nuevosTitulos)];
+                    contadorAcumulado = nuevosTitulos.length;
+                }
             } else if (diferencia < 0) {
                 contadorAcumulado = 0;
                 nuevosTitulos = [];
+                anunciosVistosIds.clear(); // limpiar cache si se redujo
             }
 
             contadorTotalAnterior = totalActual;
@@ -1566,7 +1579,6 @@ async function actualizarContador() {
         console.error("❌ Error al obtener contador:", e);
     }
 }
-
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -2098,6 +2110,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
