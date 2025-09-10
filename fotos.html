@@ -1555,18 +1555,21 @@ async function actualizarContador() {
                     nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
                     nuevosTitulos = [...new Set(nuevosTitulos)];
                     contadorAcumulado = nuevosTitulos.length;
+
+                    // ✅ Recargar anuncios en segundo plano SOLO cuando haya nuevos
+                    console.log("📥 Nuevos anuncios detectados → recargando en segundo plano...");
+                    cargarImagenes(true); // usar un flag para no limpiar todo
                 }
             } else if (diferencia < 0) {
                 // Caso: se borraron anuncios → reiniciamos
                 contadorAcumulado = 0;
                 nuevosTitulos = [];
                 anunciosVistosIds.clear();
+                console.log("⚠️ Se detectó una reducción de anuncios → limpiando cache.");
+                cargarImagenes(true);
             }
 
             contadorTotalAnterior = totalActual;
-            console.log("🔄 Cambio detectado en contador, pero sin recargar todo.");
-            // ❌ Evitamos recargar todo cada vez:
-            // await cargarImagenes();
         }
 
         // 🔔 Actualizar badge y campana
@@ -2119,5 +2122,6 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
