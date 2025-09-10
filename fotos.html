@@ -1516,6 +1516,9 @@ lblContador.addEventListener("click", () => {
     }
 });
 
+// 🔹 Guardamos los IDs ya vistos
+let anunciosVistosIds = new Set();
+
 // Modificamos actualizarContador para guardar títulos nuevos
 async function actualizarContador() {
     try {
@@ -1535,13 +1538,29 @@ async function actualizarContador() {
                 const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                 const dataAnuncios = await responseAnuncios.json();
 
-                const titulosNuevos = dataAnuncios.titulo.slice(-diferencia).reverse();
-                nuevosTitulos = [...titulosNuevos, ...nuevosTitulos];
-                nuevosTitulos = [...new Set(nuevosTitulos)];
-                contadorAcumulado = nuevosTitulos.length;
+                // ✅ Tomamos solo los últimos N (diferencia)
+                const ultimosIds = dataAnuncios.id.slice(-diferencia);
+                const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
+
+                const nuevos = [];
+                ultimosIds.forEach((id, idx) => {
+                    if (!anunciosVistosIds.has(id)) {
+                        nuevos.push(ultimosTitulos[idx]);
+                        anunciosVistosIds.add(id);
+                    }
+                });
+
+                if (nuevos.length > 0) {
+                    // Los más recientes primero
+                    nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
+                    nuevosTitulos = [...new Set(nuevosTitulos)];
+                    contadorAcumulado = nuevosTitulos.length;
+                }
             } else if (diferencia < 0) {
+                // Caso: se borraron anuncios → reiniciamos
                 contadorAcumulado = 0;
                 nuevosTitulos = [];
+                anunciosVistosIds.clear();
             }
 
             contadorTotalAnterior = totalActual;
@@ -1549,23 +1568,24 @@ async function actualizarContador() {
             await cargarImagenes();
         }
 
-        // 🔔 Actualizar badge y icono **siempre**, aunque no haya diferencia
+        // 🔔 Actualizar badge y campana
         if (contadorAcumulado > 0) {
             notificationCount.textContent = contadorAcumulado;
-            notificationCount.style.display = "flex";  // mostrar circulito rojo
+            notificationCount.style.display = "flex";
             document.querySelector("#lblContador i").classList.remove("far");
-            document.querySelector("#lblContador i").classList.add("fas"); // campana rellena
+            document.querySelector("#lblContador i").classList.add("fas");
         } else {
             notificationCount.textContent = "";
-            notificationCount.style.display = "none"; // ocultar circulito
+            notificationCount.style.display = "none";
             document.querySelector("#lblContador i").classList.remove("fas");
-            document.querySelector("#lblContador i").classList.add("far"); // campana contorno
+            document.querySelector("#lblContador i").classList.add("far");
         }
 
     } catch (e) {
         console.error("❌ Error al obtener contador:", e);
     }
 }
+
 
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
@@ -2098,3 +2118,4 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
