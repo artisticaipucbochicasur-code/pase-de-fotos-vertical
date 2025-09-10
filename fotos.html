@@ -44,7 +44,7 @@
 
 
 
-#lblContador span {
+#lbl span {
     display: none;
     position: absolute;
     top: -5px;
@@ -418,7 +418,7 @@
 
 
 
-    /* Estilos del nuevo contador de comentarios */
+    /* Estilos del nuevo  de comentarios */
 .comments-counter {
   position: fixed;
   bottom: 140px;
@@ -701,7 +701,7 @@
   <div class="swiper"><div class="swiper-wrapper"></div></div>
   <div id="loader"><span class="spinner">⏳</span></div> 
   
- <div id="lblContador">
+ <div id="lbl">
   <i class="far fa-bell"></i>
   <span id="notificationCount"></span>
 </div>
@@ -1073,11 +1073,11 @@ savedSearchInputEl.addEventListener("blur", () => {
     
 
     let swiperInstance = null;
-    let contadorTotalAnterior = -1;
-    let contadorAcumulado = 0;
+    let TotalAnterior = -1;
+    let Acumulado = 0;
     let nuevosTitulos = []; 
     const loader = document.getElementById('loader');
-    const lblContador = document.getElementById("lblContador");
+    const lbl = document.getElementById("lbl");
 
     const contentOverlay = document.getElementById('contentOverlay');
     const commentsOverlay = document.getElementById('commentsOverlay');
@@ -1090,7 +1090,7 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
 
-    let contadorComentariosAnterior = -1;
+    let ComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
     
@@ -1270,8 +1270,8 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
 
         // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
-        const lblContador = document.getElementById('lblContador');
-        if (lblContador) {
+        const lbl = document.getElementById('lbl');
+        if (lbl) {
             lblContador.classList.toggle('hidden-overlay');
         }
 
@@ -1538,10 +1538,14 @@ async function actualizarContador() {
                 const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                 const dataAnuncios = await responseAnuncios.json();
 
+                // ✅ Tomamos solo los últimos N anuncios (la diferencia)
+                const ultimosIds = dataAnuncios.id.slice(-diferencia);
+                const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
+
                 const nuevos = [];
-                dataAnuncios.id.forEach((id, idx) => {
+                ultimosIds.forEach((id, idx) => {
                     if (!anunciosVistosIds.has(id)) {
-                        nuevos.push(dataAnuncios.titulo[idx]);
+                        nuevos.push(ultimosTitulos[idx]);
                         anunciosVistosIds.add(id);
                     }
                 });
@@ -2110,6 +2114,7 @@ lblContador.style.display = "flex";
   </script>
 </body>
 </html>
+
 
 
 
