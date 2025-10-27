@@ -2330,8 +2330,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const nombre = document.getElementById("loginNombre").value.trim();
       const correo = document.getElementById("loginCorreo").value.trim();
       if (!nombre || !correo) return alert("Completa todos los campos.");
+
       const usuario = { nombre, correo };
+
+      // 🔄 Sincronizar con tus variables globales
+      currentAuthorName = nombre;
+      currentAuthorEmail = correo;
+
+      // Guardar en localStorage para uso entre páginas
       localStorage.setItem("usuario", JSON.stringify(usuario));
+      localStorage.setItem("autor", nombre);
+      localStorage.setItem("correo", correo);
+
       modal.style.display = "none";
       mostrarUsuario(usuario);
     });
@@ -2341,6 +2351,8 @@ document.addEventListener("DOMContentLoaded", () => {
       userBtn.textContent = iniciales;
       userName.textContent = u.nombre;
       userEmail.textContent = u.correo;
+      currentAuthorName = u.nombre;
+      currentAuthorEmail = u.correo;
     }
 
     userBtn.addEventListener("click", () => {
@@ -2349,11 +2361,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("usuario");
+      localStorage.removeItem("autor");
+      localStorage.removeItem("correo");
+      currentAuthorName = "";
+      currentAuthorEmail = "";
       userMenu.style.display = "none";
       modal.style.display = "flex";
     });
   }
 });
+
 
 
     function recargarDatos() {
@@ -2363,6 +2380,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
