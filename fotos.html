@@ -2205,33 +2205,24 @@ document.getElementById('customAlertOverlay').style.display = 'none';
     }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Resaltar el botón activo según la página actual
-  const currentUrl = window.location.href;
-  const imagesBtn = document.querySelector('a[href="https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/fotos.html"]');
-  const videosBtn = document.querySelector('a[href="https://artisticaipucbochicasur-code.github.io/slider-de-videos/sliderVideos.html"]');
-  if (currentUrl.includes("/pase-de-fotos-vertical/fotos.html")) {
-    imagesBtn?.classList.add("selected");
-  } else if (currentUrl.includes("/slider-de-videos/sliderVideos.html")) {
-    videosBtn?.classList.add("selected");
-  }
-
   // 🔔 Inicializar el icono de notificaciones visible desde el inicio
   const lblContador = document.getElementById('lblContador');
   if (lblContador) {
-    lblContador.innerHTML = `
-      <i class="far fa-bell"></i>
-      <span id="notificationCount" style="display:none"></span>
-    `;
-    lblContador.style.display = "flex";
+  lblContador.innerHTML = `
+  <i class="far fa-bell"></i>
+  <span id="notificationCount" style="display:none"></span>
+`;
+lblContador.style.display = "flex"; 
+
   }
 
-  if (window.AppInventor) {
+  if(window.AppInventor) {
     setInterval(() => {
       const comando = window.AppInventor.getWebViewString?.();
-      if (comando) {
+      if(comando) {
         try {
           const data = JSON.parse(comando);
-          if (data.action === "updateUserData") {
+          if(data.action === "updateUserData") {
             currentAuthorEmail = data.email;
             currentAuthorName = data.name;
 
@@ -2242,28 +2233,29 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
           }
         } catch (e) {
-          if (comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+          if(comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
             console.log("Reiniciando contador y cargando anuncios.");
             contadorAcumulado = 0;
             contadorTotalAnterior = -1;
             verificarComentarios().then(() => cargarImagenes());
           }
-          if (comando.startsWith("irATitulo:")) {
+          if(comando.startsWith("irATitulo:")) {
             const tituloBuscado = comando.replace("irATitulo:", "").trim();
             const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
             const tituloNormalizado = normalizar(tituloBuscado);
             const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-            if (index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+            if(index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
           }
-          if (comando.startsWith("irAIndice:")) {
+          if(comando.startsWith("irAIndice:")) {
             const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-            if (!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
+            if(!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance) swiperInstance.slideToLoop(indice, 0, false);
           }
         }
       }
     }, 500);
   }
 });
+
 
 
     function recargarDatos() {
@@ -2273,6 +2265,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
