@@ -2325,6 +2325,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
   const modal = document.getElementById("loginModal");
+  const btnLogin = document.getElementById("btnLogin");
 
   if (!usuarioGuardado) {
     // Crear capa de bloqueo con fondo difuminado
@@ -2363,6 +2364,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Animación de entrada
     setTimeout(() => (overlay.style.opacity = "1"), 50);
+
+    // ✅ Habilitar botón de inicio de sesión incluso antes del return
+    if (btnLogin) {
+      btnLogin.addEventListener("click", () => {
+        const nombre = document.getElementById("loginNombre").value.trim();
+        const correo = document.getElementById("loginCorreo").value.trim();
+
+        if (!nombre || !correo) {
+          mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+          return;
+        }
+
+        const usuario = { nombre, correo };
+
+        // 🔄 Sincronizar con variables globales
+        currentAuthorName = nombre;
+        currentAuthorEmail = correo;
+
+        // Guardar en localStorage para uso entre páginas
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        localStorage.setItem("autor", nombre);
+        localStorage.setItem("correo", correo);
+
+        modal.style.display = "none";
+        mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+        // 🔓 Quitar overlay
+        overlay.style.opacity = "0";
+        setTimeout(() => overlay.remove(), 400);
+
+        // 🔁 Recargar página para que cargue el resto del contenido
+        location.reload();
+      });
+    }
 
     // No ejecuta el resto del código hasta que haya sesión
     return;
@@ -2432,14 +2467,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // === 🔐 INICIO DE SESIÓN LOCAL ===
-  const btnLogin = document.getElementById("btnLogin");
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
   const userName = document.getElementById("userName");
   const userEmail = document.getElementById("userEmail");
   const logoutBtn = document.getElementById("logoutBtn");
 
-  if (modal && btnLogin && userBtn && userMenu) {
+  if (modal && userBtn && userMenu) {
     const usuario = JSON.parse(localStorage.getItem("usuario"));
 
     if (!usuario) {
@@ -2447,38 +2481,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       mostrarUsuario(usuario);
     }
-
-    btnLogin.addEventListener("click", () => {
-      const nombre = document.getElementById("loginNombre").value.trim();
-      const correo = document.getElementById("loginCorreo").value.trim();
-
-      if (!nombre || !correo) {
-        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-        return;
-      }
-
-      const usuario = { nombre, correo };
-
-      // 🔄 Sincronizar con tus variables globales
-      currentAuthorName = nombre;
-      currentAuthorEmail = correo;
-
-      // Guardar en localStorage para uso entre páginas
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      localStorage.setItem("autor", nombre);
-      localStorage.setItem("correo", correo);
-
-      modal.style.display = "none";
-      mostrarUsuario(usuario);
-      mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-      // 🔓 Si había overlay, quitarlo suavemente
-      const overlay = document.querySelector("div[style*='Acceso restringido']");
-      if (overlay) {
-        overlay.style.opacity = "0";
-        setTimeout(() => overlay.remove(), 400);
-      }
-    });
 
     function mostrarUsuario(u) {
       const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
@@ -2517,6 +2519,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
