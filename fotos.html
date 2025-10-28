@@ -979,9 +979,9 @@ const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 
 // Variable global para controlar el temporizador de desaparición
-let avisoTimeout;
+let avisoTimeout; // <-- ¡Añade esta línea fuera de la función!
 
-// === 💬 Aviso elegante y centrado en pantalla ===
+// === 💬 Función de aviso elegante y centrada ===
 function mostrarAviso(mensaje, tipo = "info") {
   let alertBox = document.getElementById("alertBox");
 
@@ -989,59 +989,57 @@ function mostrarAviso(mensaje, tipo = "info") {
     alertBox = document.createElement("div");
     alertBox.id = "alertBox";
     document.body.appendChild(alertBox);
-
     Object.assign(alertBox.style, {
       display: "none",
       position: "fixed",
-      top: "50%",
+      bottom: "40px",
       left: "50%",
-      transform: "translate(-50%, -50%) scale(0.9)",
-      // *** ELIMINADO: background: "rgba(0, 119, 204, 0.85)",  ***
+      transform: "translateX(-50%) scale(0.95)",
+      background: "#0077cc",
       color: "white",
-      padding: "20px 32px",
-      borderRadius: "20px",
-      boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+      padding: "14px 22px",
+      borderRadius: "12px",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
       fontWeight: "500",
-      fontSize: "17px",
-      fontFamily: "Poppins, sans-serif",
+      fontSize: "15px",
       zIndex: "9999",
       opacity: "0",
-      transition: "all 0.45s ease",
+      transition: "all 0.4s ease",
       textAlign: "center",
-      maxWidth: "80%",
+      maxWidth: "85%",
       letterSpacing: "0.3px",
-      backdropFilter: "blur(12px)",
-      border: "1px solid rgba(255,255,255,0.2)",
+      backdropFilter: "blur(8px)",
+      // No incluiste 'fontFamily' en esta versión, si lo usas, añádelo aquí
     });
   }
-  
-  // Limpiar temporizador previo si existe para evitar que desaparezca antes de tiempo
+
+  // 🛑 Detener el temporizador anterior para que el nuevo aviso se muestre completo
   clearTimeout(avisoTimeout);
-  
-  // 🎨 Colores degradados suaves según tipo
-  let bgColor = "linear-gradient(135deg, #0077cc, #005fa3)";
+
+  // 🎨 Colores suaves según tipo
+  let bgColor = "linear-gradient(135deg, #0077cc, #005fa3)"; // info (por defecto)
   if (tipo === "error") bgColor = "linear-gradient(135deg, #e74c3c, #c0392b)";
   if (tipo === "success") bgColor = "linear-gradient(135deg, #2ecc71, #27ae60)";
-  if (tipo === "warning") bgColor = "linear-gradient(135deg, #f39c12, #d68910)";
+  if (tipo === "warning") bgColor = "linear-gradient(135deg, #f39c12, #d68910)"; // <-- ¡Añadido!
   if (tipo === "info") bgColor = "linear-gradient(135deg, #3498db, #2980b9)";
 
-  alertBox.style.background = bgColor; // ✅ Aplicamos el fondo degradado
+  alertBox.style.background = bgColor;
   alertBox.textContent = mensaje;
-  alertBox.style.display = "block"; // Aseguramos que sea visible antes de animar
+  alertBox.style.display = "block";
 
-  // ✨ Animación de aparición (suave y elegante)
+  // ✨ Animación de aparición
   setTimeout(() => {
     alertBox.style.opacity = "1";
-    alertBox.style.transform = "translate(-50%, -50%) scale(1)";
-  }, 50); // Un pequeño retardo asegura que 'display: block' sea procesado
+    alertBox.style.transform = "translateX(-50%) scale(1)";
+  }, 50);
 
-  // ⏳ Desaparición automática
-  avisoTimeout = setTimeout(() => { // Guardamos el timeout en la variable global
+  // ⏳ Desaparición automática (guardamos el ID en la variable global)
+  avisoTimeout = setTimeout(() => {
     alertBox.style.opacity = "0";
-    alertBox.style.transform = "translate(-50%, -50%) scale(0.9)";
+    alertBox.style.transform = "translateX(-50%) scale(0.95)";
     setTimeout(() => {
       alertBox.style.display = "none";
-    }, 450); // Ajusté a 450ms, igual que la transición, para una mejor sincronización
+    }, 400); // 400ms coincide con la transición 'all 0.4s ease'
   }, 3000);
 }
 
@@ -2476,6 +2474,7 @@ if (modal && btnLogin && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
