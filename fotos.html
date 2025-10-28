@@ -709,6 +709,26 @@ body {
 
 <body>
 
+<!-- 🔹 Aviso flotante -->
+<div id="alertBox" style="
+  display:none;
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#0077cc;
+  color:white;
+  padding:12px 18px;
+  border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  font-weight:500;
+  z-index:9999;
+  opacity:0;
+  transform:translateY(-10px);
+  transition:all 0.4s ease;
+"></div>
+
+
+  
 <!-- BOTÓN GUARDAR/VER -->
 <button id="saveBtn" style="
     position: fixed;
@@ -957,6 +977,35 @@ const savedList = document.getElementById("savedList");
 const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
+
+function mostrarAviso(mensaje, tipo = "info") {
+  const alertBox = document.getElementById("alertBox");
+
+  // Estilo según tipo
+  let bgColor = "#0077cc";
+  if (tipo === "error") bgColor = "#e74c3c";
+  if (tipo === "success") bgColor = "#2ecc71";
+
+  alertBox.style.background = bgColor;
+  alertBox.textContent = mensaje;
+  alertBox.style.display = "block";
+
+  // Mostrar con animación
+  setTimeout(() => {
+    alertBox.style.opacity = "1";
+    alertBox.style.transform = "translateY(0)";
+  }, 50);
+
+  // Ocultar automáticamente después de 3 segundos
+  setTimeout(() => {
+    alertBox.style.opacity = "0";
+    alertBox.style.transform = "translateY(-10px)";
+    setTimeout(() => {
+      alertBox.style.display = "none";
+    }, 400);
+  }, 3000);
+}
+    
 // ==========================
 // ✅ FUNCIONES DE COOKIES (Compatibilidad WebViewer)
 // ==========================
@@ -2308,67 +2357,73 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 500);
   }
 
-  // === 🔐 INICIO DE SESIÓN LOCAL ===
-  const modal = document.getElementById("loginModal");
-  const btnLogin = document.getElementById("btnLogin");
-  const userBtn = document.getElementById("userBtn");
-  const userMenu = document.getElementById("userMenu");
-  const userName = document.getElementById("userName");
-  const userEmail = document.getElementById("userEmail");
-  const logoutBtn = document.getElementById("logoutBtn");
+// === 🔐 INICIO DE SESIÓN LOCAL ===
+const modal = document.getElementById("loginModal");
+const btnLogin = document.getElementById("btnLogin");
+const userBtn = document.getElementById("userBtn");
+const userMenu = document.getElementById("userMenu");
+const userName = document.getElementById("userName");
+const userEmail = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
 
-  if (modal && btnLogin && userBtn && userMenu) {
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
+if (modal && btnLogin && userBtn && userMenu) {
+  const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-    if (!usuario) {
-      modal.style.display = "flex";
-    } else {
-      mostrarUsuario(usuario);
-    }
-
-    btnLogin.addEventListener("click", () => {
-      const nombre = document.getElementById("loginNombre").value.trim();
-      const correo = document.getElementById("loginCorreo").value.trim();
-      if (!nombre || !correo) return alert("Completa todos los campos.");
-
-      const usuario = { nombre, correo };
-
-      // 🔄 Sincronizar con tus variables globales
-      currentAuthorName = nombre;
-      currentAuthorEmail = correo;
-
-      // Guardar en localStorage para uso entre páginas
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      localStorage.setItem("autor", nombre);
-      localStorage.setItem("correo", correo);
-
-      modal.style.display = "none";
-      mostrarUsuario(usuario);
-    });
-
-    function mostrarUsuario(u) {
-      const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase();
-      userBtn.textContent = iniciales;
-      userName.textContent = u.nombre;
-      userEmail.textContent = u.correo;
-      currentAuthorName = u.nombre;
-      currentAuthorEmail = u.correo;
-    }
-
-    userBtn.addEventListener("click", () => {
-      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-    });
-
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("autor");
-      localStorage.removeItem("correo");
-      currentAuthorName = "";
-      currentAuthorEmail = "";
-      userMenu.style.display = "none";
-      modal.style.display = "flex";
-    });
+  if (!usuario) {
+    modal.style.display = "flex";
+  } else {
+    mostrarUsuario(usuario);
   }
+
+  btnLogin.addEventListener("click", () => {
+    const nombre = document.getElementById("loginNombre").value.trim();
+    const correo = document.getElementById("loginCorreo").value.trim();
+
+    if (!nombre || !correo) {
+      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+      return;
+    }
+
+    const usuario = { nombre, correo };
+
+    // 🔄 Sincronizar con tus variables globales
+    currentAuthorName = nombre;
+    currentAuthorEmail = correo;
+
+    // Guardar en localStorage para uso entre páginas
+    localStorage.setItem("usuario", JSON.stringify(usuario));
+    localStorage.setItem("autor", nombre);
+    localStorage.setItem("correo", correo);
+
+    modal.style.display = "none";
+    mostrarUsuario(usuario);
+    mostrarAviso("✅ Sesión iniciada correctamente", "success");
+  });
+
+  function mostrarUsuario(u) {
+    const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+    userBtn.textContent = iniciales;
+    userName.textContent = u.nombre;
+    userEmail.textContent = u.correo;
+    currentAuthorName = u.nombre;
+    currentAuthorEmail = u.correo;
+  }
+
+  userBtn.addEventListener("click", () => {
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("autor");
+    localStorage.removeItem("correo");
+    currentAuthorName = "";
+    currentAuthorEmail = "";
+    userMenu.style.display = "none";
+    modal.style.display = "flex";
+    mostrarAviso("🚪 Sesión cerrada", "info");
+  });
+}
 });
 
 
@@ -2380,6 +2435,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
