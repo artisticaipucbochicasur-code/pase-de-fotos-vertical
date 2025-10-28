@@ -978,25 +978,49 @@ const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 
+// === 💬 Función de aviso elegante ===
 function mostrarAviso(mensaje, tipo = "info") {
-  const alertBox = document.getElementById("alertBox");
+  let alertBox = document.getElementById("alertBox");
 
-  // Estilo según tipo
+  if (!alertBox) {
+    alertBox = document.createElement("div");
+    alertBox.id = "alertBox";
+    document.body.appendChild(alertBox);
+    Object.assign(alertBox.style, {
+      display: "none",
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      background: "#0077cc",
+      color: "white",
+      padding: "12px 18px",
+      borderRadius: "8px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+      fontWeight: "500",
+      zIndex: "9999",
+      opacity: "0",
+      transform: "translateY(-10px)",
+      transition: "all 0.4s ease"
+    });
+  }
+
+  // Color según tipo
   let bgColor = "#0077cc";
   if (tipo === "error") bgColor = "#e74c3c";
   if (tipo === "success") bgColor = "#2ecc71";
+  if (tipo === "info") bgColor = "#3498db";
 
   alertBox.style.background = bgColor;
   alertBox.textContent = mensaje;
   alertBox.style.display = "block";
 
-  // Mostrar con animación
+  // Animación de entrada
   setTimeout(() => {
     alertBox.style.opacity = "1";
     alertBox.style.transform = "translateY(0)";
   }, 50);
 
-  // Ocultar automáticamente después de 3 segundos
+  // Ocultar automáticamente
   setTimeout(() => {
     alertBox.style.opacity = "0";
     alertBox.style.transform = "translateY(-10px)";
@@ -2435,6 +2459,7 @@ if (modal && btnLogin && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
