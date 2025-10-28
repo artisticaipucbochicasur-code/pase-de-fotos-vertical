@@ -978,6 +978,9 @@ const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 
+// Variable global para controlar el temporizador de desaparición
+let avisoTimeout;
+
 // === 💬 Aviso elegante y centrado en pantalla ===
 function mostrarAviso(mensaje, tipo = "info") {
   let alertBox = document.getElementById("alertBox");
@@ -993,7 +996,7 @@ function mostrarAviso(mensaje, tipo = "info") {
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%) scale(0.9)",
-      background: "rgba(0, 119, 204, 0.85)",
+      // *** ELIMINADO: background: "rgba(0, 119, 204, 0.85)",  ***
       color: "white",
       padding: "20px 32px",
       borderRadius: "20px",
@@ -1011,7 +1014,10 @@ function mostrarAviso(mensaje, tipo = "info") {
       border: "1px solid rgba(255,255,255,0.2)",
     });
   }
-
+  
+  // Limpiar temporizador previo si existe para evitar que desaparezca antes de tiempo
+  clearTimeout(avisoTimeout);
+  
   // 🎨 Colores degradados suaves según tipo
   let bgColor = "linear-gradient(135deg, #0077cc, #005fa3)";
   if (tipo === "error") bgColor = "linear-gradient(135deg, #e74c3c, #c0392b)";
@@ -1019,23 +1025,23 @@ function mostrarAviso(mensaje, tipo = "info") {
   if (tipo === "warning") bgColor = "linear-gradient(135deg, #f39c12, #d68910)";
   if (tipo === "info") bgColor = "linear-gradient(135deg, #3498db, #2980b9)";
 
-  alertBox.style.background = bgColor;
+  alertBox.style.background = bgColor; // ✅ Aplicamos el fondo degradado
   alertBox.textContent = mensaje;
-  alertBox.style.display = "block";
+  alertBox.style.display = "block"; // Aseguramos que sea visible antes de animar
 
   // ✨ Animación de aparición (suave y elegante)
   setTimeout(() => {
     alertBox.style.opacity = "1";
     alertBox.style.transform = "translate(-50%, -50%) scale(1)";
-  }, 50);
+  }, 50); // Un pequeño retardo asegura que 'display: block' sea procesado
 
   // ⏳ Desaparición automática
-  setTimeout(() => {
+  avisoTimeout = setTimeout(() => { // Guardamos el timeout en la variable global
     alertBox.style.opacity = "0";
     alertBox.style.transform = "translate(-50%, -50%) scale(0.9)";
     setTimeout(() => {
       alertBox.style.display = "none";
-    }, 400);
+    }, 450); // Ajusté a 450ms, igual que la transición, para una mejor sincronización
   }, 3000);
 }
 
@@ -2470,6 +2476,7 @@ if (modal && btnLogin && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
