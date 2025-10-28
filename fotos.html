@@ -978,7 +978,7 @@ const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 
-// === 💬 Función de aviso elegante y centrado ===
+// === 💬 Aviso elegante y centrado inferior ===
 function mostrarAviso(mensaje, tipo = "info") {
   let alertBox = document.getElementById("alertBox");
 
@@ -986,55 +986,58 @@ function mostrarAviso(mensaje, tipo = "info") {
     alertBox = document.createElement("div");
     alertBox.id = "alertBox";
     document.body.appendChild(alertBox);
+
     Object.assign(alertBox.style, {
       display: "none",
       position: "fixed",
-      top: "50%",
+      bottom: "50px",
       left: "50%",
-      transform: "translate(-50%, -50%) scale(0.9)",
-      background: "rgba(255, 255, 255, 0.95)",
-      color: "#333",
-      padding: "18px 28px",
-      borderRadius: "12px",
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+      transform: "translateX(-50%) scale(0.95)",
+      background: "rgba(0, 119, 204, 0.95)",
+      color: "white",
+      padding: "14px 26px",
+      borderRadius: "16px",
+      boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
       fontWeight: "500",
+      fontSize: "15px",
       fontFamily: "Poppins, sans-serif",
       zIndex: "9999",
       opacity: "0",
-      transition: "all 0.4s ease",
+      transition: "all 0.45s ease",
       textAlign: "center",
-      minWidth: "280px",
-      maxWidth: "400px",
-      backdropFilter: "blur(6px)",
+      maxWidth: "90%",
+      letterSpacing: "0.4px",
+      backdropFilter: "blur(10px)",
     });
   }
 
-  // Colores según tipo
-  let bgColor = "#3498db";
-  if (tipo === "error") bgColor = "#e74c3c";
-  if (tipo === "success") bgColor = "#2ecc71";
-  if (tipo === "warning") bgColor = "#f39c12";
+  // 🎨 Colores con degradado según tipo
+  let bgColor = "linear-gradient(135deg, #0077cc, #005fa3)";
+  if (tipo === "error") bgColor = "linear-gradient(135deg, #e74c3c, #c0392b)";
+  if (tipo === "success") bgColor = "linear-gradient(135deg, #2ecc71, #27ae60)";
+  if (tipo === "warning") bgColor = "linear-gradient(135deg, #f39c12, #d68910)";
+  if (tipo === "info") bgColor = "linear-gradient(135deg, #3498db, #2980b9)";
 
-  alertBox.style.border = `3px solid ${bgColor}`;
-  alertBox.style.color = "#222";
+  alertBox.style.background = bgColor;
   alertBox.textContent = mensaje;
   alertBox.style.display = "block";
 
-  // Animación de entrada
+  // ✨ Animación suave de aparición
   setTimeout(() => {
     alertBox.style.opacity = "1";
-    alertBox.style.transform = "translate(-50%, -50%) scale(1)";
+    alertBox.style.transform = "translateX(-50%) scale(1)";
   }, 50);
 
-  // Ocultar automáticamente
+  // ⏳ Desaparición automática
   setTimeout(() => {
     alertBox.style.opacity = "0";
-    alertBox.style.transform = "translate(-50%, -50%) scale(0.9)";
+    alertBox.style.transform = "translateX(-50%) scale(0.95)";
     setTimeout(() => {
       alertBox.style.display = "none";
     }, 400);
   }, 3000);
 }
+
 
 
 // ==========================
@@ -2466,6 +2469,7 @@ if (modal && btnLogin && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
