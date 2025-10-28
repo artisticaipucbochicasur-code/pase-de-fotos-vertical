@@ -962,7 +962,7 @@ const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 
-// === 💬 Aviso elegante y centrado en pantalla (negro, gris y blanco) ===
+// === 💬 Aviso elegante, centrado y adaptable a móviles ===
 function mostrarAviso(mensaje, tipo = "info") {
   let alertBox = document.getElementById("alertBox");
 
@@ -979,25 +979,28 @@ function mostrarAviso(mensaje, tipo = "info") {
       transform: "translate(-50%, -50%) scale(0.9)",
       background: "rgba(30, 30, 30, 0.9)",
       color: "#fff",
-      padding: "18px 30px",
+      padding: "14px 24px",
       borderRadius: "14px",
       boxShadow: "0 8px 25px rgba(0,0,0,0.4)",
       fontWeight: "500",
-      fontSize: "16px",
+      fontSize: "15px",
       fontFamily: "Poppins, sans-serif",
       zIndex: "9999",
       opacity: "0",
       transition: "all 0.4s ease",
       textAlign: "center",
-      maxWidth: "80%",
+      whiteSpace: "nowrap", // ✅ evita salto de línea
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      maxWidth: "90vw", // ✅ limita al ancho de pantalla
       letterSpacing: "0.3px",
       backdropFilter: "blur(10px)",
       border: "1px solid rgba(255,255,255,0.1)",
     });
   }
 
-  // 🎨 Tonos neutros según tipo
-  let bgColor = "rgba(30, 30, 30, 0.9)"; // default
+  // 🎨 Colores neutros según tipo
+  let bgColor = "rgba(30, 30, 30, 0.9)";
   if (tipo === "error") bgColor = "rgba(50, 50, 50, 0.95)";
   if (tipo === "success") bgColor = "rgba(45, 45, 45, 0.95)";
   if (tipo === "warning") bgColor = "rgba(70, 70, 70, 0.95)";
@@ -1007,7 +1010,7 @@ function mostrarAviso(mensaje, tipo = "info") {
   alertBox.textContent = mensaje;
   alertBox.style.display = "block";
 
-  // ✨ Animación elegante (flotante)
+  // ✨ Animación elegante
   setTimeout(() => {
     alertBox.style.opacity = "1";
     alertBox.style.transform = "translate(-50%, -50%) scale(1)";
@@ -1022,6 +1025,7 @@ function mostrarAviso(mensaje, tipo = "info") {
     }, 400);
   }, 3000);
 }
+
 
 
 
@@ -2318,6 +2322,63 @@ document.getElementById('customAlertOverlay').style.display = 'none';
     }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // 🛑 BLOQUEO DE PANTALLA SI NO HAY SESIÓN ACTIVA
+  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+  if (!usuarioGuardado) {
+    // Crear capa de bloqueo
+    const overlay = document.createElement("div");
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100%",
+      height: "100%",
+      background: "linear-gradient(180deg, #000, #222)",
+      color: "white",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "99999",
+      fontFamily: "Poppins, sans-serif",
+      textAlign: "center",
+      transition: "opacity 0.4s ease",
+    });
+    overlay.innerHTML = `
+      <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
+      <p style="color:#ccc; max-width:80%; line-height:1.5;">
+        Debes iniciar sesión para acceder a esta página.
+      </p>
+      <button id="btnIrLogin" style="
+        margin-top:22px;
+        padding:10px 28px;
+        border:none;
+        border-radius:12px;
+        background:white;
+        color:black;
+        font-weight:600;
+        font-size:15px;
+        cursor:pointer;
+        box-shadow:0 6px 20px rgba(255,255,255,0.1);
+        transition:all 0.3s ease;
+      ">
+        Ir al inicio de sesión
+      </button>
+    `;
+    document.body.appendChild(overlay);
+
+    // Redirección al login
+    document.getElementById("btnIrLogin").addEventListener("click", () => {
+      window.location.href = "login.html"; // 🔹 Cambia si tu login tiene otro nombre
+    });
+
+    return; // 🔒 Detiene el resto del código hasta que haya sesión
+  }
+
+  // ======================================================================================
+  // 👇 Tu código original (sin tocar)
+  // ======================================================================================
+
   // Resaltar el botón activo según la página actual
   const currentUrl = window.location.href;
   const imagesBtn = document.querySelector('a[href="https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/fotos.html"]');
@@ -2377,74 +2438,75 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 500);
   }
 
-// === 🔐 INICIO DE SESIÓN LOCAL ===
-const modal = document.getElementById("loginModal");
-const btnLogin = document.getElementById("btnLogin");
-const userBtn = document.getElementById("userBtn");
-const userMenu = document.getElementById("userMenu");
-const userName = document.getElementById("userName");
-const userEmail = document.getElementById("userEmail");
-const logoutBtn = document.getElementById("logoutBtn");
+  // === 🔐 INICIO DE SESIÓN LOCAL ===
+  const modal = document.getElementById("loginModal");
+  const btnLogin = document.getElementById("btnLogin");
+  const userBtn = document.getElementById("userBtn");
+  const userMenu = document.getElementById("userMenu");
+  const userName = document.getElementById("userName");
+  const userEmail = document.getElementById("userEmail");
+  const logoutBtn = document.getElementById("logoutBtn");
 
-if (modal && btnLogin && userBtn && userMenu) {
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  if (modal && btnLogin && userBtn && userMenu) {
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-  if (!usuario) {
-    modal.style.display = "flex";
-  } else {
-    mostrarUsuario(usuario);
-  }
-
-  btnLogin.addEventListener("click", () => {
-    const nombre = document.getElementById("loginNombre").value.trim();
-    const correo = document.getElementById("loginCorreo").value.trim();
-
-    if (!nombre || !correo) {
-      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-      return;
+    if (!usuario) {
+      modal.style.display = "flex";
+    } else {
+      mostrarUsuario(usuario);
     }
 
-    const usuario = { nombre, correo };
+    btnLogin.addEventListener("click", () => {
+      const nombre = document.getElementById("loginNombre").value.trim();
+      const correo = document.getElementById("loginCorreo").value.trim();
 
-    // 🔄 Sincronizar con tus variables globales
-    currentAuthorName = nombre;
-    currentAuthorEmail = correo;
+      if (!nombre || !correo) {
+        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+        return;
+      }
 
-    // Guardar en localStorage para uso entre páginas
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    localStorage.setItem("autor", nombre);
-    localStorage.setItem("correo", correo);
+      const usuario = { nombre, correo };
 
-    modal.style.display = "none";
-    mostrarUsuario(usuario);
-    mostrarAviso("✅ Sesión iniciada correctamente", "success");
-  });
+      // 🔄 Sincronizar con tus variables globales
+      currentAuthorName = nombre;
+      currentAuthorEmail = correo;
 
-  function mostrarUsuario(u) {
-    const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-    userBtn.textContent = iniciales;
-    userName.textContent = u.nombre;
-    userEmail.textContent = u.correo;
-    currentAuthorName = u.nombre;
-    currentAuthorEmail = u.correo;
+      // Guardar en localStorage para uso entre páginas
+      localStorage.setItem("usuario", JSON.stringify(usuario));
+      localStorage.setItem("autor", nombre);
+      localStorage.setItem("correo", correo);
+
+      modal.style.display = "none";
+      mostrarUsuario(usuario);
+      mostrarAviso("✅ Sesión iniciada correctamente", "success");
+    });
+
+    function mostrarUsuario(u) {
+      const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+      userBtn.textContent = iniciales;
+      userName.textContent = u.nombre;
+      userEmail.textContent = u.correo;
+      currentAuthorName = u.nombre;
+      currentAuthorEmail = u.correo;
+    }
+
+    userBtn.addEventListener("click", () => {
+      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("autor");
+      localStorage.removeItem("correo");
+      currentAuthorName = "";
+      currentAuthorEmail = "";
+      userMenu.style.display = "none";
+      modal.style.display = "flex";
+      mostrarAviso("🚪 Sesión cerrada", "info");
+    });
   }
-
-  userBtn.addEventListener("click", () => {
-    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-  });
-
-  logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("autor");
-    localStorage.removeItem("correo");
-    currentAuthorName = "";
-    currentAuthorEmail = "";
-    userMenu.style.display = "none";
-    modal.style.display = "flex";
-    mostrarAviso("🚪 Sesión cerrada", "info");
-  });
-}
 });
+
 
 
 
@@ -2455,6 +2517,7 @@ if (modal && btnLogin && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
