@@ -978,7 +978,7 @@ const savedSearchInput = document.getElementById("savedSearchInput");
 const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 
-// === 💬 Función de aviso elegante ===
+// === 💬 Función de aviso elegante y centrada ===
 function mostrarAviso(mensaje, tipo = "info") {
   let alertBox = document.getElementById("alertBox");
 
@@ -989,47 +989,52 @@ function mostrarAviso(mensaje, tipo = "info") {
     Object.assign(alertBox.style, {
       display: "none",
       position: "fixed",
-      top: "20px",
-      right: "20px",
+      bottom: "40px",
+      left: "50%",
+      transform: "translateX(-50%) scale(0.95)",
       background: "#0077cc",
       color: "white",
-      padding: "12px 18px",
-      borderRadius: "8px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+      padding: "14px 22px",
+      borderRadius: "12px",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
       fontWeight: "500",
+      fontSize: "15px",
       zIndex: "9999",
       opacity: "0",
-      transform: "translateY(-10px)",
-      transition: "all 0.4s ease"
+      transition: "all 0.4s ease",
+      textAlign: "center",
+      maxWidth: "85%",
+      letterSpacing: "0.3px",
+      backdropFilter: "blur(8px)",
     });
   }
 
-  // Color según tipo
-  let bgColor = "#0077cc";
-  if (tipo === "error") bgColor = "#e74c3c";
-  if (tipo === "success") bgColor = "#2ecc71";
-  if (tipo === "info") bgColor = "#3498db";
+  // 🎨 Colores suaves según tipo
+  let bgColor = "linear-gradient(135deg, #0077cc, #005fa3)";
+  if (tipo === "error") bgColor = "linear-gradient(135deg, #e74c3c, #c0392b)";
+  if (tipo === "success") bgColor = "linear-gradient(135deg, #2ecc71, #27ae60)";
+  if (tipo === "info") bgColor = "linear-gradient(135deg, #3498db, #2980b9)";
 
   alertBox.style.background = bgColor;
   alertBox.textContent = mensaje;
   alertBox.style.display = "block";
 
-  // Animación de entrada
+  // ✨ Animación de aparición
   setTimeout(() => {
     alertBox.style.opacity = "1";
-    alertBox.style.transform = "translateY(0)";
+    alertBox.style.transform = "translateX(-50%) scale(1)";
   }, 50);
 
-  // Ocultar automáticamente
+  // ⏳ Desaparición automática
   setTimeout(() => {
     alertBox.style.opacity = "0";
-    alertBox.style.transform = "translateY(-10px)";
+    alertBox.style.transform = "translateX(-50%) scale(0.95)";
     setTimeout(() => {
       alertBox.style.display = "none";
     }, 400);
   }, 3000);
 }
-    
+
 // ==========================
 // ✅ FUNCIONES DE COOKIES (Compatibilidad WebViewer)
 // ==========================
@@ -2459,6 +2464,7 @@ if (modal && btnLogin && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
