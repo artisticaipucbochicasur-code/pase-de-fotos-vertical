@@ -2322,10 +2322,12 @@ document.getElementById('customAlertOverlay').style.display = 'none';
     }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 🛑 BLOQUEO DE PANTALLA SI NO HAY SESIÓN ACTIVA
+  // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+  const modal = document.getElementById("loginModal");
+
   if (!usuarioGuardado) {
-    // Crear capa de bloqueo
+    // Crear capa de bloqueo con fondo difuminado
     const overlay = document.createElement("div");
     Object.assign(overlay.style, {
       position: "fixed",
@@ -2339,40 +2341,31 @@ document.addEventListener("DOMContentLoaded", () => {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      zIndex: "99999",
+      zIndex: "99998",
       fontFamily: "Poppins, sans-serif",
       textAlign: "center",
+      opacity: "0",
       transition: "opacity 0.4s ease",
     });
     overlay.innerHTML = `
       <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
       <p style="color:#ccc; max-width:80%; line-height:1.5;">
-        Debes iniciar sesión para acceder a esta página.
+        Debes iniciar sesión para acceder al contenido.
       </p>
-      <button id="btnIrLogin" style="
-        margin-top:22px;
-        padding:10px 28px;
-        border:none;
-        border-radius:12px;
-        background:white;
-        color:black;
-        font-weight:600;
-        font-size:15px;
-        cursor:pointer;
-        box-shadow:0 6px 20px rgba(255,255,255,0.1);
-        transition:all 0.3s ease;
-      ">
-        Ir al inicio de sesión
-      </button>
     `;
     document.body.appendChild(overlay);
 
-    // Redirección al login
-    document.getElementById("btnIrLogin").addEventListener("click", () => {
-      window.location.href = "login.html"; // 🔹 Cambia si tu login tiene otro nombre
-    });
+    // Mostrar el modal de inicio de sesión
+    if (modal) {
+      modal.style.display = "flex";
+      modal.style.zIndex = "99999";
+    }
 
-    return; // 🔒 Detiene el resto del código hasta que haya sesión
+    // Animación de entrada
+    setTimeout(() => (overlay.style.opacity = "1"), 50);
+
+    // No ejecuta el resto del código hasta que haya sesión
+    return;
   }
 
   // ======================================================================================
@@ -2439,7 +2432,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // === 🔐 INICIO DE SESIÓN LOCAL ===
-  const modal = document.getElementById("loginModal");
   const btnLogin = document.getElementById("btnLogin");
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
@@ -2479,6 +2471,13 @@ document.addEventListener("DOMContentLoaded", () => {
       modal.style.display = "none";
       mostrarUsuario(usuario);
       mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+      // 🔓 Si había overlay, quitarlo suavemente
+      const overlay = document.querySelector("div[style*='Acceso restringido']");
+      if (overlay) {
+        overlay.style.opacity = "0";
+        setTimeout(() => overlay.remove(), 400);
+      }
     });
 
     function mostrarUsuario(u) {
@@ -2510,6 +2509,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -2517,6 +2517,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
