@@ -1031,7 +1031,36 @@ closePublishModal.addEventListener("click", () => {
   publishModal.style.display = "none";
 });
 
-// 🔹 Vista previa y conversión a Base64 con barra de progreso
+// 🔹 Función para comprimir imágenes
+function compressImage(base64, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      let width = img.width;
+      let height = img.height;
+
+      // 🔹 Redimensionar si es más grande que el ancho máximo
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // 🔹 Dibujar y comprimir
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+      resolve(compressedBase64);
+    };
+    img.src = base64;
+  });
+}
+
+// 🔹 Vista previa y compresión de imagen
 fileInput.addEventListener("change", function () {
   const file = this.files[0];
   if (file) {
@@ -1046,18 +1075,23 @@ fileInput.addEventListener("change", function () {
         progressBar.style.width = percent + "%";
       }
     };
-   reader.onloadend = function (e) {
-  base64Imagen = e.target.result.split(",")[1];
-  previewImg.src = e.target.result;
-  previewImg.style.display = "block";
-  previewImg.style.maxWidth = "100%";
-  previewImg.style.maxHeight = "180px"; // 🔹 Evita que crezca demasiado en móviles
-  previewImg.style.objectFit = "cover"; // 🔹 Mantiene proporción sin deformar
-  previewImg.style.borderRadius = "12px";
-  progressBar.style.width = "100%";
-  setTimeout(() => (progressContainer.style.display = "none"), 500);
-};
+    reader.onloadend = async function (e) {
+      const originalBase64 = e.target.result;
 
+      // 🔹 Comprimir imagen antes de mostrarla
+      const compressedBase64 = await compressImage(originalBase64, 800, 0.7);
+      base64Imagen = compressedBase64.split(",")[1];
+
+      previewImg.src = compressedBase64;
+      previewImg.style.display = "block";
+      previewImg.style.maxWidth = "100%";
+      previewImg.style.maxHeight = "180px";
+      previewImg.style.objectFit = "cover";
+      previewImg.style.borderRadius = "12px";
+
+      progressBar.style.width = "100%";
+      setTimeout(() => (progressContainer.style.display = "none"), 500);
+    };
     reader.readAsDataURL(file);
   }
 });
@@ -1123,6 +1157,7 @@ btnPublicar.addEventListener("click", async () => {
 
   btnPublicar.disabled = false;
 });
+
 
 
 // ==========================
@@ -2706,6 +2741,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
