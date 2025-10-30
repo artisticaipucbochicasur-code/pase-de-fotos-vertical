@@ -1054,6 +1054,24 @@ body {
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
+    // Evita que iOS Safari recargue o retroceda con los gestos de swipe
+  document.addEventListener('touchmove', function (e) {
+    // Si el gesto ocurre dentro de un contenedor de imágenes o slider
+    if (e.target.closest('.swiper') || e.target.closest('.slider') || e.target.closest('.carousel')) {
+      e.preventDefault(); // Bloquea el gesto de navegador
+    }
+  }, { passive: false });
+
+  // Evita el "pull-to-refresh" (deslizar hacia abajo para recargar)
+  document.addEventListener('touchmove', function (e) {
+    if (window.scrollY === 0) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  // También mejora la estabilidad del scroll en iOS
+  document.body.style.overscrollBehaviorY = 'contain';
+  document.body.style.touchAction = 'pan-x pan-y';
 
 
 
@@ -2980,4 +2998,5 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
