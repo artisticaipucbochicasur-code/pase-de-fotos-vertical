@@ -765,7 +765,77 @@ body {
   </div>
 </div>
 
+<!-- 🔹 Botón extra para abrir modal de videos -->
+<button id="openVideoModal" style="
+  background:#6b46c1;
+  color:white;
+  padding:12px;
+  border:none;
+  width:100%;
+  border-radius:8px;
+  margin-top:10px;
+  font-size:16px;
+  cursor:pointer;
+">
+🎥 Subir Video
+</button>
 
+<!-- 🔹 Modal para subir videos -->
+<div id="videoModal" style="
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(3px);
+  z-index:10000;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    background:#fff;
+    border-radius:16px;
+    width:90%;
+    max-width:550px;
+    padding:25px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    position:relative;
+  ">
+    <button id="closeVideoModal" style="
+      position:absolute;
+      top:10px; right:15px;
+      background:none;
+      border:none;
+      font-size:22px;
+      cursor:pointer;
+      color:#333;
+    ">×</button>
+
+    <h2 style="text-align:center;color:#6b46c1;">Subir Video</h2>
+
+    <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
+    <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+    <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+    <textarea id="videoDescripcion" rows="3" placeholder="Agrega una breve descripción" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+    <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+    <input type="file" id="fileInput" accept="video/*" style="width:100%;margin-top:5px;" />
+
+    <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+      <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
+    </div>
+
+    <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
+
+    <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
+
+    <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+  </div>
+</div>
+
+
+  
 
 
   
@@ -1006,6 +1076,113 @@ body {
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+
+
+
+// =============================
+// 🎥 MODAL DE SUBIDA DE VIDEOS
+// =============================
+
+const openVideoModal = document.getElementById("openVideoModal");
+const closeVideoModal = document.getElementById("closeVideoModal");
+const videoModal = document.getElementById("videoModal");
+const btnUploadVideo = document.getElementById("btnUploadVideo");
+
+openVideoModal.addEventListener("click", () => {
+  publishModal.style.display = "none"; // cierra el modal de anuncios
+  videoModal.style.display = "flex"; // abre el de videos
+});
+
+closeVideoModal.addEventListener("click", () => {
+  videoModal.style.display = "none";
+});
+
+// 📤 Subida del video (mantiene compatibilidad con tu sistema)
+btnUploadVideo.addEventListener("click", async () => {
+  const file = document.getElementById("fileInput").files[0];
+  const tituloUsuario = document.getElementById("videoTitle").value.trim();
+  const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
+  const progressBar = document.getElementById("progressVideo");
+  const progressContainer = document.getElementById("progressContainerVideo");
+  const metrics = document.getElementById("uploadMetricsVideo");
+  const status = document.getElementById("statusVideo");
+
+  const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
+  const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
+
+  if (!file) return alert("Selecciona un video para subir.");
+  if (!tituloUsuario) return alert("Escribe un título para el video.");
+
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+  status.textContent = "";
+  metrics.textContent = "";
+
+  const identifier = "artistica_bochica_" + Date.now();
+  const fileName = file.name;
+  const accessKey = "KPJmAQCm1UyNJWqv";
+  const secretKey = "9JkBrIGexGNOynyf";
+  const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
+  const xhr = new XMLHttpRequest();
+
+  let startTime = Date.now();
+
+  xhr.upload.onprogress = (event) => {
+    if (event.lengthComputable) {
+      const percent = (event.loaded / event.total) * 100;
+      progressBar.style.width = percent + "%";
+
+      const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
+      const totalMB = (event.total / (1024 * 1024)).toFixed(2);
+      const elapsed = (Date.now() - startTime) / 1000;
+      const speedMB = (event.loaded / elapsed / (1024 * 1024)).toFixed(2);
+      const timeLeft = ((event.total - event.loaded) / (event.loaded / elapsed)) || 0;
+      const mins = Math.floor(timeLeft / 60);
+      const secs = Math.floor(timeLeft % 60);
+      metrics.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
+    }
+  };
+
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      const fileEncoded = encodeURIComponent(fileName);
+      const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
+      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
+
+      // Guarda los datos en tu Apps Script
+      fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
+        + `&titulo=${encodeURIComponent(tituloUsuario)}`
+        + `&link=${encodeURIComponent(directLink)}`
+        + `&autor=${encodeURIComponent(autor)}`
+        + `&correo=${encodeURIComponent(correo)}`
+        + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
+
+      progressContainer.style.display = "none";
+      metrics.textContent = "";
+    } else {
+      status.textContent = "❌ Error al subir el video.";
+    }
+  };
+
+  xhr.onerror = () => {
+    status.textContent = "❌ Error de conexión.";
+  };
+
+  xhr.open("PUT", url, true);
+  xhr.setRequestHeader("Authorization", `LOW ${accessKey}:${secretKey}`);
+  xhr.setRequestHeader("x-archive-auto-make-bucket", "1");
+  xhr.setRequestHeader("x-archive-meta-title", fileName);
+  xhr.setRequestHeader("x-archive-meta-mediatype", "movies");
+  xhr.setRequestHeader("x-archive-meta-description", "Video subido desde la app DECOM");
+  xhr.setRequestHeader("x-archive-meta-collection", "opensource_movies");
+  xhr.setRequestHeader("x-archive-meta-creator", autor);
+  xhr.setRequestHeader("Content-Type", file.type);
+  xhr.send(file);
+});
+
+
+
+    
 
 
 const publishBtn = document.getElementById("publishBtn");
@@ -2768,6 +2945,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
