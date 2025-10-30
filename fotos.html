@@ -2581,13 +2581,21 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
+// 🧠 Solución iOS: prevenir recarga al deslizar o hacer zoom
+const swiperEl = document.querySelector('.swiper');
+if (swiperEl) {
+  swiperEl.style.touchAction = 'pan-y pinch-zoom'; // permite deslizar y hacer zoom sin interferir
+  swiperEl.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 1) e.preventDefault(); // evita crash en gestos múltiples
+  }, { passive: false });
+}
 
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
-            direction: 'horizontal',
+            direction: 'vertical',
             slidesPerView: 1,
             spaceBetween: 10,
             zoom: { maxRatio: 3, minRatio: 1 }
@@ -3006,6 +3014,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
