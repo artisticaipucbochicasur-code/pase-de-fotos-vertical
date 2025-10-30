@@ -740,36 +740,45 @@ body {
       color:#333;
     ">×</button>
 
-    <h2 style="text-align:center;color:#0077cc;">📢 Publicar Anuncio</h2>
+   <h2 style="text-align:center;color:#0077cc;">📢 Publicar Anuncio</h2>
 
-    <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
-    <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+<label style="font-weight:600;display:block;margin-top:10px;">Título</label>
+<input type="text" id="titulo" placeholder="Escribe un título" required 
+  style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;
+         font-size:15px;margin-top:5px;" />
 
-    <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-    <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+<label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+<textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required 
+  style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;
+         font-size:15px;margin-top:5px;"></textarea>
 
-    <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-    <input type="file" id="imagen" accept="image/*" style="width:100%;margin-top:5px;" />
-    <div style="margin-top:10px;text-align:center;">
-      <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
-    </div>
+<label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+<input type="file" id="imagen" accept="image/*" style="width:100%;margin-top:5px;" />
 
-    <!-- 🔹 Barra de progreso -->
-    <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-      <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
-    </div>
-
-    <label style="font-weight:600;display:block;margin-top:10px;">Tu nombre</label>
-    <input type="text" id="autor" placeholder="Tu nombre" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-    <label style="font-weight:600;display:block;margin-top:10px;">Tu correo</label>
-    <input type="email" id="correo" placeholder="Correo del autor" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-    <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
-
-    <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-  </div>
+<div style="margin-top:10px;text-align:center;">
+  <img id="previewImg" src="" 
+       style="max-width:100%;border-radius:12px;display:none;" />
 </div>
+
+<!-- 🔹 Barra de progreso -->
+<div id="progressContainer" 
+     style="width:100%;background:#eee;border-radius:8px;
+            margin-top:15px;height:10px;display:none;">
+  <div id="progressBar" 
+       style="width:0%;height:10px;background:#0077cc;
+              border-radius:8px;transition:width 0.3s;"></div>
+</div>
+
+<button id="btnPublicar" 
+        style="background:#0077cc;color:white;padding:12px;border:none;
+               width:100%;border-radius:8px;margin-top:20px;
+               font-size:16px;cursor:pointer;">
+  📤 Publicar Anuncio
+</button>
+
+<div id="mensaje" 
+     style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+
 
 
   
@@ -1013,117 +1022,116 @@ body {
 
 
 const publishBtn = document.getElementById("publishBtn");
-  const publishModal = document.getElementById("publishModal");
-  const closePublishModal = document.getElementById("closePublishModal");
-  const fileInput = document.getElementById("imagen");
-  const previewImg = document.getElementById("previewImg");
-  const progressContainer = document.getElementById("progressContainer");
-  const progressBar = document.getElementById("progressBar");
-  const btnPublicar = document.getElementById("btnPublicar");
-  const mensaje = document.getElementById("mensaje");
+const publishModal = document.getElementById("publishModal");
+const closePublishModal = document.getElementById("closePublishModal");
+const fileInput = document.getElementById("imagen");
+const previewImg = document.getElementById("previewImg");
+const progressContainer = document.getElementById("progressContainer");
+const progressBar = document.getElementById("progressBar");
+const btnPublicar = document.getElementById("btnPublicar");
+const mensaje = document.getElementById("mensaje");
 
-  let base64Imagen = "";
+let base64Imagen = "";
 
-  // 🔹 Abrir modal
-  publishBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    publishModal.style.display = "flex";
-  });
+// 🔹 Abrir modal
+publishBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  publishModal.style.display = "flex";
+});
 
-  // 🔹 Cerrar modal
-  closePublishModal.addEventListener("click", () => {
-    publishModal.style.display = "none";
-  });
+// 🔹 Cerrar modal
+closePublishModal.addEventListener("click", () => {
+  publishModal.style.display = "none";
+});
 
-  // 🔹 Vista previa y conversión a Base64 con barra de progreso
-  fileInput.addEventListener("change", function () {
-    const file = this.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadstart = function () {
-        progressContainer.style.display = "block";
-        progressBar.style.width = "0%";
-      };
-      reader.onprogress = function (e) {
-        if (e.lengthComputable) {
-          const percent = (e.loaded / e.total) * 100;
-          progressBar.style.width = percent + "%";
-        }
-      };
-      reader.onloadend = function (e) {
-        base64Imagen = e.target.result.split(",")[1];
-        previewImg.src = e.target.result;
-        previewImg.style.display = "block";
-        progressBar.style.width = "100%";
-        setTimeout(() => (progressContainer.style.display = "none"), 500);
-      };
-      reader.readAsDataURL(file);
-    }
-  });
+// 🔹 Vista previa y conversión a Base64 con barra de progreso
+fileInput.addEventListener("change", function () {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadstart = function () {
+      progressContainer.style.display = "block";
+      progressBar.style.width = "0%";
+    };
+    reader.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        progressBar.style.width = percent + "%";
+      }
+    };
+    reader.onloadend = function (e) {
+      base64Imagen = e.target.result.split(",")[1];
+      previewImg.src = e.target.result;
+      previewImg.style.display = "block";
+      progressBar.style.width = "100%";
+      setTimeout(() => (progressContainer.style.display = "none"), 500);
+    };
+    reader.readAsDataURL(file);
+  }
+});
 
-  // 🔹 Enviar anuncio
-  btnPublicar.addEventListener("click", async () => {
-    const titulo = document.getElementById("titulo").value.trim();
-    const descripcion = document.getElementById("descripcion").value.trim();
-    const autor = document.getElementById("autor").value.trim();
-    const correo = document.getElementById("correo").value.trim();
+// 🔹 Enviar anuncio
+btnPublicar.addEventListener("click", async () => {
+  const titulo = document.getElementById("titulo").value.trim();
+  const descripcion = document.getElementById("descripcion").value.trim();
+  const autor = localStorage.getItem("autor") || window.currentAuthorName || "";
+  const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "";
 
-    if (!titulo || !descripcion || !autor || !correo || !base64Imagen) {
-      mensaje.textContent = "⚠️ Por favor completa todos los campos.";
-      mensaje.style.color = "red";
-      return;
-    }
+  if (!titulo || !descripcion || !base64Imagen || !autor || !correo) {
+    mensaje.textContent = "⚠️ Por favor completa todos los campos o inicia sesión.";
+    mensaje.style.color = "red";
+    return;
+  }
 
-    btnPublicar.disabled = true;
-    mensaje.textContent = "⏳ Subiendo anuncio...";
-    mensaje.style.color = "#0077cc";
+  btnPublicar.disabled = true;
+  mensaje.textContent = "⏳ Subiendo anuncio...";
+  mensaje.style.color = "#0077cc";
 
-    const formData = new FormData();
-    formData.append("accion", "guardar");
-    formData.append("tipo", "anuncio");
-    formData.append("titulo", titulo);
-    formData.append("descripcion", descripcion);
-    formData.append("imagen", base64Imagen);
-    formData.append("autor", autor);
-    formData.append("correo", correo);
+  const formData = new FormData();
+  formData.append("accion", "guardar");
+  formData.append("tipo", "anuncio");
+  formData.append("titulo", titulo);
+  formData.append("descripcion", descripcion);
+  formData.append("imagen", base64Imagen);
+  formData.append("autor", autor);
+  formData.append("correo", correo);
 
-    try {
-      const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        body: formData
-      });
-      const result = await response.text();
-      mensaje.textContent = "✅ Anuncio enviado correctamente.";
-      mensaje.style.color = "green";
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: formData
+    });
 
-      // Limpiar formulario
-      document.getElementById("titulo").value = "";
-      document.getElementById("descripcion").value = "";
-      document.getElementById("autor").value = "";
-      document.getElementById("correo").value = "";
-      fileInput.value = "";
-      previewImg.src = "";
-      previewImg.style.display = "none";
-      base64Imagen = "";
+    const result = await response.text();
 
-      // Cerrar modal tras 2 segundos
-      setTimeout(() => {
-        publishModal.style.display = "none";
-        mensaje.textContent = "";
-        // 🔁 Recargar anuncios si tu lógica principal los carga desde el servidor
-        if (typeof cargarAnuncios === "function") {
-          cargarAnuncios();
-        }
-      }, 2000);
-    } catch (err) {
-      mensaje.textContent = "🚫 Error al conectar con el servidor.";
-      mensaje.style.color = "red";
-    }
+    mensaje.textContent = "✅ Anuncio enviado correctamente.";
+    mensaje.style.color = "green";
 
-    btnPublicar.disabled = false;
-  });
+    // Limpiar formulario
+    document.getElementById("titulo").value = "";
+    document.getElementById("descripcion").value = "";
+    fileInput.value = "";
+    previewImg.src = "";
+    previewImg.style.display = "none";
+    base64Imagen = "";
 
-    
+    // Cerrar modal tras 2 segundos
+    setTimeout(() => {
+      publishModal.style.display = "none";
+      mensaje.textContent = "";
+      if (typeof cargarAnuncios === "function") {
+        cargarAnuncios();
+      }
+    }, 2000);
+  } catch (err) {
+    console.error(err);
+    mensaje.textContent = "🚫 Error al conectar con el servidor.";
+    mensaje.style.color = "red";
+  }
+
+  btnPublicar.disabled = false;
+});
+
 
 // ==========================
 // 🔖 GUARDAR Y VER TITULOS
@@ -2706,6 +2714,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
