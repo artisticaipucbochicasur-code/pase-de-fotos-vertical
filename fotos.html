@@ -25,7 +25,10 @@
   <meta name="mobile-web-app-capable" content="yes">
 
   <title>DECOM - Fotos</title>
-  <style>
+ <style>
+    /*
+     * 🚀 SOLUCIÓN FINAL PARA IOS: Bloquear el scroll y el pull-to-refresh
+     */
     body {
         margin: 0;
         padding: 0;
@@ -33,100 +36,97 @@
         font-family: Arial, sans-serif;
         color: white;
         transition: transform 0.3s ease; /* Transición para el movimiento */
+        
+        /* 🛑 Propiedades CLAVE para evitar la recarga en iOS (Body) */
+        overflow: hidden !important; /* Asegura que el body no tenga scroll */
+        height: 100vh; /* Asegura que ocupe todo el viewport */
+        overscroll-behavior-y: none; /* La regla más importante */
     }
- .swiper { 
-    width: 100vw; 
-    height: 100vh; 
+
+    .swiper { 
+        width: 100vw; 
+        height: 100vh;
+        /* 🛑 Propiedades CLAVE para evitar la recarga en iOS (Swiper) */
+        overscroll-behavior-y: none;
+        touch-action: pan-x; /* Permite el swipe horizontal, bloquea el vertical para el navegador */
+    }
     
-    /* 🛠️ Solución Clave para iOS Pull-to-Refresh: */
-    /* 1. Previene el comportamiento de "tirar para actualizar" del navegador */
-    overscroll-behavior-y: none;
+    .swiper-slide { 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        position: relative; 
+        background: #000; 
+    }
     
-    /* 2. Indica al navegador que el gesto vertical (pan-y) debe ser ignorado 
-       a favor de JavaScript (Swiper), y solo manejar el horizontal (pan-x). */
-    touch-action: pan-x; 
-}
+    .swiper-slide img { 
+        max-width: 100%; 
+        max-height: 100%; 
+        object-fit: contain; 
+    }
 
-.swiper-slide { 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    position: relative; 
-    background: #000; 
-}
+    /* *************************************************************************
+     * RESTO DE TUS ESTILOS SIN MODIFICAR
+     * *************************************************************************/
 
-.swiper-slide img { 
-    max-width: 100%; 
-    max-height: 100%; 
-    object-fit: contain; 
-}
+    #loader { 
+        position: absolute; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        color: white; 
+        font-size: 24px; 
+        text-align: center; 
+        z-index: 10; 
+    }
+    
+    @keyframes spin { 
+        0% { transform: rotate(0deg); } 
+        100% { transform: rotate(360deg); } 
+    }
+    
+    #loader .spinner { 
+        display: inline-block; 
+        animation: spin 1.5s linear infinite; 
+    }
 
-#loader { 
-    position: absolute; 
-    top: 50%; 
-    left: 50%; 
-    transform: translate(-50%, -50%); 
-    color: white; 
-    font-size: 24px; 
-    text-align: center; 
-    z-index: 10; 
-}
+    #lblContador {
+        position: absolute;
+        bottom: 195px; /* un poco arriba del icono de comentarios */
+        right: 20px;
+        background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+        backdrop-filter: blur(10px); /* Efecto de desenfoque */
+        -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        color: white;
+        font-size: 24px; /* tamaño del ícono */
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        z-index: 5000;
+    }
 
-@keyframes spin { 
-    0% { transform: rotate(0deg); } 
-    100% { transform: rotate(360deg); } 
-}
-
-#loader .spinner { 
-    display: inline-block; 
-    animation: spin 1.5s linear infinite; 
-}
-
-#lblContador {
-  position: absolute;
-  bottom: 195px; /* un poco arriba del icono de comentarios */
-  right: 20px;
-  background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
-    backdrop-filter: blur(10px); /* Efecto de desenfoque */
-    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  color: white;
-  font-size: 24px; /* tamaño del ícono */
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-  z-index: 5000;
-}
-
-
-
-
-#lblContador span {
-    display: none;
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: red;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-    width: 20px;       /* ancho fijo */
-    height: 20px;      /* alto fijo */
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-
-
-
-
+    #lblContador span {
+        display: none;
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: red;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        width: 20px;       /* ancho fijo */
+        height: 20px;      /* alto fijo */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
     #customAlertOverlay {
         display: none;
@@ -140,172 +140,169 @@
         justify-content: center;
         align-items: center;
     }
-/* Botón de eliminar anuncio */
-.delete-announcement-btn {
-   width: 40px;
-    height: 40px;  
-  position: fixed;
-    bottom: 90px; /* 🔥 lo subimos más arriba */
-    right: 18px;
-   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
-    backdrop-filter: blur(10px); /* Efecto de desenfoque */
-    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
-    border: none;
-    color: white;
-    padding: 8px 10px;
-    border-radius: 50px;
-    cursor: pointer;
-    font-size: 24px; /* grande pero sin tapar */
-    z-index: 2000;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-   box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-}
 
+    /* Botón de eliminar anuncio */
+    .delete-announcement-btn {
+        width: 40px;
+        height: 40px;  
+        position: fixed;
+        bottom: 90px; /* 🔥 lo subimos más arriba */
+        right: 18px;
+        background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+        backdrop-filter: blur(10px); /* Efecto de desenfoque */
+        -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        border: none;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 24px; /* grande pero sin tapar */
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
 
-.delete-announcement-btn.visible {
-  opacity: 1;
-  visibility: visible;
-}
+    .delete-announcement-btn.visible {
+        opacity: 1;
+        visibility: visible;
+    }
 
-/* Asegura que el overlay de búsqueda quede arriba y pegado al top */
-#searchOverlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
-  display: none;
-  justify-content: center;
-  align-items: flex-start;   /* 👈 arriba, no centrado */
-  padding-top: 12px;         /* separadito del borde superior */
-  z-index: 9999;             /* más alto que cualquier otro overlay */
-}
+    /* Asegura que el overlay de búsqueda quede arriba y pegado al top */
+    #searchOverlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        display: none;
+        justify-content: center;
+        align-items: flex-start;   /* 👈 arriba, no centrado */
+        padding-top: 12px;         /* separadito del borde superior */
+        z-index: 9999;             /* más alto que cualquier otro overlay */
+    }
 
     /* La tarjeta interior puede tener un ancho máximo razonable */
-#searchOverlay .custom-alert {
-  width: 90%;
-  max-width: 700px;
-}
-/* La lista de resultados con scroll para no “cortar” resultados */
-#searchResults.titles-list {
-  max-height: 60vh;          /* 👈 hace visible muchos resultados */
-  overflow: auto;
-}
-
-.resultado-item {
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-}
-.resultado-item:hover {
-  background: #f0f0f0;
-}
-
-.highlight {
-  background: #a7d8ff;
-  transition: background 1s ease;
-}
-
-
-
+    #searchOverlay .custom-alert {
+        width: 90%;
+        max-width: 700px;
+    }
     
+    /* La lista de resultados con scroll para no “cortar” resultados */
+    #searchResults.titles-list {
+        max-height: 60vh;          /* 👈 hace visible muchos resultados */
+        overflow: auto;
+    }
 
- /* 🔹 Estilo para texto truncado con "más" */
-  .truncated {
-    cursor: pointer;
-  }
- .more-link {
-  color: white;   /* azul tipo Twitter */
-  font-weight: bold;
-  font-style: italic;  /* 🔹 cursiva */
-  cursor: pointer;
-}
+    .resultado-item {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .resultado-item:hover {
+        background: #f0f0f0;
+    }
 
-.truncate {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;    /* número de líneas visibles en modo truncado */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: max-height 0.4s ease, opacity 0.4s ease; /* 🔹 animación suave */
-  max-height: 3em; /* altura aprox de 2 líneas */
-  opacity: 0.9;
-}
+    .highlight {
+        background: #a7d8ff;
+        transition: background 1s ease;
+    }
 
-.expandido {
-  -webkit-line-clamp: unset;
-  max-height: 1000px; /* suficiente para que quepa todo */
-  opacity: 1;
-}
+    /* 🔹 Estilo para texto truncado con "más" */
+    .truncated {
+        cursor: pointer;
+    }
+    
+    .more-link {
+        color: white;   /* azul tipo Twitter */
+        font-weight: bold;
+        font-style: italic;  /* 🔹 cursiva */
+        cursor: pointer;
+    }
 
+    .truncate {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;    /* número de líneas visibles en modo truncado */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: max-height 0.4s ease, opacity 0.4s ease; /* 🔹 animación suave */
+        max-height: 3em; /* altura aprox de 2 líneas */
+        opacity: 0.9;
+    }
+
+    .expandido {
+        -webkit-line-clamp: unset;
+        max-height: 1000px; /* suficiente para que quepa todo */
+        opacity: 1;
+    }
 
     /* 🔹 Para truncar y expandir título/descripcion */
-.truncate-text {
-  cursor: pointer;
-  display: inline-block;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+    .truncate-text {
+        cursor: pointer;
+        display: inline-block;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-.expanded {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-}
+    .expanded {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
 
-    
     .custom-alert {
-    background-color: #1e1e1e !important; /* Fondo oscuro */
-    color: #fff !important; /* Texto blanco */
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
-    max-width: 80%;
-    text-align: center;
-    border: 1px solid #333; /* Borde gris oscuro */
-    display: flex;
-    flex-direction: column;
-}
+        background-color: #1e1e1e !important; /* Fondo oscuro */
+        color: #fff !important; /* Texto blanco */
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+        max-width: 80%;
+        text-align: center;
+        border: 1px solid #333; /* Borde gris oscuro */
+        display: flex;
+        flex-direction: column;
+    }
     
     .custom-alert.confirm-delete {
-      width: 300px;
-      text-align: center;
+        width: 300px;
+        text-align: center;
     }
     
     .custom-alert.confirm-delete .btn-group {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 15px;
     }
 
     .custom-alert h2 {
-    color: #fff !important; /* Blanco para títulos */
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.5rem;
-}
+        color: #fff !important; /* Blanco para títulos */
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+    }
 
     .custom-alert p {
         margin: 0 0 20px;
         white-space: pre-wrap;
     }
 
-   .custom-alert button {
-    background-color: #2a2a2a !important; /* Gris oscuro */
-    color: #fff !important;
-    border: 1px solid #444;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
+    .custom-alert button {
+        background-color: #2a2a2a !important; /* Gris oscuro */
+        color: #fff !important;
+        border: 1px solid #444;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
     
     .custom-alert button:hover {
-    background-color: #444 !important; /* Gris un poco más claro */
-    transform: scale(1.05);
-}
+        background-color: #444 !important; /* Gris un poco más claro */
+        transform: scale(1.05);
+    }
 
 
     .titles-list {
@@ -317,43 +314,45 @@
         text-align: left;
     }
 
-  .titles-list li {
-    padding: 8px;
-    background-color: #2a2a2a !important;
-    border-bottom: 1px solid #333;
-    cursor: pointer;
-    color: #fff;
-}
+    .titles-list li {
+        padding: 8px;
+        background-color: #2a2a2a !important;
+        border-bottom: 1px solid #333;
+        cursor: pointer;
+        color: #fff;
+    }
+    
     .titles-list li:hover {
-    background-color: #444 !important;
-}
+        background-color: #444 !important;
+    }
 
     /* 🎨 Notificaciones emergentes */
-.info-dialog {
-    background-color: #1e1e1e !important;
-    color: #fff !important;
-    border: 1px solid #333;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
-}
+    .info-dialog {
+        background-color: #1e1e1e !important;
+        color: #fff !important;
+        border: 1px solid #333;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+    }
 
-.info-dialog h2 {
-    color: #fff !important;
-}
+    .info-dialog h2 {
+        color: #fff !important;
+    }
+    
     /* Estilos para el overlay de título y descripción */
-   .content-overlay {
-    position: fixed;
-    top: 60px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 10px 15px;
-    border-radius: 5px;
-    text-align: left;
-    max-width: 80%;
-    box-sizing: border-box;
-    z-index: 999;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
+    .content-overlay {
+        position: fixed;
+        top: 60px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-align: left;
+        max-width: 80%;
+        box-sizing: border-box;
+        z-index: 999;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
 
 
     .content-overlay h3 {
@@ -371,31 +370,32 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-  /* Contenedor de comentarios */
-.comments-overlay-container {
-  position: fixed;
-  bottom: 47px; /* 👈 ahora justo arriba de la barra de escribir */
-  left: 10px;
-  width: calc(80% - 20px);
-  background: rgba(0, 0, 0, 0.2); /* más transparente */
-  color: #eee;
-  padding: 8px;
-  border-radius: 5px;
-  box-sizing: border-box;
-  z-index: 998;
-  overflow-y: auto;
-  transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-  max-height: 4em;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
+    /* Contenedor de comentarios */
+    .comments-overlay-container {
+        position: fixed;
+        bottom: 47px; /* 👈 ahora justo arriba de la barra de escribir */
+        left: 10px;
+        width: calc(80% - 20px);
+        background: rgba(0, 0, 0, 0.2); /* más transparente */
+        color: #eee;
+        padding: 8px;
+        border-radius: 5px;
+        box-sizing: border-box;
+        z-index: 998;
+        overflow-y: auto;
+        transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+        max-height: 4em;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
 
 
-  /* expandido */
-.comments-overlay-container.expanded {
-  max-height: 70vh;
-}
+    /* expandido */
+    .comments-overlay-container.expanded {
+        max-height: 70vh;
+    }
+    
     /* Estilos para la lista de comentarios */
     .comments-overlay-container ul {
         list-style: none;
@@ -417,7 +417,7 @@
     }
 
     .comments-overlay-container li:last-child {
-      border-bottom: none;
+        border-bottom: none;
     }
     
     /* Estilo para los comentarios que se pueden borrar */
@@ -436,11 +436,11 @@
         justify-content: center;
         align-items: center;
         background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
-    backdrop-filter: blur(10px); /* Efecto de desenfoque */
-    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        backdrop-filter: blur(10px); /* Efecto de desenfoque */
+        -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
         transform: translateX(-100%);
         transition: transform 0.3s ease;
-        z-index: 0; 
+        z-index: 0; 
     }
     
     /* Botón de borrado en sí mismo */
@@ -454,17 +454,17 @@
     
     /* El comentario se desliza */
     .comment-content {
-      width: 100%;
-      padding-left: 10px;
-      padding-right: 10px;
-      box-sizing: border-box;
-      transition: transform 0.3s ease;
-      position: relative;
-      z-index: 1;
+        width: 100%;
+        padding-left: 10px;
+        padding-right: 10px;
+        box-sizing: border-box;
+        transition: transform 0.3s ease;
+        position: relative;
+        z-index: 1;
     }
     
     .comment-content.swiped {
-      transform: translateX(100px);
+        transform: translateX(100px);
     }
     
     .delete-btn-container.visible {
@@ -472,280 +472,270 @@
     }
     
     /* Clase para ocultar los overlays */
-.hidden-overlay {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transition: opacity 0.3s;
-}
-
+    .hidden-overlay {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.3s;
+    }
 
 
     /* Estilos del nuevo contador de comentarios */
-.comments-counter {
-  position: fixed;
-  bottom: 140px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-  z-index: 999;
-}
+    .comments-counter {
+        position: fixed;
+        bottom: 140px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        z-index: 999;
+    }
 
-.comments-counter .icon {
-  font-size: 24px;
-  line-height: 1;
-}
+    .comments-counter .icon {
+        font-size: 24px;
+        line-height: 1;
+    }
 
-.comments-counter span#commentCountValue {
-  display: none;
-  position: absolute;
-  bottom: -10px; /* Posiciona el número debajo del círculo */
-  left: -10px; /* Posiciona el número a la izquierda */
-  background: rgba(255, 255, 255, 0.1); /* Mismo fondo desenfocado que el círculo principal */
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    .comments-counter span#commentCountValue {
+        display: none;
+        position: absolute;
+        bottom: -10px; /* Posiciona el número debajo del círculo */
+        left: -10px; /* Posiciona el número a la izquierda */
+        background: rgba(255, 255, 255, 0.1); /* Mismo fondo desenfocado que el círculo principal */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
     .comments-counter .count {
         font-size: 0.9rem;
     }
 
-/* Barra de entrada de comentarios */
-.comment-input-container {
-  position: fixed;
-  bottom: 0px;
-  left: 0;
-  width: 100%;
-  background: transparent;
-  padding: 8px 12px;
-  box-sizing: border-box;
-  z-index: 1000;
-}
+    /* Barra de entrada de comentarios */
+    .comment-input-container {
+        position: fixed;
+        bottom: 0px;
+        left: 0;
+        width: 100%;
+        background: transparent;
+        padding: 8px 12px;
+        box-sizing: border-box;
+        z-index: 1000;
+    }
 
 
-
-    
     .comment-input-container .send-comment-btn:hover {
         background: transparent;
     }
 
-/* ✅ Nuevo diseño: óvalo translúcido */
-.comment-input-wrapper {
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1); /* 👈 blanco transparente */
-  border: 1.5px solid rgba(255, 255, 255, 0.4); /* 👈 borde translúcido */
-  border-radius: 25px;   /* ovalado completo */
-  width: 95%;            /* 👈 ancho controlado */
-  margin: 0 auto;        /* 👈 centrado */
-  padding: 4px 8px;      /* 👈 menos alto */
-  backdrop-filter: blur(3px); /* 👈 efecto vidrio esmerilado */
-}
-
-
-
-.comment-input-wrapper input {
-  flex-grow: 1;
-  background: transparent;
-  border: none;          /* 👈 quita borde extra */
-  outline: none;
-  padding: 6px 8px;      /* 👈 más compacto */
-  font-size: 0.9rem;
-  color: white;
-}
-
-.comment-input-wrapper input::placeholder {
-  color: rgba(255,255,255,0.7);
-}
-
-.comment-input-wrapper button {
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 1.2rem;    /* 👈 tamaño justo */
-  cursor: pointer;
-  padding: 4px 6px;
-}
-/* Oculta el modal por defecto */
-.hidden {
-  display: none !important;
-}
-
-
-.refresh-btn {
-    position: fixed;
-    bottom: 250px;
-    right: 18px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
-    backdrop-filter: blur(10px); /* Efecto de desenfoque */
-    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
-    color: white;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    z-index: 2000;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.refresh-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
-}
-
-
-/* ✨ Resaltado temporal + zoom del título */
-.highlight-title-zoom {
-    background-color: rgba(0, 150, 255, 0.3);
-    padding: 3px 6px;
-    border-radius: 5px;
-    animation: highlightZoom 0.4s ease-in-out;
-    transition: background-color 1s ease;
-}
-
-/* 🎥 Animación de zoom */
-@keyframes highlightZoom {
-    0% {
-        transform: scale(1);
+    /* ✅ Nuevo diseño: óvalo translúcido */
+    .comment-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1); /* 👈 blanco transparente */
+        border: 1.5px solid rgba(255, 255, 255, 0.4); /* 👈 borde translúcido */
+        border-radius: 25px;   /* ovalado completo */
+        width: 95%;            /* 👈 ancho controlado */
+        margin: 0 auto;        /* 👈 centrado */
+        padding: 4px 8px;      /* 👈 menos alto */
+        backdrop-filter: blur(3px); /* 👈 efecto vidrio esmerilado */
     }
-    50% {
-        transform: scale(1.2);
+
+
+    .comment-input-wrapper input {
+        flex-grow: 1;
+        background: transparent;
+        border: none;          /* 👈 quita borde extra */
+        outline: none;
+        padding: 6px 8px;      /* 👈 más compacto */
+        font-size: 0.9rem;
+        color: white;
     }
-    100% {
-        transform: scale(1);
+
+    .comment-input-wrapper input::placeholder {
+        color: rgba(255,255,255,0.7);
     }
-}
+
+    .comment-input-wrapper button {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.2rem;    /* 👈 tamaño justo */
+        cursor: pointer;
+        padding: 4px 6px;
+    }
+    
+    /* Oculta el modal por defecto */
+    .hidden {
+        display: none !important;
+    }
+
+
+    .refresh-btn {
+        position: fixed;
+        bottom: 250px;
+        right: 18px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+        backdrop-filter: blur(10px); /* Efecto de desenfoque */
+        -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        color: white;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        z-index: 2000;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+    }
+
+
+    /* ✨ Resaltado temporal + zoom del título */
+    .highlight-title-zoom {
+        background-color: rgba(0, 150, 255, 0.3);
+        padding: 3px 6px;
+        border-radius: 5px;
+        animation: highlightZoom 0.4s ease-in-out;
+        transition: background-color 1s ease;
+    }
+
+    /* 🎥 Animación de zoom */
+    @keyframes highlightZoom {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
 
     #savedList {
-    scroll-behavior: smooth;
-}
+        scroll-behavior: smooth;
+    }
 
-body {
-  margin: 0;
-  padding: 0;
-  background: #111;
-  font-family: Arial, sans-serif;
-  color: white;
-  transition: transform 0.3s ease;
-}
 
-/* Estilos para el encabezado */
-#socialHeader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.9); /* Ligeramente más opaco para elegancia */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 10001; /* Más alto que el resto de los overlays */
-  padding: 8px 0; /* Reducido para un look más compacto */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* Sombra más sutil */
-}
+    /* Estilos para el encabezado */
+    #socialHeader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.9); /* Ligeramente más opaco para elegancia */
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 10001; /* Más alto que el resto de los overlays */
+        padding: 8px 0; /* Reducido para un look más compacto */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* Sombra más sutil */
+    }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 12px; /* Reducido para consistencia */
-}
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 12px; /* Reducido para consistencia */
+    }
 
-.header-content h1 {
-  color: white;
-  font-size: 1.4rem; /* Ligeramente más pequeño */
-  margin: 0;
-  font-weight: 600; /* Menos agresivo que bold */
-  letter-spacing: 1px; /* Espaciado para elegancia */
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-}
+    .header-content h1 {
+        color: white;
+        font-size: 1.4rem; /* Ligeramente más pequeño */
+        margin: 0;
+        font-weight: 600; /* Menos agresivo que bold */
+        letter-spacing: 1px; /* Espaciado para elegancia */
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    }
 
-.header-buttons {
-  display: flex;
-  gap: 8px; /* Espaciado más ajustado */
-}
+    .header-buttons {
+        display: flex;
+        gap: 8px; /* Espaciado más ajustado */
+    }
 
-.header-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: none; /* Sin borde para un look más limpio */
-  border-radius: 50%; /* Botones circulares */
-  width: 36px; /* Tamaño fijo para íconos */
-  height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.1rem; /* Tamaño del ícono */
-  text-decoration: none;
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
+    .header-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: none; /* Sin borde para un look más limpio */
+        border-radius: 50%; /* Botones circulares */
+        width: 36px; /* Tamaño fijo para íconos */
+        height: 36px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.1rem; /* Tamaño del ícono */
+        text-decoration: none;
+        transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
-.header-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1); /* Efecto sutil de aumento */
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* Brillo suave */
-}
+    .header-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1); /* Efecto sutil de aumento */
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* Brillo suave */
+    }
 
-.header-btn.selected {
-  background: #ffffff; /* Fondo blanco */
-  color: #111111; /* Ícono oscuro */
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.5); /* Sombra para destacar */
-  font-weight: bold; /* Mantenido para consistencia */
-}
+    .header-btn.selected {
+        background: #ffffff; /* Fondo blanco */
+        color: #111111; /* Ícono oscuro */
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.5); /* Sombra para destacar */
+        font-weight: bold; /* Mantenido para consistencia */
+    }
 
-.header-btn.selected:hover {
-  background: #e0e0e0; /* Ligeramente más oscuro al pasar el ratón */
-  transform: scale(1); /* Evitar zoom al estar seleccionado */
-}
+    .header-btn.selected:hover {
+        background: #e0e0e0; /* Ligeramente más oscuro al pasar el ratón */
+        transform: scale(1); /* Evitar zoom al estar seleccionado */
+    }
 
-/* Responsive para móviles */
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: row; /* Mantener en fila para ahorrar espacio */
-    gap: 8px;
-  }
+    /* Responsive para móviles */
+    @media (max-width: 768px) {
+        .header-content {
+            flex-direction: row; /* Mantener en fila para ahorrar espacio */
+            gap: 8px;
+        }
 
-  .header-content h1 {
-    font-size: 1.2rem; /* Más pequeño en móviles */
-  }
+        .header-content h1 {
+            font-size: 1.2rem; /* Más pequeño en móviles */
+        }
 
-  .header-buttons {
-    gap: 6px; /* Menos espacio entre botones */
-  }
+        .header-buttons {
+            gap: 6px; /* Menos espacio entre botones */
+        }
 
-  .header-btn {
-    width: 32px; /* Botones más pequeños */
-    height: 32px;
-    font-size: 1rem; /* Íconos más pequeños */
-  }
-}
-  </style>
+        .header-btn {
+            width: 32px; /* Botones más pequeños */
+            height: 32px;
+            font-size: 1rem; /* Íconos más pequeños */
+        }
+    }
+</style>
 </head>
 
 <body>
@@ -2619,16 +2609,17 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
   function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 },
-            
-            // 🛠️ MODIFICACIONES PARA IOS
-            resistanceRatio: 0, // Elimina la resistencia/rebote en los bordes
-            touchMoveStopPropagation: true // Evita que el gesto se propague al body/documento
-        });
+    loop: true,
+    direction: 'vertical',
+    slidesPerView: 1,
+    spaceBetween: 10,
+    zoom: { maxRatio: 3, minRatio: 1 },
+    
+    // 🛑 CONFIGURACIÓN AGRESIVA DE SWIPER
+    resistanceRatio: 0, 
+    touchMoveStopPropagation: true, 
+    touchStartPreventDefault: true // <--- MUY IMPORTANTE
+});
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
@@ -3035,6 +3026,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
