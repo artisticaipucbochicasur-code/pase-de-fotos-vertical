@@ -2565,7 +2565,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
 
-   function initSwiper(initialIndex = 0) {
+  function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
@@ -2594,21 +2594,18 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
                 window.AppInventor.setWebViewString(JSON.stringify(payload));
             }
         });
-        
-        // 👇 INICIO DE MODIFICACIÓN: Forzar inicialización de control táctil
+
+        // 👇 INICIO DE MODIFICACIÓN: Deslizamiento Programático para Activar el Control Táctil
         setTimeout(() => {
+            // Se realiza después de un breve retraso para asegurar que Swiper esté totalmente renderizado.
+            // Verifica que haya más de una imagen para poder deslizar.
             if (swiperInstance && swiperInstance.slides.length > 1) {
-                const currentRealIndex = swiperInstance.realIndex;
-                
-                // 1. Mueve al siguiente slide instantáneamente (0ms).
-                swiperInstance.slideNext(0); 
-                
-                // 2. Vuelve inmediatamente al slide original. Esto simula el "arreglo" del video.
-                swiperInstance.slideToLoop(currentRealIndex, 0); 
-                
-                console.log("✅ Inicialización de control táctil forzada.");
+                // Desliza a la siguiente imagen con una transición visible (300ms).
+                // Esto fuerza al WebView a registrar el control táctil para el Swiper.
+                swiperInstance.slideNext(300);
+                console.log("✅ Deslizamiento inicial forzado a la siguiente imagen para activar el control táctil.");
             }
-        }, 100); 
+        }, 500); // 500ms es un tiempo prudente para la carga inicial.
         // 👆 FIN DE MODIFICACIÓN
     }
 
@@ -2630,6 +2627,8 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         }
     }
 }
+
+    
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
 
@@ -3008,6 +3007,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
