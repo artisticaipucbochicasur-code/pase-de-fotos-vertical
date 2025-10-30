@@ -740,7 +740,7 @@ body {
       color:#333;
     ">×</button>
 
-    <h2 style="text-align:center;color:#0077cc;">📢 Publicar Anuncio</h2>
+    <h2 style="text-align:center;color:#0077cc;">Publicar Anuncio</h2>
 
     <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
     <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
@@ -1046,13 +1046,18 @@ fileInput.addEventListener("change", function () {
         progressBar.style.width = percent + "%";
       }
     };
-    reader.onloadend = function (e) {
-      base64Imagen = e.target.result.split(",")[1];
-      previewImg.src = e.target.result;
-      previewImg.style.display = "block";
-      progressBar.style.width = "100%";
-      setTimeout(() => (progressContainer.style.display = "none"), 500);
-    };
+   reader.onloadend = function (e) {
+  base64Imagen = e.target.result.split(",")[1];
+  previewImg.src = e.target.result;
+  previewImg.style.display = "block";
+  previewImg.style.maxWidth = "100%";
+  previewImg.style.maxHeight = "180px"; // 🔹 Evita que crezca demasiado en móviles
+  previewImg.style.objectFit = "cover"; // 🔹 Mantiene proporción sin deformar
+  previewImg.style.borderRadius = "12px";
+  progressBar.style.width = "100%";
+  setTimeout(() => (progressContainer.style.display = "none"), 500);
+};
+
     reader.readAsDataURL(file);
   }
 });
@@ -2701,6 +2706,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
