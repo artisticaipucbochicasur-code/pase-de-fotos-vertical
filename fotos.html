@@ -740,81 +740,59 @@ body {
       color:#333;
     ">×</button>
 
-   <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
+    <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
 
-<!-- 🔹 Selector de tipo -->
-<div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
-  <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">📰 Anuncio</button>
-  <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">🎥 Video</button>
+    <!-- 🔹 Selector de tipo -->
+    <div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
+      <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">📰 Anuncio</button>
+      <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">🎥 Video</button>
+    </div>
+
+    <!-- 🔹 Sección de Anuncio -->
+    <div id="anuncioSection" style="margin-top:15px;">
+      <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
+      <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+      <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+      <input type="file" id="imagen" accept="image/*" style="width:100%;margin-top:5px;" />
+      <div style="margin-top:10px;text-align:center;">
+        <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
+      </div>
+
+      <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+        <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
+      </div>
+
+      <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
+      <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+    </div>
+
+    <!-- 🔹 Sección de Video -->
+    <div id="videoSection" style="display:none;margin-top:15px;">
+      <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
+      <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+      <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+      <input type="file" id="fileInput" accept="video/*" style="width:100%;margin-top:5px;" />
+
+      <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+        <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
+      </div>
+
+      <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
+
+      <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
+
+      <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+    </div>
+  </div>
 </div>
-
-<!-- 🔹 Sección de Anuncio -->
-<div id="anuncioSection" style="margin-top:15px;">
-  <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
-  <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-  <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-  <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
-
-  <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-  <div style="display:flex;gap:8px;margin-top:5px;">
-    <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-      📷 Cámara
-      <input type="file" id="imagenCamara" accept="image/*" capture="environment" style="display:none;"
-        onclick="if(/Android/i.test(navigator.userAgent)){ this.setAttribute('capture','camera'); }" />
-    </label>
-
-    <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-      🖼️ Archivos
-      <input type="file" id="imagenGaleria" accept="image/*" style="display:none;" />
-    </label>
-  </div>
-
-  <div style="margin-top:10px;text-align:center;">
-    <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
-  </div>
-
-  <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-    <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
-  </div>
-
-  <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
-  <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-</div>
-
-<!-- 🔹 Sección de Video -->
-<div id="videoSection" style="display:none;margin-top:15px;">
-  <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
-  <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-  <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-  <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
-
-  <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-  <div style="display:flex;gap:8px;margin-top:5px;">
-    <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-      🎥 Grabar
-      <input type="file" id="videoCamara" accept="video/*" capture="environment" style="display:none;"
-        onclick="if(/Android/i.test(navigator.userAgent)){ this.setAttribute('capture','camcorder'); }" />
-    </label>
-
-    <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-      📁 Archivos
-      <input type="file" id="videoGaleria" accept="video/*" style="display:none;" />
-    </label>
-  </div>
-
-  <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-    <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
-  </div>
-
-  <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
-
-  <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
-
-  <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-</div>
-
 
 
   
@@ -1280,10 +1258,7 @@ tabVideo.addEventListener("click", () => {
 
 
 // 📤 Subida del video (mantiene compatibilidad con tu sistema)
-const btnUploadVideo = document.getElementById("btnUploadVideo");
-
-if (btnUploadVideo) {
-  btnUploadVideo.addEventListener("click", async () => {
+btnUploadVideo.addEventListener("click", async () => {
   const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
   const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
@@ -2965,14 +2940,3 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
