@@ -704,6 +704,22 @@ body {
     font-size: 1rem; /* Íconos más pequeños */
   }
 }
+
+
+    /* ==== EVITAR RECARGA EN iOS AL DESLIZAR ==== */
+html, body {
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.swiper {
+    overscroll-behavior-y: none !important;
+    -webkit-overflow-scrolling: touch;
+}
   </style>
 </head>
 
@@ -1054,24 +1070,6 @@ body {
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
-    // Evita que iOS Safari recargue o retroceda con los gestos de swipe
-  document.addEventListener('touchmove', function (e) {
-    // Si el gesto ocurre dentro de un contenedor de imágenes o slider
-    if (e.target.closest('.swiper') || e.target.closest('.slider') || e.target.closest('.carousel')) {
-      e.preventDefault(); // Bloquea el gesto de navegador
-    }
-  }, { passive: false });
-
-  // Evita el "pull-to-refresh" (deslizar hacia abajo para recargar)
-  document.addEventListener('touchmove', function (e) {
-    if (window.scrollY === 0) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  // También mejora la estabilidad del scroll en iOS
-  document.body.style.overscrollBehaviorY = 'contain';
-  document.body.style.touchAction = 'pan-x pan-y';
 
 
 
@@ -2408,7 +2406,8 @@ async function cargarImagenes() {
 
         const currentSlideId = currentId;
         anunciosData = newAnunciosData;
-        reconstruirIndiceBusqueda();
+      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+reconstruirIndiceBusqueda();
         
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
@@ -2424,7 +2423,6 @@ async function cargarImagenes() {
                 const img = document.createElement('img');
                 img.src = anuncio.url;
                 img.alt = anuncio.titulo;
-                img.loading = 'lazy'; // ⚡ Carga diferida para mejorar rendimiento en iOS
 
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
@@ -2432,14 +2430,15 @@ async function cargarImagenes() {
                 swiperInstance.appendSlide(slide);
             });
             
+            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
             let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
             if (newIndex !== -1) {
                 swiperInstance.slideToLoop(newIndex, 0, false);
             } else {
                 if (currentIndex < anunciosData.length) {
-                    swiperInstance.slideToLoop(currentIndex, 0, false);
+                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
                 } else {
-                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
                 }
             }
 
@@ -2459,7 +2458,6 @@ async function cargarImagenes() {
                 const img = document.createElement('img');
                 img.src = anuncio.url;
                 img.alt = anuncio.titulo;
-                img.loading = 'lazy'; // ⚡ También en la primera carga
 
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
@@ -2581,25 +2579,22 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
-// 🧠 Solución iOS: prevenir recarga al deslizar o hacer zoom
-const swiperEl = document.querySelector('.swiper');
-if (swiperEl) {
-  swiperEl.style.touchAction = 'pan-y pinch-zoom'; // permite deslizar y hacer zoom sin interferir
-  swiperEl.addEventListener('touchmove', (e) => {
-    if (e.touches.length > 1) e.preventDefault(); // evita crash en gestos múltiples
-  }, { passive: false });
-}
 
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+       swiperInstance = new Swiper('.swiper', {
+    loop: true,
+    direction: 'vertical',
+    slidesPerView: 1,
+    spaceBetween: 10,
+    zoom: { maxRatio: 3, minRatio: 1 },
+    // Solución anti-reload iOS
+    resistance: true,
+    resistanceRatio: 0.5,
+    touchReleaseOnEdges: true,
+    allowTouchMove: true
+});
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
@@ -2620,14 +2615,6 @@ if (swiperEl) {
                 window.AppInventor.setWebViewString(JSON.stringify(payload));
             }
         });
-
-        // 🛑 Evitar que iOS recargue la página al hacer swipe vertical
-        const swiperEl = document.querySelector('.swiper');
-        if (swiperEl) {
-            swiperEl.addEventListener('touchmove', function (e) {
-                e.preventDefault(); // Bloquea el "pull-to-refresh" en iOS
-            }, { passive: false });
-        }
     }
 
     if(anunciosData.length > 0) {
@@ -3014,8 +3001,5 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
-
-
-
 
 
