@@ -2612,6 +2612,14 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
                 window.AppInventor.setWebViewString(JSON.stringify(payload));
             }
         });
+
+        // 🛑 Evitar que iOS recargue la página al hacer swipe vertical
+        const swiperEl = document.querySelector('.swiper');
+        if (swiperEl) {
+            swiperEl.addEventListener('touchmove', function (e) {
+                e.preventDefault(); // Bloquea el "pull-to-refresh" en iOS
+            }, { passive: false });
+        }
     }
 
     if(anunciosData.length > 0) {
@@ -2998,5 +3006,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
