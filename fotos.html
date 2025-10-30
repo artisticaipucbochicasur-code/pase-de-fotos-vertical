@@ -756,8 +756,15 @@ body {
       <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
       <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
-      <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-      <input type="file" id="imagen" accept="image/*" style="width:100%;margin-top:5px;" />
+     <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+<div style="display:flex;align-items:center;gap:10px;">
+  <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
+  <button id="abrirCamaraImg" title="Abrir cámara" 
+    style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
+    <i class="fas fa-camera"></i>
+  </button>
+</div>
+
       <div style="margin-top:10px;text-align:center;">
         <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
       </div>
@@ -778,8 +785,15 @@ body {
       <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
       <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
-      <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-      <input type="file" id="fileInput" accept="video/*" style="width:100%;margin-top:5px;" />
+     <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+<div style="display:flex;align-items:center;gap:10px;">
+  <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
+  <button id="abrirCamaraVideo" title="Grabar video" 
+    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
+    <i class="fas fa-video"></i>
+  </button>
+</div>
+
 
       <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
         <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
@@ -1340,6 +1354,32 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.send(file);
 });
 
+    // =============================
+// 📸 BOTONES DE CÁMARA (imagen y video)
+// =============================
+document.getElementById("abrirCamaraImg")?.addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.capture = "environment";
+  input.onchange = (e) => {
+    document.getElementById("imagen").files = e.target.files;
+    document.getElementById("imagen").dispatchEvent(new Event("change"));
+  };
+  input.click();
+});
+
+document.getElementById("abrirCamaraVideo")?.addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "video/*";
+  input.capture = "camera";
+  input.onchange = (e) => {
+    document.getElementById("fileInput").files = e.target.files;
+    document.getElementById("fileInput").dispatchEvent(new Event("change"));
+  };
+  input.click();
+});
 
     
 
@@ -2940,3 +2980,4 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
