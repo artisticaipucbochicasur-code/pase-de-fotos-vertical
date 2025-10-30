@@ -704,22 +704,6 @@ body {
     font-size: 1rem; /* Íconos más pequeños */
   }
 }
-
-
-    /* ==== EVITAR RECARGA EN iOS AL DESLIZAR ==== */
-html, body {
-    overscroll-behavior-y: contain;
-    touch-action: pan-y;
-    height: 100%;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-}
-
-.swiper {
-    overscroll-behavior-y: none !important;
-    -webkit-overflow-scrolling: touch;
-}
   </style>
 </head>
 
@@ -2583,18 +2567,13 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
-       swiperInstance = new Swiper('.swiper', {
-    loop: true,
-    direction: 'vertical',
-    slidesPerView: 1,
-    spaceBetween: 10,
-    zoom: { maxRatio: 3, minRatio: 1 },
-    // Solución anti-reload iOS
-    resistance: true,
-    resistanceRatio: 0.5,
-    touchReleaseOnEdges: true,
-    allowTouchMove: true
-});
+        swiperInstance = new Swiper('.swiper', {
+            loop: true,
+            direction: 'vertical',
+            slidesPerView: 1,
+            spaceBetween: 10,
+            zoom: { maxRatio: 3, minRatio: 1 }
+        });
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
