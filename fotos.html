@@ -26,12 +26,13 @@
 
   <title>DECOM - Fotos</title>
   <style>
-  html, body {
-    height: 100%; /* Asegura que ambos contenedores ocupen toda la ventana */
+html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
-    /* 👇 LAS LÍNEAS CLAVE PARA EVITAR RECARGAS Y SCROLL DEL NAVEGADOR */
-    **overscroll-behavior-y: contain;** **overflow: hidden;** }
+    overscroll-behavior-y: contain; 
+    overflow: hidden; /* CRUCIAL */
+}
 
 body {
     background: #111;
@@ -2574,54 +2575,71 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
 
-   function initSwiper(initialIndex = 0) {
-    if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+ function initSwiper(initialIndex = 0) {
+    if(!swiperInstance) {
+        swiperInstance = new Swiper('.swiper', {
+            loop: true,
+            direction: 'vertical',
+            slidesPerView: 1,
+            spaceBetween: 10,
+            zoom: { maxRatio: 3, minRatio: 1 }
+        });
 
-        swiperInstance.on('slideChange', () => {
-            const activeIndex = swiperInstance.realIndex;
-            updateContentOverlay(activeIndex);
-
-            if(window.AppInventor && anunciosData.length > 0) {
-                const anuncioActual = anunciosData[activeIndex];
-                
-                if (!anuncioActual) return;
-
-                const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-                if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+        // 👇 INICIO DE MODIFICACIÓN: Bloqueo explícito del evento táctil
+        const swiperContainer = document.querySelector('.swiper');
+        if (swiperContainer) {
+            // Añadimos un listener para el movimiento táctil
+            swiperContainer.addEventListener('touchmove', (event) => {
+                // Llamamos a preventDefault para anular el comportamiento nativo del navegador
+                if (event.cancelable) {
+                    event.preventDefault();
                 }
-                const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
-            }
-        });
-    }
-
-    if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-        
-        if(window.AppInventor){
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
+            }, { 
+                // { passive: false } es esencial para que preventDefault funcione en touchmove
+                passive: false 
+            });
+            console.log("✅ Bloqueo de touchmove para iOS/WebView añadido.");
         }
-    }
+        // 👆 FIN DE MODIFICACIÓN
+
+        swiperInstance.on('slideChange', () => {
+            const activeIndex = swiperInstance.realIndex;
+            updateContentOverlay(activeIndex);
+
+            if(window.AppInventor && anunciosData.length > 0) {
+                const anuncioActual = anunciosData[activeIndex];
+                
+                if (!anuncioActual) return;
+
+                const id = anuncioActual.id;
+                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+                if (hayServidor) {
+                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+                }
+                const listaTitulos = anunciosData.map(a => a.titulo);
+                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+                window.AppInventor.setWebViewString(JSON.stringify(payload));
+            }
+        });
+    }
+
+    if(anunciosData.length > 0) {
+        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+        updateContentOverlay(initialSlideIndex);
+        
+        if(window.AppInventor){
+            const anuncioInicial = anunciosData[initialSlideIndex];
+            const id = anuncioInicial.id;
+            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+            if (hayServidor) {
+                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+            }
+            const listaTitulos = anunciosData.map(a => a.titulo);
+            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+    }
 }
 
 function aplicarTruncado(element, maxLength = 80) {
@@ -2989,5 +3007,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
