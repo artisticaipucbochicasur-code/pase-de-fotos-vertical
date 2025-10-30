@@ -757,13 +757,17 @@ body {
       <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
       <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-     <input
-  type="file"
-  id="imagen"
-  accept="image/*,video/*"
-  capture="environment"
-  style="width:100%;margin-top:5px;"
-/>
+      <div style="display:flex;gap:8px;margin-top:5px;">
+        <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          📷 Cámara
+          <input type="file" id="imagenCamara" accept="image/*" capture="environment" style="display:none;" />
+        </label>
+
+        <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          🖼️ Archivos
+          <input type="file" id="imagenGaleria" accept="image/*,video/*" style="display:none;" />
+        </label>
+      </div>
 
       <div style="margin-top:10px;text-align:center;">
         <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
@@ -786,7 +790,17 @@ body {
       <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
       <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-      <input type="file" id="fileInput" accept="video/*" style="width:100%;margin-top:5px;" />
+      <div style="display:flex;gap:8px;margin-top:5px;">
+        <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          🎥 Grabar
+          <input type="file" id="videoCamara" accept="video/*" capture="environment" style="display:none;" />
+        </label>
+
+        <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          📁 Archivos
+          <input type="file" id="videoGaleria" accept="video/*" style="display:none;" />
+        </label>
+      </div>
 
       <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
         <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
@@ -800,8 +814,6 @@ body {
     </div>
   </div>
 </div>
-
-
   
 
 
@@ -1064,6 +1076,40 @@ const mensaje = document.getElementById("mensaje");
 
 let base64Imagen = "";
 
+
+// 🔹 Manejadores para inputs de imagen (anuncios)
+const imagenCamara = document.getElementById("imagenCamara");
+const imagenGaleria = document.getElementById("imagenGaleria");
+
+[imagenCamara, imagenGaleria].forEach(input => {
+  input.addEventListener("change", function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewImg.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+// 🔹 Manejadores para inputs de video
+const videoCamara = document.getElementById("videoCamara");
+const videoGaleria = document.getElementById("videoGaleria");
+
+[videoCamara, videoGaleria].forEach(input => {
+  input.addEventListener("change", function() {
+    const file = this.files[0];
+    if (!file) return;
+    fileInput.files = this.files; // compatibilidad con tu flujo actual
+    fileInput.dispatchEvent(new Event("change"));
+  });
+});
+
+
+
+    
 // 🔹 Abrir modal
 publishBtn.addEventListener("click", (e) => {
   e.preventDefault();
@@ -2947,6 +2993,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
