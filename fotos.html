@@ -1096,7 +1096,7 @@ fileInput.addEventListener("change", function () {
   }
 });
 
-// 🔹 Enviar anuncio (usando fetch() + simulación visual de progreso)
+// 🔹 Enviar anuncio (con barra de progreso simulada durante subida)
 btnPublicar.addEventListener("click", async () => {
   const titulo = document.getElementById("titulo").value.trim();
   const descripcion = document.getElementById("descripcion").value.trim();
@@ -1122,18 +1122,18 @@ btnPublicar.addEventListener("click", async () => {
   formData.append("autor", autor);
   formData.append("correo", correo);
 
-  // Mostrar barra y simular progreso visualmente
+  // 🔹 Mostrar barra de progreso
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
 
-  let simulated = 0;
-  // acelerador inicial (rápido al principio), se frena cerca de 85-92%
+  // Simular progreso mientras se sube
+  let simulatedProgress = 0;
   const interval = setInterval(() => {
-    // incrementar de forma no lineal para parecer real
-    const step = Math.max(1, Math.random() * 6); // entre 1 y ~6
-    simulated = Math.min(simulated + step, 92); // nunca pasar de 92% antes de respuesta
-    progressBar.style.width = simulated.toFixed(0) + "%";
-  }, 180);
+    if (simulatedProgress < 90) {
+      simulatedProgress += Math.random() * 5; // sube entre 1% y 5%
+      progressBar.style.width = simulatedProgress + "%";
+    }
+  }, 200);
 
   try {
     const response = await fetch(SCRIPT_URL, {
@@ -1141,55 +1141,48 @@ btnPublicar.addEventListener("click", async () => {
       body: formData
     });
 
-    // cuando fetch finaliza, completar la barra
     clearInterval(interval);
     progressBar.style.width = "100%";
 
-    // esperar un pequeño instante para que el usuario vea 100%
-    await new Promise(res => setTimeout(res, 400));
+    const result = await response.text();
 
-    const resultText = await response.text();
+    mensaje.textContent = "✅ Anuncio enviado correctamente.";
+    mensaje.style.color = "green";
 
-    if (response.ok) {
-      mensaje.textContent = "✅ Anuncio enviado correctamente.";
-      mensaje.style.color = "green";
+    // 🔹 Esperar un poco para que se vea el 100%
+    await new Promise(res => setTimeout(res, 600));
 
-      // Limpiar formulario
-      document.getElementById("titulo").value = "";
-      document.getElementById("descripcion").value = "";
-      fileInput.value = "";
-      previewImg.src = "";
-      previewImg.style.display = "none";
-      base64Imagen = "";
+    // Limpiar formulario
+    document.getElementById("titulo").value = "";
+    document.getElementById("descripcion").value = "";
+    fileInput.value = "";
+    previewImg.src = "";
+    previewImg.style.display = "none";
+    base64Imagen = "";
 
-      // Cerrar modal tras 1s y recargar anuncios
-      setTimeout(() => {
-        progressContainer.style.display = "none";
-        progressBar.style.width = "0%";
-        publishModal.style.display = "none";
-        mensaje.textContent = "";
-        if (typeof cargarAnuncios === "function") {
-          cargarAnuncios();
-        }
-      }, 1000);
-    } else {
-      console.error("Respuesta no OK:", response.status, resultText);
-      mensaje.textContent = "🚫 Error al subir anuncio. Intenta de nuevo.";
-      mensaje.style.color = "red";
-      progressContainer.style.display = "none";
-      progressBar.style.width = "0%";
-    }
+    // 🔹 Ocultar barra y cerrar modal
+    progressBar.style.width = "0%";
+    progressContainer.style.display = "none";
+
+    setTimeout(() => {
+      publishModal.style.display = "none";
+      mensaje.textContent = "";
+      if (typeof cargarAnuncios === "function") {
+        cargarAnuncios();
+      }
+    }, 1000);
   } catch (err) {
     clearInterval(interval);
-    console.error("Error fetch:", err);
+    console.error(err);
     mensaje.textContent = "🚫 Error al conectar con el servidor.";
     mensaje.style.color = "red";
     progressContainer.style.display = "none";
     progressBar.style.width = "0%";
-  } finally {
-    btnPublicar.disabled = false;
   }
+
+  btnPublicar.disabled = false;
 });
+
 
 
 
@@ -2775,6 +2768,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
