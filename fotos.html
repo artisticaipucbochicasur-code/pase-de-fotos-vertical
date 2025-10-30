@@ -1096,7 +1096,7 @@ fileInput.addEventListener("change", function () {
   }
 });
 
-// 🔹 Enviar anuncio
+// 🔹 Enviar anuncio (usando fetch() + simulación visual de progreso)
 btnPublicar.addEventListener("click", async () => {
   const titulo = document.getElementById("titulo").value.trim();
   const descripcion = document.getElementById("descripcion").value.trim();
@@ -1122,41 +1122,75 @@ btnPublicar.addEventListener("click", async () => {
   formData.append("autor", autor);
   formData.append("correo", correo);
 
+  // Mostrar barra y simular progreso visualmente
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+
+  let simulated = 0;
+  // acelerador inicial (rápido al principio), se frena cerca de 85-92%
+  const interval = setInterval(() => {
+    // incrementar de forma no lineal para parecer real
+    const step = Math.max(1, Math.random() * 6); // entre 1 y ~6
+    simulated = Math.min(simulated + step, 92); // nunca pasar de 92% antes de respuesta
+    progressBar.style.width = simulated.toFixed(0) + "%";
+  }, 180);
+
   try {
     const response = await fetch(SCRIPT_URL, {
       method: "POST",
       body: formData
     });
 
-    const result = await response.text();
+    // cuando fetch finaliza, completar la barra
+    clearInterval(interval);
+    progressBar.style.width = "100%";
 
-    mensaje.textContent = "✅ Anuncio enviado correctamente.";
-    mensaje.style.color = "green";
+    // esperar un pequeño instante para que el usuario vea 100%
+    await new Promise(res => setTimeout(res, 400));
 
-    // Limpiar formulario
-    document.getElementById("titulo").value = "";
-    document.getElementById("descripcion").value = "";
-    fileInput.value = "";
-    previewImg.src = "";
-    previewImg.style.display = "none";
-    base64Imagen = "";
+    const resultText = await response.text();
 
-    // Cerrar modal tras 2 segundos
-    setTimeout(() => {
-      publishModal.style.display = "none";
-      mensaje.textContent = "";
-      if (typeof cargarAnuncios === "function") {
-        cargarAnuncios();
-      }
-    }, 2000);
+    if (response.ok) {
+      mensaje.textContent = "✅ Anuncio enviado correctamente.";
+      mensaje.style.color = "green";
+
+      // Limpiar formulario
+      document.getElementById("titulo").value = "";
+      document.getElementById("descripcion").value = "";
+      fileInput.value = "";
+      previewImg.src = "";
+      previewImg.style.display = "none";
+      base64Imagen = "";
+
+      // Cerrar modal tras 1s y recargar anuncios
+      setTimeout(() => {
+        progressContainer.style.display = "none";
+        progressBar.style.width = "0%";
+        publishModal.style.display = "none";
+        mensaje.textContent = "";
+        if (typeof cargarAnuncios === "function") {
+          cargarAnuncios();
+        }
+      }, 1000);
+    } else {
+      console.error("Respuesta no OK:", response.status, resultText);
+      mensaje.textContent = "🚫 Error al subir anuncio. Intenta de nuevo.";
+      mensaje.style.color = "red";
+      progressContainer.style.display = "none";
+      progressBar.style.width = "0%";
+    }
   } catch (err) {
-    console.error(err);
+    clearInterval(interval);
+    console.error("Error fetch:", err);
     mensaje.textContent = "🚫 Error al conectar con el servidor.";
     mensaje.style.color = "red";
+    progressContainer.style.display = "none";
+    progressBar.style.width = "0%";
+  } finally {
+    btnPublicar.disabled = false;
   }
-
-  btnPublicar.disabled = false;
 });
+
 
 
 
@@ -2741,6 +2775,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
