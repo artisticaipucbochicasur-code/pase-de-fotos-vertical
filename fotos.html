@@ -757,18 +757,7 @@ body {
       <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
       <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-      <div style="display:flex;gap:8px;margin-top:5px;">
-        <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-          📷 Cámara
-          <input type="file" id="imagenCamara" accept="image/*" capture="environment" style="display:none;" />
-        </label>
-
-        <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-          🖼️ Archivos
-          <input type="file" id="imagenGaleria" accept="image/*" style="display:none;" />
-        </label>
-      </div>
-
+      <input type="file" id="imagen" accept="image/*" style="width:100%;margin-top:5px;" />
       <div style="margin-top:10px;text-align:center;">
         <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
       </div>
@@ -790,17 +779,7 @@ body {
       <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
       <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-      <div style="display:flex;gap:8px;margin-top:5px;">
-        <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-          🎥 Grabar
-          <input type="file" id="videoCamara" accept="video/*" capture="environment" style="display:none;" />
-        </label>
-
-        <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
-          📁 Archivos
-          <input type="file" id="videoGaleria" accept="video/*" style="display:none;" />
-        </label>
-      </div>
+      <input type="file" id="fileInput" accept="video/*" style="width:100%;margin-top:5px;" />
 
       <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
         <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
@@ -814,6 +793,7 @@ body {
     </div>
   </div>
 </div>
+
 
   
 
@@ -1065,138 +1045,95 @@ body {
 
 
 
-// =============================
-// 🔹 ELEMENTOS
-// =============================
 const publishBtn = document.getElementById("publishBtn");
 const publishModal = document.getElementById("publishModal");
 const closePublishModal = document.getElementById("closePublishModal");
-
-// Imagen anuncio
 const fileInput = document.getElementById("imagen");
 const previewImg = document.getElementById("previewImg");
 const progressContainer = document.getElementById("progressContainer");
 const progressBar = document.getElementById("progressBar");
 const btnPublicar = document.getElementById("btnPublicar");
 const mensaje = document.getElementById("mensaje");
+
 let base64Imagen = "";
 
-// Inputs de imagen (cámara / galería)
-const imagenCamara = document.getElementById("imagenCamara");
-const imagenGaleria = document.getElementById("imagenGaleria");
-
-// Inputs de video
-const videoCamara = document.getElementById("videoCamara");
-const videoGaleria = document.getElementById("videoGaleria");
-const btnUploadVideo = document.getElementById("btnUploadVideo");
-const fileInputVideo = document.getElementById("fileInput");
-const progressContainerVideo = document.getElementById("progressContainerVideo");
-const progressVideo = document.getElementById("progressVideo");
-const metricsVideo = document.getElementById("uploadMetricsVideo");
-const statusVideo = document.getElementById("statusVideo");
-
-// Tabs y secciones
-const tabAnuncio = document.getElementById("tabAnuncio");
-const tabVideo = document.getElementById("tabVideo");
-const anuncioSection = document.getElementById("anuncioSection");
-const videoSection = document.getElementById("videoSection");
-
-// =============================
-// 🔹 MODAL
-// =============================
-publishBtn.addEventListener("click", e => {
+// 🔹 Abrir modal
+publishBtn.addEventListener("click", (e) => {
   e.preventDefault();
   publishModal.style.display = "flex";
 });
 
+// 🔹 Cerrar modal
 closePublishModal.addEventListener("click", () => {
   publishModal.style.display = "none";
 });
 
-// =============================
-// 🔹 TABS
-// =============================
-tabAnuncio.addEventListener("click", () => {
-  tabAnuncio.style.background = "#0077cc";
-  tabAnuncio.style.color = "white";
-  tabVideo.style.background = "#ccc";
-  tabVideo.style.color = "#333";
-  anuncioSection.style.display = "block";
-  videoSection.style.display = "none";
-});
-
-tabVideo.addEventListener("click", () => {
-  tabVideo.style.background = "#6b46c1";
-  tabVideo.style.color = "white";
-  tabAnuncio.style.background = "#ccc";
-  tabAnuncio.style.color = "#333";
-  anuncioSection.style.display = "none";
-  videoSection.style.display = "block";
-});
-
-// =============================
-// 🔹 FUNCIONES DE COMPRESIÓN DE IMAGEN
-// =============================
+// 🔹 Función para comprimir imágenes
 function compressImage(base64, maxWidth = 800, quality = 0.7) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.onload = function () {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
+
       let width = img.width;
       let height = img.height;
+
+      // 🔹 Redimensionar si es más grande que el ancho máximo
       if (width > maxWidth) {
         height = (maxWidth / width) * height;
         width = maxWidth;
       }
+
       canvas.width = width;
       canvas.height = height;
+
+      // 🔹 Dibujar y comprimir
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", quality));
+      const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+      resolve(compressedBase64);
     };
     img.src = base64;
   });
 }
 
-// =============================
-// 🔹 MANEJADORES DE IMAGEN
-// =============================
-[imagenCamara, imagenGaleria].forEach(input => {
-  input.addEventListener("change", function () {
-    fileInput.files = this.files;
-    fileInput.dispatchEvent(new Event("change"));
-  });
-});
-
+// 🔹 Vista previa y compresión de imagen
 fileInput.addEventListener("change", function () {
   const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onloadstart = () => {
-    progressContainer.style.display = "block";
-    progressBar.style.width = "0%";
-  };
-  reader.onprogress = e => {
-    if (e.lengthComputable) progressBar.style.width = (e.loaded / e.total * 100) + "%";
-  };
-  reader.onloadend = async e => {
-    const compressedBase64 = await compressImage(e.target.result, 800, 0.7);
-    base64Imagen = compressedBase64.split(",")[1];
-    previewImg.src = compressedBase64;
-    previewImg.style.display = "block";
-    previewImg.style.maxWidth = "100%";
-    previewImg.style.maxHeight = "180px";
-    previewImg.style.objectFit = "cover";
-    previewImg.style.borderRadius = "12px";
-    progressBar.style.width = "100%";
-    setTimeout(() => (progressContainer.style.display = "none"), 500);
-  };
-  reader.readAsDataURL(file);
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadstart = function () {
+      progressContainer.style.display = "block";
+      progressBar.style.width = "0%";
+    };
+    reader.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        progressBar.style.width = percent + "%";
+      }
+    };
+    reader.onloadend = async function (e) {
+      const originalBase64 = e.target.result;
+
+      // 🔹 Comprimir imagen antes de mostrarla
+      const compressedBase64 = await compressImage(originalBase64, 800, 0.7);
+      base64Imagen = compressedBase64.split(",")[1];
+
+      previewImg.src = compressedBase64;
+      previewImg.style.display = "block";
+      previewImg.style.maxWidth = "100%";
+      previewImg.style.maxHeight = "180px";
+      previewImg.style.objectFit = "cover";
+      previewImg.style.borderRadius = "12px";
+
+      progressBar.style.width = "100%";
+      setTimeout(() => (progressContainer.style.display = "none"), 500);
+    };
+    reader.readAsDataURL(file);
+  }
 });
 
-// =============================
-// 🔹 ENVÍO DE ANUNCIO
-// =============================
+// 🔹 Enviar anuncio (con barra de progreso simulada durante subida)
 btnPublicar.addEventListener("click", async () => {
   const titulo = document.getElementById("titulo").value.trim();
   const descripcion = document.getElementById("descripcion").value.trim();
@@ -1222,39 +1159,54 @@ btnPublicar.addEventListener("click", async () => {
   formData.append("autor", autor);
   formData.append("correo", correo);
 
+  // 🔹 Mostrar barra de progreso
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
+
+  // Simular progreso mientras se sube
   let simulatedProgress = 0;
   const interval = setInterval(() => {
     if (simulatedProgress < 90) {
-      simulatedProgress += Math.random() * 5;
+      simulatedProgress += Math.random() * 5; // sube entre 1% y 5%
       progressBar.style.width = simulatedProgress + "%";
     }
   }, 200);
 
   try {
-    // 🔹 Aquí debes definir SCRIPT_URL antes de usar fetch
-    if (typeof SCRIPT_URL === "undefined") throw "SCRIPT_URL no definido";
-    const response = await fetch(SCRIPT_URL, { method: "POST", body: formData });
+    const response = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: formData
+    });
+
     clearInterval(interval);
     progressBar.style.width = "100%";
-    await response.text();
+
+    const result = await response.text();
+
     mensaje.textContent = "✅ Anuncio enviado correctamente.";
     mensaje.style.color = "green";
 
+    // 🔹 Esperar un poco para que se vea el 100%
+    await new Promise(res => setTimeout(res, 600));
+
+    // Limpiar formulario
     document.getElementById("titulo").value = "";
     document.getElementById("descripcion").value = "";
     fileInput.value = "";
     previewImg.src = "";
     previewImg.style.display = "none";
     base64Imagen = "";
+
+    // 🔹 Ocultar barra y cerrar modal
     progressBar.style.width = "0%";
     progressContainer.style.display = "none";
 
     setTimeout(() => {
       publishModal.style.display = "none";
       mensaje.textContent = "";
-      if (typeof cargarAnuncios === "function") cargarAnuncios();
+      if (typeof cargarAnuncios === "function") {
+        cargarAnuncios();
+      }
     }, 1000);
   } catch (err) {
     clearInterval(interval);
@@ -1264,23 +1216,56 @@ btnPublicar.addEventListener("click", async () => {
     progressContainer.style.display = "none";
     progressBar.style.width = "0%";
   }
+
   btnPublicar.disabled = false;
 });
 
+
+
 // =============================
-// 🔹 MANEJADORES DE VIDEO
+// 🎬 CONTROL DE SECCIONES EN MODAL PUBLICAR
 // =============================
-[videoCamara, videoGaleria].forEach(input => {
-  input.addEventListener("change", function () {
-    fileInputVideo.files = this.files;
-    fileInputVideo.dispatchEvent(new Event("change"));
-  });
+const tabAnuncio = document.getElementById("tabAnuncio");
+const tabVideo = document.getElementById("tabVideo");
+const anuncioSection = document.getElementById("anuncioSection");
+const videoSection = document.getElementById("videoSection");
+
+tabAnuncio.addEventListener("click", () => {
+  tabAnuncio.style.background = "#0077cc";
+  tabAnuncio.style.color = "white";
+  tabVideo.style.background = "#ccc";
+  tabVideo.style.color = "#333";
+  anuncioSection.style.display = "block";
+  videoSection.style.display = "none";
 });
 
+tabVideo.addEventListener("click", () => {
+  tabVideo.style.background = "#6b46c1";
+  tabVideo.style.color = "white";
+  tabAnuncio.style.background = "#ccc";
+  tabAnuncio.style.color = "#333";
+  anuncioSection.style.display = "none";
+  videoSection.style.display = "block";
+});
+
+    
+
+
+
+// =============================
+// 🎥 MODAL DE SUBIDA DE VIDEOS
+// =============================
+
+
+// 📤 Subida del video (mantiene compatibilidad con tu sistema)
 btnUploadVideo.addEventListener("click", async () => {
-  const file = fileInputVideo.files[0];
+  const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
   const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
+  const progressBar = document.getElementById("progressVideo");
+  const progressContainer = document.getElementById("progressContainerVideo");
+  const metrics = document.getElementById("uploadMetricsVideo");
+  const status = document.getElementById("statusVideo");
 
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
@@ -1288,10 +1273,10 @@ btnUploadVideo.addEventListener("click", async () => {
   if (!file) return alert("Selecciona un video para subir.");
   if (!tituloUsuario) return alert("Escribe un título para el video.");
 
-  progressContainerVideo.style.display = "block";
-  progressVideo.style.width = "0%";
-  metricsVideo.textContent = "";
-  statusVideo.textContent = "";
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+  status.textContent = "";
+  metrics.textContent = "";
 
   const identifier = "artistica_bochica_" + Date.now();
   const fileName = file.name;
@@ -1299,12 +1284,14 @@ btnUploadVideo.addEventListener("click", async () => {
   const secretKey = "9JkBrIGexGNOynyf";
   const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
   const xhr = new XMLHttpRequest();
-  const startTime = Date.now();
 
-  xhr.upload.onprogress = event => {
+  let startTime = Date.now();
+
+  xhr.upload.onprogress = (event) => {
     if (event.lengthComputable) {
       const percent = (event.loaded / event.total) * 100;
-      progressVideo.style.width = percent + "%";
+      progressBar.style.width = percent + "%";
+
       const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
       const totalMB = (event.total / (1024 * 1024)).toFixed(2);
       const elapsed = (Date.now() - startTime) / 1000;
@@ -1312,7 +1299,7 @@ btnUploadVideo.addEventListener("click", async () => {
       const timeLeft = ((event.total - event.loaded) / (event.loaded / elapsed)) || 0;
       const mins = Math.floor(timeLeft / 60);
       const secs = Math.floor(timeLeft % 60);
-      metricsVideo.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
+      metrics.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
     }
   };
 
@@ -1320,22 +1307,26 @@ btnUploadVideo.addEventListener("click", async () => {
     if (xhr.status === 200) {
       const fileEncoded = encodeURIComponent(fileName);
       const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
-      statusVideo.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
-      progressContainerVideo.style.display = "none";
-      metricsVideo.textContent = "";
+      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
 
+      // Guarda los datos en tu Apps Script
       fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
         + `&titulo=${encodeURIComponent(tituloUsuario)}`
         + `&link=${encodeURIComponent(directLink)}`
         + `&autor=${encodeURIComponent(autor)}`
         + `&correo=${encodeURIComponent(correo)}`
         + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
+
+      progressContainer.style.display = "none";
+      metrics.textContent = "";
     } else {
-      statusVideo.textContent = "❌ Error al subir el video.";
+      status.textContent = "❌ Error al subir el video.";
     }
   };
 
-  xhr.onerror = () => { statusVideo.textContent = "❌ Error de conexión."; };
+  xhr.onerror = () => {
+    status.textContent = "❌ Error de conexión.";
+  };
 
   xhr.open("PUT", url, true);
   xhr.setRequestHeader("Authorization", `LOW ${accessKey}:${secretKey}`);
@@ -1348,7 +1339,6 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.setRequestHeader("Content-Type", file.type);
   xhr.send(file);
 });
-
 
 
     
@@ -2950,10 +2940,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
-
-
-
-
 
 
 
