@@ -2349,117 +2349,131 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
     }
 
 async function cargarImagenes() {
-    loader.style.display = 'block';
-    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-    const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+    loader.style.display = 'block';
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-    try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        let newAnunciosData = [];
+    try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        let newAnunciosData = [];
 
-        if(data.url && data.url.length > 0) {
-            data.url.forEach((url, index) => {
-                const idAnuncio = data.id[index];
-                const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-                const comentariosFormateados = normalizarComentarios(comentarios);
-                newAnunciosData.push({
-                    titulo: data.titulo[index] || "",
-                    descripcion: data.descripcion[index] || "",
-                    comentarios: comentariosFormateados,
-                    url: url,
-                    deleteurl: data.deleteurl[index] || "",
-                    autor: data.autor[index] || "",
-                    correo: data.correo[index] || "",
-                    fecha: data.fecha[index] || "",
-                    id: idAnuncio || ""
-                });
-            });
-        }
+        if(data.url && data.url.length > 0) {
+            data.url.forEach((url, index) => {
+                const idAnuncio = data.id[index];
+                const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+                const comentariosFormateados = normalizarComentarios(comentarios);
+                newAnunciosData.push({
+                    titulo: data.titulo[index] || "",
+                    descripcion: data.descripcion[index] || "",
+                    comentarios: comentariosFormateados,
+                    url: url,
+                    deleteurl: data.deleteurl[index] || "",
+                    autor: data.autor[index] || "",
+                    correo: data.correo[index] || "",
+                    fecha: data.fecha[index] || "",
+                    id: idAnuncio || ""
+                });
+            });
+        }
 
-        newAnunciosData.reverse();
+        newAnunciosData.reverse();
 
-        const oldAnunciosIds = anunciosData.map(a => a.id);
-        const newAnunciosIds = newAnunciosData.map(a => a.id);
-        
-        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-            loader.style.display = 'none';
-            return;
-        }
+        const oldAnunciosIds = anunciosData.map(a => a.id);
+        const newAnunciosIds = newAnunciosData.map(a => a.id);
+        
+        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+            loader.style.display = 'none';
+            return;
+        }
 
-        const currentSlideId = currentId;
-        anunciosData = newAnunciosData;
-      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+        const currentSlideId = currentId;
+        anunciosData = newAnunciosData;
+      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
 reconstruirIndiceBusqueda();
-        
-        if (swiperInstance) {
-            swiperInstance.removeAllSlides();
-            
-            anunciosData.forEach(anuncio => {
-                const slide = document.createElement('div');
-                slide.classList.add('swiper-slide');
-                slide.dataset.id = anuncio.id;
+        
+        if (swiperInstance) {
+            swiperInstance.removeAllSlides();
+            
+            anunciosData.forEach(anuncio => {
+                const slide = document.createElement('div');
+                slide.classList.add('swiper-slide');
+                slide.dataset.id = anuncio.id;
 
-                const zoomContainer = document.createElement('div');
-                zoomContainer.classList.add('swiper-zoom-container');
+                const zoomContainer = document.createElement('div');
+                zoomContainer.classList.add('swiper-zoom-container');
 
-                const img = document.createElement('img');
-                img.src = anuncio.url;
-                img.alt = anuncio.titulo;
+                const img = document.createElement('img');
+                img.src = anuncio.url;
+                img.alt = anuncio.titulo;
 
-                zoomContainer.appendChild(img);
-                slide.appendChild(zoomContainer);
+                zoomContainer.appendChild(img);
+                slide.appendChild(zoomContainer);
 
-                swiperInstance.appendSlide(slide);
-            });
-            
-            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
-            let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-            if (newIndex !== -1) {
-                swiperInstance.slideToLoop(newIndex, 0, false);
-            } else {
-                if (currentIndex < anunciosData.length) {
-                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
-                } else {
-                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
-                }
+                swiperInstance.appendSlide(slide);
+            });
+            
+            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
+            let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
+            if (newIndex !== -1) {
+                swiperInstance.slideToLoop(newIndex, 0, false);
+            } else {
+                if (currentIndex < anunciosData.length) {
+                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
+                } else {
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
+                }
+            }
+
+            swiperInstance.update();
+        } else {
+            const swiperWrapper = document.querySelector('.swiper-wrapper');
+            swiperWrapper.innerHTML = '';
+            
+            anunciosData.forEach(anuncio => {
+                const slide = document.createElement('div');
+                slide.classList.add('swiper-slide');
+                slide.dataset.id = anuncio.id;
+
+                const zoomContainer = document.createElement('div');
+                zoomContainer.classList.add('swiper-zoom-container');
+
+                const img = document.createElement('img');
+                img.src = anuncio.url;
+                img.alt = anuncio.titulo;
+
+                zoomContainer.appendChild(img);
+                slide.appendChild(zoomContainer);
+
+                swiperWrapper.appendChild(slide);
+            });
+            
+            initSwiper(0); // Inicializa swiperInstance
+
+            // 👇 INICIO DE LA MODIFICACIÓN CLAVE AQUÍ
+            // Este bloque se ejecuta SOLAMENTE la primera vez que se carga la página de fotos.
+            if (swiperInstance && anunciosData.length > 1) {
+                // Forzar un deslizamiento programático con una transición breve (300ms).
+                // Esto fuerza al WebView de iOS a registrar los manejadores de eventos táctiles del Swiper,
+                // eliminando el "pull-to-refresh" nativo.
+                setTimeout(() => {
+                    // Desliza al siguiente slide para "calibrar" el control táctil.
+                    swiperInstance.slideNext(300); 
+                    console.log("✅ Deslizamiento inicial forzado para activar control táctil.");
+                }, 100); 
             }
+            // 👆 FIN DE LA MODIFICACIÓN CLAVE
+        }
 
-            swiperInstance.update();
-        } else {
-            const swiperWrapper = document.querySelector('.swiper-wrapper');
-            swiperWrapper.innerHTML = '';
-            
-            anunciosData.forEach(anuncio => {
-                const slide = document.createElement('div');
-                slide.classList.add('swiper-slide');
-                slide.dataset.id = anuncio.id;
+        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+        updateContentOverlay(activeIndex);
 
-                const zoomContainer = document.createElement('div');
-                zoomContainer.classList.add('swiper-zoom-container');
-
-                const img = document.createElement('img');
-                img.src = anuncio.url;
-                img.alt = anuncio.titulo;
-
-                zoomContainer.appendChild(img);
-                slide.appendChild(zoomContainer);
-
-                swiperWrapper.appendChild(slide);
-            });
-            
-            Swiper(0);
-        }
-
-        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-        updateContentOverlay(activeIndex);
-
-    } catch(error) {
-        console.error("Error al cargar las imágenes:", error);
-    } finally {
-        loader.style.display = 'none';
-    }
+    } catch(error) {
+        console.error("Error al cargar las imágenes:", error);
+    } finally {
+        loader.style.display = 'none';
+    }
 }
 
 
@@ -2565,68 +2579,56 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
 
-  function initSwiper(initialIndex = 0) {
-    if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+ function initSwiper(initialIndex = 0) {
+    if(!swiperInstance) {
+        swiperInstance = new Swiper('.swiper', {
+            loop: true,
+            direction: 'vertical',
+            slidesPerView: 1,
+            spaceBetween: 10,
+            zoom: { maxRatio: 3, minRatio: 1 }
+        });
 
-        swiperInstance.on('slideChange', () => {
-            const activeIndex = swiperInstance.realIndex;
-            updateContentOverlay(activeIndex);
+        swiperInstance.on('slideChange', () => {
+            const activeIndex = swiperInstance.realIndex;
+            updateContentOverlay(activeIndex);
 
-            if(window.AppInventor && anunciosData.length > 0) {
-                const anuncioActual = anunciosData[activeIndex];
-                
-                if (!anuncioActual) return;
+            if(window.AppInventor && anunciosData.length > 0) {
+                const anuncioActual = anunciosData[activeIndex];
+                
+                if (!anuncioActual) return;
 
-                const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-                if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-                }
-                const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
-            }
-        });
-
-        // 👇 INICIO DE MODIFICACIÓN: Deslizamiento Programático para Activar el Control Táctil
-        setTimeout(() => {
-            // Se realiza después de un breve retraso para asegurar que Swiper esté totalmente renderizado.
-            // Verifica que haya más de una imagen para poder deslizar.
-            if (swiperInstance && swiperInstance.slides.length > 1) {
-                // Desliza a la siguiente imagen con una transición visible (300ms).
-                // Esto fuerza al WebView a registrar el control táctil para el Swiper.
-                swiperInstance.slideNext(300);
-                console.log("✅ Deslizamiento inicial forzado a la siguiente imagen para activar el control táctil.");
+                const id = anuncioActual.id;
+                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+                if (hayServidor) {
+                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+                }
+                const listaTitulos = anunciosData.map(a => a.titulo);
+                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+                window.AppInventor.setWebViewString(JSON.stringify(payload));
             }
-        }, 500); // 500ms es un tiempo prudente para la carga inicial.
-        // 👆 FIN DE MODIFICACIÓN
-    }
+        });
+    }
 
-    if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-        
-        if(window.AppInventor){
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
-    }
+    if(anunciosData.length > 0) {
+        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+        updateContentOverlay(initialSlideIndex);
+        
+        if(window.AppInventor){
+            const anuncioInicial = anunciosData[initialSlideIndex];
+            const id = anuncioInicial.id;
+            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+            if (hayServidor) {
+                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+            }
+            const listaTitulos = anunciosData.map(a => a.titulo);
+            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+    }
 }
+
 
     
 function aplicarTruncado(element, maxLength = 80) {
@@ -3007,6 +3009,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
