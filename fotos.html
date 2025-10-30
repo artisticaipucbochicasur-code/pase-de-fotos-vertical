@@ -24,6 +24,23 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>DECOM - Fotos</title>
   <style>
+/* Evita que iOS recargue al hacer swipe down */
+  body, .swiper, .swiper-wrapper, .swiper-slide {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  /* Evita el "pull to refresh" en iOS */
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Evita que el swipe lateral navegue atrás */
+  .swiper {
+    overscroll-behavior-x: none;
+  }
+    
     body {
         margin: 0;
         padding: 0;
@@ -933,7 +950,33 @@ body {
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
+// Previene el pull-to-refresh en iOS
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
+  let lastTouchY = 0;
+  let maybePreventPullToRefresh = false;
+
+  document.addEventListener('touchstart', function(e) {
+    const touch = e.touches[0];
+    if (touch) {
+      lastTouchY = touch.clientY;
+      maybePreventPullToRefresh = window.pageYOffset === 0 && lastTouchY < 30;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    const touch = e.touches[0];
+    if (touch && maybePreventPullToRefresh) {
+      const deltaY = touch.clientY - lastTouchY;
+      if (deltaY > 0) {
+        e.preventDefault();
+      }
+    }
+  }, { passive: false });
 
 
 
@@ -2859,5 +2902,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
