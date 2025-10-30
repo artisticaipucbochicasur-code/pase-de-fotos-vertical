@@ -2408,8 +2408,7 @@ async function cargarImagenes() {
 
         const currentSlideId = currentId;
         anunciosData = newAnunciosData;
-      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
-reconstruirIndiceBusqueda();
+        reconstruirIndiceBusqueda();
         
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
@@ -2425,6 +2424,7 @@ reconstruirIndiceBusqueda();
                 const img = document.createElement('img');
                 img.src = anuncio.url;
                 img.alt = anuncio.titulo;
+                img.loading = 'lazy'; // ⚡ Carga diferida para mejorar rendimiento en iOS
 
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
@@ -2432,15 +2432,14 @@ reconstruirIndiceBusqueda();
                 swiperInstance.appendSlide(slide);
             });
             
-            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
             let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
             if (newIndex !== -1) {
                 swiperInstance.slideToLoop(newIndex, 0, false);
             } else {
                 if (currentIndex < anunciosData.length) {
-                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
+                    swiperInstance.slideToLoop(currentIndex, 0, false);
                 } else {
-                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
                 }
             }
 
@@ -2460,6 +2459,7 @@ reconstruirIndiceBusqueda();
                 const img = document.createElement('img');
                 img.src = anuncio.url;
                 img.alt = anuncio.titulo;
+                img.loading = 'lazy'; // ⚡ También en la primera carga
 
                 zoomContainer.appendChild(img);
                 slide.appendChild(zoomContainer);
@@ -2587,7 +2587,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
-            direction: 'vertical',
+            direction: 'horizontal',
             slidesPerView: 1,
             spaceBetween: 10,
             zoom: { maxRatio: 3, minRatio: 1 }
@@ -3006,6 +3006,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
