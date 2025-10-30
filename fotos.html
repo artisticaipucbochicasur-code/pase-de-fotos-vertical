@@ -2449,18 +2449,31 @@ reconstruirIndiceBusqueda();
                 swiperWrapper.appendChild(slide);
             });
             
-            initSwiper(0); // Inicializa swiperInstance
+            initSwiper(0);
 
-            // 👇 INICIO DE MODIFICACIÓN: Bloqueo explícito del evento táctil (La solución más robusta)
-            const swiperContainer = document.querySelector('.swiper');
-            if (swiperContainer) {
-                // Bloquea el comportamiento por defecto (pull-to-refresh) en iOS al deslizar
-                swiperContainer.addEventListener('touchmove', (event) => {
-                    if (event.cancelable) {
-                        event.preventDefault();
-                    }
-                }, { passive: false });
-                console.log("✅ Bloqueo de touchmove para iOS/WebView activo.");
+            // 👇 INICIO DE MODIFICACIÓN: Hack de Video para Inicializar Gestos en iOS
+            if (!document.getElementById('ios-gesture-fix-video')) {
+                const videoHack = document.createElement('video');
+                videoHack.id = 'ios-gesture-fix-video';
+                // **REEMPLAZA ESTA RUTA** con la ruta de un video local REAL y muy pequeño
+                videoHack.src = 'Ini.mp4';
+                videoHack.style.position = 'absolute';
+                videoHack.style.width = '1px';
+                videoHack.style.height = '1px';
+                videoHack.style.opacity = '0.001';
+                // Propiedades cruciales para iOS/WebViews:
+                videoHack.muted = true;
+                videoHack.autoplay = true;
+                videoHack.playsInline = true; 
+                videoHack.loop = true;
+
+                document.body.appendChild(videoHack);
+
+                // Forzar la reproducción después de un breve retraso
+                setTimeout(() => {
+                    videoHack.play().catch(e => console.log('Intento de play del video hack fallido (esperado a veces).'));
+                    console.log("✅ Video hack iniciado para bloquear gestos nativos de iOS.");
+                }, 200);
             }
             // 👆 FIN DE MODIFICACIÓN
         }
@@ -2474,7 +2487,6 @@ reconstruirIndiceBusqueda();
         loader.style.display = 'none';
     }
 }
-
 
 
 async function eliminarAnuncio(anuncioId, deleteUrl) {
@@ -3008,6 +3020,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
