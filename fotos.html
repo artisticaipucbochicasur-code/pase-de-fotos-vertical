@@ -2451,19 +2451,18 @@ reconstruirIndiceBusqueda();
             
             initSwiper(0); // Inicializa swiperInstance
 
-            // 👇 INICIO DE LA MODIFICACIÓN CLAVE AQUÍ
-            // Este bloque se ejecuta SOLAMENTE la primera vez que se carga la página de fotos.
-            if (swiperInstance && anunciosData.length > 1) {
-                // Forzar un deslizamiento programático con una transición breve (300ms).
-                // Esto fuerza al WebView de iOS a registrar los manejadores de eventos táctiles del Swiper,
-                // eliminando el "pull-to-refresh" nativo.
-                setTimeout(() => {
-                    // Desliza al siguiente slide para "calibrar" el control táctil.
-                    swiperInstance.slideNext(300); 
-                    console.log("✅ Deslizamiento inicial forzado para activar control táctil.");
-                }, 100); 
+            // 👇 INICIO DE MODIFICACIÓN: Bloqueo explícito del evento táctil (La solución más robusta)
+            const swiperContainer = document.querySelector('.swiper');
+            if (swiperContainer) {
+                // Bloquea el comportamiento por defecto (pull-to-refresh) en iOS al deslizar
+                swiperContainer.addEventListener('touchmove', (event) => {
+                    if (event.cancelable) {
+                        event.preventDefault();
+                    }
+                }, { passive: false });
+                console.log("✅ Bloqueo de touchmove para iOS/WebView activo.");
             }
-            // 👆 FIN DE LA MODIFICACIÓN CLAVE
+            // 👆 FIN DE MODIFICACIÓN
         }
 
         const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
@@ -3009,6 +3008,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
