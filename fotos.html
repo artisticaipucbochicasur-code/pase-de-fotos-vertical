@@ -34,12 +34,53 @@
         color: white;
         transition: transform 0.3s ease; /* Transición para el movimiento */
     }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+ .swiper { 
+    width: 100vw; 
+    height: 100vh; 
+    
+    /* 🛠️ Solución Clave para iOS Pull-to-Refresh: */
+    /* 1. Previene el comportamiento de "tirar para actualizar" del navegador */
+    overscroll-behavior-y: none;
+    
+    /* 2. Indica al navegador que el gesto vertical (pan-y) debe ser ignorado 
+       a favor de JavaScript (Swiper), y solo manejar el horizontal (pan-x). */
+    touch-action: pan-x; 
+}
+
+.swiper-slide { 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    position: relative; 
+    background: #000; 
+}
+
+.swiper-slide img { 
+    max-width: 100%; 
+    max-height: 100%; 
+    object-fit: contain; 
+}
+
+#loader { 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    color: white; 
+    font-size: 24px; 
+    text-align: center; 
+    z-index: 10; 
+}
+
+@keyframes spin { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+
+#loader .spinner { 
+    display: inline-block; 
+    animation: spin 1.5s linear infinite; 
+}
 
 #lblContador {
   position: absolute;
@@ -2575,14 +2616,18 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
 
-   function initSwiper(initialIndex = 0) {
+  function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
             direction: 'vertical',
             slidesPerView: 1,
             spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
+            zoom: { maxRatio: 3, minRatio: 1 },
+            
+            // 🛠️ MODIFICACIONES PARA IOS
+            resistanceRatio: 0, // Elimina la resistencia/rebote en los bordes
+            touchMoveStopPropagation: true // Evita que el gesto se propague al body/documento
         });
 
         swiperInstance.on('slideChange', () => {
@@ -2990,5 +3035,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
