@@ -2351,164 +2351,174 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
 let videoMostrado = false; // 🔹 Controla que solo se reproduzca una vez
 
 async function cargarImagenes() {
-    loader.style.display = 'block';
-    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-    const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+  const loader = document.getElementById("loader");
+  const videoContainer = document.createElement("div");
+  videoContainer.style.position = "fixed";
+  videoContainer.style.top = "0";
+  videoContainer.style.left = "0";
+  videoContainer.style.width = "100%";
+  videoContainer.style.height = "100%";
+  videoContainer.style.background = "black";
+  videoContainer.style.zIndex = "9999";
+  videoContainer.style.display = "flex";
+  videoContainer.style.alignItems = "center";
+  videoContainer.style.justifyContent = "center";
+  videoContainer.style.transition = "opacity 1s ease";
 
+  const video = document.createElement("video");
+  video.src = "Ini.mp4";
+  video.autoplay = false;
+  video.playsInline = true;
+  video.muted = false;
+  video.controls = false;
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.objectFit = "cover";
+
+  videoContainer.appendChild(video);
+  document.body.appendChild(videoContainer);
+
+  // Espera interacción del usuario antes de reproducir (necesario en iOS)
+  const startVideo = async () => {
     try {
-        // 🎬 Mostrar video de inicio solo la primera vez
-        if (!videoMostrado) {
-            videoMostrado = true; // Evita que se repita
-
-            // Crear contenedor del video
-            const videoOverlay = document.createElement("div");
-            Object.assign(videoOverlay.style, {
-                position: "fixed",
-                top: "0",
-                left: "0",
-                width: "100%",
-                height: "100%",
-                background: "black",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: "99999",
-            });
-
-            const video = document.createElement("video");
-            video.src = "Ini.mp4";
-            video.autoplay = true;
-            video.playsInline = true;
-            video.muted = false;
-            video.controls = false;
-            video.style.maxWidth = "100%";
-            video.style.maxHeight = "100%";
-
-            videoOverlay.appendChild(video);
-            document.body.appendChild(videoOverlay);
-
-            // Esperar a que el video termine
-            await new Promise(resolve => {
-                video.addEventListener("ended", () => {
-                    videoOverlay.style.opacity = "0";
-                    videoOverlay.style.transition = "opacity 0.8s ease";
-                    setTimeout(() => videoOverlay.remove(), 800);
-                    resolve();
-                });
-            });
-        }
-
-        // ==========================
-        // 🔽 Aquí continúa tu código original
-        // ==========================
-
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        let newAnunciosData = [];
-
-        if (data.url && data.url.length > 0) {
-            data.url.forEach((url, index) => {
-                const idAnuncio = data.id[index];
-                const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-                const comentariosFormateados = normalizarComentarios(comentarios);
-                newAnunciosData.push({
-                    titulo: data.titulo[index] || "",
-                    descripcion: data.descripcion[index] || "",
-                    comentarios: comentariosFormateados,
-                    url: url,
-                    deleteurl: data.deleteurl[index] || "",
-                    autor: data.autor[index] || "",
-                    correo: data.correo[index] || "",
-                    fecha: data.fecha[index] || "",
-                    id: idAnuncio || ""
-                });
-            });
-        }
-
-        newAnunciosData.reverse();
-
-        const oldAnunciosIds = anunciosData.map(a => a.id);
-        const newAnunciosIds = newAnunciosData.map(a => a.id);
-
-        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-            loader.style.display = 'none';
-            return;
-        }
-
-        const currentSlideId = currentId;
-        anunciosData = newAnunciosData;
-
-        // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
-        reconstruirIndiceBusqueda();
-
-        if (swiperInstance) {
-            swiperInstance.removeAllSlides();
-
-            anunciosData.forEach(anuncio => {
-                const slide = document.createElement('div');
-                slide.classList.add('swiper-slide');
-                slide.dataset.id = anuncio.id;
-
-                const zoomContainer = document.createElement('div');
-                zoomContainer.classList.add('swiper-zoom-container');
-
-                const img = document.createElement('img');
-                img.src = anuncio.url;
-                img.alt = anuncio.titulo;
-
-                zoomContainer.appendChild(img);
-                slide.appendChild(zoomContainer);
-
-                swiperInstance.appendSlide(slide);
-            });
-
-            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
-            let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-            if (newIndex !== -1) {
-                swiperInstance.slideToLoop(newIndex, 0, false);
-            } else {
-                if (currentIndex < anunciosData.length) {
-                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
-                } else {
-                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
-                }
-            }
-
-            swiperInstance.update();
-        } else {
-            const swiperWrapper = document.querySelector('.swiper-wrapper');
-            swiperWrapper.innerHTML = '';
-
-            anunciosData.forEach(anuncio => {
-                const slide = document.createElement('div');
-                slide.classList.add('swiper-slide');
-                slide.dataset.id = anuncio.id;
-
-                const zoomContainer = document.createElement('div');
-                zoomContainer.classList.add('swiper-zoom-container');
-
-                const img = document.createElement('img');
-                img.src = anuncio.url;
-                img.alt = anuncio.titulo;
-
-                zoomContainer.appendChild(img);
-                slide.appendChild(zoomContainer);
-
-                swiperWrapper.appendChild(slide);
-            });
-
-            initSwiper(0);
-        }
-
-        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-        updateContentOverlay(activeIndex);
-
-    } catch (error) {
-        console.error("Error al cargar las imágenes:", error);
-    } finally {
-        loader.style.display = 'none';
+      await video.play();
+    } catch (e) {
+      console.warn("Reproducción automática bloqueada:", e);
     }
+  };
+
+  const userInteraction = () => {
+    startVideo();
+    document.removeEventListener("click", userInteraction);
+    document.removeEventListener("touchstart", userInteraction);
+  };
+
+  document.addEventListener("click", userInteraction);
+  document.addEventListener("touchstart", userInteraction);
+
+  // Cuando termina el video, carga las imágenes
+  video.addEventListener("ended", async () => {
+    videoContainer.style.opacity = "0";
+    setTimeout(() => {
+      document.body.removeChild(videoContainer);
+      continuarCargaImagenes(); // 👈 función separada con tu lógica original
+    }, 1000);
+  });
+}
+
+async function continuarCargaImagenes() {
+  loader.style.display = "block";
+  const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+  const currentId =
+    swiperInstance && anunciosData.length > 0
+      ? anunciosData[swiperInstance.realIndex].id
+      : null;
+
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+    if (!response.ok)
+      throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    let newAnunciosData = [];
+
+    if (data.url && data.url.length > 0) {
+      data.url.forEach((url, index) => {
+        const idAnuncio = data.id[index];
+        const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+        const comentariosFormateados = normalizarComentarios(comentarios);
+        newAnunciosData.push({
+          titulo: data.titulo[index] || "",
+          descripcion: data.descripcion[index] || "",
+          comentarios: comentariosFormateados,
+          url: url,
+          deleteurl: data.deleteurl[index] || "",
+          autor: data.autor[index] || "",
+          correo: data.correo[index] || "",
+          fecha: data.fecha[index] || "",
+          id: idAnuncio || "",
+        });
+      });
+    }
+
+    newAnunciosData.reverse();
+
+    const oldAnunciosIds = anunciosData.map((a) => a.id);
+    const newAnunciosIds = newAnunciosData.map((a) => a.id);
+
+    if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+      loader.style.display = "none";
+      return;
+    }
+
+    const currentSlideId = currentId;
+    anunciosData = newAnunciosData;
+    reconstruirIndiceBusqueda();
+
+    if (swiperInstance) {
+      swiperInstance.removeAllSlides();
+
+      anunciosData.forEach((anuncio) => {
+        const slide = document.createElement("div");
+        slide.classList.add("swiper-slide");
+        slide.dataset.id = anuncio.id;
+
+        const zoomContainer = document.createElement("div");
+        zoomContainer.classList.add("swiper-zoom-container");
+
+        const img = document.createElement("img");
+        img.src = anuncio.url;
+        img.alt = anuncio.titulo;
+
+        zoomContainer.appendChild(img);
+        slide.appendChild(zoomContainer);
+
+        swiperInstance.appendSlide(slide);
+      });
+
+      let newIndex = anunciosData.findIndex((a) => a.id === currentSlideId);
+      if (newIndex !== -1) {
+        swiperInstance.slideToLoop(newIndex, 0, false);
+      } else {
+        if (currentIndex < anunciosData.length) {
+          swiperInstance.slideToLoop(currentIndex, 0, false);
+        } else {
+          swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
+        }
+      }
+
+      swiperInstance.update();
+    } else {
+      const swiperWrapper = document.querySelector(".swiper-wrapper");
+      swiperWrapper.innerHTML = "";
+
+      anunciosData.forEach((anuncio) => {
+        const slide = document.createElement("div");
+        slide.classList.add("swiper-slide");
+        slide.dataset.id = anuncio.id;
+
+        const zoomContainer = document.createElement("div");
+        zoomContainer.classList.add("swiper-zoom-container");
+
+        const img = document.createElement("img");
+        img.src = anuncio.url;
+        img.alt = anuncio.titulo;
+
+        zoomContainer.appendChild(img);
+        slide.appendChild(zoomContainer);
+
+        swiperWrapper.appendChild(slide);
+      });
+
+      initSwiper(0);
+    }
+
+    const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    updateContentOverlay(activeIndex);
+  } catch (error) {
+    console.error("Error al cargar las imágenes:", error);
+  } finally {
+    loader.style.display = "none";
+  }
 }
 
 
@@ -3043,6 +3053,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
