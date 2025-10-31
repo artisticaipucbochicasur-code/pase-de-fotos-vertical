@@ -2651,59 +2651,6 @@ async function cargarImagenes() {
 
 
 function initSwiper(initialIndex = 0) {
-    // Añadimos el parche táctil primero (no afecta la lógica de Swiper)
-    // Se engancha sobre el contenedor .swiper y solo previene pull-to-refresh
-    // cuando el gesto empieza cerca del tope y se arrastra hacia abajo.
-    (function attachIOSPullToRefreshFix() {
-      const swiperEl = document.querySelector('.swiper');
-      if (!swiperEl) return;
-
-      let startY = 0, startX = 0, isMoving = false;
-
-      function onTouchStart(e) {
-        if (!e.touches || e.touches.length > 1) return;
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        isMoving = true;
-      }
-
-      function onTouchMove(e) {
-        if (!isMoving || !e.touches || e.touches.length > 1) return;
-
-        const currentY = e.touches[0].clientY;
-        const currentX = e.touches[0].clientX;
-        const deltaY = currentY - startY;
-        const deltaX = currentX - startX;
-
-        // Si el gesto es más horizontal que vertical, no interferir.
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-
-        // Detectar pull-to-refresh potencial: empezó cerca del top y arrastra hacia abajo
-        const startedNearTop = (window.scrollY === 0 || startY < 60); // umbral 60px
-        const draggingDown = deltaY > 0;
-
-        if (startedNearTop && draggingDown) {
-          // Evita pull-to-refresh en iOS. IMPORTANTE: el listener debe añadirse con passive: false.
-          e.preventDefault();
-        }
-      }
-
-      function onTouchEnd() {
-        isMoving = false;
-      }
-
-      // Evitar duplicar handlers si ya existen
-      swiperEl.removeEventListener('touchstart', onTouchStart);
-      swiperEl.removeEventListener('touchmove', onTouchMove);
-      swiperEl.removeEventListener('touchend', onTouchEnd);
-
-      // start/end passive:true, move MUST be passive:false
-      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
-      swiperEl.addEventListener('touchmove', onTouchMove, { passive: false }); // <-- crucial
-      swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
-    })();
-
-    // === Tu lógica Swiper existente (sin cambios) ===
     if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
@@ -2751,7 +2698,44 @@ function initSwiper(initialIndex = 0) {
             window.AppInventor.setWebViewString(JSON.stringify(payload));
         }
     }
+
+    // 🔒 Parche iOS: evita recarga por pull-to-refresh y gestos conflictivos
+    (function(){
+        const swiperEl = document.querySelector('.swiper');
+        let startY = 0, startX = 0, isMoving = false;
+
+        function onTouchStart(e) {
+            if (!e.touches || e.touches.length > 1) return;
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+            isMoving = true;
+        }
+
+        function onTouchMove(e) {
+            if (!isMoving || !e.touches || e.touches.length > 1) return;
+            const currentY = e.touches[0].clientY;
+            const currentX = e.touches[0].clientX;
+            const deltaY = currentY - startY;
+            const deltaX = currentX - startX;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY)) return; // swipe horizontal -> no bloquear
+
+            const startedNearTop = (window.scrollY === 0 || startY < 60);
+            const draggingDown = deltaY > 0;
+
+            if (startedNearTop && draggingDown) {
+                e.preventDefault(); // bloquea pull-to-refresh en Safari
+            }
+        }
+
+        function onTouchEnd() { isMoving = false; }
+
+        swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+        swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
+        swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    })();
 }
+
     
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
@@ -3131,6 +3115,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
