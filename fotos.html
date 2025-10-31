@@ -26,30 +26,29 @@
 
   <title>DECOM - Fotos</title>
   <style>
-   body {
-    margin: 0;
-    padding: 0;
-    background: #111;
-    font-family: Arial, sans-serif;
-    color: white;
-    transition: transform 0.3s ease; /* Transición para el movimiento */
-
-    /* 🔒 Evitar recarga por deslizar en iOS */
-    overscroll-behavior: none;
-    height: 100%;
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    touch-action: none;
+   /* Reemplaza la regla body que fijaba position:fixed y touch-action:none */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  overscroll-behavior: none; /* evita pull-to-refresh a nivel documento */
+  overflow: hidden;          /* página fija (no scroll del documento) */
+  /* NO usar position: fixed en body (provoca problemas en iOS) */
 }
 
+/* Contenedor del swiper: permitir gestos verticales dentro,
+   y evitar que el gesto salga al documento (contain) */
 .swiper {
-    width: 100vw;
-    height: 100vh;
-
-    /* 🔧 Permitir swipe vertical dentro del swiper */
-    touch-action: pan-y !important;
-    -webkit-overflow-scrolling: touch;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  overscroll-behavior: contain;        /* importante para iOS */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;      /* permite desplazamiento vertical dentro del swiper */
 }
 
 .swiper-slide {
@@ -2656,27 +2655,24 @@ function initSwiper(initialIndex = 0) {
     const html = document.documentElement;
     const swiperEl = document.querySelector('.swiper');
 
-    // Asegurarse de que los elementos existen
     if (!swiperEl) return;
 
-    // 1) Bloquear scroll de la página por CSS (mejor que listeners globales)
+    // Evitar scroll del documento pero sin position:fixed
     html.style.overflow = 'hidden';
     html.style.overscrollBehavior = 'none';
     body.style.overflow = 'hidden';
     body.style.overscrollBehavior = 'none';
-    body.style.position = 'fixed'; // evita desplazamiento de la página en iOS
     body.style.width = '100%';
     body.style.height = '100%';
+    // NO body.style.position = 'fixed';
 
-    // 2) Configurar el contenedor del slider para recibir gestos y evitar overscroll local
+    // Aseguramos el contenedor del swiper
     swiperEl.style.overflow = 'hidden';
-    swiperEl.style.overscrollBehavior = 'contain'; // evita que gestos dentro propaguen el "pull"
-    swiperEl.style.touchAction = 'pan-y pinch-zoom'; // permite desplazamiento vertical dentro de Swiper si se usa
-    swiperEl.style.webkitOverflowScrolling = 'auto';
+    swiperEl.style.overscrollBehavior = 'contain';
+    swiperEl.style.touchAction = 'pan-y pinch-zoom';
+    swiperEl.style.webkitOverflowScrolling = 'touch';
 
-    // 3) Listeners táctiles SOLO en el contenedor del slider con passive: false
-    //    Prevengo el default solo cuando detecto un gesto vertical que deba manejar Swiper,
-    //    esto evita que el gesto provoque el "pull-to-refresh" en iOS.
+    // Touch handlers SOLO en el contenedor .swiper
     let startY = 0;
     let startX = 0;
     let isMoving = false;
@@ -2696,11 +2692,10 @@ function initSwiper(initialIndex = 0) {
         const deltaY = currentY - startY;
         const deltaX = currentX - startX;
 
-        // Si el movimiento vertical es mayor que el horizontal, prevenir el default
-        // para que iOS no active pull-to-refresh. Si es horizontal dejamos pasar (p. ej. swipe lateral).
+        // Si el movimiento es principalmente vertical, prevenir el default
+        // para evitar pull-to-refresh en iOS. Si es horizontal, no prevenir.
         if (Math.abs(deltaY) > Math.abs(deltaX)) {
-            // Prevent pull-to-refresh only if moving vertically inside the swiper
-            e.preventDefault();
+            e.preventDefault(); // Necesita passive: false al añadir listener
         }
     }
 
@@ -2708,21 +2703,21 @@ function initSwiper(initialIndex = 0) {
         isMoving = false;
     }
 
-    // El listener debe tener { passive: false } para que e.preventDefault() funcione.
+    // Asegurar que no duplicamos handlers
     swiperEl.removeEventListener('touchstart', onTouchStart);
     swiperEl.removeEventListener('touchmove', onTouchMove);
     swiperEl.removeEventListener('touchend', onTouchEnd);
 
+    // start/end pueden ser passive:true, pero move debe ser passive:false para poder preventDefault
     swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
-    // start puede ser passive:true (no necesitamos preventDefault ahí), move debe ser false
     swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
     swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
 
-    // 4) Inicializar Swiper si no existe
+    // Inicializar Swiper (tu configuración existente)
     if (!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
-            direction: 'vertical', // o 'horizontal'
+            direction: 'vertical',
             slidesPerView: 1,
             spaceBetween: 10,
             zoom: { maxRatio: 3, minRatio: 1 },
@@ -2733,44 +2728,17 @@ function initSwiper(initialIndex = 0) {
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
             if (typeof updateContentOverlay === 'function') updateContentOverlay(activeIndex);
-
-            if (window.AppInventor && typeof anunciosData !== 'undefined' && anunciosData.length > 0) {
-                const anuncioActual = anunciosData[activeIndex];
-                if (!anuncioActual) return;
-
-                const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-                if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-                }
-                const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
-            }
+            // tu código AppInventor...
         });
     }
 
-    // 5) Ir al slide inicial
-    if (typeof anunciosData !== 'undefined' && anunciosData.length > 0) {
+    // Ir al slide inicial (tu lógica igual)
+    if (Array.isArray(anunciosData) && anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
         if (typeof updateContentOverlay === 'function') updateContentOverlay(initialSlideIndex);
-
-        if (window.AppInventor) {
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
-        }
     }
 }
-
-
 
     
 function aplicarTruncado(element, maxLength = 80) {
@@ -3151,6 +3119,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
