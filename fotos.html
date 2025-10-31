@@ -29,16 +29,9 @@
    /* Reemplaza la regla body que fijaba position:fixed y touch-action:none */
 /* === Pegar en <style> === */
 html, body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  background: #111;
-  color: white;
-  font-family: Arial, sans-serif;
-  overscroll-behavior: none; /* evita pull-to-refresh a nivel documento */
-  overflow: hidden;          /* evita scroll del documento */
-  /* NO position: fixed en body */
+    height:100%;
+    margin:0;
+    overflow:hidden;
 }
 
 /* Contenedor del swiper: ocupa la ventana y aísla overscroll */
@@ -2718,11 +2711,13 @@ function initSwiper(initialIndex = 0) {
 
         function onTouchEnd() { isMoving = false; }
 
-        swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+        // Aquí el cambio importante: passive: false en touchstart también
+        swiperEl.addEventListener('touchstart', onTouchStart, { passive: false });
         swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
         swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
     })();
 }
+
 
     
 function aplicarTruncado(element, maxLength = 80) {
@@ -3103,6 +3098,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
