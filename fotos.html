@@ -26,20 +26,67 @@
 
   <title>DECOM - Fotos</title>
   <style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #111;
-        font-family: Arial, sans-serif;
-        color: white;
-        transition: transform 0.3s ease; /* Transición para el movimiento */
-    }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+   body {
+    margin: 0;
+    padding: 0;
+    background: #111;
+    font-family: Arial, sans-serif;
+    color: white;
+    transition: transform 0.3s ease; /* Transición para el movimiento */
+
+    /* 🔒 Evitar recarga por deslizar en iOS */
+    overscroll-behavior: none;
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    touch-action: none;
+}
+
+.swiper {
+    width: 100vw;
+    height: 100vh;
+
+    /* 🔧 Permitir swipe vertical dentro del swiper */
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background: #000;
+}
+
+.swiper-slide img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+#loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 24px;
+    text-align: center;
+    z-index: 10;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#loader .spinner {
+    display: inline-block;
+    animation: spin 1.5s linear infinite;
+}
+
 
 #lblContador {
   position: absolute;
@@ -2652,6 +2699,13 @@ async function cargarImagenes() {
             window.AppInventor.setWebViewString(JSON.stringify(payload));
         }
     }
+
+    // 🔒 Evita que iOS recargue o se desplace fuera del swiper
+    document.addEventListener('touchmove', function(event) {
+        if (!event.target.closest('.swiper')) {
+            event.preventDefault(); // bloquea scroll fuera del swiper
+        }
+    }, { passive: false });
 }
 
 function aplicarTruncado(element, maxLength = 80) {
@@ -3032,6 +3086,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
