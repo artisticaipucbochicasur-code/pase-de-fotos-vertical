@@ -2717,7 +2717,70 @@ function initSwiper(initialIndex = 0) {
         swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
     })();
 }
+// ==== Interceptor en captura para iOS (colocar dentro initSwiper o justo después de inicializar Swiper) ====
+(function attachCaptureTouchHandlers() {
+  let startY = 0;
+  let startX = 0;
+  let isMoving = false;
+  let touchStartedOnInput = false; // evita interferir con inputs
 
+  function docTouchStart(e) {
+    if (!e.touches || e.touches.length > 1) return;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+    isMoving = true;
+
+    // Si tocamos dentro de un input/textarea/contenteditable, no interferir
+    const target = e.target;
+    touchStartedOnInput = !!(target && (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable
+    ));
+  }
+
+  function docTouchMove(e) {
+    if (!isMoving || touchStartedOnInput || !e.touches || e.touches.length > 1) return;
+
+    const currentY = e.touches[0].clientY;
+    const currentX = e.touches[0].clientX;
+    const deltaY = currentY - startY;
+    const deltaX = currentX - startX;
+
+    // No interferir con swipes horizontales
+    if (Math.abs(deltaX) > Math.abs(deltaY)) return;
+
+    // Detectar pull-to-refresh: empezó cerca del top del documento y se arrastra hacia abajo
+    const startedNearTop = (window.scrollY === 0 || startY < 80); // umbral 80px (puedes ajustar)
+    const draggingDown = deltaY > 0;
+
+    if (startedNearTop && draggingDown) {
+      // Interceptar en captura ANTES de que el navegador/WebView haga pull-to-refresh
+      e.preventDefault();
+      // También detener propagación para evitar otros listeners en fase de burbujeo
+      e.stopPropagation();
+      return;
+    }
+
+    // Si el movimiento está dentro del .swiper y no es pull-to-refresh,
+    // permitimos que Swiper lo maneje. No hacemos nada aquí.
+  }
+
+  function docTouchEnd() {
+    isMoving = false;
+    touchStartedOnInput = false;
+  }
+
+  // Remover por si acaso
+  document.removeEventListener('touchstart', docTouchStart, true);
+  document.removeEventListener('touchmove', docTouchMove, true);
+  document.removeEventListener('touchend', docTouchEnd, true);
+
+  // IMPORTANT: capture:true y passive:false para interceptar ANTES que otros handlers/browser
+  document.addEventListener('touchstart', docTouchStart, { passive: true, capture: true });
+  document.addEventListener('touchmove', docTouchMove, { passive: false, capture: true });
+  document.addEventListener('touchend', docTouchEnd, { passive: true, capture: true });
+})();
 
     
 function aplicarTruncado(element, maxLength = 80) {
@@ -3098,6 +3161,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
