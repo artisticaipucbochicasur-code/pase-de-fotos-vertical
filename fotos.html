@@ -2651,44 +2651,23 @@ async function cargarImagenes() {
 
 
 function initSwiper(initialIndex = 0) {
-    const body = document.body;
-    const html = document.documentElement;
-    const swiperEl = document.querySelector('.swiper');
+    // Añadimos el parche táctil primero (no afecta la lógica de Swiper)
+    // Se engancha sobre el contenedor .swiper y solo previene pull-to-refresh
+    // cuando el gesto empieza cerca del tope y se arrastra hacia abajo.
+    (function attachIOSPullToRefreshFix() {
+      const swiperEl = document.querySelector('.swiper');
+      if (!swiperEl) return;
 
-    if (!swiperEl) return;
+      let startY = 0, startX = 0, isMoving = false;
 
-    // Evitar scroll del documento pero sin usar position:fixed en body
-    html.style.overflow = 'hidden';
-    html.style.overscrollBehavior = 'none';
-    body.style.overflow = 'hidden';
-    body.style.overscrollBehavior = 'none';
-    body.style.width = '100%';
-    body.style.height = '100%';
-    // NO body.style.position = 'fixed';
-
-    // Configurar el contenedor del slider
-    swiperEl.style.overflow = 'hidden';
-    swiperEl.style.overscrollBehavior = 'contain';
-    swiperEl.style.touchAction = 'pan-y pinch-zoom';
-    swiperEl.style.webkitOverflowScrolling = 'touch';
-
-    // --- Parche táctil: prevenir pull-to-refresh solo cuando el gesto empieza cerca del top y arrastra hacia abajo ---
-    // Flag de depuración (false por defecto para no afectar rendimiento)
-    const ENABLE_TOUCH_DEBUG = false;
-
-    let startY = 0;
-    let startX = 0;
-    let isMoving = false;
-
-    function onTouchStart(e) {
+      function onTouchStart(e) {
         if (!e.touches || e.touches.length > 1) return;
         startY = e.touches[0].clientY;
         startX = e.touches[0].clientX;
         isMoving = true;
-        if (ENABLE_TOUCH_DEBUG) console.debug('swiper touchstart', { startY, startX });
-    }
+      }
 
-    function onTouchMove(e) {
+      function onTouchMove(e) {
         if (!isMoving || !e.touches || e.touches.length > 1) return;
 
         const currentY = e.touches[0].clientY;
@@ -2696,56 +2675,51 @@ function initSwiper(initialIndex = 0) {
         const deltaY = currentY - startY;
         const deltaX = currentX - startX;
 
-        if (ENABLE_TOUCH_DEBUG) console.debug('swiper touchmove', { startY, currentY, deltaY, deltaX, scrollY: window.scrollY });
-
-        // Si el movimiento es más horizontal, no interferimos
+        // Si el gesto es más horizontal que vertical, no interferir.
         if (Math.abs(deltaX) > Math.abs(deltaY)) return;
 
-        // Detectar pull-to-refresh potencial: inicio cerca del top (window.scrollY===0 o startY pequeño) y arrastrando hacia abajo
+        // Detectar pull-to-refresh potencial: empezó cerca del top y arrastra hacia abajo
         const startedNearTop = (window.scrollY === 0 || startY < 60); // umbral 60px
         const draggingDown = deltaY > 0;
 
         if (startedNearTop && draggingDown) {
-            // Prevenir pull-to-refresh en iOS
-            e.preventDefault(); // requiere listener con passive: false
-            if (ENABLE_TOUCH_DEBUG) console.debug('swiper prevented pull-to-refresh', { startY, deltaY });
+          // Evita pull-to-refresh en iOS. IMPORTANTE: el listener debe añadirse con passive: false.
+          e.preventDefault();
         }
-        // en otros casos dejamos pasar para que Swiper gestione el gesto
-    }
+      }
 
-    function onTouchEnd() {
+      function onTouchEnd() {
         isMoving = false;
-        if (ENABLE_TOUCH_DEBUG) console.debug('swiper touchend');
-    }
+      }
 
-    // Asegurarnos de no duplicar handlers
-    swiperEl.removeEventListener('touchstart', onTouchStart);
-    swiperEl.removeEventListener('touchmove', onTouchMove);
-    swiperEl.removeEventListener('touchend', onTouchEnd);
+      // Evitar duplicar handlers si ya existen
+      swiperEl.removeEventListener('touchstart', onTouchStart);
+      swiperEl.removeEventListener('touchmove', onTouchMove);
+      swiperEl.removeEventListener('touchend', onTouchEnd);
 
-    // start/end pueden ser passive:true, pero move debe ser passive:false
-    swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
-    swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
-    swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+      // start/end passive:true, move MUST be passive:false
+      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+      swiperEl.addEventListener('touchmove', onTouchMove, { passive: false }); // <-- crucial
+      swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    })();
 
-    // Inicializar Swiper si no existe
-    if (!swiperInstance) {
+    // === Tu lógica Swiper existente (sin cambios) ===
+    if(!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
             direction: 'vertical',
             slidesPerView: 1,
             spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 },
-            simulateTouch: true,
-            touchStartPreventDefault: false
+            zoom: { maxRatio: 3, minRatio: 1 }
         });
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
-            if (typeof updateContentOverlay === 'function') updateContentOverlay(activeIndex);
+            updateContentOverlay(activeIndex);
 
-            if (window.AppInventor && typeof anunciosData !== 'undefined' && anunciosData.length > 0) {
+            if(window.AppInventor && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
+                
                 if (!anuncioActual) return;
 
                 const id = anuncioActual.id;
@@ -2760,13 +2734,12 @@ function initSwiper(initialIndex = 0) {
         });
     }
 
-    // Ir al slide inicial si hay datos
-    if (Array.isArray(anunciosData) && anunciosData.length > 0) {
+    if(anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        if (typeof updateContentOverlay === 'function') updateContentOverlay(initialSlideIndex);
-
-        if (window.AppInventor) {
+        updateContentOverlay(initialSlideIndex);
+        
+        if(window.AppInventor){
             const anuncioInicial = anunciosData[initialSlideIndex];
             const id = anuncioInicial.id;
             const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
@@ -3158,5 +3131,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
