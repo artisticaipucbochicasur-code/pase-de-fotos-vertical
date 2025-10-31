@@ -2651,31 +2651,74 @@ async function cargarImagenes() {
 
 
 
-  function initSwiper(initialIndex = 0) {
-    // 🔒 Bloquear todos los gestos del body y html
+function initSwiper(initialIndex = 0) {
     const body = document.body;
     const html = document.documentElement;
-
-    body.style.overflow = 'hidden';
-    body.style.touchAction = 'none';
-    html.style.overflow = 'hidden';
-    html.style.touchAction = 'none';
-    html.style.overscrollBehavior = 'none';
-    body.style.overscrollBehavior = 'none';
-
-    // Captura todos los eventos táctiles
-    ['touchstart', 'touchmove', 'touchend', 'gesturestart'].forEach(evt => {
-        document.addEventListener(evt, function(e) {
-            e.preventDefault();
-        }, { passive: false });
-    });
-
     const swiperEl = document.querySelector('.swiper');
-    swiperEl.style.touchAction = 'pan-y pinch-zoom';
-    swiperEl.style.overscrollBehavior = 'contain';
+
+    // Asegurarse de que los elementos existen
+    if (!swiperEl) return;
+
+    // 1) Bloquear scroll de la página por CSS (mejor que listeners globales)
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    body.style.position = 'fixed'; // evita desplazamiento de la página en iOS
+    body.style.width = '100%';
+    body.style.height = '100%';
+
+    // 2) Configurar el contenedor del slider para recibir gestos y evitar overscroll local
+    swiperEl.style.overflow = 'hidden';
+    swiperEl.style.overscrollBehavior = 'contain'; // evita que gestos dentro propaguen el "pull"
+    swiperEl.style.touchAction = 'pan-y pinch-zoom'; // permite desplazamiento vertical dentro de Swiper si se usa
     swiperEl.style.webkitOverflowScrolling = 'auto';
 
-    // 🔹 Inicializar Swiper si no existe
+    // 3) Listeners táctiles SOLO en el contenedor del slider con passive: false
+    //    Prevengo el default solo cuando detecto un gesto vertical que deba manejar Swiper,
+    //    esto evita que el gesto provoque el "pull-to-refresh" en iOS.
+    let startY = 0;
+    let startX = 0;
+    let isMoving = false;
+
+    function onTouchStart(e) {
+        if (!e.touches || e.touches.length > 1) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isMoving = true;
+    }
+
+    function onTouchMove(e) {
+        if (!isMoving || !e.touches || e.touches.length > 1) return;
+
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const deltaY = currentY - startY;
+        const deltaX = currentX - startX;
+
+        // Si el movimiento vertical es mayor que el horizontal, prevenir el default
+        // para que iOS no active pull-to-refresh. Si es horizontal dejamos pasar (p. ej. swipe lateral).
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            // Prevent pull-to-refresh only if moving vertically inside the swiper
+            e.preventDefault();
+        }
+    }
+
+    function onTouchEnd() {
+        isMoving = false;
+    }
+
+    // El listener debe tener { passive: false } para que e.preventDefault() funcione.
+    swiperEl.removeEventListener('touchstart', onTouchStart);
+    swiperEl.removeEventListener('touchmove', onTouchMove);
+    swiperEl.removeEventListener('touchend', onTouchEnd);
+
+    swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    // start puede ser passive:true (no necesitamos preventDefault ahí), move debe ser false
+    swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    // 4) Inicializar Swiper si no existe
     if (!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
@@ -2689,9 +2732,9 @@ async function cargarImagenes() {
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
-            updateContentOverlay(activeIndex);
+            if (typeof updateContentOverlay === 'function') updateContentOverlay(activeIndex);
 
-            if (window.AppInventor && anunciosData.length > 0) {
+            if (window.AppInventor && typeof anunciosData !== 'undefined' && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
                 if (!anuncioActual) return;
 
@@ -2707,11 +2750,11 @@ async function cargarImagenes() {
         });
     }
 
-    // 🔹 Ir al slide inicial
-    if (anunciosData.length > 0) {
+    // 5) Ir al slide inicial
+    if (typeof anunciosData !== 'undefined' && anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
+        if (typeof updateContentOverlay === 'function') updateContentOverlay(initialSlideIndex);
 
         if (window.AppInventor) {
             const anuncioInicial = anunciosData[initialSlideIndex];
@@ -3108,6 +3151,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
