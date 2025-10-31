@@ -2397,185 +2397,170 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
 let videoMostrado = false; // 🔹 Controla que solo se reproduzca una vez
 
 async function cargarImagenes() {
-  loader.style.display = 'block';
-  const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-  const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+    loader.style.display = 'block';
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-  try {
-    // 🎬 Mostrar video de inicio solo la primera vez
-    if (!videoMostrado) {
-      videoMostrado = true;
+    try {
+        // 🎬 Mostrar video de inicio solo la primera vez
+        if (!videoMostrado) {
+            videoMostrado = true;
 
-      // Detectar si es iOS
-      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-      // Crear contenedor del video
-      const videoOverlay = document.createElement("div");
-      Object.assign(videoOverlay.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100%",
-        height: "100%",
-        background: "black",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: "99999",
-      });
-
-      const video = document.createElement("video");
-      video.src = "Ini.mp4";
-      video.autoplay = true;
-      video.playsInline = true;
-      video.controls = false;
-      video.muted = esIOS; // ⚡ Solo se silencia en iOS
-      video.style.maxWidth = "100%";
-      video.style.maxHeight = "100%";
-
-      videoOverlay.appendChild(video);
-      document.body.appendChild(videoOverlay);
-
-      // 🎯 Iniciar carga de imágenes EN PARALELO mientras se reproduce el video
-      const cargarDatos = (async () => {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-
-        let newAnunciosData = [];
-        if (data.url && data.url.length > 0) {
-          data.url.forEach((url, index) => {
-            const idAnuncio = data.id[index];
-            const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-            const comentariosFormateados = normalizarComentarios(comentarios);
-            newAnunciosData.push({
-              titulo: data.titulo[index] || "",
-              descripcion: data.descripcion[index] || "",
-              comentarios: comentariosFormateados,
-              url: url,
-              deleteurl: data.deleteurl[index] || "",
-              autor: data.autor[index] || "",
-              correo: data.correo[index] || "",
-              fecha: data.fecha[index] || "",
-              id: idAnuncio || ""
+            // Contenedor del video
+            const videoOverlay = document.createElement("div");
+            Object.assign(videoOverlay.style, {
+                position: "fixed",
+                top: "0",
+                left: "0",
+                width: "100%",
+                height: "100%",
+                background: "black",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: "99999",
             });
-          });
-        }
-        newAnunciosData.reverse();
-        return newAnunciosData;
-      })();
 
-      // Intentar reproducir el video automáticamente
-      try {
-        await video.play();
-      } catch (err) {
-        console.warn("⚠️ iOS bloqueó la reproducción, forzando mute...");
-        video.muted = true;
-        await video.play().catch(() => {});
-      }
+            const video = document.createElement("video");
+            video.src = "Ini.mp4";
+            video.autoplay = true;
+            video.playsInline = true;
+            video.controls = false;
+            video.muted = esIOS;
+            video.style.maxWidth = "100%";
+            video.style.maxHeight = "100%";
 
-      // Esperar a que el video termine y a que la carga haya finalizado
-      const [newAnunciosData] = await Promise.all([
-        cargarDatos,
-        new Promise(resolve => {
-          video.addEventListener("ended", () => {
-            videoOverlay.style.opacity = "0";
-            videoOverlay.style.transition = "opacity 0.8s ease";
-            setTimeout(() => videoOverlay.remove(), 800);
-            resolve();
-          });
-        })
-      ]);
+            videoOverlay.appendChild(video);
+            document.body.appendChild(videoOverlay);
 
-      // ==========================
-      // 🔽 Una vez termina el video: mostrar las imágenes ya cargadas
-      // ==========================
+            // 🎯 Carga de imágenes en paralelo
+            const cargarDatos = (async () => {
+                const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
 
-      const oldAnunciosIds = anunciosData.map(a => a.id);
-      const newAnunciosIds = newAnunciosData.map(a => a.id);
-      if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-        loader.style.display = 'none';
-        return;
-      }
+                let newAnunciosData = [];
+                if (data.url && data.url.length > 0) {
+                    data.url.forEach((url, index) => {
+                        const idAnuncio = data.id[index];
+                        const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+                        const comentariosFormateados = normalizarComentarios(comentarios);
+                        newAnunciosData.push({
+                            titulo: data.titulo[index] || "",
+                            descripcion: data.descripcion[index] || "",
+                            comentarios: comentariosFormateados,
+                            url: url,
+                            deleteurl: data.deleteurl[index] || "",
+                            autor: data.autor[index] || "",
+                            correo: data.correo[index] || "",
+                            fecha: data.fecha[index] || "",
+                            id: idAnuncio || ""
+                        });
+                    });
+                }
+                newAnunciosData.reverse();
+                return newAnunciosData;
+            })();
 
-      const currentSlideId = currentId;
-      anunciosData = newAnunciosData;
+            // Intentar reproducir el video
+            try { await video.play(); } 
+            catch (err) { console.warn("⚠️ iOS bloqueó la reproducción, forzando mute..."); video.muted = true; await video.play().catch(() => {}); }
 
-      reconstruirIndiceBusqueda();
+            // Esperar a que termine el video y la carga de imágenes
+            const [newAnunciosData] = await Promise.all([
+                cargarDatos,
+                new Promise(resolve => {
+                    video.addEventListener("ended", () => {
+                        videoOverlay.style.opacity = "0";
+                        videoOverlay.style.transition = "opacity 0.8s ease";
+                        setTimeout(() => videoOverlay.remove(), 800);
+                        resolve();
+                    });
+                })
+            ]);
 
-      if (swiperInstance) {
-        swiperInstance.removeAllSlides();
+            // ==========================
+            // 🔽 Mostrar imágenes ya cargadas
+            // ==========================
+            const oldAnunciosIds = anunciosData.map(a => a.id);
+            const newAnunciosIds = newAnunciosData.map(a => a.id);
+            if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+                loader.style.display = 'none';
+                return;
+            }
 
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id;
+            const currentSlideId = currentId;
+            anunciosData = newAnunciosData;
+            reconstruirIndiceBusqueda();
 
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
+            if (swiperInstance) {
+                swiperInstance.removeAllSlides();
 
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
+                anunciosData.forEach(anuncio => {
+                    const slide = document.createElement('div');
+                    slide.classList.add('swiper-slide');
+                    slide.dataset.id = anuncio.id;
 
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
+                    const zoomContainer = document.createElement('div');
+                    zoomContainer.classList.add('swiper-zoom-container');
 
-          swiperInstance.appendSlide(slide);
-        });
+                    const img = document.createElement('img');
+                    img.src = anuncio.url;
+                    img.alt = anuncio.titulo;
 
-        let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-        if (newIndex !== -1) {
-          swiperInstance.slideToLoop(newIndex, 0, false);
+                    zoomContainer.appendChild(img);
+                    slide.appendChild(zoomContainer);
+
+                    swiperInstance.appendSlide(slide);
+                });
+
+                let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
+                if (newIndex !== -1) swiperInstance.slideToLoop(newIndex, 0, false);
+                else if (currentIndex < anunciosData.length) swiperInstance.slideToLoop(currentIndex, 0, false);
+                else swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
+
+                swiperInstance.update();
+            } else {
+                const swiperWrapper = document.querySelector('.swiper-wrapper');
+                swiperWrapper.innerHTML = '';
+
+                anunciosData.forEach(anuncio => {
+                    const slide = document.createElement('div');
+                    slide.classList.add('swiper-slide');
+                    slide.dataset.id = anuncio.id;
+
+                    const zoomContainer = document.createElement('div');
+                    zoomContainer.classList.add('swiper-zoom-container');
+
+                    const img = document.createElement('img');
+                    img.src = anuncio.url;
+                    img.alt = anuncio.titulo;
+
+                    zoomContainer.appendChild(img);
+                    slide.appendChild(zoomContainer);
+
+                    swiperWrapper.appendChild(slide);
+                });
+
+                initSwiper(0);
+            }
+
+            const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+            updateContentOverlay(activeIndex);
         } else {
-          if (currentIndex < anunciosData.length) {
-            swiperInstance.slideToLoop(currentIndex, 0, false);
-          } else {
-            swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
-          }
+            // Si ya se mostró el video antes, carga imágenes normalmente
+            const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+            const data = await response.json();
+            // Aquí se puede repetir el bloque de creación de slides si es necesario
         }
 
-        swiperInstance.update();
-      } else {
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        swiperWrapper.innerHTML = '';
-
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id;
-
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
-
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
-
-          swiperWrapper.appendChild(slide);
-        });
-
-        initSwiper(0);
-      }
-
-      const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-      updateContentOverlay(activeIndex);
-
-    } else {
-      // Si ya se mostró el video antes, solo carga imágenes normalmente
-      const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-      const data = await response.json();
-      // (mismo código de carga aquí, puedes copiar del bloque superior)
+    } catch (error) {
+        console.error("Error al cargar las imágenes:", error);
+    } finally {
+        loader.style.display = 'none';
     }
-
-  } catch (error) {
-    console.error("Error al cargar las imágenes:", error);
-  } finally {
-    loader.style.display = 'none';
-  }
 }
 
 
@@ -2650,16 +2635,20 @@ async function cargarImagenes() {
 
 
 
+// ========================
+// 🔹 Inicialización de Swiper con parche iOS
+// ========================
 function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
-    const swiper = new Swiper('.swiper', {
-      direction: 'vertical',
-      loop: true,
-      slidesPerView: 1,
-      spaceBetween: 8,
-      simulateTouch: true,
-      touchStartPreventDefault: false
-    });
+        swiperInstance = new Swiper('.swiper', {
+            loop: true,
+            direction: 'vertical',
+            slidesPerView: 1,
+            spaceBetween: 10,
+            zoom: { maxRatio: 3, minRatio: 1 },
+            simulateTouch: true,
+            touchStartPreventDefault: false
+        });
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
@@ -2686,7 +2675,7 @@ function initSwiper(initialIndex = 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
         updateContentOverlay(initialSlideIndex);
-        
+
         if(window.AppInventor){
             const anuncioInicial = anunciosData[initialSlideIndex];
             const id = anuncioInicial.id;
@@ -2700,7 +2689,7 @@ function initSwiper(initialIndex = 0) {
         }
     }
 
-    // 🔒 Parche iOS: evita recarga por pull-to-refresh y gestos conflictivos
+    // 🔒 Parche iOS: evita pull-to-refresh y gestos conflictivos
     (function(){
         const swiperEl = document.querySelector('.swiper');
         let startY = 0, startX = 0, isMoving = false;
@@ -2724,9 +2713,7 @@ function initSwiper(initialIndex = 0) {
             const startedNearTop = (window.scrollY === 0 || startY < 60);
             const draggingDown = deltaY > 0;
 
-            if (startedNearTop && draggingDown) {
-                e.preventDefault(); // bloquea pull-to-refresh en Safari
-            }
+            if (startedNearTop && draggingDown) e.preventDefault(); // bloquea pull-to-refresh
         }
 
         function onTouchEnd() { isMoving = false; }
@@ -3116,6 +3103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
