@@ -2652,33 +2652,39 @@ async function cargarImagenes() {
 
 
   function initSwiper(initialIndex = 0) {
-    // Evitar rebote y pull-to-refresh en iOS
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-    document.body.style.webkitOverflowScrolling = 'auto';
-    document.documentElement.style.overscrollBehavior = 'none';
+    // 🔒 Bloquear todos los gestos del body y html
+    const body = document.body;
+    const html = document.documentElement;
+
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    html.style.overflow = 'hidden';
+    html.style.touchAction = 'none';
+    html.style.overscrollBehavior = 'none';
+    body.style.overscrollBehavior = 'none';
+
+    // Captura todos los eventos táctiles
+    ['touchstart', 'touchmove', 'touchend', 'gesturestart'].forEach(evt => {
+        document.addEventListener(evt, function(e) {
+            e.preventDefault();
+        }, { passive: false });
+    });
 
     const swiperEl = document.querySelector('.swiper');
     swiperEl.style.touchAction = 'pan-y pinch-zoom';
     swiperEl.style.overscrollBehavior = 'contain';
     swiperEl.style.webkitOverflowScrolling = 'auto';
 
-    // Captura todos los touchstart y touchmove sobre body
-    document.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) e.preventDefault(); // Bloquea zoom multitouch
-    }, { passive: false });
-
-    document.addEventListener('gesturestart', (e) => e.preventDefault()); // Bloquea gestos de pinza
-
+    // 🔹 Inicializar Swiper si no existe
     if (!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
-            direction: 'vertical',
+            direction: 'vertical', // o 'horizontal'
             slidesPerView: 1,
             spaceBetween: 10,
             zoom: { maxRatio: 3, minRatio: 1 },
             simulateTouch: true,
-            touchStartPreventDefault: false,
+            touchStartPreventDefault: false
         });
 
         swiperInstance.on('slideChange', () => {
@@ -2701,6 +2707,7 @@ async function cargarImagenes() {
         });
     }
 
+    // 🔹 Ir al slide inicial
     if (anunciosData.length > 0) {
         const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
         swiperInstance.slideToLoop(initialSlideIndex, 0, false);
@@ -2720,6 +2727,9 @@ async function cargarImagenes() {
     }
 }
 
+
+
+    
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
 
@@ -3098,6 +3108,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
