@@ -2351,93 +2351,192 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
 let videoMostrado = false; // 🔹 Controla que solo se reproduzca una vez
 
 async function cargarImagenes() {
-  const loader = document.getElementById("loader");
-  const videoContainer = document.createElement("div");
-  videoContainer.style.position = "fixed";
-  videoContainer.style.top = "0";
-  videoContainer.style.left = "0";
-  videoContainer.style.width = "100%";
-  videoContainer.style.height = "100%";
-  videoContainer.style.background = "black";
-  videoContainer.style.zIndex = "9999";
-  videoContainer.style.display = "flex";
-  videoContainer.style.alignItems = "center";
-  videoContainer.style.justifyContent = "center";
-  videoContainer.style.transition = "opacity 1s ease";
+  loader.style.display = 'block';
+  const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+  const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-  const video = document.createElement("video");
-  video.src = "Ini.mp4";
-  video.autoplay = true;
-  video.muted = true; // ⚡ Requisito para autoplay en iOS
-  video.playsInline = true; // ⚡ Evita pantalla completa forzada en iPhone
-  video.controls = false;
-  video.style.width = "100%";
-  video.style.height = "100%";
-  video.style.objectFit = "cover";
-
-  videoContainer.appendChild(video);
-  document.body.appendChild(videoContainer);
-
-  // Intentar reproducir (iOS requiere muted y playsinline)
   try {
-    await video.play();
-  } catch (err) {
-    console.warn("No se pudo reproducir automáticamente:", err);
-  }
+    // 🎬 Mostrar video de inicio solo la primera vez
+    if (!videoMostrado) {
+      videoMostrado = true;
 
-  // Si por alguna razón no se reproduce, forzar reproducción silenciosa
-  const verificarReproduccion = setTimeout(() => {
-    if (video.paused) {
-      video.muted = true;
-      video.play().catch(() => {
-        console.warn("Aún bloqueado: Safari necesita muteado completo.");
+      // Detectar si es iOS
+      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+      // Crear contenedor del video
+      const videoOverlay = document.createElement("div");
+      Object.assign(videoOverlay.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        background: "black",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: "99999",
+      });
+
+      const video = document.createElement("video");
+      video.src = "Ini.mp4";
+      video.autoplay = true;
+      video.playsInline = true;
+      video.controls = false;
+      video.muted = esIOS; // ⚡ Solo se silencia en iOS
+      video.style.maxWidth = "100%";
+      video.style.maxHeight = "100%";
+
+      videoOverlay.appendChild(video);
+      document.body.appendChild(videoOverlay);
+
+      // Intentar reproducir el video (iOS necesita mute)
+      try {
+        await video.play();
+      } catch (err) {
+        console.warn("⚠️ Reproducción bloqueada, esperando interacción en iOS...");
+        // Si aún así iOS lo bloquea, mostrar mensaje tocable
+        const msg = document.createElement("p");
+        msg.textContent = "▶️ Toca para continuar";
+        Object.assign(msg.style, {
+          position: "absolute",
+          bottom: "20%",
+          color: "white",
+          fontSize: "20px",
+          fontFamily: "Poppins, sans-serif",
+        });
+        videoOverlay.appendChild(msg);
+
+        videoOverlay.addEventListener("click", async () => {
+          try {
+            await video.play();
+            msg.remove();
+          } catch (err2) {
+            console.error("No se pudo reproducir:", err2);
+          }
+        });
+      }
+
+      // Esperar a que el video termine
+      await new Promise(resolve => {
+        video.addEventListener("ended", () => {
+          videoOverlay.style.opacity = "0";
+          videoOverlay.style.transition = "opacity 0.8s ease";
+          setTimeout(() => videoOverlay.remove(), 800);
+          resolve();
+        });
       });
     }
-  }, 1000);
 
-  // Cuando termina el video, carga las imágenes
-  video.addEventListener("ended", async () => {
-    clearTimeout(verificarReproduccion);
-    videoContainer.style.opacity = "0";
-    setTimeout(() => {
-      document.body.removeChild(videoContainer);
-      continuarCargaImagenes(); // 👈 tu función original
-    }, 1000);
-  });
-}
+    // ==========================
+    // 🔽 Aquí continúa tu código original
+    // ==========================
 
+    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    let newAnunciosData = [];
 
-
-
-
-async function eliminarAnuncio(anuncioId, deleteUrl) {
-    loader.style.display = 'block';
-    try {
-        const formData = new FormData();
-        formData.append('accion', 'eliminarAnuncio');
-        formData.append('id', anuncioId);
-        formData.append('correo', currentAuthorEmail);
-        formData.append('deleteurl', deleteUrl);
-
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: formData
+    if (data.url && data.url.length > 0) {
+      data.url.forEach((url, index) => {
+        const idAnuncio = data.id[index];
+        const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+        const comentariosFormateados = normalizarComentarios(comentarios);
+        newAnunciosData.push({
+          titulo: data.titulo[index] || "",
+          descripcion: data.descripcion[index] || "",
+          comentarios: comentariosFormateados,
+          url: url,
+          deleteurl: data.deleteurl[index] || "",
+          autor: data.autor[index] || "",
+          correo: data.correo[index] || "",
+          fecha: data.fecha[index] || "",
+          id: idAnuncio || ""
         });
-
-        const result = await response.json();
-      if (result.status && result.status.toLowerCase().includes("success")) {
-    showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
-    await cargarImagenes();
-} else {
-    showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
-}
-
-    } catch (error) {
-        console.error("Error eliminando anuncio:", error);
-        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
-    } finally {
-        loader.style.display = 'none';
+      });
     }
+
+    newAnunciosData.reverse();
+
+    const oldAnunciosIds = anunciosData.map(a => a.id);
+    const newAnunciosIds = newAnunciosData.map(a => a.id);
+
+    if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+      loader.style.display = 'none';
+      return;
+    }
+
+    const currentSlideId = currentId;
+    anunciosData = newAnunciosData;
+
+    reconstruirIndiceBusqueda();
+
+    if (swiperInstance) {
+      swiperInstance.removeAllSlides();
+
+      anunciosData.forEach(anuncio => {
+        const slide = document.createElement('div');
+        slide.classList.add('swiper-slide');
+        slide.dataset.id = anuncio.id;
+
+        const zoomContainer = document.createElement('div');
+        zoomContainer.classList.add('swiper-zoom-container');
+
+        const img = document.createElement('img');
+        img.src = anuncio.url;
+        img.alt = anuncio.titulo;
+
+        zoomContainer.appendChild(img);
+        slide.appendChild(zoomContainer);
+
+        swiperInstance.appendSlide(slide);
+      });
+
+      let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
+      if (newIndex !== -1) {
+        swiperInstance.slideToLoop(newIndex, 0, false);
+      } else {
+        if (currentIndex < anunciosData.length) {
+          swiperInstance.slideToLoop(currentIndex, 0, false);
+        } else {
+          swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
+        }
+      }
+
+      swiperInstance.update();
+    } else {
+      const swiperWrapper = document.querySelector('.swiper-wrapper');
+      swiperWrapper.innerHTML = '';
+
+      anunciosData.forEach(anuncio => {
+        const slide = document.createElement('div');
+        slide.classList.add('swiper-slide');
+        slide.dataset.id = anuncio.id;
+
+        const zoomContainer = document.createElement('div');
+        zoomContainer.classList.add('swiper-zoom-container');
+
+        const img = document.createElement('img');
+        img.src = anuncio.url;
+        img.alt = anuncio.titulo;
+
+        zoomContainer.appendChild(img);
+        slide.appendChild(zoomContainer);
+
+        swiperWrapper.appendChild(slide);
+      });
+
+      initSwiper(0);
+    }
+
+    const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    updateContentOverlay(activeIndex);
+
+  } catch (error) {
+    console.error("Error al cargar las imágenes:", error);
+  } finally {
+    loader.style.display = 'none';
+  }
 }
 
 
@@ -2939,6 +3038,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
