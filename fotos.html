@@ -2706,7 +2706,28 @@ async function cargarImagenes() {
             event.preventDefault(); // bloquea scroll fuera del swiper
         }
     }, { passive: false });
+
+    // 🛠️ Bloqueo adicional para Safari iOS: pull-to-refresh y rebote
+    const body = document.body;
+    const swiperEl = document.querySelector('.swiper');
+
+    body.style.overscrollBehavior = 'none';
+    body.style.touchAction = 'none';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
+    body.style.height = '100%';
+
+    swiperEl.style.touchAction = 'pan-y pinch-zoom';
+    swiperEl.style.overscrollBehavior = 'contain';
+    swiperEl.style.webkitOverflowScrolling = 'auto';
+
+    document.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) e.preventDefault(); // bloquea zoom multitáctil
+    }, { passive: false });
+
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
 }
+
 
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
@@ -3086,6 +3107,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
