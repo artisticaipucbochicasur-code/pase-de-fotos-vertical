@@ -2652,6 +2652,24 @@ async function cargarImagenes() {
 
 
   function initSwiper(initialIndex = 0) {
+    // Evitar rebote y pull-to-refresh en iOS
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.body.style.webkitOverflowScrolling = 'auto';
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    const swiperEl = document.querySelector('.swiper');
+    swiperEl.style.touchAction = 'pan-y pinch-zoom';
+    swiperEl.style.overscrollBehavior = 'contain';
+    swiperEl.style.webkitOverflowScrolling = 'auto';
+
+    // Captura todos los touchstart y touchmove sobre body
+    document.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) e.preventDefault(); // Bloquea zoom multitouch
+    }, { passive: false });
+
+    document.addEventListener('gesturestart', (e) => e.preventDefault()); // Bloquea gestos de pinza
+
     if (!swiperInstance) {
         swiperInstance = new Swiper('.swiper', {
             loop: true,
@@ -2659,9 +2677,8 @@ async function cargarImagenes() {
             slidesPerView: 1,
             spaceBetween: 10,
             zoom: { maxRatio: 3, minRatio: 1 },
-            // ⚡ Opciones importantes para iOS
+            simulateTouch: true,
             touchStartPreventDefault: false,
-            simulateTouch: true
         });
 
         swiperInstance.on('slideChange', () => {
@@ -2701,35 +2718,7 @@ async function cargarImagenes() {
             window.AppInventor.setWebViewString(JSON.stringify(payload));
         }
     }
-
-    // 🔒 Previene que iOS recargue o se desplace fuera del swiper
-    document.addEventListener('touchmove', function(event) {
-        if (!event.target.closest('.swiper')) {
-            event.preventDefault();
-        }
-    }, { passive: false });
-
-    // 🛠️ Bloqueos adicionales para Safari iOS: pull-to-refresh, rebote y multitouch
-    const body = document.body;
-    const swiperEl = document.querySelector('.swiper');
-
-    body.style.overscrollBehavior = 'none';
-    body.style.touchAction = 'none';
-    body.style.position = 'fixed';
-    body.style.width = '100%';
-    body.style.height = '100%';
-
-    swiperEl.style.touchAction = 'pan-y pinch-zoom';
-    swiperEl.style.overscrollBehavior = 'contain';
-    swiperEl.style.webkitOverflowScrolling = 'auto';
-
-    document.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) e.preventDefault(); // Bloquea zoom multitáctil
-    }, { passive: false });
-
-    document.addEventListener('gesturestart', (e) => e.preventDefault()); // Bloquea gestos de pinza
 }
-
 
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
@@ -3109,6 +3098,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
