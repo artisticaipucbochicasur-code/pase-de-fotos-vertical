@@ -41,7 +41,7 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
-#imagesBtn {
+#lblContador {
   position: absolute;
   bottom: 195px; /* un poco arriba del icono de comentarios */
   right: 20px;
@@ -65,7 +65,7 @@
 
 
 
-#imagesBtn span {
+#lblContador span {
     display: none;
     position: absolute;
     top: -5px;
@@ -926,22 +926,31 @@ body {
     <h1>DECOM</h1>
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-    <a href="./fotos.html" class="header-btn" title="Imágenes">
-  <i class="fas fa-image"></i>
-</a>
 
-<a href="./videosSesion2.html" class="header-btn" title="Videos">
-  <i class="fas fa-video"></i>
-</a>
+      <!-- 🔔 Ahora el contador se mostrará sobre el botón de imágenes -->
+      <a href="./fotos.html" class="header-btn" id="btnImagenes" title="Imágenes" style="position:relative;">
+        <i class="fas fa-image"></i>
+        <span id="notificationCount" 
+              style="display:none;position:absolute;top:-4px;right:-4px;
+                     background:red;color:white;border-radius:50%;
+                     width:16px;height:16px;font-size:10px;
+                     display:flex;align-items:center;justify-content:center;">
+        </span>
+      </a>
+
+      <a href="./videosSesion2.html" class="header-btn" title="Videos">
+        <i class="fas fa-video"></i>
+      </a>
 
       <a href="#" class="header-btn" id="publishBtn" title="Publicar">
         <i class="fas fa-plus-circle"></i>
       </a>
-<button id="btnBuscar" class="header-btn" title="Buscar anuncios">
-  <i class="fas fa-search"></i>
-</button>
 
-      <!-- 🔹 Botón de usuario (ahora al lado del botón Publicar) -->
+      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+        <i class="fas fa-search"></i>
+      </button>
+
+      <!-- 🔹 Botón de usuario -->
       <div id="userMenuContainer" style="position:relative;">
         <div id="userBtn" 
              style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
@@ -965,6 +974,7 @@ body {
     </div>
   </div>
 </header>
+
 
 <!-- Modal de inicio de sesión -->
 <div id="loginModal" 
@@ -992,9 +1002,9 @@ body {
 </div>
 
   
- <div id="imagesBtn">
+ <div id="lblContador">
   <i class="far fa-bell"></i>
-  <span id="imagesBtn"></span>
+  <span id="notificationCount"></span>
 </div>
 
   <div id="customAlertOverlay">
@@ -1769,7 +1779,7 @@ savedSearchInputEl.addEventListener("blur", () => {
     let contadorAcumulado = 0;
     let nuevosTitulos = []; 
     const loader = document.getElementById('loader');
-    const imagesBtn = document.getElementById("imagesBtn");
+    const lblContador = document.getElementById("lblContador");
 
     const contentOverlay = document.getElementById('contentOverlay');
     const commentsOverlay = document.getElementById('commentsOverlay');
@@ -1970,9 +1980,9 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
 
         // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
-        const imagesBtn = document.getElementById('imagesBtn');
-        if (imagesBtn) {
-            imagesBtn.classList.toggle('hidden-overlay');
+        const lblContador = document.getElementById('lblContador');
+        if (lblContador) {
+            lblContador.classList.toggle('hidden-overlay');
         }
 
         // 🆕 Alternar el botón de actualizar
@@ -2222,7 +2232,7 @@ document.querySelector('.swiper').addEventListener('click', () => {
     const INTERVALO_VERIFICACION = 5000;
 
    // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón
-imagesBtn.addEventListener("click", () => {
+lblContador.addEventListener("click", () => {
     if (nuevosTitulos.length === 0) {
         showCustomAlert("Nuevos anuncios", []);
     } else {
@@ -2239,7 +2249,7 @@ async function actualizarContador() {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
-        const imagesBtn = document.getElementById('imagesBtn'); // 🔔 span del número
+        const notificationCount = document.getElementById('notificationCount'); // 🔔 span del número
 
         if (contadorTotalAnterior === -1) {
             contadorTotalAnterior = totalActual;
@@ -2288,15 +2298,15 @@ async function actualizarContador() {
 
         // 🔔 Actualizar badge y campana
         if (contadorAcumulado > 0) {
-            imagesBtn.textContent = contadorAcumulado;
-            imagesBtn.style.display = "flex";
-            document.querySelector("#imagesBtn i").classList.remove("far");
-            document.querySelector("#imagesBtn i").classList.add("fas");
+            notificationCount.textContent = contadorAcumulado;
+            notificationCount.style.display = "flex";
+            document.querySelector("#lblContador i").classList.remove("far");
+            document.querySelector("#lblContador i").classList.add("fas");
         } else {
-            imagesBtn.textContent = "";
-            imagesBtn.style.display = "none";
-            document.querySelector("#imagesBtn i").classList.remove("fas");
-            document.querySelector("#imagesBtn i").classList.add("far");
+            notificationCount.textContent = "";
+            notificationCount.style.display = "none";
+            document.querySelector("#lblContador i").classList.remove("fas");
+            document.querySelector("#lblContador i").classList.add("far");
         }
 
     } catch (e) {
@@ -2657,7 +2667,7 @@ function showCustomAlert(title, titlesList) {
     const alertDiv = overlay.querySelector('.custom-alert');
     const alertTitle = document.getElementById('alertTitle');
     const alertMessage = document.getElementById('alertMessage');
-    const imagesBtn = document.getElementById('imagesBtn'); // 🔔 span del contador
+    const notificationCount = document.getElementById('notificationCount'); // 🔔 span del contador
     
     alertDiv.className = 'custom-alert';
     alertMessage.innerHTML = '';
@@ -2680,11 +2690,11 @@ function showCustomAlert(title, titlesList) {
 
                     // 🔔 actualizar solo el número
 if (contadorAcumulado > 0) {
-    imagesBtn.textContent = contadorAcumulado;
-    imagesBtn.style.display = "flex";  // mostrar circulito
+    notificationCount.textContent = contadorAcumulado;
+    notificationCount.style.display = "flex";  // mostrar circulito
 } else {
-    imagesBtn.textContent = "";
-    imagesBtn.style.display = "none";  // ocultar circulito
+    notificationCount.textContent = "";
+    notificationCount.style.display = "none";  // ocultar circulito
 }
 
 document.getElementById('customAlertOverlay').style.display = 'none';
@@ -2769,15 +2779,15 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         cargarImagenes();
     });
 
-    if (imagesBtn) {
-        imagesBtn.addEventListener('click', () => {
+    if (lblContador) {
+        lblContador.addEventListener('click', () => {
             showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
         });
     }
 
 document.addEventListener("DOMContentLoaded", () => {
 
-// 🎬 Intro de video 100% compatible con iOS / Android / PC
+// 🎬 Intro de video
 setTimeout(() => {
   const loader = document.getElementById("loader");
   if (loader) loader.style.display = "flex";
@@ -2823,7 +2833,6 @@ setTimeout(() => {
     }
   }, 6000);
 }, 300);
-
 
 // ======================================================================================
 // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
@@ -2878,7 +2887,6 @@ if (!usuarioGuardado) {
       }
 
       const usuario = { nombre, correo };
-
       currentAuthorName = nombre;
       currentAuthorEmail = correo;
 
@@ -2895,174 +2903,25 @@ if (!usuarioGuardado) {
       location.reload();
     });
   }
-
   return;
 }
 
-
 // ======================================================================================
-// 👇 Tu código original (ajustado para mantener dentro de la app)
+// 🔔 NOTIFICACIONES SOBRE EL BOTÓN DE IMÁGENES
 // ======================================================================================
-
-// ----------------------
-// Resaltado compatible para botones del header (no toca navegación)
-// ----------------------
-(function(){ 
-  const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
-
-  function cleanPath(path) {
-    if (!path) return "";
-    try {
-      const u = new URL(path, location.origin);
-      return u.pathname.split('/').filter(Boolean).join('/');
-    } catch (e) {
-      return (path || "").toString();
+const notificationCount = document.getElementById("notificationCount");
+function actualizarNotificaciones(cantidad) {
+  if (notificationCount) {
+    if (cantidad > 0) {
+      notificationCount.style.display = "flex";
+      notificationCount.textContent = cantidad;
+    } else {
+      notificationCount.style.display = "none";
     }
   }
-
-  function normalizeForCompare(p) {
-    return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
-  }
-
-  function setActiveByLocation() {
-    const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
-    headerAnchors.forEach(a => a.classList.remove('selected'));
-
-    for (const a of headerAnchors) {
-      const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
-      if (hrefFile && locFile && hrefFile === locFile) {
-        a.classList.add('selected');
-        return;
-      }
-    }
-
-    for (const a of headerAnchors) {
-      const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
-      if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
-        a.classList.add('selected');
-        return;
-      }
-    }
-  }
-
-  setActiveByLocation();
-
-  headerAnchors.forEach(a => {
-    a.addEventListener('click', () => {
-      headerAnchors.forEach(x => x.classList.remove('selected'));
-      a.classList.add('selected');
-    });
-  });
-
-  window.addEventListener('popstate', () => setActiveByLocation());
-
-  let lastPath = location.pathname;
-  setInterval(() => {
-    if (location.pathname !== lastPath) {
-      lastPath = location.pathname;
-      setActiveByLocation();
-    }
-  }, 300);
-})();
-
-// ------------------------------------------------------------------------------------
-
-const imagesBtn = document.querySelector('#btnImages');
-const videosBtn = document.querySelector('#btnVideos');
-
-// ✅ Mantener navegación interna sin salir del entorno principal
-if (videosBtn) {
-  videosBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    cargarVistaInterna("videos/sliderVideos.html", videosBtn);
-  });
 }
-
-if (imagesBtn) {
-  imagesBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    cargarVistaInterna("fotos/fotos.html", imagesBtn);
-  });
-}
-
-// Función para cargar contenido dentro del mismo DOM
-function cargarVistaInterna(ruta, botonActivo) {
-  const contenedor = document.getElementById("mainContent");
-  if (!contenedor) {
-    window.location.href = ruta; // fallback si no existe contenedor
-    return;
-  }
-
-  // 🔹 Resaltar el botón activo
-  document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
-  botonActivo.classList.add('selected');
-
-  contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
-  fetch(ruta)
-    .then((res) => res.text())
-    .then((html) => {
-      contenedor.innerHTML = html;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    })
-    .catch(() => {
-      contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
-    });
-}
-
-
-// ======================================================================================
-// 🔔 Notificaciones
-// ======================================================================================
-const imagesBtn = document.getElementById('imagesBtn');
-if (imagesBtn) {
-  imagesBtn.innerHTML = `
-    <i class="far fa-bell"></i>
-    <span id="imagesBtn" style="display:none"></span>
-  `;
-  imagesBtn.style.display = "flex";
-}
-
-
-// ======================================================================================
-// 📱 Integración AppInventor
-// ======================================================================================
-if (window.AppInventor) {
-  setInterval(() => {
-    const comando = window.AppInventor.getWebViewString?.();
-    if (comando) {
-      try {
-        const data = JSON.parse(comando);
-        if (data.action === "updateUserData") {
-          currentAuthorEmail = data.email;
-          currentAuthorName = data.name;
-          localStorage.setItem("autor", currentAuthorName || "");
-          localStorage.setItem("correo", currentAuthorEmail || "");
-          console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
-        }
-      } catch (e) {
-        if (comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-          console.log("Reiniciando contador y cargando anuncios.");
-          contadorAcumulado = 0;
-          contadorTotalAnterior = -1;
-          verificarComentarios().then(() => cargarImagenes());
-        }
-        if (comando.startsWith("irATitulo:")) {
-          const tituloBuscado = comando.replace("irATitulo:", "").trim();
-          const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-          const tituloNormalizado = normalizar(tituloBuscado);
-          const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-          if (index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
-        }
-        if (comando.startsWith("irAIndice:")) {
-          const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-          if (!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance)
-            swiperInstance.slideToLoop(indice, 0, false);
-        }
-      }
-    }
-  }, 500);
-}
-
+// ejemplo de uso temporal (puedes eliminar esta línea):
+actualizarNotificaciones(3);
 
 // ======================================================================================
 // 👤 Manejo de usuario
@@ -3124,7 +2983,6 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
 
 
 
