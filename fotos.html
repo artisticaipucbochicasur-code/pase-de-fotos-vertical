@@ -2743,146 +2743,217 @@ document.getElementById('customAlertOverlay').style.display = 'none';
     
 document.addEventListener("DOMContentLoaded", async () => {
 
-// 🧩 Carga del header externo desde el repositorio remoto (sin afectar nada más)
-const headerContainer = document.getElementById("headerContainer");
-if (headerContainer) {
-  try {
-    const response = await fetch("https://artisticaipucbochicasur-code.github.io/slider-de-videos/header.html");
-    if (response.ok) {
-      const headerHTML = await response.text();
-      headerContainer.innerHTML = headerHTML;
-      console.log("✅ Header cargado dinámicamente desde el repositorio remoto");
-    } else {
-      console.warn("⚠️ No se pudo cargar header.html:", response.status);
+  // 🧩 Carga del header externo desde el repositorio remoto
+  const headerContainer = document.getElementById("headerContainer");
+  if (headerContainer) {
+    try {
+      const response = await fetch("https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/header.html");
+      if (response.ok) {
+        const headerHTML = await response.text();
+        headerContainer.innerHTML = headerHTML;
+        console.log("✅ Header cargado dinámicamente desde el repositorio remoto");
+
+        // Inicializar lógica del header después de cargarlo
+        initHeaderLogic();
+      } else {
+        console.warn("⚠️ No se pudo cargar header.html:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Error cargando header.html:", error);
     }
-  } catch (error) {
-    console.error("❌ Error cargando header.html:", error);
-  }
-}
-
-// ======================================================================================
-// 🎬 Intro de video 100% compatible con iOS / Android / PC
-// ======================================================================================
-setTimeout(() => {
-  const loader = document.getElementById("loader");
-  if (loader) loader.style.display = "flex";
-
-  const videoIntro = document.createElement("video");
-  Object.assign(videoIntro, {
-    src: "Ini.mp4",
-    autoplay: true,
-    muted: true,
-    playsInline: true,
-    preload: "auto",
-  });
-  Object.assign(videoIntro.style, {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    objectFit: "cover",
-    zIndex: "999999",
-    backgroundColor: "black",
-    opacity: "0",
-    transition: "opacity 1s ease",
-  });
-  document.body.appendChild(videoIntro);
-
-  videoIntro.addEventListener("canplaythrough", () => {
-    if (loader) loader.style.display = "none";
-    videoIntro.style.opacity = "1";
-    videoIntro.play().catch(() => {});
-  });
-
-  videoIntro.addEventListener("ended", () => {
-    videoIntro.style.opacity = "0";
-    setTimeout(() => videoIntro.remove(), 1000);
-  });
-
-  setTimeout(() => {
-    if (videoIntro.readyState < 3 || videoIntro.paused) {
-      console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
-      videoIntro.remove();
-      if (loader) loader.style.display = "none";
-    }
-  }, 6000);
-}, 300);
-
-
-// ======================================================================================
-// 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
-// ======================================================================================
-const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
-const modal = document.getElementById("loginModal");
-const btnLogin = document.getElementById("btnLogin");
-
-if (!usuarioGuardado) {
-  const overlay = document.createElement("div");
-  Object.assign(overlay.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    background: "linear-gradient(180deg, #000, #222)",
-    color: "white",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: "99998",
-    fontFamily: "Poppins, sans-serif",
-    textAlign: "center",
-    opacity: "0",
-    transition: "opacity 0.4s ease",
-  });
-  overlay.innerHTML = `
-    <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
-    <p style="color:#ccc; max-width:80%; line-height:1.5;">
-      Debes iniciar sesión para acceder al contenido.
-    </p>
-  `;
-  document.body.appendChild(overlay);
-
-  if (modal) {
-    modal.style.display = "flex";
-    modal.style.zIndex = "99999";
   }
 
-  setTimeout(() => (overlay.style.opacity = "1"), 50);
+  // ======================================================================================
+  // 🎬 Intro de video 100% compatible con iOS / Android / PC
+  // ======================================================================================
+  initVideoIntro();
 
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nombre = document.getElementById("loginNombre").value.trim();
-      const correo = document.getElementById("loginCorreo").value.trim();
+  // ======================================================================================
+  // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+  // ======================================================================================
+  handleLoginModal();
 
-      if (!nombre || !correo) {
-        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-        return;
+  // ======================================================================================
+  // Funciones auxiliares
+  // ======================================================================================
+
+  function initHeaderLogic() {
+    // ----------------------
+    // Resaltado de botones del header
+    // ----------------------
+    const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
+
+    function cleanPath(path) {
+      if (!path) return "";
+      try {
+        const u = new URL(path, location.origin);
+        return u.pathname.split('/').filter(Boolean).join('/');
+      } catch (e) {
+        return (path || "").toString();
+      }
+    }
+
+    function normalizeForCompare(p) {
+      return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
+    }
+
+    function setActiveByLocation() {
+      const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
+      headerAnchors.forEach(a => a.classList.remove('selected'));
+
+      for (const a of headerAnchors) {
+        const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
+        if (hrefFile && locFile && hrefFile === locFile) {
+          a.classList.add('selected');
+          return;
+        }
       }
 
-      const usuario = { nombre, correo };
+      for (const a of headerAnchors) {
+        const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
+        if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+          a.classList.add('selected');
+          return;
+        }
+      }
+    }
 
-      currentAuthorName = nombre;
-      currentAuthorEmail = correo;
+    setActiveByLocation();
 
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      localStorage.setItem("autor", nombre);
-      localStorage.setItem("correo", correo);
-
-      modal.style.display = "none";
-      mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-      overlay.style.opacity = "0";
-      setTimeout(() => overlay.remove(), 400);
-
-      location.reload();
+    headerAnchors.forEach(a => {
+      a.addEventListener('click', () => {
+        headerAnchors.forEach(x => x.classList.remove('selected'));
+        a.classList.add('selected');
+      });
     });
+
+    window.addEventListener('popstate', () => setActiveByLocation());
+
+    let lastPath = location.pathname;
+    setInterval(() => {
+      if (location.pathname !== lastPath) {
+        lastPath = location.pathname;
+        setActiveByLocation();
+      }
+    }, 300);
   }
 
-  return;
-}
+  function initVideoIntro() {
+    setTimeout(() => {
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "flex";
+
+      const videoIntro = document.createElement("video");
+      Object.assign(videoIntro, {
+        src: "Ini.mp4",
+        autoplay: true,
+        muted: true,
+        playsInline: true,
+        preload: "auto",
+      });
+      Object.assign(videoIntro.style, {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        objectFit: "cover",
+        zIndex: "999999",
+        backgroundColor: "black",
+        opacity: "0",
+        transition: "opacity 1s ease",
+      });
+      document.body.appendChild(videoIntro);
+
+      videoIntro.addEventListener("canplaythrough", () => {
+        if (loader) loader.style.display = "none";
+        videoIntro.style.opacity = "1";
+        videoIntro.play().catch(() => {});
+      });
+
+      videoIntro.addEventListener("ended", () => {
+        videoIntro.style.opacity = "0";
+        setTimeout(() => videoIntro.remove(), 1000);
+      });
+
+      setTimeout(() => {
+        if (videoIntro.readyState < 3 || videoIntro.paused) {
+          console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
+          videoIntro.remove();
+          if (loader) loader.style.display = "none";
+        }
+      }, 6000);
+    }, 300);
+  }
+
+  function handleLoginModal() {
+    const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+    const modal = document.getElementById("loginModal");
+    const btnLogin = document.getElementById("btnLogin");
+
+    if (!usuarioGuardado) {
+      const overlay = document.createElement("div");
+      Object.assign(overlay.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        background: "linear-gradient(180deg, #000, #222)",
+        color: "white",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: "99998",
+        fontFamily: "Poppins, sans-serif",
+        textAlign: "center",
+        opacity: "0",
+        transition: "opacity 0.4s ease",
+      });
+      overlay.innerHTML = `
+        <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
+        <p style="color:#ccc; max-width:80%; line-height:1.5;">
+          Debes iniciar sesión para acceder al contenido.
+        </p>
+      `;
+      document.body.appendChild(overlay);
+
+      if (modal) {
+        modal.style.display = "flex";
+        modal.style.zIndex = "99999";
+      }
+
+      setTimeout(() => (overlay.style.opacity = "1"), 50);
+
+      if (btnLogin) {
+        btnLogin.addEventListener("click", () => {
+          const nombre = document.getElementById("loginNombre").value.trim();
+          const correo = document.getElementById("loginCorreo").value.trim();
+
+          if (!nombre || !correo) {
+            mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+            return;
+          }
+
+          const usuario = { nombre, correo };
+          currentAuthorName = nombre;
+          currentAuthorEmail = correo;
+          localStorage.setItem("usuario", JSON.stringify(usuario));
+          localStorage.setItem("autor", nombre);
+          localStorage.setItem("correo", correo);
+
+          modal.style.display = "none";
+          mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+          overlay.style.opacity = "0";
+          setTimeout(() => overlay.remove(), 400);
+
+          location.reload();
+        });
+      }
+    }
+  }
 
 
 // ======================================================================================
@@ -3109,6 +3180,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
