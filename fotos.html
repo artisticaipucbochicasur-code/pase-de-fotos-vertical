@@ -2774,41 +2774,71 @@ document.getElementById('customAlertOverlay').style.display = 'none';
 
 document.addEventListener("DOMContentLoaded", () => {
 
-// 🎬 Reproducir video de inicio compatible con iOS
-const videoIntro = document.createElement("video");
-Object.assign(videoIntro, {
-  src: "Ini.mp4",
-  autoplay: true,
-  muted: true,           // 🔇 iOS requiere esto para autoplay
-  playsInline: true,     // 🔹 evita pantalla completa en iPhone
-  preload: "auto",
-});
-Object.assign(videoIntro.style, {
-  position: "fixed",
-  top: "0",
-  left: "0",
-  width: "100vw",
-  height: "100vh",
-  objectFit: "cover",
-  zIndex: "999999",
-  backgroundColor: "black",
-  transition: "opacity 1s ease",
-});
-document.body.appendChild(videoIntro);
+// 🎬 Intro de video 100% compatible con iOS / Android / PC
+setTimeout(() => {
+  const preloader = document.createElement("div");
+  Object.assign(preloader.style, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "black",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "white",
+    fontFamily: "Poppins, sans-serif",
+    fontSize: "18px",
+    zIndex: "999998",
+  });
+  preloader.textContent = "Cargando…";
+  document.body.appendChild(preloader);
 
-// 🔚 Cuando termine, se desvanece y se elimina
-videoIntro.addEventListener("ended", () => {
-  videoIntro.style.opacity = "0";
-  setTimeout(() => videoIntro.remove(), 1000);
-});
+  const videoIntro = document.createElement("video");
+  Object.assign(videoIntro, {
+    src: "Ini.mp4",
+    autoplay: true,
+    muted: true, // 🔇 requerido por iOS para permitir autoplay
+    playsInline: true,
+    preload: "auto",
+  });
+  Object.assign(videoIntro.style, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    objectFit: "cover",
+    zIndex: "999999",
+    backgroundColor: "black",
+    opacity: "0",
+    transition: "opacity 1s ease",
+  });
+  document.body.appendChild(videoIntro);
 
-// 🕒 Fallback por si iOS bloquea autoplay
-let fallbackTimer = setTimeout(() => {
-  if (!videoIntro.paused) return; // el video sí se está reproduciendo
-  console.warn("🎥 iOS bloqueó el autoplay, mostrando contenido...");
-  videoIntro.style.opacity = "0";
-  setTimeout(() => videoIntro.remove(), 1000);
-}, 5000); // si en 5s no comenzó, continúa
+  // Espera a que pueda reproducirse
+  videoIntro.addEventListener("canplaythrough", () => {
+    preloader.remove();
+    videoIntro.style.opacity = "1";
+    videoIntro.play().catch(() => {});
+  });
+
+  // Si el video termina → desvanecer
+  videoIntro.addEventListener("ended", () => {
+    videoIntro.style.opacity = "0";
+    setTimeout(() => videoIntro.remove(), 1000);
+  });
+
+  // Fallback: si en 6s no inició, quitamos el preloader y el video
+  setTimeout(() => {
+    if (videoIntro.readyState < 3 || videoIntro.paused) {
+      console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
+      videoIntro.remove();
+      preloader.remove();
+    }
+  }, 6000);
+}, 300); // pequeño delay para asegurar render del body en iOS
 
 
   // ======================================================================================
@@ -2998,6 +3028,7 @@ let fallbackTimer = setTimeout(() => {
   </script>
 </body>
 </html>
+
 
 
 
