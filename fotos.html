@@ -1014,52 +1014,6 @@ body {
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
 
- // 🔹 Cargar header.html dinámicamente
-  fetch("header.html")
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById("headerContainer").innerHTML = data;
-      inicializarHeader(); // Inicializar botones y menú después de cargar
-    })
-    .catch(err => console.error("Error al cargar header:", err));
-
-  function inicializarHeader() {
-    const userBtn = document.getElementById('userBtn');
-    const userMenu = document.getElementById('userMenu');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    // Mostrar u ocultar menú de usuario
-    if (userBtn && userMenu) {
-      userBtn.addEventListener('click', () => {
-        userMenu.style.display = userMenu.style.display === 'block' ? 'none' : 'block';
-      });
-    }
-
-    // Cerrar menú al hacer clic fuera
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('#userMenuContainer') && userMenu) {
-        userMenu.style.display = 'none';
-      }
-    });
-
-    // Acción del botón de cerrar sesión (ajústala si ya la tienes definida)
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        alert("Cerrando sesión...");
-        userMenu.style.display = 'none';
-      });
-    }
-
-    // Si estás en fotos.html, marca el botón de imágenes como activo
-    if (window.location.pathname.includes('fotos.html')) {
-      document.querySelector('.fa-image').parentElement.classList.add('selected');
-    }
-
-    // Si estás en videosSesion2.html, marca el botón de videos
-    if (window.location.pathname.includes('videosSesion2.html')) {
-      document.querySelector('.fa-video').parentElement.classList.add('selected');
-    }
-  }
 
     
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -2785,9 +2739,33 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         });
     }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
+// 🧩 Carga del header externo (sin afectar nada más)
+const headerContainer = document.getElementById("socialHeader");
+if (!headerContainer) {
+  // Si no existe aún el header, lo insertamos antes del primer hijo del body
+  const headerPlaceholder = document.createElement("div");
+  headerPlaceholder.id = "socialHeader";
+  document.body.prepend(headerPlaceholder);
+
+  try {
+    const response = await fetch("./header.html");
+    if (response.ok) {
+      const headerHTML = await response.text();
+      headerPlaceholder.outerHTML = headerHTML;
+      console.log("✅ Header cargado dinámicamente desde header.html");
+    } else {
+      console.warn("⚠️ No se pudo cargar header.html:", response.status);
+    }
+  } catch (error) {
+    console.error("❌ Error cargando header.html:", error);
+  }
+}
+
+// ======================================================================================
 // 🎬 Intro de video 100% compatible con iOS / Android / PC
+// ======================================================================================
 setTimeout(() => {
   const loader = document.getElementById("loader");
   if (loader) loader.style.display = "flex";
@@ -3134,6 +3112,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
