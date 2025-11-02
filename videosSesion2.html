@@ -1730,7 +1730,34 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1200);
     });
   }
+
+  // ===========================
+  // 🔎 BÚSQUEDA DE SLIDES POR TÍTULO
+  // ===========================
+  const btnBuscar = document.getElementById("btnBuscar");
+  const inputBuscar = document.getElementById("inputBuscar");
+  const wrapper = document.getElementById("slides"); // contenedor de tus slides
+  if (btnBuscar && inputBuscar && wrapper && window.swiper) {
+    btnBuscar.addEventListener("click", () => {
+      const query = (inputBuscar.value || "").trim().toLowerCase();
+
+      swiper.slides.forEach(slide => {
+        const title = (slide.dataset.title || "").toLowerCase();
+        slide.style.display = title.includes(query) ? "" : "none";
+      });
+
+      swiper.update();
+
+      const firstVisibleIndex = Array.from(swiper.slides).findIndex(slide => slide.style.display !== "none");
+      if (firstVisibleIndex !== -1) swiper.slideTo(firstVisibleIndex, 0);
+    });
+
+    inputBuscar.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") btnBuscar.click();
+    });
+  }
 });
+
 
 
 
@@ -3335,6 +3362,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
