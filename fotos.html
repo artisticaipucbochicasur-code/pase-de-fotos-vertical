@@ -23,8 +23,6 @@
   <meta name="theme-color" content="#111111">
   
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="./css/estilos.css">
-
 
   <title>DECOM - Fotos</title>
   <style>
@@ -923,9 +921,50 @@ body {
     </div>
 </div>
 
-<!-- Contenedor donde se insertará el header -->
-<div id="headerContainer"></div>
+<header id="socialHeader">
+  <div class="header-content" style="display:flex;align-items:center;justify-content:space-between;">
+    <h1>DECOM</h1>
 
+    <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
+    <a href="./fotos.html" class="header-btn" title="Imágenes">
+  <i class="fas fa-image"></i>
+</a>
+
+<a href="./videosSesion2.html" class="header-btn" title="Videos">
+  <i class="fas fa-video"></i>
+</a>
+
+      <a href="#" class="header-btn" id="publishBtn" title="Publicar">
+        <i class="fas fa-plus-circle"></i>
+      </a>
+<button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+  <i class="fas fa-search"></i>
+</button>
+
+      <!-- 🔹 Botón de usuario (ahora al lado del botón Publicar) -->
+      <div id="userMenuContainer" style="position:relative;">
+        <div id="userBtn" 
+             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    font-weight:bold;cursor:pointer;">
+        </div>
+
+        <div id="userMenu" 
+             style="display:none;position:absolute;top:50px;right:0;background:white;
+                    border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
+                    padding:10px;min-width:180px;text-align:left;z-index:999;">
+          <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
+          <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
+          <button id="logoutBtn" 
+                  style="margin-top:8px;width:100%;padding:8px;border:none;
+                         background:#e74c3c;color:white;border-radius:6px;">
+            🚪 Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
 
 <!-- Modal de inicio de sesión -->
 <div id="loginModal" 
@@ -1013,9 +1052,6 @@ body {
 </button>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-
-
-    
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
@@ -2739,229 +2775,137 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         });
     }
 
+document.addEventListener("DOMContentLoaded", () => {
 
-    
-document.addEventListener("DOMContentLoaded", async () => {
+// 🎬 Intro de video 100% compatible con iOS / Android / PC
+setTimeout(() => {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex";
 
-  // 🧩 Carga del header externo desde el repositorio remoto
-  const headerContainer = document.getElementById("headerContainer");
-  if (headerContainer) {
-    try {
-      const response = await fetch("https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/header.html");
-      if (response.ok) {
-        const headerHTML = await response.text();
-        headerContainer.innerHTML = headerHTML;
-        console.log("✅ Header cargado dinámicamente desde el repositorio remoto");
+  const videoIntro = document.createElement("video");
+  Object.assign(videoIntro, {
+    src: "Ini.mp4",
+    autoplay: true,
+    muted: true,
+    playsInline: true,
+    preload: "auto",
+  });
+  Object.assign(videoIntro.style, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    objectFit: "cover",
+    zIndex: "999999",
+    backgroundColor: "black",
+    opacity: "0",
+    transition: "opacity 1s ease",
+  });
+  document.body.appendChild(videoIntro);
 
-        // Inicializar lógica del header después de cargarlo
-        initHeaderLogic();
-      } else {
-        console.warn("⚠️ No se pudo cargar header.html:", response.status);
-      }
-    } catch (error) {
-      console.error("❌ Error cargando header.html:", error);
+  videoIntro.addEventListener("canplaythrough", () => {
+    if (loader) loader.style.display = "none";
+    videoIntro.style.opacity = "1";
+    videoIntro.play().catch(() => {});
+  });
+
+  videoIntro.addEventListener("ended", () => {
+    videoIntro.style.opacity = "0";
+    setTimeout(() => videoIntro.remove(), 1000);
+  });
+
+  setTimeout(() => {
+    if (videoIntro.readyState < 3 || videoIntro.paused) {
+      console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
+      videoIntro.remove();
+      if (loader) loader.style.display = "none";
     }
-  }
-
-  // ======================================================================================
-  // 🎬 Intro de video 100% compatible con iOS / Android / PC
-  // ======================================================================================
-  initVideoIntro();
-
-  // ======================================================================================
-  // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
-  // ======================================================================================
-  handleLoginModal();
-
-  // ======================================================================================
-  // Funciones auxiliares
-  // ======================================================================================
-
-  function initHeaderLogic() {
-    // ----------------------
-    // Resaltado de botones del header
-    // ----------------------
-    const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
-
-    function cleanPath(path) {
-      if (!path) return "";
-      try {
-        const u = new URL(path, location.origin);
-        return u.pathname.split('/').filter(Boolean).join('/');
-      } catch (e) {
-        return (path || "").toString();
-      }
-    }
-
-    function normalizeForCompare(p) {
-      return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
-    }
-
-    function setActiveByLocation() {
-      const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
-      headerAnchors.forEach(a => a.classList.remove('selected'));
-
-      for (const a of headerAnchors) {
-        const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
-        if (hrefFile && locFile && hrefFile === locFile) {
-          a.classList.add('selected');
-          return;
-        }
-      }
-
-      for (const a of headerAnchors) {
-        const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
-        if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
-          a.classList.add('selected');
-          return;
-        }
-      }
-    }
-
-    setActiveByLocation();
-
-    headerAnchors.forEach(a => {
-      a.addEventListener('click', () => {
-        headerAnchors.forEach(x => x.classList.remove('selected'));
-        a.classList.add('selected');
-      });
-    });
-
-    window.addEventListener('popstate', () => setActiveByLocation());
-
-    let lastPath = location.pathname;
-    setInterval(() => {
-      if (location.pathname !== lastPath) {
-        lastPath = location.pathname;
-        setActiveByLocation();
-      }
-    }, 300);
-  }
-
-  function initVideoIntro() {
-    setTimeout(() => {
-      const loader = document.getElementById("loader");
-      if (loader) loader.style.display = "flex";
-
-      const videoIntro = document.createElement("video");
-      Object.assign(videoIntro, {
-        src: "Ini.mp4",
-        autoplay: true,
-        muted: true,
-        playsInline: true,
-        preload: "auto",
-      });
-      Object.assign(videoIntro.style, {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        objectFit: "cover",
-        zIndex: "999999",
-        backgroundColor: "black",
-        opacity: "0",
-        transition: "opacity 1s ease",
-      });
-      document.body.appendChild(videoIntro);
-
-      videoIntro.addEventListener("canplaythrough", () => {
-        if (loader) loader.style.display = "none";
-        videoIntro.style.opacity = "1";
-        videoIntro.play().catch(() => {});
-      });
-
-      videoIntro.addEventListener("ended", () => {
-        videoIntro.style.opacity = "0";
-        setTimeout(() => videoIntro.remove(), 1000);
-      });
-
-      setTimeout(() => {
-        if (videoIntro.readyState < 3 || videoIntro.paused) {
-          console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
-          videoIntro.remove();
-          if (loader) loader.style.display = "none";
-        }
-      }, 6000);
-    }, 300);
-  }
-
-  function handleLoginModal() {
-    const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
-    const modal = document.getElementById("loginModal");
-    const btnLogin = document.getElementById("btnLogin");
-
-    if (!usuarioGuardado) {
-      const overlay = document.createElement("div");
-      Object.assign(overlay.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100%",
-        height: "100%",
-        background: "linear-gradient(180deg, #000, #222)",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: "99998",
-        fontFamily: "Poppins, sans-serif",
-        textAlign: "center",
-        opacity: "0",
-        transition: "opacity 0.4s ease",
-      });
-      overlay.innerHTML = `
-        <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
-        <p style="color:#ccc; max-width:80%; line-height:1.5;">
-          Debes iniciar sesión para acceder al contenido.
-        </p>
-      `;
-      document.body.appendChild(overlay);
-
-      if (modal) {
-        modal.style.display = "flex";
-        modal.style.zIndex = "99999";
-      }
-
-      setTimeout(() => (overlay.style.opacity = "1"), 50);
-
-      if (btnLogin) {
-        btnLogin.addEventListener("click", () => {
-          const nombre = document.getElementById("loginNombre").value.trim();
-          const correo = document.getElementById("loginCorreo").value.trim();
-
-          if (!nombre || !correo) {
-            mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-            return;
-          }
-
-          const usuario = { nombre, correo };
-          currentAuthorName = nombre;
-          currentAuthorEmail = correo;
-          localStorage.setItem("usuario", JSON.stringify(usuario));
-          localStorage.setItem("autor", nombre);
-          localStorage.setItem("correo", correo);
-
-          modal.style.display = "none";
-          mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-          overlay.style.opacity = "0";
-          setTimeout(() => overlay.remove(), 400);
-
-          location.reload();
-        });
-      }
-    }
-  }
+  }, 6000);
+}, 300);
 
 
 // ======================================================================================
-// 👇 Tu código original (sin tocar nada del funcionamiento interno)
+// 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+// ======================================================================================
+const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+const modal = document.getElementById("loginModal");
+const btnLogin = document.getElementById("btnLogin");
+
+if (!usuarioGuardado) {
+  const overlay = document.createElement("div");
+  Object.assign(overlay.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    background: "linear-gradient(180deg, #000, #222)",
+    color: "white",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: "99998",
+    fontFamily: "Poppins, sans-serif",
+    textAlign: "center",
+    opacity: "0",
+    transition: "opacity 0.4s ease",
+  });
+  overlay.innerHTML = `
+    <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
+    <p style="color:#ccc; max-width:80%; line-height:1.5;">
+      Debes iniciar sesión para acceder al contenido.
+    </p>
+  `;
+  document.body.appendChild(overlay);
+
+  if (modal) {
+    modal.style.display = "flex";
+    modal.style.zIndex = "99999";
+  }
+
+  setTimeout(() => (overlay.style.opacity = "1"), 50);
+
+  if (btnLogin) {
+    btnLogin.addEventListener("click", () => {
+      const nombre = document.getElementById("loginNombre").value.trim();
+      const correo = document.getElementById("loginCorreo").value.trim();
+
+      if (!nombre || !correo) {
+        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+        return;
+      }
+
+      const usuario = { nombre, correo };
+
+      currentAuthorName = nombre;
+      currentAuthorEmail = correo;
+
+      localStorage.setItem("usuario", JSON.stringify(usuario));
+      localStorage.setItem("autor", nombre);
+      localStorage.setItem("correo", correo);
+
+      modal.style.display = "none";
+      mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+      overlay.style.opacity = "0";
+      setTimeout(() => overlay.remove(), 400);
+
+      location.reload();
+    });
+  }
+
+  return;
+}
+
+
+// ======================================================================================
+// 👇 Tu código original (ajustado para mantener dentro de la app)
 // ======================================================================================
 
 // ----------------------
-// Resaltado de botones del header
+// Resaltado compatible para botones del header (no toca navegación)
 // ----------------------
 (function(){ 
   const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
@@ -3045,10 +2989,11 @@ if (imagesBtn) {
 function cargarVistaInterna(ruta, botonActivo) {
   const contenedor = document.getElementById("mainContent");
   if (!contenedor) {
-    window.location.href = ruta;
+    window.location.href = ruta; // fallback si no existe contenedor
     return;
   }
 
+  // 🔹 Resaltar el botón activo
   document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
   botonActivo.classList.add('selected');
 
@@ -3172,7 +3117,6 @@ if (modal && userBtn && userMenu) {
 
 
 
-
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -3180,12 +3124,6 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
 
 
 
