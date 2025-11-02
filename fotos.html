@@ -1716,9 +1716,14 @@ function renderSavedTitles(filter = "") {
 // ==========================
 // 📌 EVENTOS DEL BOTÓN ÚNICO (Guardar / Ver Anuncios)
 // ==========================
-saveBtn.addEventListener("click", () => {
+btnBuscar.addEventListener("click", () => {
     savedSearchInput.value = "";
     renderSavedTitles();
+
+    // RESALTAR SOLO btnBuscar
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    btnBuscar.classList.add('selected');
+
     setTimeout(() => {
         savedModal.style.display = "flex";
         savedList.scrollTop = 0;
@@ -1729,25 +1734,21 @@ savedSearchInput.addEventListener("input", (e) => {
     renderSavedTitles(e.target.value);
 });
 
+// CERRAR CON X
 closeSavedBtn.addEventListener("click", () => {
     savedModal.style.display = "none";
-    // === VOLVER A RESALTAR IMÁGENES ===
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
     const imagesBtn = document.getElementById("imagesBtn");
-    if (imagesBtn) {
-        document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
-        imagesBtn.classList.add('selected');
-    }
+    if (imagesBtn) imagesBtn.classList.add('selected');
 });
 
+// CERRAR CLIC FUERA
 savedModal.addEventListener("click", (e) => {
     if (e.target === savedModal) {
         savedModal.style.display = "none";
-        // === VOLVER A RESALTAR IMÁGENES ===
+        document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
         const imagesBtn = document.getElementById("imagesBtn");
-        if (imagesBtn) {
-            document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
-            imagesBtn.classList.add('selected');
-        }
+        if (imagesBtn) imagesBtn.classList.add('selected');
     }
 });
 
@@ -3212,6 +3213,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
