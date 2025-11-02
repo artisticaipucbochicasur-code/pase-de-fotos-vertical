@@ -1732,28 +1732,65 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===========================
-  // 🔎 BÚSQUEDA DE SLIDES POR TÍTULO
+  // 🔎 BÚSQUEDA DE SLIDES POR TÍTULO (MODAL)
   // ===========================
-  const btnBuscar = document.getElementById("btnBuscar");
-  const inputBuscar = document.getElementById("inputBuscar");
-  const wrapper = document.getElementById("slides"); // contenedor de tus slides
-  if (btnBuscar && inputBuscar && wrapper && window.swiper) {
-    btnBuscar.addEventListener("click", () => {
-      const query = (inputBuscar.value || "").trim().toLowerCase();
+  const searchModal = document.getElementById("search-modal");
+  const searchInput = document.getElementById("search-input");
+  const searchResults = document.getElementById("search-results");
+  const searchClose = document.getElementById("search-close");
+  const btnModalBuscar = document.getElementById("btnBuscar"); // botón que abre el modal
 
-      swiper.slides.forEach(slide => {
-        const title = (slide.dataset.title || "").toLowerCase();
-        slide.style.display = title.includes(query) ? "" : "none";
-      });
+  if (searchModal && searchInput && searchResults && searchClose && btnModalBuscar && window.swiper) {
 
-      swiper.update();
-
-      const firstVisibleIndex = Array.from(swiper.slides).findIndex(slide => slide.style.display !== "none");
-      if (firstVisibleIndex !== -1) swiper.slideTo(firstVisibleIndex, 0);
+    // Abrir modal
+    btnModalBuscar.addEventListener("click", () => {
+      searchModal.classList.remove("hidden");
+      searchInput.value = "";
+      searchResults.innerHTML = "";
+      searchInput.focus();
     });
 
-    inputBuscar.addEventListener("keyup", (e) => {
-      if (e.key === "Enter") btnBuscar.click();
+    // Cerrar modal
+    searchClose.addEventListener("click", () => {
+      searchModal.classList.add("hidden");
+    });
+
+    // Filtrar slides mientras escribes
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.trim().toLowerCase();
+      searchResults.innerHTML = "";
+
+      swiper.slides.forEach((slide, index) => {
+        const title = (slide.dataset.title || "").toLowerCase();
+        if (title.includes(query)) {
+          const li = document.createElement("li");
+          li.textContent = slide.dataset.title || "Sin título";
+          li.style.cursor = "pointer";
+
+          // Al hacer clic en el resultado, ir al slide y cerrar modal
+          li.addEventListener("click", () => {
+            swiper.slideTo(index, 0);
+            searchModal.classList.add("hidden");
+          });
+
+          searchResults.appendChild(li);
+        }
+      });
+
+      // Mensaje si no hay resultados
+      if (searchResults.children.length === 0 && query) {
+        const li = document.createElement("li");
+        li.textContent = "No se encontraron resultados";
+        li.style.color = "#999";
+        searchResults.appendChild(li);
+      }
+    });
+
+    // Permitir Enter para seleccionar primer resultado automáticamente
+    searchInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter" && searchResults.firstChild) {
+        searchResults.firstChild.click();
+      }
     });
   }
 });
@@ -3362,6 +3399,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
