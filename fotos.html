@@ -2904,39 +2904,36 @@ if (!usuarioGuardado) {
 // 👇 Tu código original (ajustado para mantener dentro de la app)
 // ======================================================================================
 
-const currentUrl = window.location.href;
 const imagesBtn = document.querySelector('#btnImages');
 const videosBtn = document.querySelector('#btnVideos');
-
-// Marcar botón activo
-if (currentUrl.includes("fotos.html")) {
-  imagesBtn?.classList.add("selected");
-} else if (currentUrl.includes("sliderVideos.html")) {
-  videosBtn?.classList.add("selected");
-}
 
 // ✅ Mantener navegación interna sin salir del entorno principal
 if (videosBtn) {
   videosBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    cargarVistaInterna("videos/sliderVideos.html");
+    cargarVistaInterna("videos/sliderVideos.html", videosBtn);
   });
 }
 
 if (imagesBtn) {
   imagesBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    cargarVistaInterna("fotos/fotos.html");
+    cargarVistaInterna("fotos/fotos.html", imagesBtn);
   });
 }
 
 // Función para cargar contenido dentro del mismo DOM
-function cargarVistaInterna(ruta) {
+function cargarVistaInterna(ruta, botonActivo) {
   const contenedor = document.getElementById("mainContent");
   if (!contenedor) {
     window.location.href = ruta; // fallback si no existe contenedor
     return;
   }
+
+  // 🔹 Resaltar el botón activo
+  document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+  botonActivo.classList.add('selected');
+
   contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
   fetch(ruta)
     .then((res) => res.text())
@@ -3056,6 +3053,7 @@ if (modal && userBtn && userMenu) {
 
 
 
+
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -3063,6 +3061,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
