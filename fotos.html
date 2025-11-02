@@ -926,22 +926,25 @@ body {
     <h1>DECOM</h1>
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-      <a href="https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/fotos.html" 
-         class="header-btn" title="Imágenes">
+      <!-- 🔹 Botón Fotos (mantiene ícono, ahora con ID local) -->
+      <a href="#" id="btnFotos" class="header-btn" title="Imágenes">
         <i class="fas fa-image"></i>
       </a>
-      <a href="https://artisticaipucbochicasur-code.github.io/slider-de-videos/sliderVideos.html" 
-         class="header-btn" title="Videos">
+
+      <!-- 🔹 Botón Videos (ya no navega fuera del HTML) -->
+      <a href="#" id="btnVideos" class="header-btn" title="Videos">
         <i class="fas fa-video"></i>
       </a>
+
       <a href="#" class="header-btn" id="publishBtn" title="Publicar">
         <i class="fas fa-plus-circle"></i>
       </a>
-<button id="btnBuscar" class="header-btn" title="Buscar anuncios">
-  <i class="fas fa-search"></i>
-</button>
 
-      <!-- 🔹 Botón de usuario (ahora al lado del botón Publicar) -->
+      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+        <i class="fas fa-search"></i>
+      </button>
+
+      <!-- 🔹 Botón de usuario (igual que antes) -->
       <div id="userMenuContainer" style="position:relative;">
         <div id="userBtn" 
              style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
@@ -965,6 +968,7 @@ body {
     </div>
   </div>
 </header>
+
 
 <!-- Modal de inicio de sesión -->
 <div id="loginModal" 
@@ -3002,6 +3006,44 @@ setTimeout(() => {
       setTimeout(() => location.reload(), 1200);
     });
   }
+
+  // ======================================================================================
+  // 🔹 NUEVO BLOQUE: Integración del slider de videos dentro del mismo HTML
+  // ======================================================================================
+
+  const btnFotos = document.getElementById("btnFotos");
+  const btnVideos = document.getElementById("btnVideos");
+  const seccionFotos = document.getElementById("seccionFotos");
+  const seccionVideos = document.getElementById("seccionVideos");
+
+  if (btnVideos && btnFotos && seccionVideos && seccionFotos) {
+    // Cargar contenido del slider de videos
+    fetch("videosSesion.html")
+      .then(r => r.text())
+      .then(html => {
+        seccionVideos.innerHTML = html;
+      })
+      .catch(err => console.error("Error al cargar los videos:", err));
+
+    // Mostrar videos
+    btnVideos.addEventListener("click", (e) => {
+      e.preventDefault();
+      seccionFotos.style.display = "none";
+      seccionVideos.style.display = "block";
+      btnVideos.classList.add("selected");
+      btnFotos.classList.remove("selected");
+    });
+
+    // Mostrar fotos
+    btnFotos.addEventListener("click", (e) => {
+      e.preventDefault();
+      seccionVideos.style.display = "none";
+      seccionFotos.style.display = "block";
+      btnFotos.classList.add("selected");
+      btnVideos.classList.remove("selected");
+    });
+  }
+
 });
 
 
@@ -3016,6 +3058,7 @@ setTimeout(() => {
   </script>
 </body>
 </html>
+
 
 
 
