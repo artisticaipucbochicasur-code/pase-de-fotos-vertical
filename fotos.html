@@ -2296,18 +2296,23 @@ async function actualizarContador() {
             contadorTotalAnterior = totalActual;
         }
 
-        // 🔔 Actualizar badge y campana
-        if (contadorAcumulado > 0) {
-            notificationCount.textContent = contadorAcumulado;
-            notificationCount.style.display = "flex";
-            document.querySelector("#lblContador i").classList.remove("far");
-            document.querySelector("#lblContador i").classList.add("fas");
-        } else {
-            notificationCount.textContent = "";
-            notificationCount.style.display = "none";
-            document.querySelector("#lblContador i").classList.remove("fas");
-            document.querySelector("#lblContador i").classList.add("far");
-        }
+      // 🔔 Actualizar badge y botón de imágenes
+if (contadorAcumulado > 0) {
+    notificationCount.textContent = contadorAcumulado;
+    notificationCount.style.display = "flex";
+
+    // Añadir resaltado al botón de imágenes
+    const btnImages = document.getElementById('btnImages');
+    if (btnImages) btnImages.classList.add("has-notifications");
+} else {
+    notificationCount.textContent = "";
+    notificationCount.style.display = "none";
+
+    // Quitar resaltado del botón de imágenes
+    const btnImages = document.getElementById('btnImages');
+    if (btnImages) btnImages.classList.remove("has-notifications");
+}
+
 
     } catch (e) {
         console.error("❌ Error al obtener contador:", e);
@@ -2779,11 +2784,17 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         cargarImagenes();
     });
 
-    if (lblContador) {
-        lblContador.addEventListener('click', () => {
+   const btnImages = document.getElementById('btnImages');
+if (btnImages) {
+    btnImages.addEventListener('click', (e) => {
+        // Si hay notificaciones, abrimos la alerta personalizada
+        if (nuevosTitulos.length > 0) {
+            e.preventDefault();
             showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
-        });
-    }
+        }
+    });
+}
+
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -2983,6 +2994,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
