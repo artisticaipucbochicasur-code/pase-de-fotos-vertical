@@ -1858,40 +1858,45 @@ function normalizar(txt) {
     .trim();
 }
 
-// 🔹 Abrir buscador
+// ABRIR BUSCADOR
 function abrirBusqueda() {
   document.getElementById("searchOverlay").style.display = "flex";
   document.getElementById("searchInput").value = "";
   document.getElementById("searchResults").innerHTML = "";
   document.getElementById("searchInput").focus();
+
+  // RESALTAR BOTÓN DE BÚSQUEDA AL ABRIR
+  document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+  const btnBuscar = document.getElementById("btnBuscar");
+  if (btnBuscar) btnBuscar.classList.add('selected');
 }
 
-// 🔹 Cerrar buscador
+// CERRAR BUSCADOR + RESALTAR IMÁGENES
 function cerrarBusqueda() {
   document.getElementById("searchOverlay").style.display = "none";
+
+  // RESALTAR BOTÓN DE IMÁGENES AL CERRAR
+  document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) imagesBtn.classList.add('selected');
 }
 
 document.getElementById("searchInput").addEventListener("input", function () {
   const query = normalizar(this.value);
   const resultadosDiv = document.getElementById("searchResults");
   resultadosDiv.innerHTML = "";
-
   if (query.length < 2) return;
-
   if (!Array.isArray(indiceBusqueda) || indiceBusqueda.length === 0) {
     resultadosDiv.innerHTML = "<p>Todavía no se han cargado anuncios</p>";
     return;
   }
-
-  // Buscar sobre el índice ya normalizado
   const coincidencias = indiceBusqueda.filter(item => item.key.includes(query));
-
   coincidencias.forEach(item => {
     const li = document.createElement("div");
     li.textContent = item.titulo;
     li.classList.add("resultado-item");
     li.onclick = () => {
-      cerrarBusqueda();
+      cerrarBusqueda(); // ← Usa la función corregida
       if (swiperInstance) {
         swiperInstance.slideToLoop(item.i, 500);
         setTimeout(() => {
@@ -1902,25 +1907,24 @@ document.getElementById("searchInput").addEventListener("input", function () {
     };
     resultadosDiv.appendChild(li);
   });
-
   if (!resultadosDiv.hasChildNodes()) {
     resultadosDiv.innerHTML = "<p>No se encontraron coincidencias</p>";
   }
 });
 
-    // 🆕 Vincular el botón de búsqueda (entre Publicar y Usuario)
+// VINCULAR BOTÓN DE BÚSQUEDA
 const btnBuscar = document.getElementById("btnBuscar");
 if (btnBuscar) {
   btnBuscar.addEventListener("click", abrirBusqueda);
 }
 
-// 🔗 Escuchar desde App Inventor
+// ESCUCHAR DESDE APP INVENTOR
 setInterval(() => {
   if (window.AppInventor && window.AppInventor.getWebViewString) {
     let command = window.AppInventor.getWebViewString();
     if (command === "buscar") {
       abrirBusqueda();
-      window.AppInventor.setWebViewString(""); // limpiar
+      window.AppInventor.setWebViewString("");
     }
   }
 }, 1000);
@@ -3200,3 +3204,4 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
