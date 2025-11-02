@@ -921,50 +921,9 @@ body {
     </div>
 </div>
 
-<header id="socialHeader">
-  <div class="header-content" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>DECOM</h1>
+<!-- Contenedor donde se insertará el header -->
+<div id="headerContainer"></div>
 
-    <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-    <a href="./fotos.html" class="header-btn" title="Imágenes">
-  <i class="fas fa-image"></i>
-</a>
-
-<a href="./videosSesion2.html" class="header-btn" title="Videos">
-  <i class="fas fa-video"></i>
-</a>
-
-      <a href="#" class="header-btn" id="publishBtn" title="Publicar">
-        <i class="fas fa-plus-circle"></i>
-      </a>
-<button id="btnBuscar" class="header-btn" title="Buscar anuncios">
-  <i class="fas fa-search"></i>
-</button>
-
-      <!-- 🔹 Botón de usuario (ahora al lado del botón Publicar) -->
-      <div id="userMenuContainer" style="position:relative;">
-        <div id="userBtn" 
-             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;
-                    font-weight:bold;cursor:pointer;">
-        </div>
-
-        <div id="userMenu" 
-             style="display:none;position:absolute;top:50px;right:0;background:white;
-                    border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
-                    padding:10px;min-width:180px;text-align:left;z-index:999;">
-          <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
-          <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
-          <button id="logoutBtn" 
-                  style="margin-top:8px;width:100%;padding:8px;border:none;
-                         background:#e74c3c;color:white;border-radius:6px;">
-            🚪 Cerrar sesión
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
 
 <!-- Modal de inicio de sesión -->
 <div id="loginModal" 
@@ -1052,6 +1011,55 @@ body {
 </button>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
+
+ // 🔹 Cargar header.html dinámicamente
+  fetch("header.html")
+    .then(response => response.text())
+    .then(data => {
+      document.getElementById("headerContainer").innerHTML = data;
+      inicializarHeader(); // Inicializar botones y menú después de cargar
+    })
+    .catch(err => console.error("Error al cargar header:", err));
+
+  function inicializarHeader() {
+    const userBtn = document.getElementById('userBtn');
+    const userMenu = document.getElementById('userMenu');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Mostrar u ocultar menú de usuario
+    if (userBtn && userMenu) {
+      userBtn.addEventListener('click', () => {
+        userMenu.style.display = userMenu.style.display === 'block' ? 'none' : 'block';
+      });
+    }
+
+    // Cerrar menú al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#userMenuContainer') && userMenu) {
+        userMenu.style.display = 'none';
+      }
+    });
+
+    // Acción del botón de cerrar sesión (ajústala si ya la tienes definida)
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        alert("Cerrando sesión...");
+        userMenu.style.display = 'none';
+      });
+    }
+
+    // Si estás en fotos.html, marca el botón de imágenes como activo
+    if (window.location.pathname.includes('fotos.html')) {
+      document.querySelector('.fa-image').parentElement.classList.add('selected');
+    }
+
+    // Si estás en videosSesion2.html, marca el botón de videos
+    if (window.location.pathname.includes('videosSesion2.html')) {
+      document.querySelector('.fa-video').parentElement.classList.add('selected');
+    }
+  }
+
+    
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
@@ -3124,6 +3132,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
