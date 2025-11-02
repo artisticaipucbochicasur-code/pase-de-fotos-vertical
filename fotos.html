@@ -926,9 +926,27 @@ body {
     <h1>DECOM</h1>
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-    <a href="./fotos.html" class="header-btn" title="Imágenes">
+  <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
+<button id="imagesBtn" class="header-btn" title="Imágenes" style="position: relative;">
   <i class="fas fa-image"></i>
-</a>
+  <span id="imagesNotificationCount" style="
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: red;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none;
+    z-index: 10;
+  "></span>
+</button>
 
 <a href="./videosSesion2.html" class="header-btn" title="Videos">
   <i class="fas fa-video"></i>
@@ -2234,28 +2252,27 @@ lblContador.addEventListener("click", () => {
 let anunciosVistosIds = new Set();
 
 // Modificamos actualizarContador para guardar títulos nuevos
+// Modificamos actualizarContador para actualizar ambos botones
 async function actualizarContador() {
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
-        const notificationCount = document.getElementById('notificationCount'); // 🔔 span del número
+        const notificationCount = document.getElementById('notificationCount');
+        const imagesNotificationCount = document.getElementById('imagesNotificationCount');
 
         if (contadorTotalAnterior === -1) {
             contadorTotalAnterior = totalActual;
         }
 
-        // 🔹 Guardamos títulos nuevos si hay diferencia
+        // === DETECTAR NUEVOS ANUNCIOS ===
         if (totalActual !== contadorTotalAnterior) {
             const diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
                 const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
                 const dataAnuncios = await responseAnuncios.json();
-
-                // ✅ Tomamos solo los últimos N (diferencia)
                 const ultimosIds = dataAnuncios.id.slice(-diferencia);
                 const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
-
                 const nuevos = [];
                 ultimosIds.forEach((id, idx) => {
                     if (!anunciosVistosIds.has(id)) {
@@ -2263,48 +2280,42 @@ async function actualizarContador() {
                         anunciosVistosIds.add(id);
                     }
                 });
-
                 if (nuevos.length > 0) {
-                    // Los más recientes primero
                     nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
                     nuevosTitulos = [...new Set(nuevosTitulos)];
                     contadorAcumulado = nuevosTitulos.length;
-
-                    // ✅ Recargar anuncios en segundo plano SOLO cuando haya nuevos
-                    console.log("📥 Nuevos anuncios detectados → recargando en segundo plano...");
-                    cargarImagenes(true); // usar un flag para no limpiar todo
+                    cargarImagenes(true);
                 }
             } else if (diferencia < 0) {
-                // Caso: se borraron anuncios → reiniciamos
                 contadorAcumulado = 0;
                 nuevosTitulos = [];
                 anunciosVistosIds.clear();
-                console.log("⚠️ Se detectó una reducción de anuncios → limpiando cache.");
                 cargarImagenes(true);
             }
-
             contadorTotalAnterior = totalActual;
         }
 
-        // 🔔 Actualizar badge y campana
-        if (contadorAcumulado > 0) {
-            notificationCount.textContent = contadorAcumulado;
-            notificationCount.style.display = "flex";
-            document.querySelector("#lblContador i").classList.remove("far");
-            document.querySelector("#lblContador i").classList.add("fas");
-        } else {
-            notificationCount.textContent = "";
-            notificationCount.style.display = "none";
-            document.querySelector("#lblContador i").classList.remove("fas");
-            document.querySelector("#lblContador i").classList.add("far");
+        // === ACTUALIZAR BADGE EN AMBOS BOTONES ===
+        const mostrarBadge = contadorAcumulado > 0;
+
+        // Campana
+        if (notificationCount) {
+            notificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            notificationCount.style.display = mostrarBadge ? "flex" : "none";
+            const icon = document.querySelector("#lblContador i");
+            if (icon) icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
+        }
+
+        // Botón Imágenes
+        if (imagesNotificationCount) {
+            imagesNotificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            imagesNotificationCount.style.display = mostrarBadge ? "flex" : "none";
         }
 
     } catch (e) {
-        console.error("❌ Error al obtener contador:", e);
+        console.error("Error al obtener contador:", e);
     }
 }
-
-
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -2657,13 +2668,13 @@ function showCustomAlert(title, titlesList) {
     const alertDiv = overlay.querySelector('.custom-alert');
     const alertTitle = document.getElementById('alertTitle');
     const alertMessage = document.getElementById('alertMessage');
-    const notificationCount = document.getElementById('notificationCount'); // 🔔 span del contador
-    
+    const notificationCount = document.getElementById('notificationCount'); // span del contador
+
     alertDiv.className = 'custom-alert';
     alertMessage.innerHTML = '';
-    
+
     alertTitle.textContent = title;
-    
+
     if (titlesList.length > 0) {
         const list = document.createElement('ul');
         list.className = 'titles-list';
@@ -2673,22 +2684,38 @@ function showCustomAlert(title, titlesList) {
             li.dataset.index = index;
             li.addEventListener('click', () => {
                 const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                if (selectedIndex !== -1) {
+                if (selectedIndex !== -1 && swiperInstance) {
+                    // Desplazar al anuncio
                     swiperInstance.slideToLoop(selectedIndex, 500);
+
+                    // === EFECTO DE RESALTADO + ZOOM EN EL TÍTULO ===
+                    setTimeout(() => {
+                        const titleElement = document.getElementById('currentTitle');
+                        if (titleElement) {
+                            // Forzar reflow para reiniciar animación
+                            titleElement.classList.remove('highlight-title-zoom');
+                            void titleElement.offsetWidth;
+                            titleElement.classList.add('highlight-title-zoom');
+
+                            // Quitar el efecto después de 1.5 segundos
+                            setTimeout(() => {
+                                titleElement.classList.remove('highlight-title-zoom');
+                            }, 1500);
+                        }
+                    }, 600); // Esperar a que termine el deslizamiento
+
+                    // === ACTUALIZAR CONTADOR ===
                     nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
                     contadorAcumulado = nuevosTitulos.length;
+                    if (contadorAcumulado > 0) {
+                        notificationCount.textContent = contadorAcumulado;
+                        notificationCount.style.display = "flex";
+                    } else {
+                        notificationCount.textContent = "";
+                        notificationCount.style.display = "none";
+                    }
 
-                    // 🔔 actualizar solo el número
-if (contadorAcumulado > 0) {
-    notificationCount.textContent = contadorAcumulado;
-    notificationCount.style.display = "flex";  // mostrar circulito
-} else {
-    notificationCount.textContent = "";
-    notificationCount.style.display = "none";  // ocultar circulito
-}
-
-document.getElementById('customAlertOverlay').style.display = 'none';
-
+                    document.getElementById('customAlertOverlay').style.display = 'none';
                 }
             });
             list.appendChild(li);
@@ -2705,10 +2732,8 @@ document.getElementById('customAlertOverlay').style.display = 'none';
     closeBtn.id = "closeAlertButton";
     closeBtn.onclick = () => overlay.style.display = 'none';
     alertMessage.appendChild(closeBtn);
-
     overlay.style.display = 'flex';
 }
-
 
     function showConfirmationDialog(message, onConfirm) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -2775,6 +2800,34 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         });
     }
 
+
+
+    // === BOTÓN DE IMÁGENES COMO CAMPANA ===
+const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
+if (imagesNotificationBtn) {
+    imagesNotificationBtn.addEventListener("click", () => {
+        showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+    });
+}
+
+
+// === BOTÓN IMÁGENES: NUEVOS ANUNCIOS O CARGAR VISTA ===
+const imagesBtn = document.getElementById("imagesBtn");
+if (imagesBtn) {
+    imagesBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        if (contadorAcumulado > 0) {
+            showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+        } else {
+            cargarVistaInterna("fotos/fotos.html", imagesBtn);
+            // Marcar como vista activa
+            document.body.dataset.view = "fotos";
+        }
+    });
+}
+
+    
 document.addEventListener("DOMContentLoaded", () => {
 
 // 🎬 Intro de video 100% compatible con iOS / Android / PC
@@ -2907,9 +2960,12 @@ if (!usuarioGuardado) {
 // ----------------------
 // Resaltado compatible para botones del header (no toca navegación)
 // ----------------------
-(function(){ 
-  const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
-
+// ----------------------
+// Resaltado compatible para .header-btn (con o sin href)
+// ----------------------
+(function(){
+  const headerBtns = Array.from(document.querySelectorAll('.header-btn')); // Incluye <button>
+  
   function cleanPath(path) {
     if (!path) return "";
     try {
@@ -2926,36 +2982,51 @@ if (!usuarioGuardado) {
 
   function setActiveByLocation() {
     const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
-    headerAnchors.forEach(a => a.classList.remove('selected'));
+    headerBtns.forEach(btn => btn.classList.remove('selected'));
 
-    for (const a of headerAnchors) {
-      const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
-      if (hrefFile && locFile && hrefFile === locFile) {
-        a.classList.add('selected');
-        return;
+    // Resaltar por href (para <a>)
+    for (const btn of headerBtns) {
+      const href = btn.getAttribute('href');
+      if (href) {
+        const hrefFile = normalizeForCompare(cleanPath(href).split('/').pop());
+        if (hrefFile && locFile && hrefFile === locFile) {
+          btn.classList.add('selected');
+          return;
+        }
       }
     }
 
-    for (const a of headerAnchors) {
-      const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
-      if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
-        a.classList.add('selected');
-        return;
+    // Resaltar por ruta completa
+    for (const btn of headerBtns) {
+      const href = btn.getAttribute('href');
+      if (href) {
+        const hrefClean = normalizeForCompare(cleanPath(href));
+        if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+          btn.classList.add('selected');
+          return;
+        }
+      }
+    }
+
+    // === RESALTADO MANUAL PARA VISTAS INTERNAS ===
+    if (locFile.includes("fotos") || locFile.includes("slider")) {
+      const imagesBtn = document.getElementById("imagesBtn");
+      if (imagesBtn && (locFile.includes("fotos") || document.body.dataset.view === "fotos")) {
+        imagesBtn.classList.add('selected');
       }
     }
   }
 
   setActiveByLocation();
 
-  headerAnchors.forEach(a => {
-    a.addEventListener('click', () => {
-      headerAnchors.forEach(x => x.classList.remove('selected'));
-      a.classList.add('selected');
+  headerBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      headerBtns.forEach(x => x.classList.remove('selected'));
+      btn.classList.add('selected');
     });
   });
 
-  window.addEventListener('popstate', () => setActiveByLocation());
-
+  window.addEventListener('popstate', setActiveByLocation);
   let lastPath = location.pathname;
   setInterval(() => {
     if (location.pathname !== lastPath) {
@@ -2964,7 +3035,6 @@ if (!usuarioGuardado) {
     }
   }, 300);
 })();
-
 // ------------------------------------------------------------------------------------
 
 const imagesBtn = document.querySelector('#btnImages');
@@ -2987,26 +3057,23 @@ if (imagesBtn) {
 
 // Función para cargar contenido dentro del mismo DOM
 function cargarVistaInterna(ruta, botonActivo) {
-  const contenedor = document.getElementById("mainContent");
-  if (!contenedor) {
-    window.location.href = ruta; // fallback si no existe contenedor
-    return;
-  }
-
-  // 🔹 Resaltar el botón activo
-  document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
-  botonActivo.classList.add('selected');
-
-  contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
-  fetch(ruta)
-    .then((res) => res.text())
-    .then((html) => {
-      contenedor.innerHTML = html;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    })
-    .catch(() => {
-      contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
-    });
+    const contenedor = document.getElementById("mainContent");
+    if (!contenedor) {
+        window.location.href = ruta;
+        return;
+    }
+    document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+    botonActivo.classList.add('selected');
+    contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
+    fetch(ruta)
+        .then(res => res.text())
+        .then(html => {
+            contenedor.innerHTML = html;
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        })
+        .catch(() => {
+            contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
+        });
 }
 
 
@@ -3113,10 +3180,6 @@ if (modal && userBtn && userMenu) {
 
 
 
-
-
-
-
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -3124,9 +3187,3 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
