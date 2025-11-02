@@ -1714,19 +1714,11 @@ function renderSavedTitles(filter = "") {
 
 
 // ==========================
+// 📌 EVENTOS DEL BOTÓN ÚNICO (Guardar / Ver Anuncios)
 // ==========================
-// EVENTOS DEL BOTÓN DE BÚSQUEDA (btnBuscar)
-// ==========================
-const btnBuscar = document.getElementById("btnBuscar");
-
-btnBuscar.addEventListener("click", () => {
+saveBtn.addEventListener("click", () => {
     savedSearchInput.value = "";
     renderSavedTitles();
-
-    // RESALTAR SOLO btnBuscar
-    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
-    btnBuscar.classList.add('selected');
-
     setTimeout(() => {
         savedModal.style.display = "flex";
         savedList.scrollTop = 0;
@@ -1737,21 +1729,25 @@ savedSearchInput.addEventListener("input", (e) => {
     renderSavedTitles(e.target.value);
 });
 
-// CERRAR CON X
 closeSavedBtn.addEventListener("click", () => {
     savedModal.style.display = "none";
-    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    // === VOLVER A RESALTAR IMÁGENES ===
     const imagesBtn = document.getElementById("imagesBtn");
-    if (imagesBtn) imagesBtn.classList.add('selected');
+    if (imagesBtn) {
+        document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+        imagesBtn.classList.add('selected');
+    }
 });
 
-// CERRAR CLIC FUERA
 savedModal.addEventListener("click", (e) => {
     if (e.target === savedModal) {
         savedModal.style.display = "none";
-        document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+        // === VOLVER A RESALTAR IMÁGENES ===
         const imagesBtn = document.getElementById("imagesBtn");
-        if (imagesBtn) imagesBtn.classList.add('selected');
+        if (imagesBtn) {
+            document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+            imagesBtn.classList.add('selected');
+        }
     }
 });
 
