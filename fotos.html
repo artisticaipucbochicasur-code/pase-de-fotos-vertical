@@ -926,25 +926,26 @@ body {
     <h1>DECOM</h1>
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
- <a href="./fotos.html" class="header-btn" id="imagesBtn" title="Imágenes">
+  <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
+<button id="imagesBtn" class="header-btn" title="Imágenes">
   <i class="fas fa-image"></i>
-  <span id="imagesCommentCount" style="
+  <span id="imagesNotificationCount" style="
     position: absolute;
     top: -5px;
     right: -5px;
     background: red;
     color: white;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: bold;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     display: none;
   "></span>
-</a>
+</button>
 
 <a href="./videosSesion2.html" class="header-btn" title="Videos">
   <i class="fas fa-video"></i>
@@ -2249,19 +2250,21 @@ lblContador.addEventListener("click", () => {
 // 🔹 Guardamos los IDs ya vistos
 let anunciosVistosIds = new Set();
 
+// Modificamos actualizarContador para guardar títulos nuevos
+// Modificamos actualizarContador para actualizar ambos botones
 async function actualizarContador() {
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
         const notificationCount = document.getElementById('notificationCount');
-        const imagesCommentCount = document.getElementById('imagesCommentCount'); // NUEVO
+        const imagesNotificationCount = document.getElementById('imagesNotificationCount');
 
         if (contadorTotalAnterior === -1) {
             contadorTotalAnterior = totalActual;
         }
 
-        // === NUEVOS ANUNCIOS ===
+        // === DETECTAR NUEVOS ANUNCIOS ===
         if (totalActual !== contadorTotalAnterior) {
             const diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
@@ -2291,39 +2294,27 @@ async function actualizarContador() {
             contadorTotalAnterior = totalActual;
         }
 
-        // === ACTUALIZAR BADGE CAMPANA ===
-        if (contadorAcumulado > 0) {
-            notificationCount.textContent = contadorAcumulado;
-            notificationCount.style.display = "flex";
-            document.querySelector("#lblContador i").classList.remove("far");
-            document.querySelector("#lblContador i").classList.add("fas");
-        } else {
-            notificationCount.textContent = "";
-            notificationCount.style.display = "none";
-            document.querySelector("#lblContador i").classList.remove("fas");
-            document.querySelector("#lblContador i").classList.add("far");
+        // === ACTUALIZAR BADGE EN AMBOS BOTONES ===
+        const mostrarBadge = contadorAcumulado > 0;
+
+        // Campana
+        if (notificationCount) {
+            notificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            notificationCount.style.display = mostrarBadge ? "flex" : "none";
+            const icon = document.querySelector("#lblContador i");
+            if (icon) icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
         }
 
-        // === NUEVO: CONTADOR DE COMENTARIOS EN BOTÓN IMÁGENES ===
-        let totalComentarios = 0;
-        if (comentariosPorAnuncio && typeof comentariosPorAnuncio === 'object') {
-            totalComentarios = Object.values(comentariosPorAnuncio)
-                .reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
-        }
-
-        if (totalComentarios > 0 && imagesCommentCount) {
-            imagesCommentCount.textContent = totalComentarios > 99 ? "99+" : totalComentarios;
-            imagesCommentCount.style.display = "flex";
-        } else if (imagesCommentCount) {
-            imagesCommentCount.style.display = "none";
+        // Botón Imágenes
+        if (imagesNotificationCount) {
+            imagesNotificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            imagesNotificationCount.style.display = mostrarBadge ? "flex" : "none";
         }
 
     } catch (e) {
         console.error("Error al obtener contador:", e);
     }
 }
-
-
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -2794,6 +2785,34 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         });
     }
 
+
+
+    // === BOTÓN DE IMÁGENES COMO CAMPANA ===
+const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
+if (imagesNotificationBtn) {
+    imagesNotificationBtn.addEventListener("click", () => {
+        showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+    });
+}
+
+
+// === BOTÓN IMÁGENES: NUEVOS ANUNCIOS O CARGAR VISTA ===
+const imagesBtn = document.getElementById("imagesBtn");
+if (imagesBtn) {
+    imagesBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        if (contadorAcumulado > 0) {
+            // Hay nuevos → mostrar modal
+            showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+        } else {
+            // No hay nuevos → cargar vista normal
+            cargarVistaInterna("fotos/fotos.html", imagesBtn);
+        }
+    });
+}
+
+    
 document.addEventListener("DOMContentLoaded", () => {
 
 // 🎬 Intro de video 100% compatible con iOS / Android / PC
@@ -3006,26 +3025,23 @@ if (imagesBtn) {
 
 // Función para cargar contenido dentro del mismo DOM
 function cargarVistaInterna(ruta, botonActivo) {
-  const contenedor = document.getElementById("mainContent");
-  if (!contenedor) {
-    window.location.href = ruta; // fallback si no existe contenedor
-    return;
-  }
-
-  // 🔹 Resaltar el botón activo
-  document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
-  botonActivo.classList.add('selected');
-
-  contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
-  fetch(ruta)
-    .then((res) => res.text())
-    .then((html) => {
-      contenedor.innerHTML = html;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    })
-    .catch(() => {
-      contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
-    });
+    const contenedor = document.getElementById("mainContent");
+    if (!contenedor) {
+        window.location.href = ruta;
+        return;
+    }
+    document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+    botonActivo.classList.add('selected');
+    contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
+    fetch(ruta)
+        .then(res => res.text())
+        .then(html => {
+            contenedor.innerHTML = html;
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        })
+        .catch(() => {
+            contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
+        });
 }
 
 
@@ -3143,7 +3159,6 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
 
 
 
