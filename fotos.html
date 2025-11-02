@@ -2804,11 +2804,11 @@ if (imagesBtn) {
         e.preventDefault();
 
         if (contadorAcumulado > 0) {
-            // Hay nuevos → mostrar modal
             showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
         } else {
-            // No hay nuevos → cargar vista normal
             cargarVistaInterna("fotos/fotos.html", imagesBtn);
+            // Marcar como vista activa
+            document.body.dataset.view = "fotos";
         }
     });
 }
@@ -2946,9 +2946,12 @@ if (!usuarioGuardado) {
 // ----------------------
 // Resaltado compatible para botones del header (no toca navegación)
 // ----------------------
-(function(){ 
-  const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
-
+// ----------------------
+// Resaltado compatible para .header-btn (con o sin href)
+// ----------------------
+(function(){
+  const headerBtns = Array.from(document.querySelectorAll('.header-btn')); // Incluye <button>
+  
   function cleanPath(path) {
     if (!path) return "";
     try {
@@ -2965,36 +2968,51 @@ if (!usuarioGuardado) {
 
   function setActiveByLocation() {
     const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
-    headerAnchors.forEach(a => a.classList.remove('selected'));
+    headerBtns.forEach(btn => btn.classList.remove('selected'));
 
-    for (const a of headerAnchors) {
-      const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
-      if (hrefFile && locFile && hrefFile === locFile) {
-        a.classList.add('selected');
-        return;
+    // Resaltar por href (para <a>)
+    for (const btn of headerBtns) {
+      const href = btn.getAttribute('href');
+      if (href) {
+        const hrefFile = normalizeForCompare(cleanPath(href).split('/').pop());
+        if (hrefFile && locFile && hrefFile === locFile) {
+          btn.classList.add('selected');
+          return;
+        }
       }
     }
 
-    for (const a of headerAnchors) {
-      const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
-      if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
-        a.classList.add('selected');
-        return;
+    // Resaltar por ruta completa
+    for (const btn of headerBtns) {
+      const href = btn.getAttribute('href');
+      if (href) {
+        const hrefClean = normalizeForCompare(cleanPath(href));
+        if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+          btn.classList.add('selected');
+          return;
+        }
+      }
+    }
+
+    // === RESALTADO MANUAL PARA VISTAS INTERNAS ===
+    if (locFile.includes("fotos") || locFile.includes("slider")) {
+      const imagesBtn = document.getElementById("imagesBtn");
+      if (imagesBtn && (locFile.includes("fotos") || document.body.dataset.view === "fotos")) {
+        imagesBtn.classList.add('selected');
       }
     }
   }
 
   setActiveByLocation();
 
-  headerAnchors.forEach(a => {
-    a.addEventListener('click', () => {
-      headerAnchors.forEach(x => x.classList.remove('selected'));
-      a.classList.add('selected');
+  headerBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      headerBtns.forEach(x => x.classList.remove('selected'));
+      btn.classList.add('selected');
     });
   });
 
-  window.addEventListener('popstate', () => setActiveByLocation());
-
+  window.addEventListener('popstate', setActiveByLocation);
   let lastPath = location.pathname;
   setInterval(() => {
     if (location.pathname !== lastPath) {
@@ -3003,7 +3021,6 @@ if (!usuarioGuardado) {
     }
   }, 300);
 })();
-
 // ------------------------------------------------------------------------------------
 
 const imagesBtn = document.querySelector('#btnImages');
@@ -3160,6 +3177,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
