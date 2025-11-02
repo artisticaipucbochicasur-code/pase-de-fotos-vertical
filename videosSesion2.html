@@ -908,9 +908,27 @@ body {
     <h1>DECOM</h1>
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-    <a href="./fotos.html" class="header-btn" title="Imágenes">
+ <!-- BOTÓN DE IMÁGENES CON CONTADOR (para videoSesion2.html) -->
+<button id="imagesBtn" class="header-btn" title="Imágenes" style="position: relative;">
   <i class="fas fa-image"></i>
-</a>
+  <span id="imagesNotificationCount" style="
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: red;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none;
+    z-index: 10;
+  "></span>
+</button>
 
 <a href="./videosSesion2.html" class="header-btn" title="Videos">
   <i class="fas fa-video"></i>
@@ -3326,6 +3344,26 @@ if (!checkNew) {
   };
 }
 
+  function mostrarContadorEnVideos() {
+    const count = localStorage.getItem("nuevosAnunciosCount");
+    const countSpan = document.getElementById("imagesNotificationCount");
+    if (countSpan) {
+      const num = parseInt(count) || 0;
+      if (num > 0) {
+        countSpan.textContent = num > 99 ? "99+" : num;
+        countSpan.style.display = "flex";
+      } else {
+        countSpan.style.display = "none";
+      }
+    }
+  }
+
+  mostrarContadorEnVideos();
+  window.addEventListener("storage", (e) => {
+    if (e.key === "nuevosAnunciosCount") mostrarContadorEnVideos();
+  });
+  setInterval(mostrarContadorEnVideos, 3000);
+
 // === AUTO REFRESCO EN SEGUNDO PLANO ===
 setInterval(() => {
   cargarVideos(true); // solo refresca notificaciones, no toca el sliderF
@@ -3335,6 +3373,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
