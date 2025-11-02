@@ -2773,13 +2773,42 @@ document.getElementById('customAlertOverlay').style.display = 'none';
     }
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  // 🎬 Reproducir video de inicio (Ini.mp4)
+  const videoIntro = document.createElement("video");
+  Object.assign(videoIntro, {
+    src: "Ini.mp4",
+    autoplay: true,
+    muted: false,   // 🔊 Si no quieres sonido, cámbialo a true
+    playsInline: true,
+  });
+  Object.assign(videoIntro.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100vw",
+    height: "100vh",
+    objectFit: "cover",
+    zIndex: "999999",
+    backgroundColor: "black",
+    transition: "opacity 1s ease",
+  });
+  document.body.appendChild(videoIntro);
+
+  // 🔚 Cuando termine, se desvanece y se elimina
+  videoIntro.addEventListener("ended", () => {
+    videoIntro.style.opacity = "0";
+    setTimeout(() => videoIntro.remove(), 1000);
+  });
+
+  // ======================================================================================
   // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+  // ======================================================================================
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
   const modal = document.getElementById("loginModal");
   const btnLogin = document.getElementById("btnLogin");
 
   if (!usuarioGuardado) {
-    // Crear capa de bloqueo con fondo difuminado
     const overlay = document.createElement("div");
     Object.assign(overlay.style, {
       position: "fixed",
@@ -2807,16 +2836,13 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.body.appendChild(overlay);
 
-    // Mostrar el modal de inicio de sesión
     if (modal) {
       modal.style.display = "flex";
       modal.style.zIndex = "99999";
     }
 
-    // Animación de entrada
     setTimeout(() => (overlay.style.opacity = "1"), 50);
 
-    // ✅ Habilitar botón de inicio de sesión incluso antes del return
     if (btnLogin) {
       btnLogin.addEventListener("click", () => {
         const nombre = document.getElementById("loginNombre").value.trim();
@@ -2829,11 +2855,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const usuario = { nombre, correo };
 
-        // 🔄 Sincronizar con variables globales
         currentAuthorName = nombre;
         currentAuthorEmail = correo;
 
-        // Guardar en localStorage para uso entre páginas
         localStorage.setItem("usuario", JSON.stringify(usuario));
         localStorage.setItem("autor", nombre);
         localStorage.setItem("correo", correo);
@@ -2841,16 +2865,13 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.style.display = "none";
         mostrarAviso("✅ Sesión iniciada correctamente", "success");
 
-        // 🔓 Quitar overlay
         overlay.style.opacity = "0";
         setTimeout(() => overlay.remove(), 400);
 
-        // 🔁 Recargar página para que cargue el resto del contenido
         location.reload();
       });
     }
 
-    // No ejecuta el resto del código hasta que haya sesión
     return;
   }
 
@@ -2858,7 +2879,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // 👇 Tu código original (sin tocar)
   // ======================================================================================
 
-  // Resaltar el botón activo según la página actual
   const currentUrl = window.location.href;
   const imagesBtn = document.querySelector('a[href="https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/fotos.html"]');
   const videosBtn = document.querySelector('a[href="https://artisticaipucbochicasur-code.github.io/slider-de-videos/sliderVideos.html"]');
@@ -2868,7 +2888,6 @@ document.addEventListener("DOMContentLoaded", () => {
     videosBtn?.classList.add("selected");
   }
 
-  // 🔔 Inicializar el icono de notificaciones visible desde el inicio
   const lblContador = document.getElementById('lblContador');
   if (lblContador) {
     lblContador.innerHTML = `
@@ -2887,11 +2906,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if (data.action === "updateUserData") {
             currentAuthorEmail = data.email;
             currentAuthorName = data.name;
-
-            // Guardar en localStorage para que el HTML de subir videos también los pueda usar
             localStorage.setItem("autor", currentAuthorName || "");
             localStorage.setItem("correo", currentAuthorEmail || "");
-
             console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
           }
         } catch (e) {
@@ -2917,7 +2933,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 500);
   }
 
-  // === 🔐 INICIO DE SESIÓN LOCAL ===
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
   const userName = document.getElementById("userName");
@@ -2933,44 +2948,34 @@ document.addEventListener("DOMContentLoaded", () => {
       mostrarUsuario(usuario);
     }
 
-   function mostrarUsuario(u) {
-  const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-  userBtn.textContent = iniciales;
-  userName.textContent = u.nombre;
-  userEmail.textContent = u.correo;
-
-  // 🔹 Agregar color visible
-  userName.style.color = "#333";   // nombre en gris oscuro
-  userEmail.style.color = "#555";  // correo en gris más claro
-
-  currentAuthorName = u.nombre;
-  currentAuthorEmail = u.correo;
-}
-
-
+    function mostrarUsuario(u) {
+      const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+      userBtn.textContent = iniciales;
+      userName.textContent = u.nombre;
+      userEmail.textContent = u.correo;
+      userName.style.color = "#333";
+      userEmail.style.color = "#555";
+      currentAuthorName = u.nombre;
+      currentAuthorEmail = u.correo;
+    }
 
     userBtn.addEventListener("click", () => {
       userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
     });
 
-  logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem("usuario");
-  localStorage.removeItem("autor");
-  localStorage.removeItem("correo");
-  currentAuthorName = "";
-  currentAuthorEmail = "";
-  userMenu.style.display = "none";
-
-  mostrarAviso("🚪 Sesión cerrada", "info");
-
-  // 🔁 Esperar un momento y recargar la página
-  setTimeout(() => {
-    location.reload();
-  }, 1200); // ⏱️ Da tiempo a ver el aviso antes de recargar
-});
-
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("autor");
+      localStorage.removeItem("correo");
+      currentAuthorName = "";
+      currentAuthorEmail = "";
+      userMenu.style.display = "none";
+      mostrarAviso("🚪 Sesión cerrada", "info");
+      setTimeout(() => location.reload(), 1200);
+    });
   }
 });
+
 
 
 
@@ -2983,6 +2988,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
