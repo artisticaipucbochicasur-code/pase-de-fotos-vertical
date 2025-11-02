@@ -2784,16 +2784,21 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         cargarImagenes();
     });
 
-   const btnImages = document.getElementById('btnImages');
+const btnImages = document.getElementById('btnImages');
 if (btnImages) {
     btnImages.addEventListener('click', (e) => {
-        // Si hay notificaciones, abrimos la alerta personalizada
-        if (nuevosTitulos.length > 0) {
-            e.preventDefault();
+        // Si hay anuncios nuevos, mostramos la alerta y evitamos la recarga
+        if (contadorAcumulado > 0 && nuevosTitulos.length > 0) {
+            e.preventDefault(); // 🔒 evita la recarga de la página
             showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
+        } else {
+            // Si no hay anuncios nuevos, se ejecuta el comportamiento normal
+            // (por ejemplo, recargar o abrir el visor de imágenes)
+            console.log("📸 No hay anuncios nuevos — se mantiene acción original.");
         }
     });
 }
+
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -2994,6 +2999,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
