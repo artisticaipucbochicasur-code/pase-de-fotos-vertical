@@ -756,14 +756,18 @@ body {
       <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
       <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
-     <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-<div style="display:flex;align-items:center;gap:10px;">
-  <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraImg" title="Abrir cámara" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
-    <i class="fas fa-camera"></i>
-  </button>
-</div>
+      <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+      <div style="display:flex;gap:8px;margin-top:5px;">
+        <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          📷 Cámara
+          <input type="file" id="imagenCamara" accept="image/*" capture="environment" style="display:none;" />
+        </label>
+
+        <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          🖼️ Archivos
+          <input type="file" id="imagenGaleria" accept="image/*" style="display:none;" />
+        </label>
+      </div>
 
       <div style="margin-top:10px;text-align:center;">
         <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
@@ -785,15 +789,18 @@ body {
       <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
       <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
 
-     <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-<div style="display:flex;align-items:center;gap:10px;">
-  <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraVideo" title="Grabar video" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
-    <i class="fas fa-video"></i>
-  </button>
-</div>
+      <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+      <div style="display:flex;gap:8px;margin-top:5px;">
+        <label style="flex:1;background:#0077cc;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          🎥 Grabar
+          <input type="file" id="videoCamara" accept="video/*" capture="environment" style="display:none;" />
+        </label>
 
+        <label style="flex:1;background:#6b46c1;color:white;text-align:center;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;">
+          📁 Archivos
+          <input type="file" id="videoGaleria" accept="video/*" style="display:none;" />
+        </label>
+      </div>
 
       <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
         <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
@@ -807,7 +814,6 @@ body {
     </div>
   </div>
 </div>
-
 
   
 
@@ -1059,9 +1065,14 @@ body {
 
 
 
+// =============================
+// 🔹 ELEMENTOS
+// =============================
 const publishBtn = document.getElementById("publishBtn");
 const publishModal = document.getElementById("publishModal");
 const closePublishModal = document.getElementById("closePublishModal");
+
+// Inputs de anuncio
 const fileInput = document.getElementById("imagen");
 const previewImg = document.getElementById("previewImg");
 const progressContainer = document.getElementById("progressContainer");
@@ -1071,83 +1082,119 @@ const mensaje = document.getElementById("mensaje");
 
 let base64Imagen = "";
 
-// 🔹 Abrir modal
-publishBtn.addEventListener("click", (e) => {
+// Inputs de imagen (cámara / galería)
+const imagenCamara = document.getElementById("imagenCamara");
+const imagenGaleria = document.getElementById("imagenGaleria");
+
+// Inputs de video
+const videoCamara = document.getElementById("videoCamara");
+const videoGaleria = document.getElementById("videoGaleria");
+const btnUploadVideo = document.getElementById("btnUploadVideo");
+const progressContainerVideo = document.getElementById("progressContainerVideo");
+const progressVideo = document.getElementById("progressVideo");
+const metricsVideo = document.getElementById("uploadMetricsVideo");
+const statusVideo = document.getElementById("statusVideo");
+
+// Tabs y secciones
+const tabAnuncio = document.getElementById("tabAnuncio");
+const tabVideo = document.getElementById("tabVideo");
+const anuncioSection = document.getElementById("anuncioSection");
+const videoSection = document.getElementById("videoSection");
+
+// =============================
+// 🔹 MODAL
+// =============================
+publishBtn.addEventListener("click", e => {
   e.preventDefault();
   publishModal.style.display = "flex";
 });
 
-// 🔹 Cerrar modal
 closePublishModal.addEventListener("click", () => {
   publishModal.style.display = "none";
 });
 
-// 🔹 Función para comprimir imágenes
+// =============================
+// 🔹 TABS
+// =============================
+tabAnuncio.addEventListener("click", () => {
+  tabAnuncio.style.background = "#0077cc";
+  tabAnuncio.style.color = "white";
+  tabVideo.style.background = "#ccc";
+  tabVideo.style.color = "#333";
+  anuncioSection.style.display = "block";
+  videoSection.style.display = "none";
+});
+
+tabVideo.addEventListener("click", () => {
+  tabVideo.style.background = "#6b46c1";
+  tabVideo.style.color = "white";
+  tabAnuncio.style.background = "#ccc";
+  tabAnuncio.style.color = "#333";
+  anuncioSection.style.display = "none";
+  videoSection.style.display = "block";
+});
+
+// =============================
+// 🔹 FUNCIONES DE COMPRESIÓN DE IMAGEN
+// =============================
 function compressImage(base64, maxWidth = 800, quality = 0.7) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const img = new Image();
     img.onload = function () {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-
       let width = img.width;
       let height = img.height;
-
-      // 🔹 Redimensionar si es más grande que el ancho máximo
       if (width > maxWidth) {
         height = (maxWidth / width) * height;
         width = maxWidth;
       }
-
       canvas.width = width;
       canvas.height = height;
-
-      // 🔹 Dibujar y comprimir
       ctx.drawImage(img, 0, 0, width, height);
-      const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
-      resolve(compressedBase64);
+      resolve(canvas.toDataURL("image/jpeg", quality));
     };
     img.src = base64;
   });
 }
 
-// 🔹 Vista previa y compresión de imagen
-fileInput.addEventListener("change", function () {
-  const file = this.files[0];
-  if (file) {
+// =============================
+// 🔹 MANEJADORES DE IMAGEN
+// =============================
+[imagenCamara, imagenGaleria].forEach(input => {
+  input.addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
     const reader = new FileReader();
-    reader.onloadstart = function () {
+    reader.onloadstart = () => {
       progressContainer.style.display = "block";
       progressBar.style.width = "0%";
     };
-    reader.onprogress = function (e) {
+    reader.onprogress = e => {
       if (e.lengthComputable) {
-        const percent = (e.loaded / e.total) * 100;
-        progressBar.style.width = percent + "%";
+        progressBar.style.width = (e.loaded / e.total * 100) + "%";
       }
     };
-    reader.onloadend = async function (e) {
+    reader.onloadend = async e => {
       const originalBase64 = e.target.result;
-
-      // 🔹 Comprimir imagen antes de mostrarla
       const compressedBase64 = await compressImage(originalBase64, 800, 0.7);
       base64Imagen = compressedBase64.split(",")[1];
-
       previewImg.src = compressedBase64;
       previewImg.style.display = "block";
       previewImg.style.maxWidth = "100%";
       previewImg.style.maxHeight = "180px";
       previewImg.style.objectFit = "cover";
       previewImg.style.borderRadius = "12px";
-
       progressBar.style.width = "100%";
       setTimeout(() => (progressContainer.style.display = "none"), 500);
     };
     reader.readAsDataURL(file);
-  }
+  });
 });
 
-// 🔹 Enviar anuncio (con barra de progreso simulada durante subida)
+// =============================
+// 🔹 ENVÍO DE ANUNCIO
+// =============================
 btnPublicar.addEventListener("click", async () => {
   const titulo = document.getElementById("titulo").value.trim();
   const descripcion = document.getElementById("descripcion").value.trim();
@@ -1173,54 +1220,35 @@ btnPublicar.addEventListener("click", async () => {
   formData.append("autor", autor);
   formData.append("correo", correo);
 
-  // 🔹 Mostrar barra de progreso
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
-
-  // Simular progreso mientras se sube
   let simulatedProgress = 0;
   const interval = setInterval(() => {
     if (simulatedProgress < 90) {
-      simulatedProgress += Math.random() * 5; // sube entre 1% y 5%
+      simulatedProgress += Math.random() * 5;
       progressBar.style.width = simulatedProgress + "%";
     }
   }, 200);
 
   try {
-    const response = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: formData
-    });
-
+    const response = await fetch(SCRIPT_URL, { method: "POST", body: formData });
     clearInterval(interval);
     progressBar.style.width = "100%";
-
-    const result = await response.text();
-
     mensaje.textContent = "✅ Anuncio enviado correctamente.";
     mensaje.style.color = "green";
-
-    // 🔹 Esperar un poco para que se vea el 100%
     await new Promise(res => setTimeout(res, 600));
-
-    // Limpiar formulario
     document.getElementById("titulo").value = "";
     document.getElementById("descripcion").value = "";
     fileInput.value = "";
     previewImg.src = "";
     previewImg.style.display = "none";
     base64Imagen = "";
-
-    // 🔹 Ocultar barra y cerrar modal
     progressBar.style.width = "0%";
     progressContainer.style.display = "none";
-
     setTimeout(() => {
       publishModal.style.display = "none";
       mensaje.textContent = "";
-      if (typeof cargarAnuncios === "function") {
-        cargarAnuncios();
-      }
+      if (typeof cargarAnuncios === "function") cargarAnuncios();
     }, 1000);
   } catch (err) {
     clearInterval(interval);
@@ -1230,56 +1258,23 @@ btnPublicar.addEventListener("click", async () => {
     progressContainer.style.display = "none";
     progressBar.style.width = "0%";
   }
-
   btnPublicar.disabled = false;
 });
 
-
-
 // =============================
-// 🎬 CONTROL DE SECCIONES EN MODAL PUBLICAR
+// 🔹 SUBIDA DE VIDEO
 // =============================
-const tabAnuncio = document.getElementById("tabAnuncio");
-const tabVideo = document.getElementById("tabVideo");
-const anuncioSection = document.getElementById("anuncioSection");
-const videoSection = document.getElementById("videoSection");
-
-tabAnuncio.addEventListener("click", () => {
-  tabAnuncio.style.background = "#0077cc";
-  tabAnuncio.style.color = "white";
-  tabVideo.style.background = "#ccc";
-  tabVideo.style.color = "#333";
-  anuncioSection.style.display = "block";
-  videoSection.style.display = "none";
+[videoCamara, videoGaleria].forEach(input => {
+  input.addEventListener("change", function () {
+    document.getElementById("fileInput").files = this.files;
+    document.getElementById("fileInput").dispatchEvent(new Event("change"));
+  });
 });
 
-tabVideo.addEventListener("click", () => {
-  tabVideo.style.background = "#6b46c1";
-  tabVideo.style.color = "white";
-  tabAnuncio.style.background = "#ccc";
-  tabAnuncio.style.color = "#333";
-  anuncioSection.style.display = "none";
-  videoSection.style.display = "block";
-});
-
-    
-
-
-
-// =============================
-// 🎥 MODAL DE SUBIDA DE VIDEOS
-// =============================
-
-
-// 📤 Subida del video (mantiene compatibilidad con tu sistema)
-btnUploadVideo.addEventListener("click", async () => {
+btnUploadVideo.addEventListener("click", () => {
   const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
   const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
-  const progressBar = document.getElementById("progressVideo");
-  const progressContainer = document.getElementById("progressContainerVideo");
-  const metrics = document.getElementById("uploadMetricsVideo");
-  const status = document.getElementById("statusVideo");
 
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
@@ -1287,10 +1282,10 @@ btnUploadVideo.addEventListener("click", async () => {
   if (!file) return alert("Selecciona un video para subir.");
   if (!tituloUsuario) return alert("Escribe un título para el video.");
 
-  progressContainer.style.display = "block";
-  progressBar.style.width = "0%";
-  status.textContent = "";
-  metrics.textContent = "";
+  progressContainerVideo.style.display = "block";
+  progressVideo.style.width = "0%";
+  metricsVideo.textContent = "";
+  statusVideo.textContent = "";
 
   const identifier = "artistica_bochica_" + Date.now();
   const fileName = file.name;
@@ -1298,14 +1293,12 @@ btnUploadVideo.addEventListener("click", async () => {
   const secretKey = "9JkBrIGexGNOynyf";
   const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
   const xhr = new XMLHttpRequest();
+  const startTime = Date.now();
 
-  let startTime = Date.now();
-
-  xhr.upload.onprogress = (event) => {
+  xhr.upload.onprogress = event => {
     if (event.lengthComputable) {
       const percent = (event.loaded / event.total) * 100;
-      progressBar.style.width = percent + "%";
-
+      progressVideo.style.width = percent + "%";
       const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
       const totalMB = (event.total / (1024 * 1024)).toFixed(2);
       const elapsed = (Date.now() - startTime) / 1000;
@@ -1313,7 +1306,7 @@ btnUploadVideo.addEventListener("click", async () => {
       const timeLeft = ((event.total - event.loaded) / (event.loaded / elapsed)) || 0;
       const mins = Math.floor(timeLeft / 60);
       const secs = Math.floor(timeLeft % 60);
-      metrics.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
+      metricsVideo.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
     }
   };
 
@@ -1321,26 +1314,23 @@ btnUploadVideo.addEventListener("click", async () => {
     if (xhr.status === 200) {
       const fileEncoded = encodeURIComponent(fileName);
       const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
-      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
+      statusVideo.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
+      progressContainerVideo.style.display = "none";
+      metricsVideo.textContent = "";
 
-      // Guarda los datos en tu Apps Script
+      // Guardar en Apps Script
       fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
         + `&titulo=${encodeURIComponent(tituloUsuario)}`
         + `&link=${encodeURIComponent(directLink)}`
         + `&autor=${encodeURIComponent(autor)}`
         + `&correo=${encodeURIComponent(correo)}`
         + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
-
-      progressContainer.style.display = "none";
-      metrics.textContent = "";
     } else {
-      status.textContent = "❌ Error al subir el video.";
+      statusVideo.textContent = "❌ Error al subir el video.";
     }
   };
 
-  xhr.onerror = () => {
-    status.textContent = "❌ Error de conexión.";
-  };
+  xhr.onerror = () => { statusVideo.textContent = "❌ Error de conexión."; };
 
   xhr.open("PUT", url, true);
   xhr.setRequestHeader("Authorization", `LOW ${accessKey}:${secretKey}`);
@@ -1354,32 +1344,7 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.send(file);
 });
 
-    // =============================
-// 📸 BOTONES DE CÁMARA (imagen y video)
-// =============================
-document.getElementById("abrirCamaraImg")?.addEventListener("click", () => {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.capture = "environment";
-  input.onchange = (e) => {
-    document.getElementById("imagen").files = e.target.files;
-    document.getElementById("imagen").dispatchEvent(new Event("change"));
-  };
-  input.click();
-});
 
-document.getElementById("abrirCamaraVideo")?.addEventListener("click", () => {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "video/*";
-  input.capture = "camera";
-  input.onchange = (e) => {
-    document.getElementById("fileInput").files = e.target.files;
-    document.getElementById("fileInput").dispatchEvent(new Event("change"));
-  };
-  input.click();
-});
 
     
 
@@ -2348,190 +2313,151 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
       }
     }
 
-let videoMostrado = false; // 🔹 Controla que solo se reproduzca una vez
-
 async function cargarImagenes() {
-  loader.style.display = 'block';
-  const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-  const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+    loader.style.display = 'block';
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-  try {
-    // 🎬 Mostrar video de inicio solo la primera vez
-    if (!videoMostrado) {
-      videoMostrado = true;
-
-      // Detectar si es iOS
-      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-      // Crear contenedor del video
-      const videoOverlay = document.createElement("div");
-      Object.assign(videoOverlay.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100%",
-        height: "100%",
-        background: "black",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: "99999",
-      });
-
-      const video = document.createElement("video");
-      video.src = "Ini.mp4";
-      video.autoplay = true;
-      video.playsInline = true;
-      video.controls = false;
-      video.muted = esIOS; // ⚡ Solo se silencia en iOS
-      video.style.maxWidth = "100%";
-      video.style.maxHeight = "100%";
-
-      videoOverlay.appendChild(video);
-      document.body.appendChild(videoOverlay);
-
-      // 🎯 Iniciar carga de imágenes EN PARALELO mientras se reproduce el video
-      const cargarDatos = (async () => {
+    try {
         const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-
         let newAnunciosData = [];
-        if (data.url && data.url.length > 0) {
-          data.url.forEach((url, index) => {
-            const idAnuncio = data.id[index];
-            const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-            const comentariosFormateados = normalizarComentarios(comentarios);
-            newAnunciosData.push({
-              titulo: data.titulo[index] || "",
-              descripcion: data.descripcion[index] || "",
-              comentarios: comentariosFormateados,
-              url: url,
-              deleteurl: data.deleteurl[index] || "",
-              autor: data.autor[index] || "",
-              correo: data.correo[index] || "",
-              fecha: data.fecha[index] || "",
-              id: idAnuncio || ""
+
+        if(data.url && data.url.length > 0) {
+            data.url.forEach((url, index) => {
+                const idAnuncio = data.id[index];
+                const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+                const comentariosFormateados = normalizarComentarios(comentarios);
+                newAnunciosData.push({
+                    titulo: data.titulo[index] || "",
+                    descripcion: data.descripcion[index] || "",
+                    comentarios: comentariosFormateados,
+                    url: url,
+                    deleteurl: data.deleteurl[index] || "",
+                    autor: data.autor[index] || "",
+                    correo: data.correo[index] || "",
+                    fecha: data.fecha[index] || "",
+                    id: idAnuncio || ""
+                });
             });
-          });
         }
+
         newAnunciosData.reverse();
-        return newAnunciosData;
-      })();
 
-      // Intentar reproducir el video automáticamente
-      try {
-        await video.play();
-      } catch (err) {
-        console.warn("⚠️ iOS bloqueó la reproducción, forzando mute...");
-        video.muted = true;
-        await video.play().catch(() => {});
-      }
-
-      // Esperar a que el video termine y a que la carga haya finalizado
-      const [newAnunciosData] = await Promise.all([
-        cargarDatos,
-        new Promise(resolve => {
-          video.addEventListener("ended", () => {
-            videoOverlay.style.opacity = "0";
-            videoOverlay.style.transition = "opacity 0.8s ease";
-            setTimeout(() => videoOverlay.remove(), 800);
-            resolve();
-          });
-        })
-      ]);
-
-      // ==========================
-      // 🔽 Una vez termina el video: mostrar las imágenes ya cargadas
-      // ==========================
-
-      const oldAnunciosIds = anunciosData.map(a => a.id);
-      const newAnunciosIds = newAnunciosData.map(a => a.id);
-      if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-        loader.style.display = 'none';
-        return;
-      }
-
-      const currentSlideId = currentId;
-      anunciosData = newAnunciosData;
-
-      reconstruirIndiceBusqueda();
-
-      if (swiperInstance) {
-        swiperInstance.removeAllSlides();
-
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id;
-
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
-
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
-
-          swiperInstance.appendSlide(slide);
-        });
-
-        let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
-        if (newIndex !== -1) {
-          swiperInstance.slideToLoop(newIndex, 0, false);
-        } else {
-          if (currentIndex < anunciosData.length) {
-            swiperInstance.slideToLoop(currentIndex, 0, false);
-          } else {
-            swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
-          }
+        const oldAnunciosIds = anunciosData.map(a => a.id);
+        const newAnunciosIds = newAnunciosData.map(a => a.id);
+        
+        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+            loader.style.display = 'none';
+            return;
         }
 
-        swiperInstance.update();
-      } else {
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        swiperWrapper.innerHTML = '';
+        const currentSlideId = currentId;
+        anunciosData = newAnunciosData;
+      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+reconstruirIndiceBusqueda();
+        
+        if (swiperInstance) {
+            swiperInstance.removeAllSlides();
+            
+            anunciosData.forEach(anuncio => {
+                const slide = document.createElement('div');
+                slide.classList.add('swiper-slide');
+                slide.dataset.id = anuncio.id;
 
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id;
+                const zoomContainer = document.createElement('div');
+                zoomContainer.classList.add('swiper-zoom-container');
 
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
+                const img = document.createElement('img');
+                img.src = anuncio.url;
+                img.alt = anuncio.titulo;
 
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
+                zoomContainer.appendChild(img);
+                slide.appendChild(zoomContainer);
 
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
+                swiperInstance.appendSlide(slide);
+            });
+            
+            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
+            let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
+            if (newIndex !== -1) {
+                swiperInstance.slideToLoop(newIndex, 0, false);
+            } else {
+                if (currentIndex < anunciosData.length) {
+                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
+                } else {
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
+                }
+            }
 
-          swiperWrapper.appendChild(slide);
-        });
+            swiperInstance.update();
+        } else {
+            const swiperWrapper = document.querySelector('.swiper-wrapper');
+            swiperWrapper.innerHTML = '';
+            
+            anunciosData.forEach(anuncio => {
+                const slide = document.createElement('div');
+                slide.classList.add('swiper-slide');
+                slide.dataset.id = anuncio.id;
 
-        initSwiper(0);
-      }
+                const zoomContainer = document.createElement('div');
+                zoomContainer.classList.add('swiper-zoom-container');
 
-      const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-      updateContentOverlay(activeIndex);
+                const img = document.createElement('img');
+                img.src = anuncio.url;
+                img.alt = anuncio.titulo;
 
-    } else {
-      // Si ya se mostró el video antes, solo carga imágenes normalmente
-      const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-      const data = await response.json();
-      // (mismo código de carga aquí, puedes copiar del bloque superior)
+                zoomContainer.appendChild(img);
+                slide.appendChild(zoomContainer);
+
+                swiperWrapper.appendChild(slide);
+            });
+            
+            initSwiper(0);
+        }
+
+        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+        updateContentOverlay(activeIndex);
+
+    } catch(error) {
+        console.error("Error al cargar las imágenes:", error);
+    } finally {
+        loader.style.display = 'none';
     }
-
-  } catch (error) {
-    console.error("Error al cargar las imágenes:", error);
-  } finally {
-    loader.style.display = 'none';
-  }
 }
 
+
+
+async function eliminarAnuncio(anuncioId, deleteUrl) {
+    loader.style.display = 'block';
+    try {
+        const formData = new FormData();
+        formData.append('accion', 'eliminarAnuncio');
+        formData.append('id', anuncioId);
+        formData.append('correo', currentAuthorEmail);
+        formData.append('deleteurl', deleteUrl);
+
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+      if (result.status && result.status.toLowerCase().includes("success")) {
+    showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
+    await cargarImagenes();
+} else {
+    showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
+}
+
+    } catch (error) {
+        console.error("Error eliminando anuncio:", error);
+        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
+    } finally {
+        loader.style.display = 'none';
+    }
+}
 
 
     
@@ -2969,55 +2895,42 @@ document.addEventListener("DOMContentLoaded", () => {
       mostrarUsuario(usuario);
     }
 
-    function mostrarUsuario(u) {
-      const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-      userBtn.textContent = iniciales;
-      userName.textContent = u.nombre;
-      userEmail.textContent = u.correo;
+   function mostrarUsuario(u) {
+  const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  userBtn.textContent = iniciales;
+  userName.textContent = u.nombre;
+  userEmail.textContent = u.correo;
 
-      // 🔹 Agregar color visible
-      userName.style.color = "#333";   // nombre en gris oscuro
-      userEmail.style.color = "#555";  // correo en gris más claro
+  // 🔹 Agregar color visible
+  userName.style.color = "#333";   // nombre en gris oscuro
+  userEmail.style.color = "#555";  // correo en gris más claro
 
-      currentAuthorName = u.nombre;
-      currentAuthorEmail = u.correo;
-    }
+  currentAuthorName = u.nombre;
+  currentAuthorEmail = u.correo;
+}
+
+
 
     userBtn.addEventListener("click", () => {
       userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
     });
 
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("autor");
-      localStorage.removeItem("correo");
-      currentAuthorName = "";
-      currentAuthorEmail = "";
-      userMenu.style.display = "none";
+  logoutBtn.addEventListener("click", () => {
+  localStorage.removeItem("usuario");
+  localStorage.removeItem("autor");
+  localStorage.removeItem("correo");
+  currentAuthorName = "";
+  currentAuthorEmail = "";
+  userMenu.style.display = "none";
 
-      mostrarAviso("🚪 Sesión cerrada", "info");
+  mostrarAviso("🚪 Sesión cerrada", "info");
 
-      // 🔁 Esperar un momento y recargar la página
-      setTimeout(() => {
-        location.reload();
-      }, 1200); // ⏱️ Da tiempo a ver el aviso antes de recargar
-    });
-  }
+  // 🔁 Esperar un momento y recargar la página
+  setTimeout(() => {
+    location.reload();
+  }, 1200); // ⏱️ Da tiempo a ver el aviso antes de recargar
+});
 
-  // ======================================================================================
-  // ✅ NUEVO: Evitar recargar fotos si no hay notificaciones
-  // ======================================================================================
-  const imageBtn = document.querySelector('.header-btn[title="Imágenes"]');
-  const notificationCount = document.getElementById("notificationCount");
-
-  if (imageBtn && notificationCount) {
-    imageBtn.addEventListener("click", (event) => {
-      const count = parseInt(notificationCount.textContent.trim()) || 0;
-      if (count === 0) {
-        event.preventDefault();
-        console.log("⚠️ No hay notificaciones, no se recarga la página.");
-      }
-    });
   }
 });
 
@@ -3032,3 +2945,13 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
