@@ -3027,40 +3027,39 @@ setTimeout(() => {
   // 🔹 NUEVO BLOQUE: Integración del slider de videos dentro del mismo HTML
   // ======================================================================================
 
-  const btnFotos = document.getElementById("btnFotos");
-  const btnVideos = document.getElementById("btnVideos");
-  const seccionFotos = document.getElementById("seccionFotos");
-  const seccionVideos = document.getElementById("seccionVideos");
+// 📸 Alternar entre Fotos y Videos sin salir del HTML
+const btnFotos = document.getElementById("btnFotos");
+const btnVideos = document.getElementById("btnVideos");
+const seccionFotos = document.getElementById("seccionFotos");
+const seccionVideos = document.getElementById("seccionVideos");
 
-  if (btnVideos && btnFotos && seccionVideos && seccionFotos) {
-    // Cargar contenido del slider de videos
-    fetch("videosSesion.html")
-      .then(r => r.text())
-      .then(html => {
-        seccionVideos.innerHTML = html;
-      })
-      .catch(err => console.error("Error al cargar los videos:", err));
+if (btnFotos && btnVideos && seccionFotos && seccionVideos) {
+  btnFotos.addEventListener("click", () => {
+    seccionFotos.style.display = "block";
+    seccionVideos.style.display = "none";
+    btnFotos.classList.add("selected");
+    btnVideos.classList.remove("selected");
+  });
 
-    // Mostrar videos
-    btnVideos.addEventListener("click", (e) => {
-      e.preventDefault();
-      seccionFotos.style.display = "none";
-      seccionVideos.style.display = "block";
-      btnVideos.classList.add("selected");
-      btnFotos.classList.remove("selected");
-    });
+  btnVideos.addEventListener("click", async () => {
+    seccionFotos.style.display = "none";
+    seccionVideos.style.display = "block";
+    btnFotos.classList.remove("selected");
+    btnVideos.classList.add("selected");
 
-    // Mostrar fotos
-    btnFotos.addEventListener("click", (e) => {
-      e.preventDefault();
-      seccionVideos.style.display = "none";
-      seccionFotos.style.display = "block";
-      btnFotos.classList.add("selected");
-      btnVideos.classList.remove("selected");
-    });
-  }
-
-});
+    // Cargar el slider de videos solo una vez
+    if (!seccionVideos.dataset.loaded) {
+      try {
+        const resp = await fetch("videosSesion.html");
+        seccionVideos.innerHTML = await resp.text();
+        seccionVideos.dataset.loaded = "true";
+      } catch (err) {
+        console.error("Error cargando videos:", err);
+        seccionVideos.innerHTML = "<p style='color:white;text-align:center;'>Error al cargar los videos.</p>";
+      }
+    }
+  });
+}
 
 
 
@@ -3074,6 +3073,7 @@ setTimeout(() => {
   </script>
 </body>
 </html>
+
 
 
 
