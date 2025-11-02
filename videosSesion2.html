@@ -1730,71 +1730,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1200);
     });
   }
-
-  // ===========================
-  // 🔎 BÚSQUEDA DE SLIDES POR TÍTULO (MODAL)
-  // ===========================
-  const searchModal = document.getElementById("search-modal");
-  const searchInput = document.getElementById("search-input");
-  const searchResults = document.getElementById("search-results");
-  const searchClose = document.getElementById("search-close");
-  const btnModalBuscar = document.getElementById("btnBuscar"); // botón que abre el modal
-
-  if (searchModal && searchInput && searchResults && searchClose && btnModalBuscar && window.swiper) {
-
-    // Abrir modal
-    btnModalBuscar.addEventListener("click", () => {
-      searchModal.classList.remove("hidden");
-      searchInput.value = "";
-      searchResults.innerHTML = "";
-      searchInput.focus();
-    });
-
-    // Cerrar modal
-    searchClose.addEventListener("click", () => {
-      searchModal.classList.add("hidden");
-    });
-
-    // Filtrar slides mientras escribes
-    searchInput.addEventListener("input", () => {
-      const query = searchInput.value.trim().toLowerCase();
-      searchResults.innerHTML = "";
-
-      swiper.slides.forEach((slide, index) => {
-        const title = (slide.dataset.title || "").toLowerCase();
-        if (title.includes(query)) {
-          const li = document.createElement("li");
-          li.textContent = slide.dataset.title || "Sin título";
-          li.style.cursor = "pointer";
-
-          // Al hacer clic en el resultado, ir al slide y cerrar modal
-          li.addEventListener("click", () => {
-            swiper.slideTo(index, 0);
-            searchModal.classList.add("hidden");
-          });
-
-          searchResults.appendChild(li);
-        }
-      });
-
-      // Mensaje si no hay resultados
-      if (searchResults.children.length === 0 && query) {
-        const li = document.createElement("li");
-        li.textContent = "No se encontraron resultados";
-        li.style.color = "#999";
-        searchResults.appendChild(li);
-      }
-    });
-
-    // Permitir Enter para seleccionar primer resultado automáticamente
-    searchInput.addEventListener("keyup", (e) => {
-      if (e.key === "Enter" && searchResults.firstChild) {
-        searchResults.firstChild.click();
-      }
-    });
-  }
 });
-
 
 
 
@@ -3244,6 +3180,95 @@ if (!checkNew) {
 
 
 
+        const btnBuscar = document.getElementById("btnBuscar");
+const searchModal = document.getElementById("search-modal");
+const searchInput = document.getElementById("search-input");
+const searchResults = document.getElementById("search-results");
+const searchClose = document.getElementById("search-close");
+
+// Abrir modal
+btnBuscar.addEventListener("click", () => {
+    searchModal.classList.remove("hidden");
+    searchInput.value = "";
+    searchResults.innerHTML = "";
+    setTimeout(() => searchInput.focus(), 100);
+});
+
+// Cerrar modal
+searchClose.addEventListener("click", () => {
+    searchModal.classList.add("hidden");
+});
+
+// Cerrar al hacer clic fuera del contenido
+searchModal.addEventListener("click", (e) => {
+    if (e.target === searchModal) {
+        searchModal.classList.add("hidden");
+    }
+});
+
+// Búsqueda en tiempo real
+searchInput.addEventListener("input", () => {
+    const query = normalizeText(searchInput.value);
+    searchResults.innerHTML = "";
+
+    if (!query) return;
+
+    const matches = lastVideos
+        .map((video, index) => ({ video, index }))
+        .filter(({ video }) => normalizeText(video.title).includes(query));
+
+    if (matches.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No se encontraron resultados";
+        li.style.color = "#aaa";
+        li.style.fontStyle = "italic";
+        searchResults.appendChild(li);
+        return;
+    }
+
+    matches.forEach(({ video, index }) => {
+        const li = document.createElement("li");
+        li.textContent = video.title;
+        li.style.cursor = "pointer";
+        li.style.padding = "10px 12px";
+        li.style.borderBottom = "1px solid #333";
+
+        li.addEventListener("mouseenter", () => {
+            li.style.background = "#333";
+        });
+        li.addEventListener("mouseleave", () => {
+            li.style.background = "";
+        });
+
+        li.addEventListener("click", () => {
+            searchModal.classList.add("hidden");
+
+            // Ir al slide
+            swiper.slideToLoop(index, 600);
+
+            // Resaltar título al llegar
+            setTimeout(() => {
+                const titleContainer = document.querySelector("#video-title-fixed");
+                if (titleContainer) {
+                    titleContainer.classList.add("highlight-container");
+                    setTimeout(() => {
+                        titleContainer.classList.remove("highlight-container");
+                    }, 1500);
+                }
+
+                // Opcional: zoom en el título
+                const titleEl = document.querySelector("#video-title-fixed .video-title");
+                if (titleEl) {
+                    titleEl.classList.add("highlight-title-zoom");
+                    setTimeout(() => titleEl.classList.remove("highlight-title-zoom"), 1000);
+                }
+            }, 700);
+        });
+
+        searchResults.appendChild(li);
+    });
+});
+
         
      function activarSwipeParaBorrar() {
   let swipeInfo = null;
@@ -3399,8 +3424,6 @@ setInterval(() => {
     </script>
 </body>
 </html>
-
-
 
 
 
