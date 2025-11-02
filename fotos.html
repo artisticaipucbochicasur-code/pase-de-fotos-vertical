@@ -2779,24 +2779,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 🎬 Intro de video 100% compatible con iOS / Android / PC
 setTimeout(() => {
-  const preloader = document.createElement("div");
-  Object.assign(preloader.style, {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    backgroundColor: "black",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "white",
-    fontFamily: "Poppins, sans-serif",
-    fontSize: "18px",
-    zIndex: "999998",
-  });
-  preloader.textContent = "Cargando…";
-  document.body.appendChild(preloader);
+  // 🔹 Usar el loader existente en el HTML
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex"; // mostrar si estaba oculto
 
   const videoIntro = document.createElement("video");
   Object.assign(videoIntro, {
@@ -2822,7 +2807,7 @@ setTimeout(() => {
 
   // Espera a que pueda reproducirse
   videoIntro.addEventListener("canplaythrough", () => {
-    preloader.remove();
+    if (loader) loader.style.display = "none"; // ocultar loader
     videoIntro.style.opacity = "1";
     videoIntro.play().catch(() => {});
   });
@@ -2833,12 +2818,12 @@ setTimeout(() => {
     setTimeout(() => videoIntro.remove(), 1000);
   });
 
-  // Fallback: si en 6s no inició, quitamos el preloader y el video
+  // Fallback: si en 6s no inició, quitamos loader y video
   setTimeout(() => {
     if (videoIntro.readyState < 3 || videoIntro.paused) {
       console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
       videoIntro.remove();
-      preloader.remove();
+      if (loader) loader.style.display = "none";
     }
   }, 6000);
 }, 300); // pequeño delay para asegurar render del body en iOS
@@ -3031,6 +3016,7 @@ setTimeout(() => {
   </script>
 </body>
 </html>
+
 
 
 
