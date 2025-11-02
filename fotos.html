@@ -1101,6 +1101,12 @@ publishBtn.addEventListener("click", (e) => {
 // 🔹 Cerrar modal
 closePublishModal.addEventListener("click", () => {
   publishModal.style.display = "none";
+  // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) {
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    imagesBtn.classList.add('selected');
+  }
 });
 
 // 🔹 Función para comprimir imágenes
@@ -1236,13 +1242,20 @@ btnPublicar.addEventListener("click", async () => {
     progressBar.style.width = "0%";
     progressContainer.style.display = "none";
 
-    setTimeout(() => {
-      publishModal.style.display = "none";
-      mensaje.textContent = "";
-      if (typeof cargarAnuncios === "function") {
-        cargarAnuncios();
-      }
-    }, 1000);
+   // 🔹 Cierre automático después de subir anuncio
+setTimeout(() => {
+  publishModal.style.display = "none";
+  mensaje.textContent = "";
+  if (typeof cargarAnuncios === "function") {
+    cargarAnuncios();
+  }
+  // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) {
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    imagesBtn.classList.add('selected');
+  }
+}, 1000);
   } catch (err) {
     clearInterval(interval);
     console.error(err);
@@ -3187,3 +3200,4 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
