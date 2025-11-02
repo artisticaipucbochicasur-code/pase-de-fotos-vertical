@@ -926,31 +926,22 @@ body {
     <h1>DECOM</h1>
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
+    <a href="./fotos.html" class="header-btn" title="Imágenes">
+  <i class="fas fa-image"></i>
+</a>
 
-      <!-- 🔔 Ahora el contador se mostrará sobre el botón de imágenes -->
-      <a href="./fotos.html" class="header-btn" id="btnImagenes" title="Imágenes" style="position:relative;">
-        <i class="fas fa-image"></i>
-        <span id="notificationCount" 
-              style="display:none;position:absolute;top:-4px;right:-4px;
-                     background:red;color:white;border-radius:50%;
-                     width:16px;height:16px;font-size:10px;
-                     display:flex;align-items:center;justify-content:center;">
-        </span>
-      </a>
-
-      <a href="./videosSesion2.html" class="header-btn" title="Videos">
-        <i class="fas fa-video"></i>
-      </a>
+<a href="./videosSesion2.html" class="header-btn" title="Videos">
+  <i class="fas fa-video"></i>
+</a>
 
       <a href="#" class="header-btn" id="publishBtn" title="Publicar">
         <i class="fas fa-plus-circle"></i>
       </a>
+<button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+  <i class="fas fa-search"></i>
+</button>
 
-      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
-        <i class="fas fa-search"></i>
-      </button>
-
-      <!-- 🔹 Botón de usuario -->
+      <!-- 🔹 Botón de usuario (ahora al lado del botón Publicar) -->
       <div id="userMenuContainer" style="position:relative;">
         <div id="userBtn" 
              style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
@@ -974,7 +965,6 @@ body {
     </div>
   </div>
 </header>
-
 
 <!-- Modal de inicio de sesión -->
 <div id="loginModal" 
@@ -2296,23 +2286,18 @@ async function actualizarContador() {
             contadorTotalAnterior = totalActual;
         }
 
-      // 🔔 Actualizar badge y botón de imágenes
-if (contadorAcumulado > 0) {
-    notificationCount.textContent = contadorAcumulado;
-    notificationCount.style.display = "flex";
-
-    // Añadir resaltado al botón de imágenes
-    const btnImages = document.getElementById('btnImages');
-    if (btnImages) btnImages.classList.add("has-notifications");
-} else {
-    notificationCount.textContent = "";
-    notificationCount.style.display = "none";
-
-    // Quitar resaltado del botón de imágenes
-    const btnImages = document.getElementById('btnImages');
-    if (btnImages) btnImages.classList.remove("has-notifications");
-}
-
+        // 🔔 Actualizar badge y campana
+        if (contadorAcumulado > 0) {
+            notificationCount.textContent = contadorAcumulado;
+            notificationCount.style.display = "flex";
+            document.querySelector("#lblContador i").classList.remove("far");
+            document.querySelector("#lblContador i").classList.add("fas");
+        } else {
+            notificationCount.textContent = "";
+            notificationCount.style.display = "none";
+            document.querySelector("#lblContador i").classList.remove("fas");
+            document.querySelector("#lblContador i").classList.add("far");
+        }
 
     } catch (e) {
         console.error("❌ Error al obtener contador:", e);
@@ -2784,26 +2769,15 @@ document.getElementById('customAlertOverlay').style.display = 'none';
         cargarImagenes();
     });
 
-const btnImages = document.getElementById('btnImages');
-if (btnImages) {
-    btnImages.addEventListener('click', (e) => {
-        // Si hay anuncios nuevos, mostramos la alerta y evitamos la recarga
-        if (contadorAcumulado > 0 && nuevosTitulos.length > 0) {
-            e.preventDefault(); // 🔒 evita la recarga de la página
+    if (lblContador) {
+        lblContador.addEventListener('click', () => {
             showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
-        } else {
-            // Si no hay anuncios nuevos, se ejecuta el comportamiento normal
-            // (por ejemplo, recargar o abrir el visor de imágenes)
-            console.log("📸 No hay anuncios nuevos — se mantiene acción original.");
-        }
-    });
-}
-
-
+        });
+    }
 
 document.addEventListener("DOMContentLoaded", () => {
 
-// 🎬 Intro de video
+// 🎬 Intro de video 100% compatible con iOS / Android / PC
 setTimeout(() => {
   const loader = document.getElementById("loader");
   if (loader) loader.style.display = "flex";
@@ -2849,6 +2823,7 @@ setTimeout(() => {
     }
   }, 6000);
 }, 300);
+
 
 // ======================================================================================
 // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
@@ -2903,6 +2878,7 @@ if (!usuarioGuardado) {
       }
 
       const usuario = { nombre, correo };
+
       currentAuthorName = nombre;
       currentAuthorEmail = correo;
 
@@ -2919,25 +2895,174 @@ if (!usuarioGuardado) {
       location.reload();
     });
   }
+
   return;
 }
 
+
 // ======================================================================================
-// 🔔 NOTIFICACIONES SOBRE EL BOTÓN DE IMÁGENES
+// 👇 Tu código original (ajustado para mantener dentro de la app)
 // ======================================================================================
-const notificationCount = document.getElementById("notificationCount");
-function actualizarNotificaciones(cantidad) {
-  if (notificationCount) {
-    if (cantidad > 0) {
-      notificationCount.style.display = "flex";
-      notificationCount.textContent = cantidad;
-    } else {
-      notificationCount.style.display = "none";
+
+// ----------------------
+// Resaltado compatible para botones del header (no toca navegación)
+// ----------------------
+(function(){ 
+  const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
+
+  function cleanPath(path) {
+    if (!path) return "";
+    try {
+      const u = new URL(path, location.origin);
+      return u.pathname.split('/').filter(Boolean).join('/');
+    } catch (e) {
+      return (path || "").toString();
     }
   }
+
+  function normalizeForCompare(p) {
+    return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
+  }
+
+  function setActiveByLocation() {
+    const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
+    headerAnchors.forEach(a => a.classList.remove('selected'));
+
+    for (const a of headerAnchors) {
+      const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
+      if (hrefFile && locFile && hrefFile === locFile) {
+        a.classList.add('selected');
+        return;
+      }
+    }
+
+    for (const a of headerAnchors) {
+      const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
+      if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+        a.classList.add('selected');
+        return;
+      }
+    }
+  }
+
+  setActiveByLocation();
+
+  headerAnchors.forEach(a => {
+    a.addEventListener('click', () => {
+      headerAnchors.forEach(x => x.classList.remove('selected'));
+      a.classList.add('selected');
+    });
+  });
+
+  window.addEventListener('popstate', () => setActiveByLocation());
+
+  let lastPath = location.pathname;
+  setInterval(() => {
+    if (location.pathname !== lastPath) {
+      lastPath = location.pathname;
+      setActiveByLocation();
+    }
+  }, 300);
+})();
+
+// ------------------------------------------------------------------------------------
+
+const imagesBtn = document.querySelector('#btnImages');
+const videosBtn = document.querySelector('#btnVideos');
+
+// ✅ Mantener navegación interna sin salir del entorno principal
+if (videosBtn) {
+  videosBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    cargarVistaInterna("videos/sliderVideos.html", videosBtn);
+  });
 }
-// ejemplo de uso temporal (puedes eliminar esta línea):
-actualizarNotificaciones(3);
+
+if (imagesBtn) {
+  imagesBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    cargarVistaInterna("fotos/fotos.html", imagesBtn);
+  });
+}
+
+// Función para cargar contenido dentro del mismo DOM
+function cargarVistaInterna(ruta, botonActivo) {
+  const contenedor = document.getElementById("mainContent");
+  if (!contenedor) {
+    window.location.href = ruta; // fallback si no existe contenedor
+    return;
+  }
+
+  // 🔹 Resaltar el botón activo
+  document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+  botonActivo.classList.add('selected');
+
+  contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
+  fetch(ruta)
+    .then((res) => res.text())
+    .then((html) => {
+      contenedor.innerHTML = html;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    })
+    .catch(() => {
+      contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
+    });
+}
+
+
+// ======================================================================================
+// 🔔 Notificaciones
+// ======================================================================================
+const lblContador = document.getElementById('lblContador');
+if (lblContador) {
+  lblContador.innerHTML = `
+    <i class="far fa-bell"></i>
+    <span id="notificationCount" style="display:none"></span>
+  `;
+  lblContador.style.display = "flex";
+}
+
+
+// ======================================================================================
+// 📱 Integración AppInventor
+// ======================================================================================
+if (window.AppInventor) {
+  setInterval(() => {
+    const comando = window.AppInventor.getWebViewString?.();
+    if (comando) {
+      try {
+        const data = JSON.parse(comando);
+        if (data.action === "updateUserData") {
+          currentAuthorEmail = data.email;
+          currentAuthorName = data.name;
+          localStorage.setItem("autor", currentAuthorName || "");
+          localStorage.setItem("correo", currentAuthorEmail || "");
+          console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+        }
+      } catch (e) {
+        if (comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+          console.log("Reiniciando contador y cargando anuncios.");
+          contadorAcumulado = 0;
+          contadorTotalAnterior = -1;
+          verificarComentarios().then(() => cargarImagenes());
+        }
+        if (comando.startsWith("irATitulo:")) {
+          const tituloBuscado = comando.replace("irATitulo:", "").trim();
+          const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+          const tituloNormalizado = normalizar(tituloBuscado);
+          const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+          if (index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+        }
+        if (comando.startsWith("irAIndice:")) {
+          const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+          if (!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance)
+            swiperInstance.slideToLoop(indice, 0, false);
+        }
+      }
+    }
+  }, 500);
+}
+
 
 // ======================================================================================
 // 👤 Manejo de usuario
@@ -2999,8 +3124,6 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
-
 
 
 
