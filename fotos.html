@@ -2904,6 +2904,69 @@ if (!usuarioGuardado) {
 // 👇 Tu código original (ajustado para mantener dentro de la app)
 // ======================================================================================
 
+// ----------------------
+// Resaltado compatible para botones del header (no toca navegación)
+// ----------------------
+(function(){ 
+  const headerAnchors = Array.from(document.querySelectorAll('.header-btn[href]'));
+
+  function cleanPath(path) {
+    if (!path) return "";
+    try {
+      const u = new URL(path, location.origin);
+      return u.pathname.split('/').filter(Boolean).join('/');
+    } catch (e) {
+      return (path || "").toString();
+    }
+  }
+
+  function normalizeForCompare(p) {
+    return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
+  }
+
+  function setActiveByLocation() {
+    const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
+    headerAnchors.forEach(a => a.classList.remove('selected'));
+
+    for (const a of headerAnchors) {
+      const hrefFile = normalizeForCompare(cleanPath(a.getAttribute('href')).split('/').pop());
+      if (hrefFile && locFile && hrefFile === locFile) {
+        a.classList.add('selected');
+        return;
+      }
+    }
+
+    for (const a of headerAnchors) {
+      const hrefClean = normalizeForCompare(cleanPath(a.getAttribute('href')));
+      if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+        a.classList.add('selected');
+        return;
+      }
+    }
+  }
+
+  setActiveByLocation();
+
+  headerAnchors.forEach(a => {
+    a.addEventListener('click', () => {
+      headerAnchors.forEach(x => x.classList.remove('selected'));
+      a.classList.add('selected');
+    });
+  });
+
+  window.addEventListener('popstate', () => setActiveByLocation());
+
+  let lastPath = location.pathname;
+  setInterval(() => {
+    if (location.pathname !== lastPath) {
+      lastPath = location.pathname;
+      setActiveByLocation();
+    }
+  }, 300);
+})();
+
+// ------------------------------------------------------------------------------------
+
 const imagesBtn = document.querySelector('#btnImages');
 const videosBtn = document.querySelector('#btnVideos');
 
@@ -3061,6 +3124,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
