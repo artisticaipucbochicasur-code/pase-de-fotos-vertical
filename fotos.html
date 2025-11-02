@@ -2774,32 +2774,42 @@ document.getElementById('customAlertOverlay').style.display = 'none';
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // 🎬 Reproducir video de inicio (Ini.mp4)
-  const videoIntro = document.createElement("video");
-  Object.assign(videoIntro, {
-    src: "Ini.mp4",
-    autoplay: true,
-    muted: false,   // 🔊 Si no quieres sonido, cámbialo a true
-    playsInline: true,
-  });
-  Object.assign(videoIntro.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "100vw",
-    height: "100vh",
-    objectFit: "cover",
-    zIndex: "999999",
-    backgroundColor: "black",
-    transition: "opacity 1s ease",
-  });
-  document.body.appendChild(videoIntro);
+// 🎬 Reproducir video de inicio compatible con iOS
+const videoIntro = document.createElement("video");
+Object.assign(videoIntro, {
+  src: "Ini.mp4",
+  autoplay: true,
+  muted: true,           // 🔇 iOS requiere esto para autoplay
+  playsInline: true,     // 🔹 evita pantalla completa en iPhone
+  preload: "auto",
+});
+Object.assign(videoIntro.style, {
+  position: "fixed",
+  top: "0",
+  left: "0",
+  width: "100vw",
+  height: "100vh",
+  objectFit: "cover",
+  zIndex: "999999",
+  backgroundColor: "black",
+  transition: "opacity 1s ease",
+});
+document.body.appendChild(videoIntro);
 
-  // 🔚 Cuando termine, se desvanece y se elimina
-  videoIntro.addEventListener("ended", () => {
-    videoIntro.style.opacity = "0";
-    setTimeout(() => videoIntro.remove(), 1000);
-  });
+// 🔚 Cuando termine, se desvanece y se elimina
+videoIntro.addEventListener("ended", () => {
+  videoIntro.style.opacity = "0";
+  setTimeout(() => videoIntro.remove(), 1000);
+});
+
+// 🕒 Fallback por si iOS bloquea autoplay
+let fallbackTimer = setTimeout(() => {
+  if (!videoIntro.paused) return; // el video sí se está reproduciendo
+  console.warn("🎥 iOS bloqueó el autoplay, mostrando contenido...");
+  videoIntro.style.opacity = "0";
+  setTimeout(() => videoIntro.remove(), 1000);
+}, 5000); // si en 5s no comenzó, continúa
+
 
   // ======================================================================================
   // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
@@ -2988,6 +2998,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
