@@ -2957,9 +2957,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 6000);
   }, 300);
 
-  // ======================================================================================
   // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
-  // ======================================================================================
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
   const modal = document.getElementById("loginModal");
 
@@ -2983,13 +2981,10 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.zIndex = "99999";
     setTimeout(() => (overlay.style.opacity = "1"), 50);
   } else {
-    // Mostrar usuario al inicio
     mostrarUsuario(usuarioGuardado);
   }
 
-  // ======================================================================================
   // GESTIÓN DE PESTAÑAS Y FORMULARIOS
-  // ======================================================================================
   const tabLogin = document.getElementById("tabLogin");
   const tabRegistro = document.getElementById("tabRegistro");
   const formLogin = document.getElementById("formLogin");
@@ -3009,9 +3004,7 @@ document.addEventListener("DOMContentLoaded", () => {
     formRegistro.style.display = tipo === "registro" ? "block" : "none";
   }
 
-  // ======================================================================================
   // PREVISUALIZACIÓN DE FOTO
-  // ======================================================================================
   const regFoto = document.getElementById("regFoto");
   const previewContainer = document.getElementById("previewContainer");
   const fotoPreview = document.getElementById("fotoPreview");
@@ -3028,9 +3021,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ======================================================================================
   // FUNCIÓN PARA MOSTRAR AVISOS
-  // ======================================================================================
   function mostrarAviso(mensaje, tipo = "info") {
     const aviso = document.createElement("div");
     aviso.textContent = mensaje;
@@ -3045,7 +3036,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => aviso.remove(), 3000);
   }
 
-  // CSS para animación
   const style = document.createElement("style");
   style.textContent = `
     @keyframes fadeInOut {
@@ -3058,107 +3048,22 @@ document.addEventListener("DOMContentLoaded", () => {
   `;
   document.head.appendChild(style);
 
-  // ======================================================================================
   // URL DEL GOOGLE APPS SCRIPT
-  // ======================================================================================
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
-  // ======================================================================================
-  // LOGIN CON GOOGLE APPS SCRIPT (CORREGIDO: JSON seguro)
-  // ======================================================================================
- // REEMPLAZA TODO EL BLOQUE DE LOGIN
-document.getElementById("btnLogin")?.addEventListener("click", async () => {
-  const correo = document.getElementById("loginCorreo").value.trim();
-  const pin = document.getElementById("loginPin").value.trim();
+  // LOGIN
+  document.getElementById("btnLogin")?.addEventListener("click", async () => {
+    const correo = document.getElementById("loginCorreo").value.trim();
+    const pin = document.getElementById("loginPin").value.trim();
 
-  if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
-
-  // ENVÍA COMO FORM-URLENCODED
-  const formData = new URLSearchParams();
-  formData.append("accion", "login");
-  formData.append("correo", correo);
-  formData.append("pin", pin);
-
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData
-    });
-document.getElementById("btnLogin")?.addEventListener("click", async () => {
-  const correo = document.getElementById("loginCorreo").value.trim();
-  const pin = document.getElementById("loginPin").value.trim();
-
-  if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
-
-  const formData = new URLSearchParams();
-  formData.append("accion", "login");
-  formData.append("correo", correo);
-  formData.append("pin", pin);
-
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData
-    });
-
-    const texto = await res.text();
-    console.log("Login respuesta:", texto);
-
-    try {
-      const data = JSON.parse(texto);
-      if (data.status === "success") {
-        const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil || "" };
-        localStorage.setItem("usuario", JSON.stringify(usuario));
-        localStorage.setItem("autor", data.nombre);
-        localStorage.setItem("correo", data.correo);
-        currentAuthorName = data.nombre;
-        currentAuthorEmail = data.correo;
-        cerrarModalYContinuar();
-        mostrarAviso("Bienvenido, " + data.nombre, "success");
-      } else {
-        mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
-      }
-    } catch (e) {
-      mostrarAviso("Error del servidor", "error");
-    }
-  } catch (err) {
-    console.error("Error:", err);
-    mostrarAviso("Error de conexión", "error");
-  }
-});
-
-
-  // ======================================================================================
-  // REGISTRO CON GOOGLE APPS SCRIPT (CORREGIDO: texto plano)
-  // ======================================================================================
- document.getElementById("btnRegistro")?.addEventListener("click", async () => {
-  const nombre = document.getElementById("regNombre").value.trim();
-  const correo = document.getElementById("regCorreo").value.trim();
-  const pin = document.getElementById("regPin").value;
-  const pinConfirm = document.getElementById("regPinConfirm").value;
-  const file = regFoto.files[0];
-
-  if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-  if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
-  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
-
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const fotoBase64 = reader.result.split(",")[1];
+    if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
     const formData = new URLSearchParams();
-    formData.append("accion", "registro");
-    formData.append("nombre", nombre);
+    formData.append("accion", "login");
     formData.append("correo", correo);
     formData.append("pin", pin);
-    formData.append("foto", fotoBase64);
 
     try {
       const res = await fetch(SCRIPT_URL, {
@@ -3166,29 +3071,80 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData
       });
-
       const texto = await res.text();
-      console.log("Registro:", texto);
+      console.log("Login respuesta:", texto);
 
-      if (texto.includes("registrado")) {
-        mostrarAviso("Cuenta creada! Inicia sesión", "success");
-        mostrarForm("login");
-        document.getElementById("loginCorreo").value = correo;
-      } else {
-        mostrarAviso(texto || "Error al registrarse", "error");
+      try {
+        const data = JSON.parse(texto);
+        if (data.status === "success") {
+          const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil || "" };
+          localStorage.setItem("usuario", JSON.stringify(usuario));
+          localStorage.setItem("autor", data.nombre);
+          localStorage.setItem("correo", data.correo);
+          currentAuthorName = data.nombre;
+          currentAuthorEmail = data.correo;
+          cerrarModalYContinuar();
+          mostrarAviso("Bienvenido, " + data.nombre, "success");
+        } else {
+          mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
+        }
+      } catch (e) {
+        mostrarAviso("Error del servidor", "error");
       }
     } catch (err) {
       console.error("Error:", err);
       mostrarAviso("Error de conexión", "error");
     }
-  };
-  reader.readAsDataURL(file);
-});
+  });
 
+  // REGISTRO
+  document.getElementById("btnRegistro")?.addEventListener("click", async () => {
+    const nombre = document.getElementById("regNombre").value.trim();
+    const correo = document.getElementById("regCorreo").value.trim();
+    const pin = document.getElementById("regPin").value;
+    const pinConfirm = document.getElementById("regPinConfirm").value;
+    const file = regFoto.files[0];
 
-  // ======================================================================================
-  // CERRAR MODAL Y CONTINUAR
-  // ======================================================================================
+    if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+    if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
+    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const fotoBase64 = reader.result.split(",")[1];
+
+      const formData = new URLSearchParams();
+      formData.append("accion", "registro");
+      formData.append("nombre", nombre);
+      formData.append("correo", correo);
+      formData.append("pin", pin);
+      formData.append("foto", fotoBase64);
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData
+        });
+        const texto = await res.text();
+        console.log("Registro:", texto);
+
+        if (texto.includes("registrado")) {
+          mostrarAviso("Cuenta creada! Inicia sesión", "success");
+          mostrarForm("login");
+          document.getElementById("loginCorreo").value = correo;
+        } else {
+          mostrarAviso(texto || "Error al registrarse", "error");
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        mostrarAviso("Error de conexión", "error");
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
   function cerrarModalYContinuar() {
     modal.style.display = "none";
     document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
@@ -3437,6 +3393,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
   </script>
 </body>
 </html>
+
 
 
 
