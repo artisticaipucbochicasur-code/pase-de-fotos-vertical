@@ -3227,81 +3227,120 @@ if (imagesBtn) {
     const userEmail = document.getElementById("userEmail");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    // --- Helper para construir URL directa de Google Drive si el usuario envió solo el ID ---
-    function buildDriveUrlIfNeeded(urlOrId) {
-      if (!urlOrId) return "";
-      const s = String(urlOrId).trim();
-      // Si parece un id (solo letras/números y guiones/underscore, 20-80 chars), conviértelo
-      if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) {
-        return `https://drive.google.com/uc?export=view&id=${s}`;
-      }
-      // Si es una URL de drive con "id=" o "/file/d/ID/" extrae ID
-      const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-      if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-      return s;
-    }
+   // --- Helper para construir URL directa de Google Drive si el usuario envió solo el ID o link ---
+function buildDriveUrlIfNeeded(urlOrId) {
+  if (!urlOrId) return "";
+  const s = String(urlOrId).trim();
 
-    // --- Mostrar usuario con preloader y logs de depuración ---
-    function mostrarUsuario(u) {
-      if (!userBtn) return;
-      console.log("mostrarUsuario - objeto recibido:", u);
+  // Si parece un ID (20–80 chars, letras/números/guion/underscore), convertir
+  if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) {
+    return `https://drive.google.com/uc?export=view&id=${s}`;
+  }
 
-      // Limpia contenedor
-      userBtn.innerHTML = "";
-      // Asegurar que u tiene nombre y correo
-      u = u || {};
-      u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
-      u.correo = u.correo || u.email || localStorage.getItem("correo") || "";
+  // Si es una URL drive con id= o /file/d/ extraer ID
+  const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+  if (m && m[1]) {
+    return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  }
 
-      // Extraer posible foto (puede venir en distintas propiedades)
-      let foto = u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "";
-      // Si viene en array
-      if (Array.isArray(foto) && foto.length) foto = foto[0];
-      // Si es base64 (data:) usar directamente
-      const isDataUrl = typeof foto === "string" && foto.startsWith("data:");
-      // Intentar construir URL Drive si hace falta
-      if (!isDataUrl) {
-        foto = buildDriveUrlIfNeeded(foto);
-      }
+  return s;
+}
 
-      // Función fallback que muestra iniciales
-      function fallback() {
-        mostrarIniciales(u);
-      }
 
-      // Si no hay foto, mostrar iniciales
-      if (!foto) {
-        console.warn("mostrarUsuario - no hay foto para mostrar, usando iniciales");
-        fallback();
-      } else if (isDataUrl) {
-        // Si es base64, la asignamos directamente (no hay CORS)
-        const img = document.createElement("img");
-        img.src = foto;
-        img.alt = u.nombre || "avatar";
-        Object.assign(img.style, {
-          width: "36px",
-          height: "36px",
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "2px solid #0077cc",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
-        });
-        img.onerror = () => {
-          console.error("Imagen base64 falló al cargar");
-          fallback();
-        };
-        userBtn.appendChild(img);
-      } else {
-        // Para URLs remotas: preload con Image() para capturar onload/onerror
-        console.log("mostrarUsuario - intentando cargar imagen desde URL:", foto);
-        const testImg = new Image();
-        testImg.crossOrigin = "anonymous";
-        let loaded = false;
-        testImg.onload = () => {
-          loaded = true;
-          console.log("mostrarUsuario - imagen cargada correctamente");
+  // --- Mostrar usuario con preloader y logs de depuración ---
+function mostrarUsuario(u) {
+  if (!userBtn) return;
+  console.log("mostrarUsuario - objeto recibido:", u);
+
+  // Limpia contenedor
+  userBtn.innerHTML = "";
+
+  // Asegurar que u tiene nombre y correo
+  u = u || {};
+  u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
+  u.correo = u.correo || u.email || localStorage.getItem("correo") || "";
+
+  // Extraer posible foto (puede venir en distintas propiedades)
+  let foto = u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "";
+  if (Array.isArray(foto) && foto.length) foto = foto[0];
+
+  // Detectar base64
+  const isDataUrl = typeof foto === "string" && foto.startsWith("data:");
+
+  // Si no es base64, intentar formateo Drive
+  if (!isDataUrl) {
+    foto = buildDriveUrlIfNeeded(foto);
+  }
+
+  // Fallback iniciales
+  function fallback() {
+    mostrarIniciales(u);
+  }
+
+  // Si no hay foto
+  if (!foto) {
+    console.warn("mostrarUsuario - no hay foto para mostrar, usando iniciales");
+    fallback();
+  }
+
+  // Base64
+  else if (isDataUrl) {
+    const img = document.createElement("img");
+    img.src = foto;
+    img.alt = u.nombre || "avatar";
+    Object.assign(img.style, {
+      width: "36px",
+      height: "36px",
+      borderRadius: "50%",
+      objectFit: "cover",
+      border: "2px solid #0077cc",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+    });
+    img.onerror = () => {
+      console.error("Imagen base64 falló al cargar");
+      fallback();
+    };
+    userBtn.appendChild(img);
+  }
+
+  // URL remota
+  else {
+    console.log("mostrarUsuario - intentando cargar imagen desde URL:", foto);
+
+    const testImg = new Image();
+    testImg.crossOrigin = "anonymous";
+    let loaded = false;
+
+    testImg.onload = () => {
+      loaded = true;
+      console.log("mostrarUsuario - imagen cargada correctamente");
+      const img = document.createElement("img");
+      img.src = foto;
+      img.alt = u.nombre || "avatar";
+      Object.assign(img.style, {
+        width: "36px",
+        height: "36px",
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "2px solid #0077cc",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+      });
+      userBtn.appendChild(img);
+    };
+
+    testImg.onerror = () => {
+      console.warn("mostrarUsuario - fallo al cargar la imagen");
+
+      const idMatch = String(foto).match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+      if (idMatch && idMatch[1]) {
+        const altUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        console.log("mostrarUsuario - reintentando con URL directa de Drive:", altUrl);
+
+        const retryImg = new Image();
+        retryImg.crossOrigin = "anonymous";
+        retryImg.onload = () => {
           const img = document.createElement("img");
-          img.src = foto;
+          img.src = altUrl;
           img.alt = u.nombre || "avatar";
           Object.assign(img.style, {
             width: "36px",
@@ -3313,57 +3352,38 @@ if (imagesBtn) {
           });
           userBtn.appendChild(img);
         };
-        testImg.onerror = (e) => {
-          console.warn("mostrarUsuario - fallo al cargar la imagen:", e);
-          // Si la URL contiene 'drive.google' y falla, probamos a forzar formato uc?export=view&id=
-          const idMatch = String(foto).match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-          if (idMatch && idMatch[1]) {
-            const altUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-            console.log("mostrarUsuario - reintentando con URL directa de Drive:", altUrl);
-            const retryImg = new Image();
-            retryImg.crossOrigin = "anonymous";
-            retryImg.onload = () => {
-              const img = document.createElement("img");
-              img.src = altUrl;
-              img.alt = u.nombre || "avatar";
-              Object.assign(img.style, {
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "2px solid #0077cc",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
-              });
-              userBtn.appendChild(img);
-            };
-            retryImg.onerror = () => {
-              console.error("mostrarUsuario - también falló la URL directa de Drive, usando iniciales");
-              fallback();
-            };
-            retryImg.src = altUrl;
-          } else {
-            fallback();
-          }
+        retryImg.onerror = () => {
+          console.error("mostrarUsuario - también falló la URL directa de Drive, usando iniciales");
+          fallback();
         };
-        // Iniciar carga de prueba
-        testImg.src = foto;
-        // timeout por si queda colgado (ej. redirect que no completa)
-        setTimeout(() => {
-          if (!loaded && userBtn.children.length === 0) {
-            console.warn("mostrarUsuario - timeout al cargar imagen, mostrando iniciales");
-            fallback();
-          }
-        }, 4000);
+        retryImg.src = altUrl;
+      } else {
+        fallback();
       }
+    };
 
-      // Actualizar textos
-      if (userName) userName.textContent = u.nombre;
-      if (userEmail) userEmail.textContent = u.correo;
-      if (userName) userName.style.color = "#333";
-      if (userEmail) userEmail.style.color = "#555";
-      currentAuthorName = u.nombre;
-      currentAuthorEmail = u.correo;
-    }
+    // Iniciar carga de prueba
+    testImg.src = foto;
+
+    // Timeout anti-redirect infinito
+    setTimeout(() => {
+      if (!loaded && userBtn.children.length === 0) {
+        console.warn("mostrarUsuario - timeout al cargar imagen, mostrando iniciales");
+        fallback();
+      }
+    }, 4000);
+  }
+
+  // Actualizar textos
+  if (userName) userName.textContent = u.nombre;
+  if (userEmail) userEmail.textContent = u.correo;
+  if (userName) userName.style.color = "#333";
+  if (userEmail) userEmail.style.color = "#555";
+
+  currentAuthorName = u.nombre;
+  currentAuthorEmail = u.correo;
+}
+
 
     // --- Mantener mostrarIniciales similar pero sin forzar tamaño demasiado pequeño ---
     function mostrarIniciales(u) {
@@ -3419,4 +3439,5 @@ if (imagesBtn) {
   </script>
 </body>
 </html>
+
 
