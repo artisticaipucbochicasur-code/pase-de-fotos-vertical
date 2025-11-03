@@ -34,7 +34,16 @@
         color: white;
         transition: transform 0.3s ease; /* Transición para el movimiento */
     }
-    .swiper { width: 100vw; height: 100vh; }
+    .swiper {
+  width: 100vw;
+  height: 100vh;
+
+  /* 🔹 Fix iOS scroll/refresh/reload issues */
+  touch-action: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: auto;
+}
+
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
@@ -2636,55 +2645,93 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
 
-   function initSwiper(initialIndex = 0) {
-    if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+  function initSwiper(initialIndex = 0) {
+  if (!swiperInstance) {
+    swiperInstance = new Swiper(".swiper", {
+      loop: true,
+      direction: "vertical",
+      slidesPerView: 1,
+      spaceBetween: 10,
+      zoom: { maxRatio: 3, minRatio: 1 },
+      // 🔹 Fix iOS swipe/refresh issues
+      touchStartPreventDefault: false,
+      passiveListeners: false,
+      simulateTouch: true,
+      touchMoveStopPropagation: true,
+      preventClicks: true,
+      preventClicksPropagation: true,
+      cssMode: false,
+    });
 
-        swiperInstance.on('slideChange', () => {
-            const activeIndex = swiperInstance.realIndex;
-            updateContentOverlay(activeIndex);
-
-            if(window.AppInventor && anunciosData.length > 0) {
-                const anuncioActual = anunciosData[activeIndex];
-                
-                if (!anuncioActual) return;
-
-                const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-                if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-                }
-                const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
-            }
-        });
+    // 🔹 Bloquear el scroll del body mientras se usa el swiper
+    const swiperEl = document.querySelector(".swiper");
+    if (swiperEl) {
+      swiperEl.addEventListener(
+        "touchmove",
+        (e) => {
+          e.preventDefault(); // Evita scroll o refresh del navegador
+        },
+        { passive: false }
+      );
     }
 
-    if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-        
-        if(window.AppInventor){
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
+    swiperInstance.on("slideChange", () => {
+      const activeIndex = swiperInstance.realIndex;
+      updateContentOverlay(activeIndex);
+
+      if (window.AppInventor && anunciosData.length > 0) {
+        const anuncioActual = anunciosData[activeIndex];
+        if (!anuncioActual) return;
+
+        const id = anuncioActual.id;
+        const hayServidor =
+          Array.isArray(comentariosPorAnuncio[id]) &&
+          comentariosPorAnuncio[id].length > 0;
+        if (hayServidor) {
+          anuncioActual.comentarios = normalizarComentarios(
+            comentariosPorAnuncio[id]
+          );
         }
+
+        const listaTitulos = anunciosData.map((a) => a.titulo);
+        const payload = {
+          ...anuncioActual,
+          titulos: listaTitulos,
+          contador: contadorAcumulado,
+        };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      }
+    });
+  }
+
+  if (anunciosData.length > 0) {
+    const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+    swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+    updateContentOverlay(initialSlideIndex);
+
+    if (window.AppInventor) {
+      const anuncioInicial = anunciosData[initialSlideIndex];
+      const id = anuncioInicial.id;
+      const hayServidor =
+        Array.isArray(comentariosPorAnuncio[id]) &&
+        comentariosPorAnuncio[id].length > 0;
+      if (hayServidor) {
+        anuncioInicial.comentarios = normalizarComentarios(
+          comentariosPorAnuncio[id]
+        );
+      }
+      const listaTitulos = anunciosData.map((a) => a.titulo);
+      const payload = {
+        ...anuncioInicial,
+        titulos: listaTitulos,
+        contador: contadorAcumulado,
+      };
+      window.AppInventor.setWebViewString(JSON.stringify(payload));
     }
+  }
 }
+
+    
 
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
@@ -3241,6 +3288,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
