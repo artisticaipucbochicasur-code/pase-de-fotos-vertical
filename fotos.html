@@ -53,7 +53,7 @@
     <div class="swiper-wrapper"></div>
   </div>
 
-  <div id="loader">Cargando...EH</div>
+  <div id="loader">Cargando...11111</div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -63,7 +63,7 @@
 
     // 🚫 Bloquear pull-to-refresh global en iOS
     (function bloquearPull() {
-      let startY = 0, moving = false;
+      let startY = 0;
       document.addEventListener('touchstart', e => {
         if (e.touches.length === 1) startY = e.touches[0].clientY;
       }, { passive: true });
@@ -85,19 +85,32 @@
       touchStartPreventDefault: false
     });
 
-    // ✅ Función segura para precargar imágenes
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
         const res = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
         const data = await res.json();
 
-        if (!data.url || data.url.length === 0) {
-          throw new Error("Sin imágenes");
+        console.log("📦 Respuesta del servidor:", data);
+
+        // Soporte para diferentes formatos
+        let urls = [];
+        if (Array.isArray(data)) urls = data;
+        else if (Array.isArray(data.url)) urls = data.url;
+        else if (Array.isArray(data.urls)) urls = data.urls;
+        else if (Array.isArray(data.data)) urls = data.data;
+        else if (data.url) urls = [data.url];
+
+        if (!urls.length) {
+          console.warn("⚠️ No llegaron imágenes, usando fallback de prueba.");
+          urls = [
+            "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800",
+            "https://images.unsplash.com/photo-1517816743773-6e0fd518b4a6?w=800",
+            "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800"
+          ];
         }
 
-        // Precargar imágenes antes de tocar el DOM
-        const urls = data.url.slice().reverse();
+        // Precargar imágenes
         await Promise.all(urls.map(src => new Promise((resolve, reject) => {
           const img = new Image();
           img.onload = resolve;
@@ -105,11 +118,10 @@
           img.src = src;
         })));
 
-        // 🚫 Pausar eventos táctiles mientras actualizamos el DOM
         document.body.style.pointerEvents = 'none';
 
         swiper.removeAllSlides();
-        urls.forEach(url => {
+        urls.reverse().forEach(url => {
           const slide = document.createElement('div');
           slide.classList.add('swiper-slide');
           const img = document.createElement('img');
@@ -120,9 +132,10 @@
         });
 
         swiper.update();
+        console.log("✅ Imágenes cargadas correctamente:", urls.length);
 
       } catch (err) {
-        console.error("Error al cargar imágenes:", err);
+        console.error("❌ Error al cargar imágenes:", err);
       } finally {
         document.body.style.pointerEvents = 'auto';
         loader.style.display = 'none';
