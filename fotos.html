@@ -984,23 +984,53 @@ body {
   </div>
 </header>
 
-<!-- Modal de inicio de sesión -->
+<!-- Modal de inicio de sesión / registro -->
 <div id="loginModal" 
      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background:rgba(0,0,0,0.6); z-index:999; justify-content:center; align-items:center;">
-  <div style="background:white; padding:20px; border-radius:12px; width:300px; text-align:center;">
-    <h3>🔐 Iniciar Sesión</h3>
-    <input id="loginNombre" type="text" placeholder="Tu nombre" 
-           style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-    <input id="loginCorreo" type="email" placeholder="Tu correo" 
-           style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-    <button id="btnLogin" 
-            style="margin-top:15px;width:100%;padding:10px;border:none;
-                   background:#0077cc;color:white;border-radius:6px;">
-      Entrar
-    </button>
+  <div style="background:white; padding:20px; border-radius:12px; width:320px; text-align:center; position:relative;">
+    
+    <!-- Toggle entre Login y Registro -->
+    <div style="display:flex; justify-content:space-around; margin-bottom:15px;">
+      <button id="toggleLogin" style="padding:8px 12px; border:none; border-bottom:2px solid #0077cc; background:none; cursor:pointer;">Login</button>
+      <button id="toggleRegistro" style="padding:8px 12px; border:none; background:none; cursor:pointer;">Registro</button>
+    </div>
+
+    <!-- Contenedor Login -->
+    <div id="loginForm">
+      <h3>🔐 Iniciar Sesión</h3>
+      <input id="loginCorreo" type="email" placeholder="Correo" 
+             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="loginPin" type="password" placeholder="PIN" 
+             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <button id="btnLogin" 
+              style="margin-top:15px;width:100%;padding:10px;border:none;
+                     background:#0077cc;color:white;border-radius:6px;">
+        Entrar
+      </button>
+    </div>
+
+    <!-- Contenedor Registro -->
+    <div id="registroForm" style="display:none;">
+      <h3>📝 Registrarse</h3>
+      <input id="regNombre" type="text" placeholder="Nombre completo" 
+             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="regCorreo" type="email" placeholder="Correo" 
+             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="regPin" type="password" placeholder="PIN" 
+             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="regFoto" type="file" accept="image/*" 
+             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <button id="btnRegistro" 
+              style="margin-top:15px;width:100%;padding:10px;border:none;
+                     background:#28a745;color:white;border-radius:6px;">
+        Registrarse
+      </button>
+    </div>
+
   </div>
 </div>
+
 
   
   
@@ -2933,11 +2963,10 @@ setTimeout(() => {
 
 
 // ======================================================================================
-// 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+// 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA (LOGIN + REGISTRO)
 // ======================================================================================
 const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
 const modal = document.getElementById("loginModal");
-const btnLogin = document.getElementById("btnLogin");
 
 if (!usuarioGuardado) {
 
@@ -2964,9 +2993,9 @@ if (!usuarioGuardado) {
   document.body.appendChild(overlay);
   setTimeout(() => overlay.style.opacity = "1", 50);
 
-  // --- MODAL REGISTRO ---
-  const modalRegistro = document.createElement("div");
-  Object.assign(modalRegistro.style, {
+  // --- MODAL LOGIN + REGISTRO ---
+  const modalForm = document.createElement("div");
+  Object.assign(modalForm.style, {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -2976,20 +3005,59 @@ if (!usuarioGuardado) {
     borderRadius: "12px",
     zIndex: "99999",
     color: "#fff",
+    width: "320px",
+    textAlign: "center",
   });
-  modalRegistro.innerHTML = `
-    <h2>📝 Registro de Usuario</h2>
-    <input type="text" id="regNombre" placeholder="Nombre completo" />
-    <input type="email" id="regCorreo" placeholder="Correo" />
-    <input type="password" id="regPin" placeholder="PIN" />
-    <input type="file" id="regFoto" accept="image/*" />
-    <button id="btnRegistro">Registrar</button>
-    <p style="font-size:12px; color:#ccc;">Si ya tienes cuenta, inicia sesión abajo.</p>
-  `;
-  document.body.appendChild(modalRegistro);
+  modalForm.innerHTML = `
+    <div style="display:flex; justify-content:space-around; margin-bottom:15px;">
+      <button id="toggleLogin" style="padding:8px 12px; border:none; border-bottom:2px solid #0077cc; background:none; cursor:pointer;">Login</button>
+      <button id="toggleRegistro" style="padding:8px 12px; border:none; background:none; cursor:pointer;">Registro</button>
+    </div>
+    
+    <!-- LOGIN -->
+    <div id="loginForm">
+      <h3>🔐 Iniciar Sesión</h3>
+      <input id="loginNombre" type="text" placeholder="Nombre" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="loginCorreo" type="email" placeholder="Correo" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="loginPin" type="password" placeholder="PIN" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <button id="btnLogin" style="margin-top:15px;width:100%;padding:10px;border:none; background:#0077cc;color:white;border-radius:6px;">Entrar</button>
+    </div>
 
-  // --- BOTÓN DE REGISTRO ---
-  const btnRegistro = modalRegistro.querySelector("#btnRegistro");
+    <!-- REGISTRO -->
+    <div id="registroForm" style="display:none;">
+      <h3>📝 Registrarse</h3>
+      <input id="regNombre" type="text" placeholder="Nombre completo" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="regCorreo" type="email" placeholder="Correo" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="regPin" type="password" placeholder="PIN" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <input id="regFoto" type="file" accept="image/*" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
+      <button id="btnRegistro" style="margin-top:15px;width:100%;padding:10px;border:none; background:#28a745;color:white;border-radius:6px;">Registrarse</button>
+      <p style="font-size:12px; color:#ccc;">Si ya tienes cuenta, inicia sesión arriba.</p>
+    </div>
+  `;
+  document.body.appendChild(modalForm);
+
+  // --- TOGGLE LOGIN / REGISTRO ---
+  const loginForm = document.getElementById("loginForm");
+  const registroForm = document.getElementById("registroForm");
+  const toggleLogin = document.getElementById("toggleLogin");
+  const toggleRegistro = document.getElementById("toggleRegistro");
+
+  toggleLogin.addEventListener("click", () => {
+    loginForm.style.display = "block";
+    registroForm.style.display = "none";
+    toggleLogin.style.borderBottom = "2px solid #0077cc";
+    toggleRegistro.style.borderBottom = "none";
+  });
+
+  toggleRegistro.addEventListener("click", () => {
+    loginForm.style.display = "none";
+    registroForm.style.display = "block";
+    toggleLogin.style.borderBottom = "none";
+    toggleRegistro.style.borderBottom = "2px solid #28a745";
+  });
+
+  // --- BOTÓN REGISTRO ---
+  const btnRegistro = document.getElementById("btnRegistro");
   btnRegistro.addEventListener("click", async () => {
     const nombre = document.getElementById("regNombre").value.trim();
     const correo = document.getElementById("regCorreo").value.trim();
@@ -3012,7 +3080,6 @@ if (!usuarioGuardado) {
       reader.readAsDataURL(fotoInput.files[0]);
     });
 
-    // --- Llamada al Apps Script ---
     fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
       method: "POST",
       body: new URLSearchParams({
@@ -3027,8 +3094,8 @@ if (!usuarioGuardado) {
     .then(resp => {
       if (resp.includes("Usuario registrado")) {
         mostrarAviso("✅ Usuario registrado, ya puedes iniciar sesión", "success");
-        modalRegistro.style.display = "none";
-        if (modal) modal.style.display = "flex"; // mostrar login
+        registroForm.style.display = "none";
+        loginForm.style.display = "block";
       } else {
         mostrarAviso(resp, "error");
       }
@@ -3036,60 +3103,51 @@ if (!usuarioGuardado) {
     .catch(err => mostrarAviso("❌ Error en el registro: " + err.message, "error"));
   });
 
-  // --- LOGIN (tu código existente) ---
-  if (modal) modal.style.display = "none"; // se muestra después del registro
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nombre = document.getElementById("loginNombre").value.trim();
-      const correo = document.getElementById("loginCorreo").value.trim();
-      const pin = document.getElementById("loginPin")?.value.trim() || ""; // si tienes PIN en login
+  // --- LOGIN ---
+  const btnLogin = document.getElementById("btnLogin");
+  btnLogin.addEventListener("click", () => {
+    const nombre = document.getElementById("loginNombre").value.trim();
+    const correo = document.getElementById("loginCorreo").value.trim();
+    const pin = document.getElementById("loginPin").value.trim();
 
-      if (!nombre || !correo) {
-        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-        return;
-      }
+    if (!nombre || !correo || !pin) {
+      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+      return;
+    }
 
-      // Validación de correo
-      const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!correoValido.test(correo)) {
-        mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
-        return;
-      }
+    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!correoValido.test(correo)) {
+      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+      return;
+    }
 
-      // --- Verificar usuario en Apps Script ---
-      fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
-        method: "POST",
-        body: new URLSearchParams({
-          accion: "login",
-          correo,
-          pin
-        })
+    fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
+      method: "POST",
+      body: new URLSearchParams({
+        accion: "login",
+        correo,
+        pin
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "📨success") {
-          const usuario = { nombre: data.nombre, correo: data.correo, foto: data.fotoPerfil || "" };
-          currentAuthorName = data.nombre;
-          currentAuthorEmail = data.correo;
-          localStorage.setItem("usuario", JSON.stringify(usuario));
-          localStorage.setItem("autor", data.nombre);
-          localStorage.setItem("correo", data.correo);
-          modal.style.display = "none";
-          overlay.style.opacity = "0";
-          setTimeout(() => overlay.remove(), 400);
-          mostrarAviso("✅ Sesión iniciada correctamente", "success");
-          location.reload();
-        } else {
-          mostrarAviso("📌 " + data.message, "error");
-        }
-      })
-      .catch(err => mostrarAviso("❌ Error al iniciar sesión: " + err.message, "error"));
-    });
-  }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "📨success") {
+        const usuario = { nombre: data.nombre, correo: data.correo, foto: data.fotoPerfil || "" };
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        modalForm.style.display = "none";
+        overlay.style.opacity = "0";
+        setTimeout(() => overlay.remove(), 400);
+        mostrarAviso("✅ Sesión iniciada correctamente", "success");
+        location.reload();
+      } else {
+        mostrarAviso("📌 " + data.message, "error");
+      }
+    })
+    .catch(err => mostrarAviso("❌ Error al iniciar sesión: " + err.message, "error"));
+  });
 
   return;
 }
-
 
 
 // ======================================================================================
@@ -3326,6 +3384,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
