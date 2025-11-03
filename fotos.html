@@ -3228,48 +3228,49 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   // MANEJO DE USUARIO (CORREGIDO: foto de columna 4)
   // ======================================================================================
-  const userBtn = document.getElementById("userBtn");
-  const userMenu = document.getElementById("userMenu");
-  const userName = document.getElementById("userName");
-  const userEmail = document.getElementById("userEmail");
-  const logoutBtn = document.getElementById("logoutBtn");
+ function mostrarUsuario(u) {
+  if (!userBtn) return;
+  userBtn.innerHTML = "";
 
-  function mostrarUsuario(u) {
-    if (!userBtn) return;
-    userBtn.innerHTML = "";
-    
-    // FOTO DE COLUMNA 4: u.fotoPerfil debe tener la URL
-    if (u.fotoPerfil && u.fotoPerfil.trim() !== "" && u.fotoPerfil.includes("http")) {
-      const img = document.createElement("img");
-      img.src = u.fotoPerfil;
-      img.style.width = "32px";
-      img.style.height = "32px";
-      img.style.borderRadius = "50%";
-      img.style.objectFit = "cover";
-      img.style.border = "2px solid #0077cc";
-      img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
-      img.onerror = () => {
-  console.warn("Imagen rota, volviendo a iniciales:", u.fotoPerfil);
-  mostrarIniciales(u);
-};
+  // Normalizar campo
+  u.fotoPerfil = (u.fotoPerfil || u.foto || "").trim();
 
-      userBtn.appendChild(img);
-    } else {
-      mostrarIniciales(u);
+  // Convertir a uc?export=download si viene en otro formato
+  if (u.fotoPerfil.includes("drive.google.com")) {
+    const match = u.fotoPerfil.match(/[-\w]{25,}/);
+    if (match) {
+      u.fotoPerfil = `https://drive.google.com/uc?export=download&id=${match[0]}`;
     }
+  }
 
-    if (userName) userName.textContent = u.nombre;
-    if (userEmail) userEmail.textContent = u.correo;
-    if (userName) userName.style.color = "#333";
-    if (userEmail) userEmail.style.color = "#555";
-    currentAuthorName = u.nombre;
-    currentAuthorEmail = u.correo;
-    const userMenuPhoto = document.getElementById("userMenuPhoto");
-if (userMenuPhoto && u.fotoPerfil) {
-   userMenuPhoto.src = u.fotoPerfil;
+  if (u.fotoPerfil !== "" && u.fotoPerfil.includes("http")) {
+    const img = document.createElement("img");
+    img.src = u.fotoPerfil;
+    img.style.width = "32px";
+    img.style.height = "32px";
+    img.style.borderRadius = "50%";
+    img.style.objectFit = "cover";
+    img.style.border = "2px solid #0077cc";
+    img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
+    img.onerror = () => {
+      console.warn("Imagen rota:", u.fotoPerfil);
+      mostrarIniciales(u);
+    };
+    userBtn.appendChild(img);
+  } else {
+    mostrarIniciales(u);
+  }
+
+  if (userName) userName.textContent = u.nombre;
+  if (userEmail) userEmail.textContent = u.correo;
+
+  const userMenuPhoto = document.getElementById("userMenuPhoto");
+  if (userMenuPhoto && u.fotoPerfil) {
+    userMenuPhoto.src = u.fotoPerfil;
+    userMenuPhoto.onerror = () => mostrarIniciales(u);
+  }
 }
 
-  }
 
   function mostrarIniciales(u) {
     if (!userBtn) return;
@@ -3343,6 +3344,7 @@ if (usuarioGuardado) {
   </script>
 </body>
 </html>
+
 
 
 
