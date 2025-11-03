@@ -2806,7 +2806,70 @@ function aplicarTruncado(element, maxLength = 80) {
 }
 
 
-    
+    function showCustomAlert(title, titlesList) {
+    const overlay = document.getElementById('customAlertOverlay');
+    const alertDiv = overlay.querySelector('.custom-alert');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertMessage = document.getElementById('alertMessage');
+    const notificationCount = document.getElementById('notificationCount'); // span del contador
+
+    alertDiv.className = 'custom-alert';
+    alertMessage.innerHTML = '';
+
+    alertTitle.textContent = title;
+
+    if (titlesList.length > 0) {
+        const list = document.createElement('ul');
+        list.className = 'titles-list';
+        titlesList.forEach((titulo, index) => {
+            const li = document.createElement('li');
+            li.textContent = titulo;
+            li.dataset.index = index;
+            li.addEventListener('click', () => {
+                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                if (selectedIndex !== -1 && swiperInstance) {
+                    // Desplazar al anuncio
+                    swiperInstance.slideToLoop(selectedIndex, 500);
+
+                    // === EFECTO DE RESALTADO + ZOOM EN EL TÍTULO ===
+                    setTimeout(() => {
+                        const titleElement = document.getElementById('currentTitle');
+                        if (titleElement) {
+                            // Forzar reflow para reiniciar animación
+                            titleElement.classList.remove('highlight-title-zoom');
+                            void titleElement.offsetWidth;
+                            titleElement.classList.add('highlight-title-zoom');
+
+                            // Quitar el efecto después de 1.5 segundos
+                            setTimeout(() => {
+                                titleElement.classList.remove('highlight-title-zoom');
+                            }, 1500);
+                        }
+                    }, 600); // Esperar a que termine el deslizamiento
+
+                  actualizarBadges();
+
+                    document.getElementById('customAlertOverlay').style.display = 'none';
+                }
+            });
+            list.appendChild(li);
+        });
+        alertMessage.appendChild(list);
+    } else {
+        const p = document.createElement('p');
+        p.textContent = "No hay anuncios nuevos.";
+        alertMessage.appendChild(p);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = "Cerrar";
+    closeBtn.id = "closeAlertButton";
+    closeBtn.onclick = () => overlay.style.display = 'none';
+    alertMessage.appendChild(closeBtn);
+    overlay.style.display = 'flex';
+}
+
+
 
 
     function showConfirmationDialog(message, onConfirm) {
@@ -3261,6 +3324,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
