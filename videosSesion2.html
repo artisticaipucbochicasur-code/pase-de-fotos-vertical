@@ -1530,6 +1530,11 @@ btnUploadVideo.addEventListener("click", async () => {
   if (!file) return alert("Selecciona un video para subir.");
   if (!tituloUsuario) return alert("Escribe un título para el video.");
 
+  // 🔹 Deshabilitar botón mientras sube
+  btnUploadVideo.disabled = true;
+  const originalText = btnUploadVideo.textContent;
+  btnUploadVideo.textContent = "⏳ Subiendo...";
+
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
   status.textContent = "";
@@ -1561,6 +1566,10 @@ btnUploadVideo.addEventListener("click", async () => {
   };
 
   xhr.onload = async function () {
+    // 🔹 Rehabilitar botón al terminar
+    btnUploadVideo.disabled = false;
+    btnUploadVideo.textContent = originalText;
+
     if (xhr.status === 200) {
       const fileEncoded = encodeURIComponent(fileName);
       const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
@@ -1605,6 +1614,9 @@ btnUploadVideo.addEventListener("click", async () => {
   };
 
   xhr.onerror = () => {
+    // 🔹 Rehabilitar botón si falla
+    btnUploadVideo.disabled = false;
+    btnUploadVideo.textContent = originalText;
     status.textContent = "❌ Error de conexión.";
   };
 
@@ -1619,6 +1631,7 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.setRequestHeader("Content-Type", file.type);
   xhr.send(file);
 });
+
 
     // =============================
 // 📸 BOTONES DE CÁMARA (imagen y video)
@@ -3886,6 +3899,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
