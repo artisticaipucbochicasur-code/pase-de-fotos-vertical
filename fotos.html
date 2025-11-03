@@ -2974,34 +2974,42 @@ if (!usuarioGuardado) {
 
   setTimeout(() => (overlay.style.opacity = "1"), 50);
 
-  if (btnLogin) {
-    btnLogin.addEventListener("click", () => {
-      const nombre = document.getElementById("loginNombre").value.trim();
-      const correo = document.getElementById("loginCorreo").value.trim();
+if (btnLogin) {
+  btnLogin.addEventListener("click", () => {
+    const nombre = document.getElementById("loginNombre").value.trim();
+    const correo = document.getElementById("loginCorreo").value.trim();
 
-      if (!nombre || !correo) {
-        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-        return;
-      }
+    if (!nombre || !correo) {
+      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+      return;
+    }
 
-      const usuario = { nombre, correo };
+    // ✅ Validación de correo
+    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!correoValido.test(correo)) {
+      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+      return;
+    }
 
-      currentAuthorName = nombre;
-      currentAuthorEmail = correo;
+    const usuario = { nombre, correo };
 
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      localStorage.setItem("autor", nombre);
-      localStorage.setItem("correo", correo);
+    currentAuthorName = nombre;
+    currentAuthorEmail = correo;
 
-      modal.style.display = "none";
-      mostrarAviso("✅ Sesión iniciada correctamente", "success");
+    localStorage.setItem("usuario", JSON.stringify(usuario));
+    localStorage.setItem("autor", nombre);
+    localStorage.setItem("correo", correo);
 
-      overlay.style.opacity = "0";
-      setTimeout(() => overlay.remove(), 400);
+    modal.style.display = "none";
+    mostrarAviso("✅ Sesión iniciada correctamente", "success");
 
-      location.reload();
-    });
-  }
+    overlay.style.opacity = "0";
+    setTimeout(() => overlay.remove(), 400);
+
+    location.reload();
+  });
+}
+
 
   return;
 }
@@ -3241,6 +3249,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
