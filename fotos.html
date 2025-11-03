@@ -927,26 +927,17 @@ body {
 
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
   <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
-<button id="imagesBtn" class="header-btn" title="Imágenes" style="position: relative;">
+<a href="./fotos.html" class="header-btn" id="btnImagenes" title="Imágenes" style="position:relative;">
   <i class="fas fa-image"></i>
-  <span id="imagesNotificationCount" style="
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: red;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    display: none;
-    z-index: 10;
-  "></span>
-</button>
+  <span id="contadorImagenesBadge" 
+        style="position:absolute;top:-6px;right:-6px;
+               background:red;color:white;font-weight:bold;
+               border-radius:50%;padding:2px 6px;font-size:0.8em;
+               display:none;">
+    0
+  </span>
+</a>
+
 
 <a href="./videosSesion2.html" class="header-btn" title="Videos">
   <i class="fas fa-video"></i>
@@ -1226,6 +1217,7 @@ btnPublicar.addEventListener("click", async () => {
 
     mensaje.textContent = "✅ Anuncio enviado correctamente.";
     mensaje.style.color = "green";
+cambiarContadorImagenes(1);  // 🔼 suma 1 al contador
 
     // 🔹 Esperar un poco para que se vea el 100%
     await new Promise(res => setTimeout(res, 600));
@@ -2552,6 +2544,8 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         const result = await response.json();
       if (result.status && result.status.toLowerCase().includes("success")) {
     showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
+        cambiarContadorImagenes(-1); // 🔽 resta 1
+
     await cargarImagenes();
 } else {
     showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
@@ -3231,6 +3225,34 @@ if (modal && userBtn && userMenu) {
 }
 });
 
+<script>
+  // === 🔄 Sincronización del contador de imágenes entre páginas ===
+
+  // Muestra el contador actualizado
+  function actualizarContadorImagenes() {
+    const contador = parseInt(localStorage.getItem('contadorImagenes') || '0');
+    const badge = document.getElementById('contadorImagenesBadge');
+    if (!badge) return;
+    badge.textContent = contador;
+    badge.style.display = contador > 0 ? 'inline' : 'none';
+  }
+
+  // Cambia el contador desde cualquier página
+  function cambiarContadorImagenes(delta) {
+    let contador = parseInt(localStorage.getItem('contadorImagenes') || '0');
+    contador = Math.max(0, contador + delta);
+    localStorage.setItem('contadorImagenes', contador);
+    actualizarContadorImagenes();
+  }
+
+  // Al cargar la página, mostrar el valor guardado
+  document.addEventListener('DOMContentLoaded', actualizarContadorImagenes);
+
+  // Si se cambia en otra pestaña o página, actualizar en tiempo real
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'contadorImagenes') actualizarContadorImagenes();
+  });
+</script>
 
 
 
@@ -3241,6 +3263,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
