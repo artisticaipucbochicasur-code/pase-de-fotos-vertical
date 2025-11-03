@@ -3,34 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Swiper iOS con imágenes reales</title>
+  <title>Swiper iOS con servidor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior: none;
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      overflow: hidden; 
+      -webkit-tap-highlight-color: transparent; 
       background: #000;
     }
-
-    .swiper {
-      width: 100vw;
-      height: 100vh;
-      overscroll-behavior: contain;
-      touch-action: pan-y;
-      -webkit-overflow-scrolling: touch;
+    .swiper { 
+      width: 100vw; 
+      height: 100vh; 
+      overscroll-behavior: contain; 
+      touch-action: pan-y; 
+      -webkit-overflow-scrolling: touch; 
+      background: #000; 
+    }
+    .swiper-slide { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
       background: #000;
     }
-
-    .swiper-slide {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-    }
-
     .swiper-slide img {
       width: 100%;
       height: auto;
@@ -39,7 +35,6 @@
       -webkit-user-drag: none;
       touch-action: pan-y pinch-zoom;
     }
-
     #loader {
       position: fixed;
       top: 50%;
@@ -54,23 +49,23 @@
 </head>
 <body>
   <div class="swiper">
-    <div class="swiper-wrapper"></div>
+    <div class="swiper-wrapper">
+      <!-- se llenará dinámicamente -->
+    </div>
   </div>
 
-  <div id="loader">Cargando...</div>
+  <div id="loader">Cargando...dh</div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-    let swiperInstance = null;
+    let swiper = null;
     let anunciosData = [];
     const loader = document.getElementById('loader');
 
-    // =====================================
-    // 🚫 Bloqueo agresivo del Pull-to-Refresh en iOS
-    // =====================================
-    (function bloquearPullToRefresh() {
-      const swiperEl = document.querySelector('.swiper');
+    // ✅ Bloqueo de pull-to-refresh antes de cualquier carga
+    (function(){
+      const swiperEl = document.documentElement; // más global
       let startY = 0, startX = 0, isMoving = false;
 
       function onTouchStart(e) {
@@ -87,53 +82,50 @@
         const deltaY = currentY - startY;
         const deltaX = currentX - startX;
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // gesto horizontal -> no interferir
-
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
         const startedNearTop = (window.scrollY === 0 || startY < 60);
         const draggingDown = deltaY > 0;
-
-        if (startedNearTop && draggingDown) {
-          e.preventDefault(); // evita recarga Safari
-        }
+        if (startedNearTop && draggingDown) e.preventDefault();
       }
 
-      function onTouchEnd() {
-        isMoving = false;
-      }
+      function onTouchEnd() { isMoving = false; }
 
       swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
       swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
       swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
     })();
 
-    // =====================================
-    // 🚀 Cargar imágenes desde el servidor
-    // =====================================
+    // ✅ Inicializa Swiper vacío primero
+    swiper = new Swiper('.swiper', {
+      direction: 'vertical',
+      loop: true,
+      slidesPerView: 1,
+      spaceBetween: 8,
+      simulateTouch: true,
+      touchStartPreventDefault: false
+    });
+
+    // ✅ Luego carga imágenes del servidor
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
         const data = await response.json();
 
-        let newAnunciosData = [];
-
+        anunciosData = [];
         if (data.url && data.url.length > 0) {
           data.url.forEach((url, i) => {
-            newAnunciosData.push({
+            anunciosData.push({
               titulo: data.titulo[i] || "",
-              descripcion: data.descripcion[i] || "",
               url: url,
               id: data.id[i] || ""
             });
           });
         }
 
-        newAnunciosData.reverse();
-        anunciosData = newAnunciosData;
+        anunciosData.reverse();
 
-        const wrapper = document.querySelector('.swiper-wrapper');
-        wrapper.innerHTML = '';
-
+        swiper.removeAllSlides();
         anunciosData.forEach(a => {
           const slide = document.createElement('div');
           slide.classList.add('swiper-slide');
@@ -141,29 +133,18 @@
           img.src = a.url;
           img.alt = a.titulo;
           slide.appendChild(img);
-          wrapper.appendChild(slide);
+          swiper.appendSlide(slide);
         });
 
-        if (!swiperInstance) {
-          swiperInstance = new Swiper('.swiper', {
-            direction: 'vertical',
-            loop: true,
-            slidesPerView: 1,
-            spaceBetween: 8,
-            simulateTouch: true,
-            touchStartPreventDefault: false
-          });
-        } else {
-          swiperInstance.update();
-        }
-      } catch (error) {
-        console.error("Error al cargar las imágenes:", error);
+        swiper.update();
+      } catch (err) {
+        console.error("Error al cargar imágenes:", err);
       } finally {
         loader.style.display = 'none';
       }
     }
 
-    // Ejecutar carga al inicio
+    // 🔥 Ejecuta carga al abrir
     cargarImagenes();
   </script>
 </body>
