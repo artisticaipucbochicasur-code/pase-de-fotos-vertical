@@ -1514,7 +1514,6 @@ tabVideo.addEventListener("click", () => {
 // 🎥 MODAL DE SUBIDA DE VIDEOS
 // =============================
 
-
 // 📤 Subida del video (mantiene compatibilidad con tu sistema)
 btnUploadVideo.addEventListener("click", async () => {
   const file = document.getElementById("fileInput").files[0];
@@ -1561,22 +1560,45 @@ btnUploadVideo.addEventListener("click", async () => {
     }
   };
 
-  xhr.onload = function () {
+  xhr.onload = async function () {
     if (xhr.status === 200) {
       const fileEncoded = encodeURIComponent(fileName);
       const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
       status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
 
       // Guarda los datos en tu Apps Script
-      fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
+      await fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
         + `&titulo=${encodeURIComponent(tituloUsuario)}`
         + `&link=${encodeURIComponent(directLink)}`
         + `&autor=${encodeURIComponent(autor)}`
         + `&correo=${encodeURIComponent(correo)}`
         + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
 
+      // Esperar un poco para mostrar 100%
+      await new Promise(res => setTimeout(res, 600));
+
+      // 🔹 Limpiar campos del formulario
+      document.getElementById("fileInput").value = "";
+      document.getElementById("videoTitle").value = "";
+      document.getElementById("videoDescripcion").value = "";
+      progressBar.style.width = "0%";
       progressContainer.style.display = "none";
       metrics.textContent = "";
+      status.textContent = "";
+
+      // 🔹 Cerrar modal automáticamente
+      setTimeout(() => {
+        publishModal.style.display = "none";
+        if (typeof cargarAnuncios === "function") {
+          cargarAnuncios();
+        }
+        // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
+        const imagesBtn = document.getElementById("imagesBtn");
+        if (imagesBtn) {
+          document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+          imagesBtn.classList.add('selected');
+        }
+      }, 1000);
     } else {
       status.textContent = "❌ Error al subir el video.";
     }
@@ -3864,6 +3886,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
