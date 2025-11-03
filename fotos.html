@@ -2940,6 +2940,8 @@ const modal = document.getElementById("loginModal");
 const btnLogin = document.getElementById("btnLogin");
 
 if (!usuarioGuardado) {
+
+  // --- OVERLAY GENERAL ---
   const overlay = document.createElement("div");
   Object.assign(overlay.style, {
     position: "fixed",
@@ -2959,60 +2961,135 @@ if (!usuarioGuardado) {
     opacity: "0",
     transition: "opacity 0.4s ease",
   });
-  overlay.innerHTML = `
-    <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
-    <p style="color:#ccc; max-width:80%; line-height:1.5;">
-      Debes iniciar sesión para acceder al contenido.
-    </p>
-  `;
   document.body.appendChild(overlay);
+  setTimeout(() => overlay.style.opacity = "1", 50);
 
-  if (modal) {
-    modal.style.display = "flex";
-    modal.style.zIndex = "99999";
-  }
+  // --- MODAL REGISTRO ---
+  const modalRegistro = document.createElement("div");
+  Object.assign(modalRegistro.style, {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    padding: "20px",
+    background: "#111",
+    borderRadius: "12px",
+    zIndex: "99999",
+    color: "#fff",
+  });
+  modalRegistro.innerHTML = `
+    <h2>📝 Registro de Usuario</h2>
+    <input type="text" id="regNombre" placeholder="Nombre completo" />
+    <input type="email" id="regCorreo" placeholder="Correo" />
+    <input type="password" id="regPin" placeholder="PIN" />
+    <input type="file" id="regFoto" accept="image/*" />
+    <button id="btnRegistro">Registrar</button>
+    <p style="font-size:12px; color:#ccc;">Si ya tienes cuenta, inicia sesión abajo.</p>
+  `;
+  document.body.appendChild(modalRegistro);
 
-  setTimeout(() => (overlay.style.opacity = "1"), 50);
-
-if (btnLogin) {
-  btnLogin.addEventListener("click", () => {
-    const nombre = document.getElementById("loginNombre").value.trim();
-    const correo = document.getElementById("loginCorreo").value.trim();
-
-    if (!nombre || !correo) {
+  // --- BOTÓN DE REGISTRO ---
+  const btnRegistro = modalRegistro.querySelector("#btnRegistro");
+  btnRegistro.addEventListener("click", async () => {
+    const nombre = document.getElementById("regNombre").value.trim();
+    const correo = document.getElementById("regCorreo").value.trim();
+    const pin = document.getElementById("regPin").value.trim();
+    const fotoInput = document.getElementById("regFoto");
+    if (!nombre || !correo || !pin || !fotoInput.files.length) {
       mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
       return;
     }
 
-    // ✅ Validación de correo
     const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!correoValido.test(correo)) {
-      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+      mostrarAviso("📮 Debes ingresar un correo válido", "error");
       return;
     }
 
-    const usuario = { nombre, correo };
+    const foto = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(",")[1]); // base64
+      reader.readAsDataURL(fotoInput.files[0]);
+    });
 
-    currentAuthorName = nombre;
-    currentAuthorEmail = correo;
-
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    localStorage.setItem("autor", nombre);
-    localStorage.setItem("correo", correo);
-
-    modal.style.display = "none";
-    mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-    overlay.style.opacity = "0";
-    setTimeout(() => overlay.remove(), 400);
-
-    location.reload();
+    // --- Llamada al Apps Script ---
+    fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
+      method: "POST",
+      body: new URLSearchParams({
+        accion: "registro",
+        correo,
+        nombre,
+        pin,
+        foto
+      })
+    })
+    .then(res => res.text())
+    .then(resp => {
+      if (resp.includes("Usuario registrado")) {
+        mostrarAviso("✅ Usuario registrado, ya puedes iniciar sesión", "success");
+        modalRegistro.style.display = "none";
+        if (modal) modal.style.display = "flex"; // mostrar login
+      } else {
+        mostrarAviso(resp, "error");
+      }
+    })
+    .catch(err => mostrarAviso("❌ Error en el registro: " + err.message, "error"));
   });
-}
 
+  // --- LOGIN (tu código existente) ---
+  if (modal) modal.style.display = "none"; // se muestra después del registro
+  if (btnLogin) {
+    btnLogin.addEventListener("click", () => {
+      const nombre = document.getElementById("loginNombre").value.trim();
+      const correo = document.getElementById("loginCorreo").value.trim();
+      const pin = document.getElementById("loginPin")?.value.trim() || ""; // si tienes PIN en login
+
+      if (!nombre || !correo) {
+        mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+        return;
+      }
+
+      // Validación de correo
+      const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!correoValido.test(correo)) {
+        mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+        return;
+      }
+
+      // --- Verificar usuario en Apps Script ---
+      fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
+        method: "POST",
+        body: new URLSearchParams({
+          accion: "login",
+          correo,
+          pin
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "📨success") {
+          const usuario = { nombre: data.nombre, correo: data.correo, foto: data.fotoPerfil || "" };
+          currentAuthorName = data.nombre;
+          currentAuthorEmail = data.correo;
+          localStorage.setItem("usuario", JSON.stringify(usuario));
+          localStorage.setItem("autor", data.nombre);
+          localStorage.setItem("correo", data.correo);
+          modal.style.display = "none";
+          overlay.style.opacity = "0";
+          setTimeout(() => overlay.remove(), 400);
+          mostrarAviso("✅ Sesión iniciada correctamente", "success");
+          location.reload();
+        } else {
+          mostrarAviso("📌 " + data.message, "error");
+        }
+      })
+      .catch(err => mostrarAviso("❌ Error al iniciar sesión: " + err.message, "error"));
+    });
+  }
 
   return;
 }
+
 
 
 // ======================================================================================
@@ -3249,6 +3326,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
