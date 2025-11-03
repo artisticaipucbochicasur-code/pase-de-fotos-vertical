@@ -1,22 +1,92 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>Test fetch</title></head>
-<body style="background:black;color:white;font-family:monospace;">
-<h3>Test del servidor</h3>
-<pre id="out">Cargando...</pre>
-<script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swiper iOS con servidor seguro</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+  <style>
+    html, body {height:100%;margin:0;overflow:hidden;-webkit-tap-highlight-color:transparent;background:#000;color:white;font-family:sans-serif;}
+    .swiper {width:100vw;height:100vh;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;background:#000;}
+    .swiper-slide {display:flex;align-items:center;justify-content:center;background:#000;}
+    .swiper-slide img {width:100%;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;touch-action:pan-y pinch-zoom;}
+    #loader {position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-size:18px;z-index:10;}
+  </style>
+</head>
+<body>
+  <div id="loader">Cargando...</div>
+  <div class="swiper"><div class="swiper-wrapper"></div></div>
 
-fetch(`${SCRIPT_URL}?accion=listarAnuncios`)
-  .then(r => r.text())
-  .then(t => {
-    document.getElementById("out").textContent = t;
-    console.log("Respuesta completa:", t);
-  })
-  .catch(e => {
-    document.getElementById("out").textContent = "Error: " + e;
-    console.error(e);
-  });
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+  const loader = document.getElementById('loader');
+  let swiper;
+
+  async function cargarImagenes() {
+    loader.style.display = 'block';
+    const wrapper = document.querySelector('.swiper-wrapper');
+    wrapper.innerHTML = '';
+
+    try {
+      const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+      const text = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error("❌ JSON inválido del servidor:\n" + text.slice(0, 200));
+      }
+
+      if (!data.url || data.url.length === 0) throw new Error("Sin URLs en el JSON.");
+
+      data.url.forEach((url, i) => {
+        const slide = document.createElement('div');
+        slide.classList.add('swiper-slide');
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = data.titulo?.[i] || `Imagen ${i+1}`;
+        slide.appendChild(img);
+        wrapper.appendChild(slide);
+      });
+
+      if (swiper) swiper.destroy(true, true);
+      swiper = new Swiper('.swiper', {
+        direction: 'vertical',
+        loop: true,
+        slidesPerView: 1,
+        spaceBetween: 8,
+        simulateTouch: true,
+        touchStartPreventDefault: false
+      });
+
+    } catch (error) {
+      document.body.innerHTML = `<pre style="color:white;padding:20px;">${error}</pre>`;
+      console.error(error);
+    } finally {
+      loader.style.display = 'none';
+    }
+  }
+
+  // Evita pull-to-refresh en Safari
+  (function(){
+    const el = document.querySelector('.swiper');
+    let startY = 0, startX = 0, moving = false;
+    function onStart(e){if(e.touches.length>1)return;startY=e.touches[0].clientY;startX=e.touches[0].clientX;moving=true;}
+    function onMove(e){
+      if(!moving||e.touches.length>1)return;
+      const dy=e.touches[0].clientY-startY, dx=e.touches[0].clientX-startX;
+      if(Math.abs(dx)>Math.abs(dy))return;
+      if((window.scrollY===0||startY<60)&&dy>0)e.preventDefault();
+    }
+    function onEnd(){moving=false;}
+    el.addEventListener('touchstart',onStart,{passive:true});
+    el.addEventListener('touchmove',onMove,{passive:false});
+    el.addEventListener('touchend',onEnd,{passive:true});
+  })();
+
+  cargarImagenes();
+  </script>
 </body>
 </html>
