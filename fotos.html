@@ -3066,32 +3066,33 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   // LOGIN CON GOOGLE APPS SCRIPT (CORREGIDO: JSON seguro)
   // ======================================================================================
-  document.getElementById("btnLogin")?.addEventListener("click", async () => {
-    const correo = document.getElementById("loginCorreo").value.trim();
-    const pin = document.getElementById("loginPin").value.trim();
+ // REEMPLAZA TODO EL BLOQUE DE LOGIN
+document.getElementById("btnLogin")?.addEventListener("click", async () => {
+  const correo = document.getElementById("loginCorreo").value.trim();
+  const pin = document.getElementById("loginPin").value.trim();
 
-    if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+  if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+
+  // ENVÍA COMO FORM-URLENCODED
+  const formData = new URLSearchParams();
+  formData.append("accion", "login");
+  formData.append("correo", correo);
+  formData.append("pin", pin);
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData
+    });
+
+    const texto = await res.text();
+    console.log("Login respuesta:", texto);
 
     try {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accion: "login", correo, pin })
-      });
-
-      if (!res.ok) throw new Error("Error HTTP: " + res.status);
-
-      let data;
-      const text = await res.text();
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.warn("No es JSON:", text);
-        return mostrarAviso("Error del servidor", "error");
-      }
-
+      const data = JSON.parse(texto);
       if (data.status === "success") {
         const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil || "" };
         localStorage.setItem("usuario", JSON.stringify(usuario));
@@ -3104,57 +3105,67 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
       }
-    } catch (err) {
-      console.error("Error login:", err);
-      mostrarAviso("Error de conexión. Revisa tu internet.", "error");
+    } catch (e) {
+      mostrarAviso("Error del servidor", "error");
     }
-  });
+  } catch (err) {
+    console.error("Error:", err);
+    mostrarAviso("Error de conexión", "error");
+  }
+});
 
   // ======================================================================================
   // REGISTRO CON GOOGLE APPS SCRIPT (CORREGIDO: texto plano)
   // ======================================================================================
-  document.getElementById("btnRegistro")?.addEventListener("click", async () => {
-    const nombre = document.getElementById("regNombre").value.trim();
-    const correo = document.getElementById("regCorreo").value.trim();
-    const pin = document.getElementById("regPin").value;
-    const pinConfirm = document.getElementById("regPinConfirm").value;
-    const file = regFoto.files[0];
+  // REEMPLAZA TODO EL BLOQUE DE REGISTRO
+document.getElementById("btnRegistro")?.addEventListener("click", async () => {
+  const nombre = document.getElementById("regNombre").value.trim();
+  const correo = document.getElementById("regCorreo").value.trim();
+  const pin = document.getElementById("regPin").value;
+  const pinConfirm = document.getElementById("regPinConfirm").value;
+  const file = regFoto.files[0];
 
-    if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-    if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
-    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+  if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+  if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
+  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const fotoBase64 = reader.result.split(",")[1];
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const fotoBase64 = reader.result.split(",")[1];
 
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accion: "registro", nombre, correo, pin, foto: fotoBase64 })
-        });
+    // ENVÍA COMO FORM-URLENCODED (igual que App Inventor)
+    const formData = new URLSearchParams();
+    formData.append("accion", "registro");
+    formData.append("nombre", nombre);
+    formData.append("correo", correo);
+    formData.append("pin", pin);
+    formData.append("foto", fotoBase64);
 
-        if (!res.ok) throw new Error("Error HTTP: " + res.status);
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData
+      });
 
-        const texto = await res.text();
-        console.log("Registro:", texto);
+      const texto = await res.text();
+      console.log("Registro:", texto);
 
-        if (texto.includes("registrado")) {
-          mostrarAviso("Cuenta creada! Inicia sesión", "success");
-          mostrarForm("login");
-          document.getElementById("loginCorreo").value = correo;
-        } else {
-          mostrarAviso(texto || "Error al registrarse", "error");
-        }
-      } catch (err) {
-        console.error("Error registro:", err);
-        mostrarAviso("Error de conexión al registrarse", "error");
+      if (texto.includes("registrado")) {
+        mostrarAviso("Cuenta creada! Inicia sesión", "success");
+        mostrarForm("login");
+        document.getElementById("loginCorreo").value = correo;
+      } else {
+        mostrarAviso(texto || "Error al registrarse", "error");
       }
-    };
-    reader.readAsDataURL(file);
-  });
+    } catch (err) {
+      console.error("Error:", err);
+      mostrarAviso("Error de conexión", "error");
+    }
+  };
+  reader.readAsDataURL(file);
+});
 
   // ======================================================================================
   // CERRAR MODAL Y CONTINUAR
@@ -3407,5 +3418,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
