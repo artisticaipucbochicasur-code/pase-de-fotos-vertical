@@ -26,23 +26,30 @@
 
   <title>DECOM - Fotos</title>
   <style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #111;
-        font-family: Arial, sans-serif;
-        color: white;
-        transition: transform 0.3s ease; /* Transición para el movimiento */
-    }
-    .swiper {
-  width: 100vw;
-  height: 100vh;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #111;
+  font-family: Arial, sans-serif;
+  color: white;
+  transition: transform 0.3s ease; /* Transición para el movimiento */
 
-  /* 🔹 Fix iOS scroll/refresh/reload issues */
-  touch-action: none;
-  overscroll-behavior: contain;
+  /* 🔒 iOS fix para evitar scroll o reload */
+  overflow: hidden;
+  overscroll-behavior: none;
   -webkit-overflow-scrolling: auto;
 }
+
+.swiper {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+}
+
+
 
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -2730,35 +2737,24 @@ function initSwiper(initialIndex = 0) {
   }
 }
 
-// === ⚙️ FIX iOS: Evitar recarga o scroll durante swipe ===
-(function preventIOSPullToRefresh() {
-  let startY = 0;
-  let active = false;
+// === ⚙️ FIX DEFINITIVO iOS: Bloquear recarga o rebote del WebView ===
+(function preventIOSPullToRefreshGlobal() {
+  let isTouchingSwiper = false;
 
   document.addEventListener(
     "touchstart",
     (e) => {
-      const target = e.target.closest(".swiper");
-      if (target) {
-        active = true;
-        startY = e.touches[0].pageY;
-      } else {
-        active = false;
-      }
+      isTouchingSwiper = !!e.target.closest(".swiper");
     },
-    { passive: false }
+    { passive: true }
   );
 
   document.addEventListener(
     "touchmove",
     (e) => {
-      if (!active) return;
-      const currentY = e.touches[0].pageY;
-      const diff = currentY - startY;
-
-      // Si el movimiento es vertical dentro del swiper, bloquea el refresh
-      if (Math.abs(diff) > 5) {
+      if (isTouchingSwiper) {
         e.preventDefault();
+        e.stopPropagation();
       }
     },
     { passive: false }
@@ -2767,11 +2763,13 @@ function initSwiper(initialIndex = 0) {
   document.addEventListener(
     "touchend",
     () => {
-      active = false;
+      isTouchingSwiper = false;
     },
     { passive: true }
   );
 })();
+
+
 
     
 
@@ -3330,6 +3328,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
