@@ -2,37 +2,29 @@
 <html>
 <head>
   <meta charset="utf-8">
-
-  <!-- Bloquea zoom y pull-to-refresh al nivel más alto -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-
-  <title>Swiper iOS Test - Reales</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swiper iOS test con imágenes</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: auto;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: none;
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      overflow: hidden; 
+      -webkit-tap-highlight-color: transparent; 
       background: #000;
     }
-    .swiper {
-      width: 100vw;
-      height: 100vh;
-      overscroll-behavior: contain;
-      touch-action: pan-y;
-      -webkit-overflow-scrolling: touch;
-      background: #000;
+    .swiper { 
+      width: 100vw; 
+      height: 100vh; 
+      overscroll-behavior: contain; 
+      touch-action: pan-y; 
+      -webkit-overflow-scrolling: touch; 
+      background: #000; 
     }
-    .swiper-slide {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .swiper-slide { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
       background: #000;
     }
     .swiper-slide img {
@@ -43,162 +35,82 @@
       -webkit-user-drag: none;
       touch-action: pan-y pinch-zoom;
     }
-    #loader {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 18px;
-      font-family: sans-serif;
-      z-index: 10;
-    }
   </style>
-
-  <!-- === ⚔️ Bloqueo agresivo de Pull-To-Refresh iOS === -->
-  <script>
-  (function earlyIOSBlocker(){
-    const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform && /MacIntel/.test(navigator.platform) && navigator.maxTouchPoints > 1);
-    if (!isIOS) return;
-
-    window.addEventListener('touchstart', onTouchStartCapture, {passive: false, capture: true});
-    window.addEventListener('touchmove', onTouchMoveCapture, {passive: false, capture: true});
-    window.addEventListener('touchend', onTouchEndCapture, {passive: false, capture: true});
-
-    let startY = 0;
-    let isActive = false;
-    let fixedApplied = false;
-    const docEl = document.documentElement;
-
-    function applyFixed() {
-      if (fixedApplied) return;
-      const scrollY = window.scrollY || docEl.scrollTop || 0;
-      docEl.style.position = 'fixed';
-      docEl.style.top = `-${scrollY}px`;
-      docEl.style.left = '0';
-      docEl.style.right = '0';
-      fixedApplied = true;
-    }
-    function removeFixed() {
-      if (!fixedApplied) return;
-      const top = parseInt(docEl.style.top || '0') || 0;
-      docEl.style.position = '';
-      docEl.style.top = '';
-      docEl.style.left = '';
-      docEl.style.right = '';
-      const scrollY = -top;
-      window.scrollTo(0, scrollY);
-      fixedApplied = false;
-    }
-
-    function onTouchStartCapture(e){
-      if (!e.touches || e.touches.length !== 1) return;
-      startY = e.touches[0].clientY;
-      isActive = true;
-      applyFixed();
-    }
-
-    function onTouchMoveCapture(e){
-      if (!isActive || !e.touches || e.touches.length !== 1) return;
-      const y = e.touches[0].clientY;
-      const deltaY = y - startY;
-      const atTop = (document.scrollingElement && document.scrollingElement.scrollTop === 0) || (window.scrollY === 0);
-      if (atTop && deltaY > 0) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-
-    function onTouchEndCapture(e){
-      isActive = false;
-      setTimeout(removeFixed, 30);
-    }
-
-    // Evita doble-tap zoom
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function(e){
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) e.preventDefault();
-      lastTouchEnd = now;
-    }, {passive: false, capture: true});
-
-    // Evita gesto de pinch-zoom
-    document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false, capture:true});
-  })();
-  </script>
 </head>
-
 <body>
   <div class="swiper">
-    <div class="swiper-wrapper"></div>
+    <div class="swiper-wrapper">
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800" alt="Paisaje 1">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1517816743773-6e0fd518b4a6?w=800" alt="Paisaje 2">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800" alt="Paisaje 3">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800" alt="Paisaje 4">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?w=800" alt="Paisaje 5">
+      </div>
+    </div>
   </div>
-
-  <div id="loader">Cargando...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-  let swiperInstance = null;
-  let anunciosData = [];
-  const loader = document.getElementById('loader');
-  const comentariosPorAnuncio = {};
+    // Inicializa Swiper
+    const swiper = new Swiper('.swiper', {
+      direction: 'vertical',
+      loop: true,
+      slidesPerView: 1,
+      spaceBetween: 8,
+      simulateTouch: true,
+      touchStartPreventDefault: false
+    });
 
-  async function cargarImagenes() {
-    loader.style.display = 'block';
-    try {
-      const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-      const data = await response.json();
-      let newAnunciosData = [];
+    // Parche que evita pull-to-refresh solo si el gesto arranca cerca del top y es hacia abajo
+    (function(){
+      const swiperEl = document.querySelector('.swiper');
+      let startY = 0, startX = 0, isMoving = false;
 
-      if (data.url && data.url.length > 0) {
-        data.url.forEach((url, i) => {
-          const id = data.id[i];
-          newAnunciosData.push({
-            titulo: data.titulo[i] || "",
-            descripcion: data.descripcion[i] || "",
-            url: url,
-            id: id || ""
-          });
-        });
+      function onTouchStart(e) {
+        if (!e.touches || e.touches.length > 1) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isMoving = true;
       }
 
-      newAnunciosData.reverse();
-      anunciosData = newAnunciosData;
+      function onTouchMove(e) {
+        if (!isMoving || !e.touches || e.touches.length > 1) return;
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const deltaY = currentY - startY;
+        const deltaX = currentX - startX;
 
-      const wrapper = document.querySelector('.swiper-wrapper');
-      wrapper.innerHTML = '';
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // gesto horizontal -> no interferir
 
-      anunciosData.forEach(a => {
-        const slide = document.createElement('div');
-        slide.classList.add('swiper-slide');
-        const img = document.createElement('img');
-        img.src = a.url;
-        img.alt = a.titulo;
-        slide.appendChild(img);
-        wrapper.appendChild(slide);
-      });
+        const startedNearTop = (window.scrollY === 0 || startY < 60); // umbral
+        const draggingDown = deltaY > 0;
 
-      if (!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-          direction: 'vertical',
-          loop: true,
-          slidesPerView: 1,
-          spaceBetween: 8,
-          simulateTouch: true,
-          touchStartPreventDefault: false
-        });
-      } else {
-        swiperInstance.update();
+        if (startedNearTop && draggingDown) {
+          e.preventDefault(); // requiere passive:false
+        }
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      loader.style.display = 'none';
-    }
-  }
 
-  // Ejecutar carga
-  cargarImagenes();
+      function onTouchEnd() {
+        isMoving = false;
+      }
+
+      swiperEl.removeEventListener('touchstart', onTouchStart);
+      swiperEl.removeEventListener('touchmove', onTouchMove);
+      swiperEl.removeEventListener('touchend', onTouchEnd);
+
+      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+      swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
+      swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    })();
   </script>
 </body>
 </html>
