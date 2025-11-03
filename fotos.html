@@ -2656,36 +2656,44 @@ function initSwiper(initialIndex = 0) {
       simulateTouch: true,
       touchStartPreventDefault: false,
       passiveListeners: false,
+      cssMode: false,
     });
 
-    // === 🔹 Parche iOS: evitar pull-to-refresh sin romper scroll ===
-    (function () {
+    // === 🧩 Parche iOS REAL: bloquear pull-to-refresh sin romper swipe ===
+    (function iosSwipeFix() {
       const swiperEl = document.querySelector(".swiper");
-      let startY = 0,
-        startX = 0,
-        isMoving = false;
+      if (!swiperEl) return;
+
+      let startY = 0;
+      let startX = 0;
+      let isMoving = false;
 
       function onTouchStart(e) {
-        if (!e.touches || e.touches.length > 1) return;
+        if (e.touches.length > 1) return;
         startY = e.touches[0].clientY;
         startX = e.touches[0].clientX;
         isMoving = true;
       }
 
       function onTouchMove(e) {
-        if (!isMoving || !e.touches || e.touches.length > 1) return;
+        if (!isMoving || e.touches.length > 1) return;
         const currentY = e.touches[0].clientY;
         const currentX = e.touches[0].clientX;
         const deltaY = currentY - startY;
         const deltaX = currentX - startX;
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // gesto horizontal -> no interferir
+        // si el gesto es horizontal, no interferir
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
 
-        const startedNearTop = window.scrollY === 0 || startY < 60; // umbral
+        // si empieza cerca del top y va hacia abajo → bloquear reload
+        const startedNearTop =
+          window.scrollY === 0 ||
+          document.documentElement.scrollTop === 0 ||
+          startY < 80;
         const draggingDown = deltaY > 0;
 
         if (startedNearTop && draggingDown) {
-          e.preventDefault(); // bloquea el reload de Safari
+          e.preventDefault();
         }
       }
 
@@ -3320,6 +3328,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
