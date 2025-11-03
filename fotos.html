@@ -12,12 +12,13 @@
       overflow: hidden;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
+      background: #000;
     }
     .swiper {
       width: 100vw;
       height: 100vh;
       overscroll-behavior: contain;
-      touch-action: pan-y pinch-zoom;
+      touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
       background: #000;
     }
@@ -25,7 +26,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #111;
+      background: #000;
     }
     .swiper-slide img {
       width: 100%;
@@ -35,6 +36,16 @@
       -webkit-user-drag: none;
       touch-action: pan-y pinch-zoom;
     }
+    #loader {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      font-family: sans-serif;
+      z-index: 10;
+    }
   </style>
 </head>
 <body>
@@ -42,131 +53,110 @@
     <div class="swiper-wrapper"></div>
   </div>
 
-  <div id="loader" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:white;">Cargando...</div>
+  <div id="loader">Cargando...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     // =============================
     // CONFIGURACIÓN
     // =============================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec"; // 🔁 cambia esto
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let swiperInstance = null;
     let anunciosData = [];
     const loader = document.getElementById('loader');
-    const comentariosPorAnuncio = {}; // placeholder para compatibilidad
+    const comentariosPorAnuncio = {};
 
     // =============================
-    // FUNCIÓN PRINCIPAL: cargarImagenes()
+    // FUNCIÓN PRINCIPAL
     // =============================
     async function cargarImagenes() {
-  loader.style.display = 'block';
-  const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-  const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+      loader.style.display = 'block';
+      const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+      const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-  try {
-    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        let newAnunciosData = [];
 
-    // 🧩 === DEPURACIÓN Y VALIDACIÓN ===
-    console.log("📦 Datos recibidos desde Script:", data);
+        if(data.url && data.url.length > 0) {
+          data.url.forEach((url, index) => {
+            const idAnuncio = data.id[index];
+            const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+            const comentariosFormateados = comentarios;
+            newAnunciosData.push({
+              titulo: data.titulo[index] || "",
+              descripcion: data.descripcion[index] || "",
+              comentarios: comentariosFormateados,
+              url: url,
+              deleteurl: data.deleteurl[index] || "",
+              autor: data.autor[index] || "",
+              correo: data.correo[index] || "",
+              fecha: data.fecha[index] || "",
+              id: idAnuncio || ""
+            });
+          });
+        }
 
-    if (!data || !data.url || data.url.length === 0) {
-      loader.innerText = "⚠️ No se recibieron imágenes desde el servidor";
-      console.warn("⚠️ No hay imágenes en la respuesta del script.");
-      return;
-    }
+        newAnunciosData.reverse();
 
-    let newAnunciosData = [];
+        const oldAnunciosIds = anunciosData.map(a => a.id);
+        const newAnunciosIds = newAnunciosData.map(a => a.id);
 
-    data.url.forEach((url, index) => {
-      const idAnuncio = data.id[index];
-      const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-      const comentariosFormateados = comentarios;
+        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+          loader.style.display = 'none';
+          return;
+        }
 
-      if (!url || !url.startsWith("http")) {
-        console.warn(`🚫 URL inválida detectada en índice ${index}:`, url);
-        return;
+        const currentSlideId = currentId;
+        anunciosData = newAnunciosData;
+
+        // =============================
+        // Construcción del Swiper
+        // =============================
+        const swiperWrapper = document.querySelector('.swiper-wrapper');
+        swiperWrapper.innerHTML = '';
+
+        anunciosData.forEach(anuncio => {
+          const slide = document.createElement('div');
+          slide.classList.add('swiper-slide');
+          slide.dataset.id = anuncio.id;
+
+          const zoomContainer = document.createElement('div');
+          zoomContainer.classList.add('swiper-zoom-container');
+
+          const img = document.createElement('img');
+          img.src = anuncio.url;
+          img.alt = anuncio.titulo;
+
+          zoomContainer.appendChild(img);
+          slide.appendChild(zoomContainer);
+          swiperWrapper.appendChild(slide);
+        });
+
+        if (!swiperInstance) {
+          swiperInstance = new Swiper('.swiper', {
+            direction: 'vertical',
+            loop: true,
+            slidesPerView: 1,
+            spaceBetween: 8,
+            simulateTouch: true,
+            touchStartPreventDefault: false
+          });
+        } else {
+          swiperInstance.update();
+        }
+
+      } catch (error) {
+        console.error("Error al cargar las imágenes:", error);
+      } finally {
+        loader.style.display = 'none';
       }
-
-      newAnunciosData.push({
-        titulo: data.titulo[index] || "",
-        descripcion: data.descripcion[index] || "",
-        comentarios: comentariosFormateados,
-        url: url,
-        deleteurl: data.deleteurl[index] || "",
-        autor: data.autor[index] || "",
-        correo: data.correo[index] || "",
-        fecha: data.fecha[index] || "",
-        id: idAnuncio || ""
-      });
-    });
-
-    if (newAnunciosData.length === 0) {
-      loader.innerText = "⚠️ No se generaron anuncios válidos.";
-      console.warn("⚠️ Ningún anuncio válido generado.");
-      return;
     }
 
-    newAnunciosData.reverse();
-
-    const oldAnunciosIds = anunciosData.map(a => a.id);
-    const newAnunciosIds = newAnunciosData.map(a => a.id);
-
-    if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-      loader.style.display = 'none';
-      return;
-    }
-
-    const currentSlideId = currentId;
-    anunciosData = newAnunciosData;
-
     // =============================
-    // Construcción del Swiper
-    // =============================
-    const swiperWrapper = document.querySelector('.swiper-wrapper');
-    swiperWrapper.innerHTML = '';
-
-    anunciosData.forEach(anuncio => {
-      const slide = document.createElement('div');
-      slide.classList.add('swiper-slide');
-      slide.dataset.id = anuncio.id;
-
-      const zoomContainer = document.createElement('div');
-      zoomContainer.classList.add('swiper-zoom-container');
-
-      const img = document.createElement('img');
-      img.src = anuncio.url;
-      img.alt = anuncio.titulo;
-
-      zoomContainer.appendChild(img);
-      slide.appendChild(zoomContainer);
-      swiperWrapper.appendChild(slide);
-    });
-
-    if (!swiperInstance) {
-      swiperInstance = new Swiper('.swiper', {
-        direction: 'vertical',
-        loop: true,
-        slidesPerView: 1,
-        spaceBetween: 8,
-        simulateTouch: true,
-        touchStartPreventDefault: false
-      });
-    } else {
-      swiperInstance.update();
-    }
-
-  } catch (error) {
-    console.error("Error al cargar las imágenes:", error);
-    loader.innerText = "❌ Error al cargar imágenes.";
-  } finally {
-    loader.style.display = 'none';
-  }
-}
-
-    // =============================
-    // Parche iOS pull-to-refresh
+    // PARCHE iOS pull-to-refresh
     // =============================
     (function(){
       const swiperEl = document.querySelector('.swiper');
@@ -186,19 +176,16 @@
         const deltaY = currentY - startY;
         const deltaX = currentX - startX;
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // horizontal → no interferir
-
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
         const startedNearTop = (window.scrollY === 0 || startY < 60);
         const draggingDown = deltaY > 0;
 
         if (startedNearTop && draggingDown) {
-          e.preventDefault(); // evita el pull-to-refresh
+          e.preventDefault(); // evita pull-to-refresh en iOS
         }
       }
 
-      function onTouchEnd() {
-        isMoving = false;
-      }
+      function onTouchEnd() { isMoving = false; }
 
       swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
       swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -206,11 +193,9 @@
     })();
 
     // =============================
-    // Ejecutar
+    // Ejecutar carga
     // =============================
     cargarImagenes();
   </script>
 </body>
 </html>
-
-
