@@ -973,12 +973,6 @@ body {
                     padding:10px;min-width:180px;text-align:left;z-index:999;">
           <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
           <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
-          <img id="userMenuPhoto" style="
-  width:60px;height:60px;border-radius:50%;
-  object-fit:cover;margin:8px auto;display:block;
-  border:2px solid #0077cc;
-">
-
           <button id="logoutBtn" 
                   style="margin-top:8px;width:100%;padding:8px;border:none;
                          background:#e74c3c;color:white;border-radius:6px;">
@@ -3220,55 +3214,51 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => location.reload(), 500);
   }
 
+  // ======================================================================================
+  // TU CÓDIGO ORIGINAL (SIN MODIFICAR)
+  // ======================================================================================
+  // ... [todo igual hasta el final] ...
 
   // ======================================================================================
   // MANEJO DE USUARIO (CORREGIDO: foto de columna 4)
   // ======================================================================================
-function mostrarUsuario(u) {
-  if (!userBtn) return;
-  userBtn.innerHTML = "";
+  const userBtn = document.getElementById("userBtn");
+  const userMenu = document.getElementById("userMenu");
+  const userName = document.getElementById("userName");
+  const userEmail = document.getElementById("userEmail");
+  const logoutBtn = document.getElementById("logoutBtn");
 
-  // Normalizar campo
-  u.fotoPerfil = (u.fotoPerfil || u.foto || "").trim();
+  function mostrarUsuario(u) {
+    if (!userBtn) return;
+    userBtn.innerHTML = "";
+    
+    // FOTO DE COLUMNA 4: u.fotoPerfil debe tener la URL
+    if (u.fotoPerfil && u.fotoPerfil.trim() !== "" && u.fotoPerfil.includes("http")) {
+      const img = document.createElement("img");
+      img.src = u.fotoPerfil;
+      img.style.width = "32px";
+      img.style.height = "32px";
+      img.style.borderRadius = "50%";
+      img.style.objectFit = "cover";
+      img.style.border = "2px solid #0077cc";
+      img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
+      img.onerror = () => {
+  console.warn("Imagen rota, volviendo a iniciales:", u.fotoPerfil);
+  mostrarIniciales(u);
+};
 
-  // Convertir todo link de Drive a descarga directa
-  if (u.fotoPerfil.includes("drive.google.com")) {
-    const match = u.fotoPerfil.match(/[-\w]{25,}/);
-    if (match) {
-      u.fotoPerfil = `https://drive.google.com/uc?export=download&id=${match[0]}`;
-    }
-  }
-
-  if (u.fotoPerfil !== "" && u.fotoPerfil.includes("http")) {
-    const img = document.createElement("img");
-    img.src = u.fotoPerfil;
-    img.style.width = "32px";
-    img.style.height = "32px";
-    img.style.borderRadius = "50%";
-    img.style.objectFit = "cover";
-    img.style.border = "2px solid #0077cc";
-    img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
-    img.onerror = () => {
-      console.warn("Imagen rota:", u.fotoPerfil);
+      userBtn.appendChild(img);
+    } else {
       mostrarIniciales(u);
-    };
-    userBtn.appendChild(img);
-  } else {
-    mostrarIniciales(u);
+    }
+
+    if (userName) userName.textContent = u.nombre;
+    if (userEmail) userEmail.textContent = u.correo;
+    if (userName) userName.style.color = "#333";
+    if (userEmail) userEmail.style.color = "#555";
+    currentAuthorName = u.nombre;
+    currentAuthorEmail = u.correo;
   }
-
-  if (userName) userName.textContent = u.nombre;
-  if (userEmail) userEmail.textContent = u.correo;
-
-  // Imagen dentro del menú
-  const userMenuPhoto = document.getElementById("userMenuPhoto");
-  if (userMenuPhoto && u.fotoPerfil) {
-    userMenuPhoto.src = u.fotoPerfil;
-    userMenuPhoto.onerror = () => mostrarIniciales(u);
-  }
-}
-
-
 
   function mostrarIniciales(u) {
     if (!userBtn) return;
@@ -3310,15 +3300,18 @@ if (usuarioGuardado) {
 
   usuarioGuardado.fotoPerfil = (usuarioGuardado.fotoPerfil || usuarioGuardado.foto || "").trim();
 
-  // Convertir Drive a download
-  if (usuarioGuardado.fotoPerfil.includes("drive.google.com")) {
+  // Si contiene id=... pero NO uc?export=view → convertir
+  if (usuarioGuardado.fotoPerfil.includes("drive.google.com")
+      && !usuarioGuardado.fotoPerfil.includes("uc?export=view")) {
+
+    // Extraer ID
     const match = usuarioGuardado.fotoPerfil.match(/[-\w]{25,}/);
     if (match) {
-      usuarioGuardado.fotoPerfil = `https://drive.google.com/uc?export=download&id=${match[0]}`;
+      usuarioGuardado.fotoPerfil = `https://drive.google.com/uc?export=view&id=${match[0]}`;
     }
   }
 
-  // Persistimos la URL corregida
+  // Persistimos la versión limpia
   localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
 
   setTimeout(() => {
@@ -3327,7 +3320,6 @@ if (usuarioGuardado) {
     }
   }, 100);
 }
-
 
 
 });
@@ -3340,8 +3332,6 @@ if (usuarioGuardado) {
   </script>
 </body>
 </html>
-
-
 
 
 
