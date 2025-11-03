@@ -3220,22 +3220,18 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => location.reload(), 500);
   }
 
-  // ======================================================================================
-  // TU CÓDIGO ORIGINAL (SIN MODIFICAR)
-  // ======================================================================================
-  // ... [todo igual hasta el final] ...
 
   // ======================================================================================
   // MANEJO DE USUARIO (CORREGIDO: foto de columna 4)
   // ======================================================================================
- function mostrarUsuario(u) {
+function mostrarUsuario(u) {
   if (!userBtn) return;
   userBtn.innerHTML = "";
 
   // Normalizar campo
   u.fotoPerfil = (u.fotoPerfil || u.foto || "").trim();
 
-  // Convertir a uc?export=download si viene en otro formato
+  // Convertir todo link de Drive a descarga directa
   if (u.fotoPerfil.includes("drive.google.com")) {
     const match = u.fotoPerfil.match(/[-\w]{25,}/);
     if (match) {
@@ -3264,12 +3260,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (userName) userName.textContent = u.nombre;
   if (userEmail) userEmail.textContent = u.correo;
 
+  // Imagen dentro del menú
   const userMenuPhoto = document.getElementById("userMenuPhoto");
   if (userMenuPhoto && u.fotoPerfil) {
     userMenuPhoto.src = u.fotoPerfil;
     userMenuPhoto.onerror = () => mostrarIniciales(u);
   }
 }
+
 
 
   function mostrarIniciales(u) {
@@ -3312,18 +3310,15 @@ if (usuarioGuardado) {
 
   usuarioGuardado.fotoPerfil = (usuarioGuardado.fotoPerfil || usuarioGuardado.foto || "").trim();
 
-  // Si contiene id=... pero NO uc?export=view → convertir
-  if (usuarioGuardado.fotoPerfil.includes("drive.google.com")
-      && !usuarioGuardado.fotoPerfil.includes("uc?export=view")) {
-
-    // Extraer ID
+  // Convertir Drive a download
+  if (usuarioGuardado.fotoPerfil.includes("drive.google.com")) {
     const match = usuarioGuardado.fotoPerfil.match(/[-\w]{25,}/);
     if (match) {
-      usuarioGuardado.fotoPerfil = `https://drive.google.com/uc?export=view&id=${match[0]}`;
+      usuarioGuardado.fotoPerfil = `https://drive.google.com/uc?export=download&id=${match[0]}`;
     }
   }
 
-  // Persistimos la versión limpia
+  // Persistimos la URL corregida
   localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
 
   setTimeout(() => {
@@ -3332,6 +3327,7 @@ if (usuarioGuardado) {
     }
   }, 100);
 }
+
 
 
 });
@@ -3344,6 +3340,7 @@ if (usuarioGuardado) {
   </script>
 </body>
 </html>
+
 
 
 
