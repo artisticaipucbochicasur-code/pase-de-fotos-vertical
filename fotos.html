@@ -3087,6 +3087,25 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData
     });
+document.getElementById("btnLogin")?.addEventListener("click", async () => {
+  const correo = document.getElementById("loginCorreo").value.trim();
+  const pin = document.getElementById("loginPin").value.trim();
+
+  if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+
+  const formData = new URLSearchParams();
+  formData.append("accion", "login");
+  formData.append("correo", correo);
+  formData.append("pin", pin);
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData
+    });
 
     const texto = await res.text();
     console.log("Login respuesta:", texto);
@@ -3114,11 +3133,11 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
   }
 });
 
+
   // ======================================================================================
   // REGISTRO CON GOOGLE APPS SCRIPT (CORREGIDO: texto plano)
   // ======================================================================================
-  // REEMPLAZA TODO EL BLOQUE DE REGISTRO
-document.getElementById("btnRegistro")?.addEventListener("click", async () => {
+ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim();
   const pin = document.getElementById("regPin").value;
@@ -3134,7 +3153,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   reader.onload = async () => {
     const fotoBase64 = reader.result.split(",")[1];
 
-    // ENVÍA COMO FORM-URLENCODED (igual que App Inventor)
     const formData = new URLSearchParams();
     formData.append("accion", "registro");
     formData.append("nombre", nombre);
@@ -3166,6 +3184,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   };
   reader.readAsDataURL(file);
 });
+
 
   // ======================================================================================
   // CERRAR MODAL Y CONTINUAR
@@ -3418,6 +3437,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   </script>
 </body>
 </html>
+
 
 
 
