@@ -3290,14 +3290,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // MOSTRAR USUARIO AL FINAL
-  if (usuarioGuardado) {
-    setTimeout(() => {
-      if (document.getElementById("userBtn")) {
-        mostrarUsuario(usuarioGuardado);
-      }
-    }, 100);
+ // MOSTRAR USUARIO AL FINAL (MEJORADO: asegura fotoPerfil)
+if (usuarioGuardado) {
+
+  // Compatibilidad por si la foto no está en localStorage
+  if (!usuarioGuardado.fotoPerfil) {
+    usuarioGuardado.fotoPerfil =
+      usuarioGuardado.foto ||
+      usuarioGuardado.fotoURL ||
+      usuarioGuardado.foto_perfil ||
+      "";
   }
+
+  // Guardar de nuevo si fue corregido
+  localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+
+  setTimeout(() => {
+    if (document.getElementById("userBtn")) {
+      mostrarUsuario(usuarioGuardado);
+    }
+  }, 100);
+}
+
 });
 
 
@@ -3308,5 +3322,6 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
