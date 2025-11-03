@@ -2084,32 +2084,41 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => (overlay.style.opacity = "1"), 50);
 
     if (btnLogin) {
-      btnLogin.addEventListener("click", () => {
-        const nombre = document.getElementById("loginNombre").value.trim();
-        const correo = document.getElementById("loginCorreo").value.trim();
+  btnLogin.addEventListener("click", () => {
+    const nombre = document.getElementById("loginNombre").value.trim();
+    const correo = document.getElementById("loginCorreo").value.trim();
 
-        if (!nombre || !correo) {
-          mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-          return;
-        }
-
-        const usuario = { nombre, correo };
-        currentAuthorName = nombre;
-        currentAuthorEmail = correo;
-
-        localStorage.setItem("usuario", JSON.stringify(usuario));
-        localStorage.setItem("autor", nombre);
-        localStorage.setItem("correo", correo);
-
-        modal.style.display = "none";
-        mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-        overlay.style.opacity = "0";
-        setTimeout(() => overlay.remove(), 400);
-
-        location.reload();
-      });
+    if (!nombre || !correo) {
+      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+      return;
     }
+
+    // ✅ Validación de correo
+    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!correoValido.test(correo)) {
+      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+      return;
+    }
+
+    const usuario = { nombre, correo };
+
+    currentAuthorName = nombre;
+    currentAuthorEmail = correo;
+
+    localStorage.setItem("usuario", JSON.stringify(usuario));
+    localStorage.setItem("autor", nombre);
+    localStorage.setItem("correo", correo);
+
+    modal.style.display = "none";
+    mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+    overlay.style.opacity = "0";
+    setTimeout(() => overlay.remove(), 400);
+
+    location.reload();
+  });
+}
+
     return; // No ejecutar el resto hasta iniciar sesión
   }
 
@@ -3899,3 +3908,4 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
