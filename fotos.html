@@ -26,27 +26,21 @@
 
   <title>DECOM - Fotos</title>
   <style>
-html,
-body {
-  margin: 0;
-  padding: 0;
+html, body {
   height: 100%;
-  background: #111;
-  font-family: Arial, sans-serif;
-  color: white;
-  transition: transform 0.3s ease; /* Transición para el movimiento */
-
-  /* 🔒 iOS fix para evitar scroll o reload */
+  margin: 0;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
-  -webkit-overflow-scrolling: auto;
 }
 
 .swiper {
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
-  touch-action: none;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  background: #000;
 }
 
 
@@ -2659,28 +2653,56 @@ function initSwiper(initialIndex = 0) {
       slidesPerView: 1,
       spaceBetween: 10,
       zoom: { maxRatio: 3, minRatio: 1 },
-      // 🔹 Fix iOS swipe/refresh issues
+      simulateTouch: true,
       touchStartPreventDefault: false,
       passiveListeners: false,
-      simulateTouch: true,
-      touchMoveStopPropagation: true,
-      preventClicks: true,
-      preventClicksPropagation: true,
-      cssMode: false,
     });
 
-    // 🔹 Bloquear el scroll del body mientras se usa el swiper
-    const swiperEl = document.querySelector(".swiper");
-    if (swiperEl) {
-      swiperEl.addEventListener(
-        "touchmove",
-        (e) => {
-          e.preventDefault(); // Evita scroll o refresh del navegador
-        },
-        { passive: false }
-      );
-    }
+    // === 🔹 Parche iOS: evitar pull-to-refresh sin romper scroll ===
+    (function () {
+      const swiperEl = document.querySelector(".swiper");
+      let startY = 0,
+        startX = 0,
+        isMoving = false;
 
+      function onTouchStart(e) {
+        if (!e.touches || e.touches.length > 1) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isMoving = true;
+      }
+
+      function onTouchMove(e) {
+        if (!isMoving || !e.touches || e.touches.length > 1) return;
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const deltaY = currentY - startY;
+        const deltaX = currentX - startX;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // gesto horizontal -> no interferir
+
+        const startedNearTop = window.scrollY === 0 || startY < 60; // umbral
+        const draggingDown = deltaY > 0;
+
+        if (startedNearTop && draggingDown) {
+          e.preventDefault(); // bloquea el reload de Safari
+        }
+      }
+
+      function onTouchEnd() {
+        isMoving = false;
+      }
+
+      swiperEl.removeEventListener("touchstart", onTouchStart);
+      swiperEl.removeEventListener("touchmove", onTouchMove);
+      swiperEl.removeEventListener("touchend", onTouchEnd);
+
+      swiperEl.addEventListener("touchstart", onTouchStart, { passive: true });
+      swiperEl.addEventListener("touchmove", onTouchMove, { passive: false });
+      swiperEl.addEventListener("touchend", onTouchEnd, { passive: true });
+    })();
+
+    // === Tu lógica existente ===
     swiperInstance.on("slideChange", () => {
       const activeIndex = swiperInstance.realIndex;
       updateContentOverlay(activeIndex);
@@ -2737,37 +2759,7 @@ function initSwiper(initialIndex = 0) {
   }
 }
 
-// === ⚙️ FIX DEFINITIVO iOS: Bloquear recarga o rebote del WebView ===
-(function preventIOSPullToRefreshGlobal() {
-  let isTouchingSwiper = false;
 
-  document.addEventListener(
-    "touchstart",
-    (e) => {
-      isTouchingSwiper = !!e.target.closest(".swiper");
-    },
-    { passive: true }
-  );
-
-  document.addEventListener(
-    "touchmove",
-    (e) => {
-      if (isTouchingSwiper) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    },
-    { passive: false }
-  );
-
-  document.addEventListener(
-    "touchend",
-    () => {
-      isTouchingSwiper = false;
-    },
-    { passive: true }
-  );
-})();
 
 
 
@@ -3328,6 +3320,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
