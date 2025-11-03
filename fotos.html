@@ -2912,271 +2912,206 @@ if (imagesBtn) {
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Intro de video 100% compatible con iOS / Android / PC
-  setTimeout(() => {
-    const loader = document.getElementById("loader");
-    if (loader) loader.style.display = "flex";
-    const videoIntro = document.createElement("video");
-    Object.assign(videoIntro, {
-      src: "Ini.mp4",
-      autoplay: true,
-      muted: true,
-      playsInline: true,
-      preload: "auto",
-    });
-    Object.assign(videoIntro.style, {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      objectFit: "cover",
-      zIndex: "999999",
-      backgroundColor: "black",
-      opacity: "0",
-      transition: "opacity 1s ease",
-    });
-    document.body.appendChild(videoIntro);
-    videoIntro.addEventListener("canplaythrough", () => {
-      if (loader) loader.style.display = "none";
-      videoIntro.style.opacity = "1";
-      videoIntro.play().catch(() => {});
-    });
-    videoIntro.addEventListener("ended", () => {
-      videoIntro.style.opacity = "0";
-      setTimeout(() => videoIntro.remove(), 1000);
-    });
+ document.addEventListener("DOMContentLoaded", () => {
+    // Intro de video 100% compatible con iOS / Android / PC
     setTimeout(() => {
-      if (videoIntro.readyState < 3 || videoIntro.paused) {
-        console.warn("iOS bloqueó autoplay, omitiendo video...");
-        videoIntro.remove();
-        if (loader) loader.style.display = "none";
-      }
-    }, 6000);
-  }, 300);
-
-  // ======================================================================================
-  // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
-  // ======================================================================================
-  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
-  const modal = document.getElementById("loginModal");
-
-  if (!usuarioGuardado) {
-    const overlay = document.createElement("div");
-    Object.assign(overlay.style, {
-      position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-      background: "linear-gradient(180deg, #000, #222)", color: "white",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      zIndex: "99998", fontFamily: "Poppins, sans-serif", textAlign: "center",
-      opacity: "0", transition: "opacity 0.4s ease"
-    });
-    overlay.innerHTML = `
-      <h2 style="margin-bottom:12px; font-size:22px;">Acceso restringido</h2>
-      <p style="color:#ccc; max-width:80%; line-height:1.5;">
-        Debes iniciar sesión para acceder al contenido.
-      </p>
-    `;
-    document.body.appendChild(overlay);
-    modal.style.display = "flex";
-    modal.style.zIndex = "99999";
-    setTimeout(() => (overlay.style.opacity = "1"), 50);
-  } else {
-    setTimeout(() => {
-      if (document.getElementById("userBtn")) {
-        mostrarUsuario(usuarioGuardado);
-      }
-    }, 100);
-  }
-
-  // ======================================================================================
-  // CREAR PREVIEW SI NO EXISTE
-  // ======================================================================================
-  let previewContainer = document.getElementById("previewContainer");
-  let fotoPreview = document.getElementById("fotoPreview");
-
-  if (!previewContainer) {
-    previewContainer = document.createElement("div");
-    previewContainer.id = "previewContainer";
-    previewContainer.style.display = "none";
-    previewContainer.style.marginTop = "10px";
-    previewContainer.style.textAlign = "center";
-
-    fotoPreview = document.createElement("img");
-    fotoPreview.id = "fotoPreview";
-    fotoPreview.style.width = "80px";
-    fotoPreview.style.height = "80px";
-    fotoPreview.style.borderRadius = "50%";
-    fotoPreview.style.objectFit = "cover";
-    fotoPreview.style.border = "2px solid #0077cc";
-
-    previewContainer.appendChild(fotoPreview);
-    const regFoto = document.getElementById("regFoto");
-    if (regFoto && regFoto.parentNode) {
-      regFoto.parentNode.insertBefore(previewContainer, regFoto.nextSibling);
-    }
-  }
-
-  // ======================================================================================
-  // PREVISUALIZACIÓN DE FOTO (CORREGIDO: siempre funciona)
-  // ======================================================================================
-  const regFoto = document.getElementById("regFoto");
-
-  regFoto?.addEventListener("change", () => {
-    const file = regFoto.files[0];
-    if (file) {
-      if (file.size > 900 * 1024) {
-        mostrarAviso("Foto muy grande. Máx 900 KB", "error");
-        regFoto.value = "";
-        previewContainer.style.display = "none";
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        fotoPreview.src = e.target.result;
-        previewContainer.style.display = "block";
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-
-  // ======================================================================================
-  // GESTIÓN DE PESTAÑAS Y FORMULARIOS
-  // ======================================================================================
-  const tabLogin = document.getElementById("tabLogin");
-  const tabRegistro = document.getElementById("tabRegistro");
-  const formLogin = document.getElementById("formLogin");
-  const formRegistro = document.getElementById("formRegistro");
-  const irARegistro = document.getElementById("irARegistro");
-  const irALogin = document.getElementById("irALogin");
-
-  tabLogin?.addEventListener("click", () => mostrarForm("login"));
-  tabRegistro?.addEventListener("click", () => mostrarForm("registro"));
-  irARegistro?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("registro"); });
-  irALogin?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("login"); });
-
-  function mostrarForm(tipo) {
-    tabLogin.classList.toggle("active", tipo === "login");
-    tabRegistro.classList.toggle("active", tipo === "registro");
-    formLogin.style.display = tipo === "login" ? "block" : "none";
-    formRegistro.style.display = tipo === "registro" ? "block" : "none";
-  }
-
-  // ======================================================================================
-  // FUNCIÓN PARA MOSTRAR AVISOS
-  // ======================================================================================
-  function mostrarAviso(mensaje, tipo = "info") {
-    const aviso = document.createElement("div");
-    aviso.textContent = mensaje;
-    Object.assign(aviso.style, {
-      position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
-      background: tipo === "error" ? "#e74c3c" : tipo === "success" ? "#27ae60" : "#3498db",
-      color: "white", padding: "12px 24px", borderRadius: "8px", zIndex: "100000",
-      fontFamily: "Arial", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-      animation: "fadeInOut 3s forwards"
-    });
-    document.body.appendChild(aviso);
-    setTimeout(() => aviso.remove(), 3000);
-  }
-
-  // CSS para animación
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes fadeInOut {
-      0% { opacity:0; transform:translate(-50%, -20px); }
-      10% { opacity:1; transform:translateX(-50%); }
-      90% { opacity:1; }
-      100% { opacity:0; transform:translate(-50%, -20px); }
-    }
-    .tab-btn.active { border-bottom: 3px solid #0077cc; color: #0077cc; }
-  `;
-  document.head.appendChild(style);
-
-  // ======================================================================================
-  // URL DEL GOOGLE APPS SCRIPT
-  // ======================================================================================
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-
-  // ======================================================================================
-  // LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
-  // ======================================================================================
-  document.getElementById("btnLogin")?.addEventListener("click", async () => {
-    const correo = document.getElementById("loginCorreo").value.trim();
-    const pin = document.getElementById("loginPin").value.trim();
-
-    if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
-
-    const formData = new URLSearchParams();
-    formData.append("accion", "login");
-    formData.append("correo", correo);
-    formData.append("pin", pin);
-
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "flex";
+      const videoIntro = document.createElement("video");
+      Object.assign(videoIntro, {
+        src: "Ini.mp4",
+        autoplay: true,
+        muted: true,
+        playsInline: true,
+        preload: "auto",
       });
-
-      const texto = await res.text();
-      console.log("Login:", texto);
-
-      try {
-        const data = JSON.parse(texto);
-        if (data.status && data.status.includes("success")) {
-          // FOTO EN COLUMNA 4: data.fotoPerfil o data[3] si es array
-          const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "");
-          const usuario = { 
-            nombre: data.nombre, 
-            correo: data.correo, 
-            fotoPerfil: fotoPerfil 
-          };
-          localStorage.setItem("usuario", JSON.stringify(usuario));
-          localStorage.setItem("autor", data.nombre);
-          localStorage.setItem("correo", data.correo);
-          currentAuthorName = data.nombre;
-          currentAuthorEmail = data.correo;
-          cerrarModalYContinuar();
-          mostrarAviso("Bienvenido, " + data.nombre, "success");
-        } else {
-          mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
+      Object.assign(videoIntro.style, {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        objectFit: "cover",
+        zIndex: "999999",
+        backgroundColor: "black",
+        opacity: "0",
+        transition: "opacity 1s ease",
+      });
+      document.body.appendChild(videoIntro);
+      videoIntro.addEventListener("canplaythrough", () => {
+        if (loader) loader.style.display = "none";
+        videoIntro.style.opacity = "1";
+        videoIntro.play().catch(() => {});
+      });
+      videoIntro.addEventListener("ended", () => {
+        videoIntro.style.opacity = "0";
+        setTimeout(() => videoIntro.remove(), 1000);
+      });
+      setTimeout(() => {
+        if (videoIntro.readyState < 3 || videoIntro.paused) {
+          console.warn("iOS bloqueó autoplay, omitiendo video...");
+          videoIntro.remove();
+          if (loader) loader.style.display = "none";
         }
-      } catch (e) {
-        mostrarAviso("Error del servidor", "error");
-      }
-    } catch (err) {
-      mostrarAviso("Error de conexión", "error");
+      }, 6000);
+    }, 300);
+
+    // ======================================================================================
+    // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+    // ======================================================================================
+    const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+    const modal = document.getElementById("loginModal");
+
+    if (!usuarioGuardado) {
+      const overlay = document.createElement("div");
+      Object.assign(overlay.style, {
+        position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+        background: "linear-gradient(180deg, #000, #222)", color: "white",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        zIndex: "99998", fontFamily: "Poppins, sans-serif", textAlign: "center",
+        opacity: "0", transition: "opacity 0.4s ease"
+      });
+      overlay.innerHTML = `
+        <h2 style="margin-bottom:12px; font-size:22px;">Acceso restringido</h2>
+        <p style="color:#ccc; max-width:80%; line-height:1.5;">
+          Debes iniciar sesión para acceder al contenido.
+        </p>
+      `;
+      document.body.appendChild(overlay);
+      modal.style.display = "flex";
+      modal.style.zIndex = "99999";
+      setTimeout(() => (overlay.style.opacity = "1"), 50);
+    } else {
+      setTimeout(() => {
+        if (document.getElementById("userBtn")) {
+          mostrarUsuario(usuarioGuardado);
+        }
+      }, 100);
     }
-  });
 
-  // ======================================================================================
-  // REGISTRO (CORREGIDO: todo bien)
-  // ======================================================================================
-  document.getElementById("btnRegistro")?.addEventListener("click", async () => {
-    const nombre = document.getElementById("regNombre").value.trim();
-    const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
-    const pin = document.getElementById("regPin").value;
-    const pinConfirm = document.getElementById("regPinConfirm").value;
-    const file = regFoto.files[0];
+    // ======================================================================================
+    // CREAR PREVIEW SI NO EXISTE
+    // ======================================================================================
+    let previewContainer = document.getElementById("previewContainer");
+    let fotoPreview = document.getElementById("fotoPreview");
 
-    if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-    if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
-    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
-    if (file.size > 900 * 1024) return mostrarAviso("Foto muy grande. Máx 900 KB", "error");
+    if (!previewContainer) {
+      previewContainer = document.createElement("div");
+      previewContainer.id = "previewContainer";
+      previewContainer.style.display = "none";
+      previewContainer.style.marginTop = "10px";
+      previewContainer.style.textAlign = "center";
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const fotoBase64 = reader.result.split(",")[1];
+      fotoPreview = document.createElement("img");
+      fotoPreview.id = "fotoPreview";
+      fotoPreview.style.width = "80px";
+      fotoPreview.style.height = "80px";
+      fotoPreview.style.borderRadius = "50%";
+      fotoPreview.style.objectFit = "cover";
+      fotoPreview.style.border = "2px solid #0077cc";
+
+      previewContainer.appendChild(fotoPreview);
+      const regFoto = document.getElementById("regFoto");
+      if (regFoto && regFoto.parentNode) {
+        regFoto.parentNode.insertBefore(previewContainer, regFoto.nextSibling);
+      }
+    }
+
+    // ======================================================================================
+    // PREVISUALIZACIÓN DE FOTO (CORREGIDO: siempre funciona)
+    // ======================================================================================
+    const regFoto = document.getElementById("regFoto");
+
+    regFoto?.addEventListener("change", () => {
+      const file = regFoto.files[0];
+      if (file) {
+        if (file.size > 900 * 1024) {
+          mostrarAviso("Foto muy grande. Máx 900 KB", "error");
+          regFoto.value = "";
+          previewContainer.style.display = "none";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          fotoPreview.src = e.target.result;
+          previewContainer.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // ======================================================================================
+    // GESTIÓN DE PESTAÑAS Y FORMULARIOS
+    // ======================================================================================
+    const tabLogin = document.getElementById("tabLogin");
+    const tabRegistro = document.getElementById("tabRegistro");
+    const formLogin = document.getElementById("formLogin");
+    const formRegistro = document.getElementById("formRegistro");
+    const irARegistro = document.getElementById("irARegistro");
+    const irALogin = document.getElementById("irALogin");
+
+    tabLogin?.addEventListener("click", () => mostrarForm("login"));
+    tabRegistro?.addEventListener("click", () => mostrarForm("registro"));
+    irARegistro?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("registro"); });
+    irALogin?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("login"); });
+
+    function mostrarForm(tipo) {
+      tabLogin && tabLogin.classList.toggle("active", tipo === "login");
+      tabRegistro && tabRegistro.classList.toggle("active", tipo === "registro");
+      if (formLogin) formLogin.style.display = tipo === "login" ? "block" : "none";
+      if (formRegistro) formRegistro.style.display = tipo === "registro" ? "block" : "none";
+    }
+
+    // ======================================================================================
+    // FUNCIÓN PARA MOSTRAR AVISOS
+    // ======================================================================================
+    function mostrarAviso(mensaje, tipo = "info") {
+      const aviso = document.createElement("div");
+      aviso.textContent = mensaje;
+      Object.assign(aviso.style, {
+        position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+        background: tipo === "error" ? "#e74c3c" : tipo === "success" ? "#27ae60" : "#3498db",
+        color: "white", padding: "12px 24px", borderRadius: "8px", zIndex: "100000",
+        fontFamily: "Arial", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+        animation: "fadeInOut 3s forwards"
+      });
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 3000);
+    }
+
+    // CSS para animación
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity:0; transform:translate(-50%, -20px); }
+        10% { opacity:1; transform:translateX(-50%); }
+        90% { opacity:1; }
+        100% { opacity:0; transform:translate(-50%, -20px); }
+      }
+      .tab-btn.active { border-bottom: 3px solid #0077cc; color: #0077cc; }
+    `;
+    document.head.appendChild(style);
+
+    // ======================================================================================
+    // URL DEL GOOGLE APPS SCRIPT
+    // ======================================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+
+    // ======================================================================================
+    // LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
+    // ======================================================================================
+    document.getElementById("btnLogin")?.addEventListener("click", async () => {
+      const correo = document.getElementById("loginCorreo").value.trim();
+      const pin = document.getElementById("loginPin").value.trim();
+
+      if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+      if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
       const formData = new URLSearchParams();
-      formData.append("accion", "registro");
-      formData.append("nombre", nombre);
+      formData.append("accion", "login");
       formData.append("correo", correo);
       formData.append("pin", pin);
-      formData.append("foto", fotoBase64);
 
       try {
         const res = await fetch(SCRIPT_URL, {
@@ -3186,120 +3121,296 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         const texto = await res.text();
-        console.log("Registro:", texto);
+        console.log("Login:", texto);
 
-        if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
-          mostrarAviso("Cuenta creada! Inicia sesión", "success");
-          mostrarForm("login");
-          document.getElementById("loginCorreo").value = correo;
-        } else if (texto.includes("ya registrado")) {
-          mostrarAviso("Ya existe un usuario con ese correo", "error");
-        } else {
-          mostrarAviso(texto || "Error al registrarse", "error");
+        try {
+          const data = JSON.parse(texto);
+          if (data.status && data.status.includes("success")) {
+            // FOTO EN COLUMNA 4: data.fotoPerfil o data[3] si es array
+            const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "");
+            const usuario = { 
+              nombre: data.nombre, 
+              correo: data.correo, 
+              fotoPerfil: fotoPerfil 
+            };
+            localStorage.setItem("usuario", JSON.stringify(usuario));
+            localStorage.setItem("autor", data.nombre);
+            localStorage.setItem("correo", data.correo);
+            currentAuthorName = data.nombre;
+            currentAuthorEmail = data.correo;
+            cerrarModalYContinuar();
+            mostrarAviso("Bienvenido, " + data.nombre, "success");
+          } else {
+            mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
+          }
+        } catch (e) {
+          mostrarAviso("Error del servidor", "error");
         }
       } catch (err) {
         mostrarAviso("Error de conexión", "error");
       }
-    };
-    reader.readAsDataURL(file);
-  });
+    });
 
-  // ======================================================================================
-  // CERRAR MODAL Y CONTINUAR
-  // ======================================================================================
-  function cerrarModalYContinuar() {
-    modal.style.display = "none";
-    document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
-    setTimeout(() => location.reload(), 500);
-  }
+    // ======================================================================================
+    // REGISTRO (CORREGIDO: todo bien)
+    // ======================================================================================
+    document.getElementById("btnRegistro")?.addEventListener("click", async () => {
+      const nombre = document.getElementById("regNombre").value.trim();
+      const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
+      const pin = document.getElementById("regPin").value;
+      const pinConfirm = document.getElementById("regPinConfirm").value;
+      const file = regFoto.files[0];
 
-  // ======================================================================================
-  // TU CÓDIGO ORIGINAL (SIN MODIFICAR)
-  // ======================================================================================
-  // ... [todo igual hasta el final] ...
+      if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+      if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
+      if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+      if (file.size > 900 * 1024) return mostrarAviso("Foto muy grande. Máx 900 KB", "error");
 
-  // ======================================================================================
-  // MANEJO DE USUARIO (CORREGIDO: foto de columna 4)
-  // ======================================================================================
-  const userBtn = document.getElementById("userBtn");
-  const userMenu = document.getElementById("userMenu");
-  const userName = document.getElementById("userName");
-  const userEmail = document.getElementById("userEmail");
-  const logoutBtn = document.getElementById("logoutBtn");
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const fotoBase64 = reader.result.split(",")[1];
 
-  function mostrarUsuario(u) {
-    if (!userBtn) return;
-    userBtn.innerHTML = "";
-    
-    // FOTO DE COLUMNA 4: u.fotoPerfil debe tener la URL
-    if (u.fotoPerfil && u.fotoPerfil.trim() !== "" && u.fotoPerfil.includes("http")) {
-      const img = document.createElement("img");
-      img.src = u.fotoPerfil;
-      img.style.width = "32px";
-      img.style.height = "32px";
-      img.style.borderRadius = "50%";
-      img.style.objectFit = "cover";
-      img.style.border = "2px solid #0077cc";
-      img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
-      img.onerror = () => mostrarIniciales(u);
-      userBtn.appendChild(img);
-    } else {
-      mostrarIniciales(u);
+        const formData = new URLSearchParams();
+        formData.append("accion", "registro");
+        formData.append("nombre", nombre);
+        formData.append("correo", correo);
+        formData.append("pin", pin);
+        formData.append("foto", fotoBase64);
+
+        try {
+          const res = await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData
+          });
+
+          const texto = await res.text();
+          console.log("Registro:", texto);
+
+          if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
+            mostrarAviso("Cuenta creada! Inicia sesión", "success");
+            mostrarForm("login");
+            document.getElementById("loginCorreo").value = correo;
+          } else if (texto.includes("ya registrado")) {
+            mostrarAviso("Ya existe un usuario con ese correo", "error");
+          } else {
+            mostrarAviso(texto || "Error al registrarse", "error");
+          }
+        } catch (err) {
+          mostrarAviso("Error de conexión", "error");
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ======================================================================================
+    // CERRAR MODAL Y CONTINUAR
+    // ======================================================================================
+    function cerrarModalYContinuar() {
+      modal.style.display = "none";
+      document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
+      setTimeout(() => location.reload(), 500);
     }
 
-    if (userName) userName.textContent = u.nombre;
-    if (userEmail) userEmail.textContent = u.correo;
-    if (userName) userName.style.color = "#333";
-    if (userEmail) userEmail.style.color = "#555";
-    currentAuthorName = u.nombre;
-    currentAuthorEmail = u.correo;
-  }
+    // ======================================================================================
+    // TU CÓDIGO ORIGINAL (SIN MODIFICAR)
+    // ======================================================================================
+    // ... [todo igual hasta el final] ...
 
-  function mostrarIniciales(u) {
-    if (!userBtn) return;
-    const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-    userBtn.textContent = iniciales;
-    userBtn.style.background = "#0077cc";
-    userBtn.style.color = "white";
-    userBtn.style.width = "32px";
-    userBtn.style.height = "32px";
-    userBtn.style.borderRadius = "50%";
-    userBtn.style.display = "flex";
-    userBtn.style.alignItems = "center";
-    userBtn.style.justifyContent = "center";
-    userBtn.style.fontWeight = "bold";
-    userBtn.style.fontSize = "12px";
-  }
+    // ======================================================================================
+    // MANEJO DE USUARIO (MEJORADO: preloader, soporte Drive ID, base64, logs)
+    // ======================================================================================
+    const userBtn = document.getElementById("userBtn");
+    const userMenu = document.getElementById("userMenu");
+    const userName = document.getElementById("userName");
+    const userEmail = document.getElementById("userEmail");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-  if (userBtn && userMenu) {
-    userBtn.addEventListener("click", () => {
-      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-    });
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("autor");
-      localStorage.removeItem("correo");
-      currentAuthorName = "";
-      currentAuthorEmail = "";
-      if (userMenu) userMenu.style.display = "none";
-      mostrarAviso("Sesión cerrada", "info");
-      setTimeout(() => location.reload(), 1200);
-    });
-  }
-
-  // MOSTRAR USUARIO AL FINAL
-  if (usuarioGuardado) {
-    setTimeout(() => {
-      if (document.getElementById("userBtn")) {
-        mostrarUsuario(usuarioGuardado);
+    // --- Helper para construir URL directa de Google Drive si el usuario envió solo el ID ---
+    function buildDriveUrlIfNeeded(urlOrId) {
+      if (!urlOrId) return "";
+      const s = String(urlOrId).trim();
+      // Si parece un id (solo letras/números y guiones/underscore, 20-80 chars), conviértelo
+      if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) {
+        return `https://drive.google.com/uc?export=view&id=${s}`;
       }
-    }, 100);
-  }
-});
+      // Si es una URL de drive con "id=" o "/file/d/ID/" extrae ID
+      const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+      if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+      return s;
+    }
 
+    // --- Mostrar usuario con preloader y logs de depuración ---
+    function mostrarUsuario(u) {
+      if (!userBtn) return;
+      console.log("mostrarUsuario - objeto recibido:", u);
+
+      // Limpia contenedor
+      userBtn.innerHTML = "";
+      // Asegurar que u tiene nombre y correo
+      u = u || {};
+      u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
+      u.correo = u.correo || u.email || localStorage.getItem("correo") || "";
+
+      // Extraer posible foto (puede venir en distintas propiedades)
+      let foto = u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "";
+      // Si viene en array
+      if (Array.isArray(foto) && foto.length) foto = foto[0];
+      // Si es base64 (data:) usar directamente
+      const isDataUrl = typeof foto === "string" && foto.startsWith("data:");
+      // Intentar construir URL Drive si hace falta
+      if (!isDataUrl) {
+        foto = buildDriveUrlIfNeeded(foto);
+      }
+
+      // Función fallback que muestra iniciales
+      function fallback() {
+        mostrarIniciales(u);
+      }
+
+      // Si no hay foto, mostrar iniciales
+      if (!foto) {
+        console.warn("mostrarUsuario - no hay foto para mostrar, usando iniciales");
+        fallback();
+      } else if (isDataUrl) {
+        // Si es base64, la asignamos directamente (no hay CORS)
+        const img = document.createElement("img");
+        img.src = foto;
+        img.alt = u.nombre || "avatar";
+        Object.assign(img.style, {
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: "2px solid #0077cc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+        });
+        img.onerror = () => {
+          console.error("Imagen base64 falló al cargar");
+          fallback();
+        };
+        userBtn.appendChild(img);
+      } else {
+        // Para URLs remotas: preload con Image() para capturar onload/onerror
+        console.log("mostrarUsuario - intentando cargar imagen desde URL:", foto);
+        const testImg = new Image();
+        testImg.crossOrigin = "anonymous";
+        let loaded = false;
+        testImg.onload = () => {
+          loaded = true;
+          console.log("mostrarUsuario - imagen cargada correctamente");
+          const img = document.createElement("img");
+          img.src = foto;
+          img.alt = u.nombre || "avatar";
+          Object.assign(img.style, {
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            objectFit: "cover",
+            border: "2px solid #0077cc",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+          });
+          userBtn.appendChild(img);
+        };
+        testImg.onerror = (e) => {
+          console.warn("mostrarUsuario - fallo al cargar la imagen:", e);
+          // Si la URL contiene 'drive.google' y falla, probamos a forzar formato uc?export=view&id=
+          const idMatch = String(foto).match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+          if (idMatch && idMatch[1]) {
+            const altUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+            console.log("mostrarUsuario - reintentando con URL directa de Drive:", altUrl);
+            const retryImg = new Image();
+            retryImg.crossOrigin = "anonymous";
+            retryImg.onload = () => {
+              const img = document.createElement("img");
+              img.src = altUrl;
+              img.alt = u.nombre || "avatar";
+              Object.assign(img.style, {
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "2px solid #0077cc",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+              });
+              userBtn.appendChild(img);
+            };
+            retryImg.onerror = () => {
+              console.error("mostrarUsuario - también falló la URL directa de Drive, usando iniciales");
+              fallback();
+            };
+            retryImg.src = altUrl;
+          } else {
+            fallback();
+          }
+        };
+        // Iniciar carga de prueba
+        testImg.src = foto;
+        // timeout por si queda colgado (ej. redirect que no completa)
+        setTimeout(() => {
+          if (!loaded && userBtn.children.length === 0) {
+            console.warn("mostrarUsuario - timeout al cargar imagen, mostrando iniciales");
+            fallback();
+          }
+        }, 4000);
+      }
+
+      // Actualizar textos
+      if (userName) userName.textContent = u.nombre;
+      if (userEmail) userEmail.textContent = u.correo;
+      if (userName) userName.style.color = "#333";
+      if (userEmail) userEmail.style.color = "#555";
+      currentAuthorName = u.nombre;
+      currentAuthorEmail = u.correo;
+    }
+
+    // --- Mantener mostrarIniciales similar pero sin forzar tamaño demasiado pequeño ---
+    function mostrarIniciales(u) {
+      if (!userBtn) return;
+      userBtn.innerHTML = "";
+      const iniciales = (u && u.nombre) ? u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() : "US";
+      userBtn.textContent = iniciales;
+      userBtn.style.background = "#0077cc";
+      userBtn.style.color = "white";
+      userBtn.style.width = "40px";
+      userBtn.style.height = "40px";
+      userBtn.style.borderRadius = "50%";
+      userBtn.style.display = "flex";
+      userBtn.style.alignItems = "center";
+      userBtn.style.justifyContent = "center";
+      userBtn.style.fontWeight = "bold";
+      userBtn.style.fontSize = "14px";
+    }
+
+    if (userBtn && userMenu) {
+      userBtn.addEventListener("click", () => {
+        userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("usuario");
+        localStorage.removeItem("autor");
+        localStorage.removeItem("correo");
+        currentAuthorName = "";
+        currentAuthorEmail = "";
+        if (userMenu) userMenu.style.display = "none";
+        mostrarAviso("Sesión cerrada", "info");
+        setTimeout(() => location.reload(), 1200);
+      });
+    }
+
+    // MOSTRAR USUARIO AL FINAL
+    if (usuarioGuardado) {
+      setTimeout(() => {
+        if (document.getElementById("userBtn")) {
+          mostrarUsuario(usuarioGuardado);
+        }
+      }, 100);
+    }
+  });
 
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
@@ -3308,3 +3419,4 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
