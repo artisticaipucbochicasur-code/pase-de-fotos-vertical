@@ -3952,6 +3952,52 @@ setTimeout(() => {
   };
 }
 
+          // === 🔄 Sincronizador del contador de imágenes entre fotos.html y videosSesion2.html ===
+
+  // Canal de comunicación entre páginas
+  const imagesChannel = new BroadcastChannel("canalContadorImagenes");
+
+  // Actualiza el número en el botón
+  function updateImagesNotificationCount() {
+    const count = parseInt(localStorage.getItem("contadorImagenes") || "0");
+    const badge = document.getElementById("imagesNotificationCount");
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = "flex";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
+  // Cambia el contador desde cualquier parte
+  function changeImagesNotificationCount(delta) {
+    let count = parseInt(localStorage.getItem("contadorImagenes") || "0");
+    count = Math.max(0, count + delta);
+    localStorage.setItem("contadorImagenes", count);
+    updateImagesNotificationCount();
+    // Notificar a otras páginas abiertas
+    imagesChannel.postMessage({ count });
+  }
+
+  // Al cargar la página
+  document.addEventListener("DOMContentLoaded", updateImagesNotificationCount);
+
+  // Si cambia localStorage (por ejemplo en otra pestaña)
+  window.addEventListener("storage", (e) => {
+    if (e.key === "contadorImagenes") updateImagesNotificationCount();
+  });
+
+  // Escuchar mensajes de otras páginas (tiempo real)
+  imagesChannel.onmessage = (e) => {
+    localStorage.setItem("contadorImagenes", e.data.count);
+    updateImagesNotificationCount();
+  };
+
+  // 💡 Ejemplo de uso:
+  // changeImagesNotificationCount(1);  // suma 1
+  // changeImagesNotificationCount(-1); // resta 1
+
 // === AUTO REFRESCO EN SEGUNDO PLANO ===
 setInterval(() => {
   cargarVideos(true); // solo refresca notificaciones, no toca el sliderF
@@ -3961,5 +4007,6 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
