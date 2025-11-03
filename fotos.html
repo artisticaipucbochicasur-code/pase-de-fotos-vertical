@@ -2644,8 +2644,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
 
-
-  function initSwiper(initialIndex = 0) {
+function initSwiper(initialIndex = 0) {
   if (!swiperInstance) {
     swiperInstance = new Swiper(".swiper", {
       loop: true,
@@ -2730,6 +2729,49 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
   }
 }
+
+// === ⚙️ FIX iOS: Evitar recarga o scroll durante swipe ===
+(function preventIOSPullToRefresh() {
+  let startY = 0;
+  let active = false;
+
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      const target = e.target.closest(".swiper");
+      if (target) {
+        active = true;
+        startY = e.touches[0].pageY;
+      } else {
+        active = false;
+      }
+    },
+    { passive: false }
+  );
+
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!active) return;
+      const currentY = e.touches[0].pageY;
+      const diff = currentY - startY;
+
+      // Si el movimiento es vertical dentro del swiper, bloquea el refresh
+      if (Math.abs(diff) > 5) {
+        e.preventDefault();
+      }
+    },
+    { passive: false }
+  );
+
+  document.addEventListener(
+    "touchend",
+    () => {
+      active = false;
+    },
+    { passive: true }
+  );
+})();
 
     
 
@@ -3288,6 +3330,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
