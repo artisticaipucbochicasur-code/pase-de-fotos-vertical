@@ -59,90 +59,111 @@
     // FUNCIÓN PRINCIPAL: cargarImagenes()
     // =============================
     async function cargarImagenes() {
-      loader.style.display = 'block';
-      const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-      const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+  loader.style.display = 'block';
+  const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+  const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        let newAnunciosData = [];
+  try {
+    const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
 
-        if(data.url && data.url.length > 0) {
-          data.url.forEach((url, index) => {
-            const idAnuncio = data.id[index];
-            const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-            const comentariosFormateados = comentarios;
-            newAnunciosData.push({
-              titulo: data.titulo[index] || "",
-              descripcion: data.descripcion[index] || "",
-              comentarios: comentariosFormateados,
-              url: url,
-              deleteurl: data.deleteurl[index] || "",
-              autor: data.autor[index] || "",
-              correo: data.correo[index] || "",
-              fecha: data.fecha[index] || "",
-              id: idAnuncio || ""
-            });
-          });
-        }
+    // 🧩 === DEPURACIÓN Y VALIDACIÓN ===
+    console.log("📦 Datos recibidos desde Script:", data);
 
-        newAnunciosData.reverse();
-
-        const oldAnunciosIds = anunciosData.map(a => a.id);
-        const newAnunciosIds = newAnunciosData.map(a => a.id);
-
-        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-          loader.style.display = 'none';
-          return;
-        }
-
-        const currentSlideId = currentId;
-        anunciosData = newAnunciosData;
-
-        // =============================
-        // Construcción del Swiper
-        // =============================
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        swiperWrapper.innerHTML = '';
-
-        anunciosData.forEach(anuncio => {
-          const slide = document.createElement('div');
-          slide.classList.add('swiper-slide');
-          slide.dataset.id = anuncio.id;
-
-          const zoomContainer = document.createElement('div');
-          zoomContainer.classList.add('swiper-zoom-container');
-
-          const img = document.createElement('img');
-          img.src = anuncio.url;
-          img.alt = anuncio.titulo;
-
-          zoomContainer.appendChild(img);
-          slide.appendChild(zoomContainer);
-          swiperWrapper.appendChild(slide);
-        });
-
-        if (!swiperInstance) {
-          swiperInstance = new Swiper('.swiper', {
-            direction: 'vertical',
-            loop: true,
-            slidesPerView: 1,
-            spaceBetween: 8,
-            simulateTouch: true,
-            touchStartPreventDefault: false
-          });
-        } else {
-          swiperInstance.update();
-        }
-
-      } catch (error) {
-        console.error("Error al cargar las imágenes:", error);
-      } finally {
-        loader.style.display = 'none';
-      }
+    if (!data || !data.url || data.url.length === 0) {
+      loader.innerText = "⚠️ No se recibieron imágenes desde el servidor";
+      console.warn("⚠️ No hay imágenes en la respuesta del script.");
+      return;
     }
+
+    let newAnunciosData = [];
+
+    data.url.forEach((url, index) => {
+      const idAnuncio = data.id[index];
+      const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+      const comentariosFormateados = comentarios;
+
+      if (!url || !url.startsWith("http")) {
+        console.warn(`🚫 URL inválida detectada en índice ${index}:`, url);
+        return;
+      }
+
+      newAnunciosData.push({
+        titulo: data.titulo[index] || "",
+        descripcion: data.descripcion[index] || "",
+        comentarios: comentariosFormateados,
+        url: url,
+        deleteurl: data.deleteurl[index] || "",
+        autor: data.autor[index] || "",
+        correo: data.correo[index] || "",
+        fecha: data.fecha[index] || "",
+        id: idAnuncio || ""
+      });
+    });
+
+    if (newAnunciosData.length === 0) {
+      loader.innerText = "⚠️ No se generaron anuncios válidos.";
+      console.warn("⚠️ Ningún anuncio válido generado.");
+      return;
+    }
+
+    newAnunciosData.reverse();
+
+    const oldAnunciosIds = anunciosData.map(a => a.id);
+    const newAnunciosIds = newAnunciosData.map(a => a.id);
+
+    if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+      loader.style.display = 'none';
+      return;
+    }
+
+    const currentSlideId = currentId;
+    anunciosData = newAnunciosData;
+
+    // =============================
+    // Construcción del Swiper
+    // =============================
+    const swiperWrapper = document.querySelector('.swiper-wrapper');
+    swiperWrapper.innerHTML = '';
+
+    anunciosData.forEach(anuncio => {
+      const slide = document.createElement('div');
+      slide.classList.add('swiper-slide');
+      slide.dataset.id = anuncio.id;
+
+      const zoomContainer = document.createElement('div');
+      zoomContainer.classList.add('swiper-zoom-container');
+
+      const img = document.createElement('img');
+      img.src = anuncio.url;
+      img.alt = anuncio.titulo;
+
+      zoomContainer.appendChild(img);
+      slide.appendChild(zoomContainer);
+      swiperWrapper.appendChild(slide);
+    });
+
+    if (!swiperInstance) {
+      swiperInstance = new Swiper('.swiper', {
+        direction: 'vertical',
+        loop: true,
+        slidesPerView: 1,
+        spaceBetween: 8,
+        simulateTouch: true,
+        touchStartPreventDefault: false
+      });
+    } else {
+      swiperInstance.update();
+    }
+
+  } catch (error) {
+    console.error("Error al cargar las imágenes:", error);
+    loader.innerText = "❌ Error al cargar imágenes.";
+  } finally {
+    loader.style.display = 'none';
+  }
+}
 
     // =============================
     // Parche iOS pull-to-refresh
@@ -191,4 +212,5 @@
   </script>
 </body>
 </html>
+
 
