@@ -2983,7 +2983,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.zIndex = "99999";
     setTimeout(() => (overlay.style.opacity = "1"), 50);
   } else {
-    // MOSTRAR USUARIO AL INICIO
+    // Mostrar usuario al inicio
     mostrarUsuario(usuarioGuardado);
   }
 
@@ -3064,7 +3064,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
   // ======================================================================================
-  // LOGIN CON GOOGLE APPS SCRIPT (CORREGIDO: Manejo seguro de JSON)
+  // LOGIN CON GOOGLE APPS SCRIPT (CORREGIDO: JSON seguro)
   // ======================================================================================
   document.getElementById("btnLogin")?.addEventListener("click", async () => {
     const correo = document.getElementById("loginCorreo").value.trim();
@@ -3077,7 +3077,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
-        mode: "cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accion: "login", correo, pin })
       });
@@ -3089,11 +3088,11 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        console.warn("No es JSON válido:", text);
+        console.warn("No es JSON:", text);
         return mostrarAviso("Error del servidor", "error");
       }
 
-     onte si (data.status === "success") {
+      if (data.status === "success") {
         const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil || "" };
         localStorage.setItem("usuario", JSON.stringify(usuario));
         localStorage.setItem("autor", data.nombre);
@@ -3112,7 +3111,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================================================================================
-  // REGISTRO CON GOOGLE APPS SCRIPT (CORREGIDO: Manejo de texto plano)
+  // REGISTRO CON GOOGLE APPS SCRIPT (CORREGIDO: texto plano)
   // ======================================================================================
   document.getElementById("btnRegistro")?.addEventListener("click", async () => {
     const nombre = document.getElementById("regNombre").value.trim();
@@ -3133,7 +3132,6 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
-          mode: "cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accion: "registro", nombre, correo, pin, foto: fotoBase64 })
         });
@@ -3141,7 +3139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!res.ok) throw new Error("Error HTTP: " + res.status);
 
         const texto = await res.text();
-        console.log("Respuesta registro:", texto); // DEBUG
+        console.log("Registro:", texto);
 
         if (texto.includes("registrado")) {
           mostrarAviso("Cuenta creada! Inicia sesión", "success");
@@ -3170,7 +3168,70 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   // TU CÓDIGO ORIGINAL (SIN MODIFICAR)
   // ======================================================================================
-  // ... [Todo tu código original: header, cargarVistaInterna, notificaciones, AppInventor, etc.] ...
+  // ----------------------
+  // Resaltado compatible para botones del header
+  // ----------------------
+  (function(){
+    const headerBtns = Array.from(document.querySelectorAll('.header-btn'));
+ 
+    function cleanPath(path) {
+      if (!path) return "";
+      try {
+        const u = new URL(path, location.origin);
+        return u.pathname.split('/').filter(Boolean).join('/');
+      } catch (e) {
+        return (path || "").toString();
+      }
+    }
+    function normalizeForCompare(p) {
+      return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
+    }
+    function setActiveByLocation() {
+      const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
+      headerBtns.forEach(btn => btn.classList.remove('selected'));
+      for (const btn of headerBtns) {
+        const href = btn.getAttribute('href');
+        if (href) {
+          const hrefFile = normalizeForCompare(cleanPath(href).split('/').pop());
+          if (hrefFile && locFile && hrefFile === locFile) {
+            btn.classList.add('selected');
+            return;
+          }
+        }
+      }
+      for (const btn of headerBtns) {
+        const href = btn.getAttribute('href');
+        if (href) {
+          const hrefClean = normalizeForCompare(cleanPath(href));
+          if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+            btn.classList.add('selected');
+            return;
+          }
+        }
+      }
+      if (locFile.includes("fotos") || locFile.includes("slider")) {
+        const imagesBtn = document.getElementById("imagesBtn");
+        if (imagesBtn && (locFile.includes("fotos") || document.body.dataset.view === "fotos")) {
+          imagesBtn.classList.add('selected');
+        }
+      }
+    }
+    setActiveByLocation();
+    headerBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        headerBtns.forEach(x => x.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    window.addEventListener('popstate', setActiveByLocation);
+    let lastPath = location.pathname;
+    setInterval(() => {
+      if (location.pathname !== lastPath) {
+        lastPath = location.pathname;
+        setActiveByLocation();
+      }
+    }, 300);
+  })();
 
   // ------------------------------------------------------------------------------------
   const imagesBtn = document.querySelector('#btnImages');
@@ -3189,26 +3250,28 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function cargarVistaInterna(ruta, botonActivo) {
-    const contenedor = document.getElementById("mainContent");
-    if (!contenedor) {
-      window.location.href = ruta;
-      return;
-    }
-    document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
-    botonActivo.classList.add('selected');
-    contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
-    fetch(ruta)
-      .then(res => res.text())
-      .then(html => {
-        contenedor.innerHTML = html;
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      })
-      .catch(() => {
-        contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
-      });
+      const contenedor = document.getElementById("mainContent");
+      if (!contenedor) {
+          window.location.href = ruta;
+          return;
+      }
+      document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+      botonActivo.classList.add('selected');
+      contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
+      fetch(ruta)
+          .then(res => res.text())
+          .then(html => {
+              contenedor.innerHTML = html;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+          })
+          .catch(() => {
+              contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
+          });
   }
 
+  // ======================================================================================
   // Notificaciones
+  // ======================================================================================
   const lblContador = document.getElementById('lblContador');
   if (lblContador) {
     lblContador.innerHTML = `
@@ -3218,7 +3281,9 @@ document.addEventListener("DOMContentLoaded", () => {
     lblContador.style.display = "flex";
   }
 
+  // ======================================================================================
   // Integración AppInventor
+  // ======================================================================================
   if (window.AppInventor) {
     setInterval(() => {
       const comando = window.AppInventor.getWebViewString?.();
@@ -3257,7 +3322,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================================================================================
-  // MANEJO DE USUARIO (CORREGIDO: Funciones fuera del if, llamadas al inicio)
+  // MANEJO DE USUARIO (CORREGIDO: funciones fuera del if)
   // ======================================================================================
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
@@ -3265,7 +3330,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const userEmail = document.getElementById("userEmail");
   const logoutBtn = document.getElementById("logoutBtn");
 
-  // FUNCIONES FUERA DEL IF (para que existan siempre)
+  // FUNCIONES FUERA DEL IF
   function mostrarUsuario(u) {
     if (!userBtn) return;
     userBtn.innerHTML = "";
@@ -3307,7 +3372,7 @@ document.addEventListener("DOMContentLoaded", () => {
     userBtn.style.fontSize = "12px";
   }
 
-  // Solo agregar eventos si existen
+  // Eventos solo si existen
   if (userBtn && userMenu) {
     userBtn.addEventListener("click", () => {
       userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
@@ -3327,7 +3392,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Si ya hay usuario guardado, mostrarlo
+  // Mostrar usuario al inicio si existe
   if (usuarioGuardado && userBtn) {
     mostrarUsuario(usuarioGuardado);
   }
@@ -3342,4 +3407,5 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
