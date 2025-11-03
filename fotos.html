@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Swiper iOS con servidor</title>
+  <title>Swiper iOS con fetch estable</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <style>
     html, body { 
@@ -12,12 +12,13 @@
       overflow: hidden; 
       -webkit-tap-highlight-color: transparent; 
       background: #000;
+      overscroll-behavior: none;
+      touch-action: none;
     }
     .swiper { 
       width: 100vw; 
       height: 100vh; 
       overscroll-behavior: contain; 
-      touch-action: pan-y; 
       -webkit-overflow-scrolling: touch; 
       background: #000; 
     }
@@ -49,53 +50,32 @@
 </head>
 <body>
   <div class="swiper">
-    <div class="swiper-wrapper">
-      <!-- se llenará dinámicamente -->
-    </div>
+    <div class="swiper-wrapper"></div>
   </div>
 
-  <div id="loader">Cargando...dh</div>
+  <div id="loader">Cargando...EH</div>
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-    let swiper = null;
-    let anunciosData = [];
+    let swiper;
     const loader = document.getElementById('loader');
 
-    // ✅ Bloqueo de pull-to-refresh antes de cualquier carga
-    (function(){
-      const swiperEl = document.documentElement; // más global
-      let startY = 0, startX = 0, isMoving = false;
-
-      function onTouchStart(e) {
-        if (!e.touches || e.touches.length > 1) return;
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        isMoving = true;
-      }
-
-      function onTouchMove(e) {
-        if (!isMoving || !e.touches || e.touches.length > 1) return;
-        const currentY = e.touches[0].clientY;
-        const currentX = e.touches[0].clientX;
-        const deltaY = currentY - startY;
-        const deltaX = currentX - startX;
-
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-        const startedNearTop = (window.scrollY === 0 || startY < 60);
-        const draggingDown = deltaY > 0;
-        if (startedNearTop && draggingDown) e.preventDefault();
-      }
-
-      function onTouchEnd() { isMoving = false; }
-
-      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
-      swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
-      swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    // 🚫 Bloquear pull-to-refresh global en iOS
+    (function bloquearPull() {
+      let startY = 0, moving = false;
+      document.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) startY = e.touches[0].clientY;
+      }, { passive: true });
+      document.addEventListener('touchmove', e => {
+        if (!e.touches.length) return;
+        const y = e.touches[0].clientY;
+        const deltaY = y - startY;
+        if (window.scrollY === 0 && deltaY > 0) e.preventDefault();
+      }, { passive: false });
     })();
 
-    // ✅ Inicializa Swiper vacío primero
+    // 🔹 Inicializar Swiper vacío
     swiper = new Swiper('.swiper', {
       direction: 'vertical',
       loop: true,
@@ -105,46 +85,50 @@
       touchStartPreventDefault: false
     });
 
-    // ✅ Luego carga imágenes del servidor
+    // ✅ Función segura para precargar imágenes
     async function cargarImagenes() {
       loader.style.display = 'block';
       try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        const data = await response.json();
+        const res = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+        const data = await res.json();
 
-        anunciosData = [];
-        if (data.url && data.url.length > 0) {
-          data.url.forEach((url, i) => {
-            anunciosData.push({
-              titulo: data.titulo[i] || "",
-              url: url,
-              id: data.id[i] || ""
-            });
-          });
+        if (!data.url || data.url.length === 0) {
+          throw new Error("Sin imágenes");
         }
 
-        anunciosData.reverse();
+        // Precargar imágenes antes de tocar el DOM
+        const urls = data.url.slice().reverse();
+        await Promise.all(urls.map(src => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = src;
+        })));
+
+        // 🚫 Pausar eventos táctiles mientras actualizamos el DOM
+        document.body.style.pointerEvents = 'none';
 
         swiper.removeAllSlides();
-        anunciosData.forEach(a => {
+        urls.forEach(url => {
           const slide = document.createElement('div');
           slide.classList.add('swiper-slide');
           const img = document.createElement('img');
-          img.src = a.url;
-          img.alt = a.titulo;
+          img.src = url;
+          img.alt = "Imagen";
           slide.appendChild(img);
           swiper.appendSlide(slide);
         });
 
         swiper.update();
+
       } catch (err) {
         console.error("Error al cargar imágenes:", err);
       } finally {
+        document.body.style.pointerEvents = 'auto';
         loader.style.display = 'none';
       }
     }
 
-    // 🔥 Ejecuta carga al abrir
     cargarImagenes();
   </script>
 </body>
