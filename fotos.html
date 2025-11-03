@@ -3100,6 +3100,9 @@ if (imagesBtn) {
     // ======================================================================================
 // LOGIN (CORREGIDO: recibe fotoPerfil correctamente)
 // ======================================================================================
+// ======================================================================================
+// LOGIN compatible Android & iOS (WebView/Navegador)
+// ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async () => {
   const correo = document.getElementById("loginCorreo").value.trim();
   const pin = document.getElementById("loginPin").value.trim();
@@ -3116,40 +3119,38 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cache-Control": "no-cache"
+      },
       body: formData
     });
 
-    // --- DEPURACIÓN PARA VER LA RESPUESTA REAL ---
     const texto = await res.text();
-    console.log("Login raw response:", texto);
+    
+    // DEPURACIÓN MÓVIL
+    // mostrarAviso(texto, "info");
 
     let data;
     try {
       data = JSON.parse(texto);
-      console.log("Login parsed fotoPerfil:", data.fotoPerfil, "length:", data.fotoPerfil ? data.fotoPerfil.length : 0);
     } catch (e) {
-      console.error("JSON parse error:", e);
-      mostrarAviso("Respuesta del servidor inválida", "error");
+      mostrarAviso("Respuesta inválida", "error");
       return;
     }
-
-    // ----------------------------------------------
 
     if (data.status && data.status.includes("success")) {
 
       const usuario = {
         nombre: data.nombre,
         correo: data.correo,
-        fotoPerfil: data.fotoPerfil || "" // ← AQUÍ SE GUARDA
+        fotoPerfil: data.fotoPerfil || ""
       };
 
-      // Guarda datos
       localStorage.setItem("usuario", JSON.stringify(usuario));
       localStorage.setItem("autor", data.nombre);
       localStorage.setItem("correo", data.correo);
 
-      // Variables globales si las usas
       currentAuthorName = data.nombre;
       currentAuthorEmail = data.correo;
 
@@ -3164,6 +3165,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
     mostrarAviso("Error de conexión", "error");
   }
 });
+
 
     // ======================================================================================
     // REGISTRO (CORREGIDO: todo bien)
@@ -3439,6 +3441,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
   </script>
 </body>
 </html>
+
 
 
 
