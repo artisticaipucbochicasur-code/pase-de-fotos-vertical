@@ -985,53 +985,54 @@ body {
 </header>
 
 <!-- Modal de inicio de sesión / registro -->
-<div id="loginModal" 
+<div id="loginModal"
      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.6); z-index:999; justify-content:center; align-items:center;">
-  <div style="background:white; padding:20px; border-radius:12px; width:320px; text-align:center; position:relative;">
+            background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:25px; border-radius:15px; width:320px; max-height:90vh; overflow-y:auto; text-align:center; font-family:Arial,sans-serif;">
     
-    <!-- Toggle entre Login y Registro -->
-    <div style="display:flex; justify-content:space-around; margin-bottom:15px;">
-      <button id="toggleLogin" style="padding:8px 12px; border:none; border-bottom:2px solid #0077cc; background:none; cursor:pointer;">Login</button>
-      <button id="toggleRegistro" style="padding:8px 12px; border:none; background:none; cursor:pointer;">Registro</button>
+    <!-- Pestañas -->
+    <div style="display:flex; margin-bottom:15px; border-bottom:1px solid #ddd;">
+      <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:bold;">Iniciar Sesión</button>
+      <button id="tabRegistro" class="tab-btn" style="flex:1; padding:10px; border:none; background:none;">Registrarse</button>
     </div>
 
-    <!-- Contenedor Login -->
-    <div id="loginForm">
+    <!-- Formulario Login -->
+    <div id="formLogin">
       <h3>🔐 Iniciar Sesión</h3>
-      <input id="loginCorreo" type="email" placeholder="Correo" 
-             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-      <input id="loginPin" type="password" placeholder="PIN" 
-             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-      <button id="btnLogin" 
-              style="margin-top:15px;width:100%;padding:10px;border:none;
-                     background:#0077cc;color:white;border-radius:6px;">
-        Entrar
-      </button>
+      <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="loginPin" type="password" placeholder="PIN (4 dígitos)" maxlength="4" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
+      <p style="margin-top:10px; font-size:13px; color:#666;">
+        ¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a>
+      </p>
     </div>
 
-    <!-- Contenedor Registro -->
-    <div id="registroForm" style="display:none;">
-      <h3>📝 Registrarse</h3>
-      <input id="regNombre" type="text" placeholder="Nombre completo" 
-             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-      <input id="regCorreo" type="email" placeholder="Correo" 
-             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-      <input id="regPin" type="password" placeholder="PIN" 
-             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-      <input id="regFoto" type="file" accept="image/*" 
-             style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-      <button id="btnRegistro" 
-              style="margin-top:15px;width:100%;padding:10px;border:none;
-                     background:#28a745;color:white;border-radius:6px;">
-        Registrarse
-      </button>
+    <!-- Formulario Registro -->
+    <div id="formRegistro" style="display:none;">
+      <h3>✨ Crear Cuenta</h3>
+      <input id="regNombre" type="text" placeholder="Tu nombre completo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="regCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="regPin" type="password" placeholder="Crea un PIN (4 dígitos)" maxlength="4" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" maxlength="4" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      
+      <div style="margin:15px 0; text-align:left; font-size:13px;">
+        <label>Foto de perfil:</label>
+        <input id="regFoto" type="file" accept="image/*" style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:8px;">
+        <div id="previewContainer" style="margin-top:10px; text-align:center; display:none;">
+          <img id="fotoPreview" src="" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:3px solid #0077cc;">
+        </div>
+      </div>
+
+      <button id="btnRegistro" style="width:100%; padding:12px; margin-top:10px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Crear Cuenta</button>
+      <p style="margin-top:10px; font-size:13px; color:#666;">
+        ¿Ya tienes cuenta? <a href="#" id="irALogin" style="color:#0077cc; text-decoration:underline;">Inicia sesión</a>
+      </p>
     </div>
 
+    <button onclick="document.getElementById('loginModal').style.display='none'" 
+            style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
   </div>
 </div>
-
-
   
   
   <div class="swiper"><div class="swiper-wrapper"></div></div>
@@ -2913,439 +2914,441 @@ if (imagesBtn) {
 
     
 document.addEventListener("DOMContentLoaded", () => {
-
-// 🎬 Intro de video 100% compatible con iOS / Android / PC
-setTimeout(() => {
-  const loader = document.getElementById("loader");
-  if (loader) loader.style.display = "flex";
-
-  const videoIntro = document.createElement("video");
-  Object.assign(videoIntro, {
-    src: "Ini.mp4",
-    autoplay: true,
-    muted: true,
-    playsInline: true,
-    preload: "auto",
-  });
-  Object.assign(videoIntro.style, {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    objectFit: "cover",
-    zIndex: "999999",
-    backgroundColor: "black",
-    opacity: "0",
-    transition: "opacity 1s ease",
-  });
-  document.body.appendChild(videoIntro);
-
-  videoIntro.addEventListener("canplaythrough", () => {
-    if (loader) loader.style.display = "none";
-    videoIntro.style.opacity = "1";
-    videoIntro.play().catch(() => {});
-  });
-
-  videoIntro.addEventListener("ended", () => {
-    videoIntro.style.opacity = "0";
-    setTimeout(() => videoIntro.remove(), 1000);
-  });
-
+  // Intro de video 100% compatible con iOS / Android / PC
   setTimeout(() => {
-    if (videoIntro.readyState < 3 || videoIntro.paused) {
-      console.warn("🎥 iOS bloqueó autoplay, omitiendo video...");
-      videoIntro.remove();
-      if (loader) loader.style.display = "none";
-    }
-  }, 6000);
-}, 300);
-
-
-// ======================================================================================
-// 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA (LOGIN + REGISTRO)
-// ======================================================================================
-const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
-const modal = document.getElementById("loginModal");
-
-if (!usuarioGuardado && modal) {
-
-  // --- OVERLAY GENERAL ---
-  const overlay = document.createElement("div");
-  Object.assign(overlay.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    background: "linear-gradient(180deg, #000, #222)",
-    zIndex: "99998",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  });
-  document.body.appendChild(overlay);
-
-  // Mostrar tu modal existente
-  modal.style.display = "flex";
-  modal.style.zIndex = "99999";
-
-  // --- AGREGAR TOGGLE LOGIN / REGISTRO ---
-  const toggleWrapper = document.createElement("div");
-  toggleWrapper.style.display = "flex";
-  toggleWrapper.style.justifyContent = "space-around";
-  toggleWrapper.style.marginBottom = "15px";
-
-  const toggleLogin = document.createElement("button");
-  toggleLogin.textContent = "Login";
-  Object.assign(toggleLogin.style, { padding:"8px 12px", border:"none", borderBottom:"2px solid #0077cc", background:"none", cursor:"pointer" });
-
-  const toggleRegistro = document.createElement("button");
-  toggleRegistro.textContent = "Registro";
-  Object.assign(toggleRegistro.style, { padding:"8px 12px", border:"none", background:"none", cursor:"pointer" });
-
-  toggleWrapper.appendChild(toggleLogin);
-  toggleWrapper.appendChild(toggleRegistro);
-  modal.prepend(toggleWrapper);
-
-  // --- CREAR FORMULARIO DE REGISTRO ---
-  const registroForm = document.createElement("div");
-  registroForm.style.display = "none";
-  registroForm.innerHTML = `
-    <h3>📝 Registrarse</h3>
-    <input id="regNombre" type="text" placeholder="Nombre completo" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-    <input id="regCorreo" type="email" placeholder="Correo" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-    <input id="regPin" type="password" placeholder="PIN" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-    <input id="regFoto" type="file" accept="image/*" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #ccc;">
-    <button id="btnRegistro" style="margin-top:15px;width:100%;padding:10px;border:none;background:#28a745;color:white;border-radius:6px;">Registrarse</button>
-    <p style="font-size:12px; color:#ccc;">Si ya tienes cuenta, inicia sesión arriba.</p>
-  `;
-  modal.appendChild(registroForm);
-
-  // --- TOGGLE ---
-  const loginForm = modal.querySelector("#loginForm");
-  toggleLogin.addEventListener("click", () => {
-    loginForm.style.display = "block";
-    registroForm.style.display = "none";
-    toggleLogin.style.borderBottom = "2px solid #0077cc";
-    toggleRegistro.style.borderBottom = "none";
-  });
-
-  toggleRegistro.addEventListener("click", () => {
-    loginForm.style.display = "none";
-    registroForm.style.display = "block";
-    toggleLogin.style.borderBottom = "none";
-    toggleRegistro.style.borderBottom = "2px solid #28a745";
-  });
-
-  // --- BOTÓN REGISTRO ---
-  const btnRegistro = registroForm.querySelector("#btnRegistro");
-  btnRegistro.addEventListener("click", async () => {
-    const nombre = document.getElementById("regNombre").value.trim();
-    const correo = document.getElementById("regCorreo").value.trim();
-    const pin = document.getElementById("regPin").value.trim();
-    const fotoInput = document.getElementById("regFoto");
-
-    if (!nombre || !correo || !pin || !fotoInput.files.length) {
-      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-      return;
-    }
-
-    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!correoValido.test(correo)) {
-      mostrarAviso("📮 Debes ingresar un correo válido", "error");
-      return;
-    }
-
-    const foto = await new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result.split(",")[1]);
-      reader.readAsDataURL(fotoInput.files[0]);
+    const loader = document.getElementById("loader");
+    if (loader) loader.style.display = "flex";
+    const videoIntro = document.createElement("video");
+    Object.assign(videoIntro, {
+      src: "Ini.mp4",
+      autoplay: true,
+      muted: true,
+      playsInline: true,
+      preload: "auto",
     });
-
-    fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
-      method: "POST",
-      body: new URLSearchParams({ accion:"registro", nombre, correo, pin, foto })
-    })
-    .then(res => res.text())
-    .then(resp => {
-      if (resp.includes("Usuario registrado")) {
-        mostrarAviso("✅ Usuario registrado, ya puedes iniciar sesión", "success");
-        toggleLogin.click();
-      } else {
-        mostrarAviso(resp, "error");
+    Object.assign(videoIntro.style, {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      objectFit: "cover",
+      zIndex: "999999",
+      backgroundColor: "black",
+      opacity: "0",
+      transition: "opacity 1s ease",
+    });
+    document.body.appendChild(videoIntro);
+    videoIntro.addEventListener("canplaythrough", () => {
+      if (loader) loader.style.display = "none";
+      videoIntro.style.opacity = "1";
+      videoIntro.play().catch(() => {});
+    });
+    videoIntro.addEventListener("ended", () => {
+      videoIntro.style.opacity = "0";
+      setTimeout(() => videoIntro.remove(), 1000);
+    });
+    setTimeout(() => {
+      if (videoIntro.readyState < 3 || videoIntro.paused) {
+        console.warn("iOS bloqueó autoplay, omitiendo video...");
+        videoIntro.remove();
+        if (loader) loader.style.display = "none";
       }
-    })
-    .catch(err => mostrarAviso("❌ Error en el registro: "+err.message, "error"));
+    }, 6000);
+  }, 300);
+
+  // ======================================================================================
+  // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+  // ======================================================================================
+  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+  const modal = document.getElementById("loginModal");
+
+  if (!usuarioGuardado) {
+    const overlay = document.createElement("div");
+    Object.assign(overlay.style, {
+      position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+      background: "linear-gradient(180deg, #000, #222)", color: "white",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      zIndex: "99998", fontFamily: "Poppins, sans-serif", textAlign: "center",
+      opacity: "0", transition: "opacity 0.4s ease"
+    });
+    overlay.innerHTML = `
+      <h2 style="margin-bottom:12px; font-size:22px;">Acceso restringido</h2>
+      <p style="color:#ccc; max-width:80%; line-height:1.5;">
+        Debes iniciar sesión para acceder al contenido.
+      </p>
+    `;
+    document.body.appendChild(overlay);
+    modal.style.display = "flex";
+    modal.style.zIndex = "99999";
+    setTimeout(() => (overlay.style.opacity = "1"), 50);
+  } else {
+    mostrarUsuario(usuarioGuardado);
+  }
+
+  // ======================================================================================
+  // GESTIÓN DE PESTAÑAS Y FORMULARIOS
+  // ======================================================================================
+  const tabLogin = document.getElementById("tabLogin");
+  const tabRegistro = document.getElementById("tabRegistro");
+  const formLogin = document.getElementById("formLogin");
+  const formRegistro = document.getElementById("formRegistro");
+  const irARegistro = document.getElementById("irARegistro");
+  const irALogin = document.getElementById("irALogin");
+
+  tabLogin?.addEventListener("click", () => mostrarForm("login"));
+  tabRegistro?.addEventListener("click", () => mostrarForm("registro"));
+  irARegistro?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("registro"); });
+  irALogin?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("login"); });
+
+  function mostrarForm(tipo) {
+    tabLogin.classList.toggle("active", tipo === "login");
+    tabRegistro.classList.toggle("active", tipo === "registro");
+    formLogin.style.display = tipo === "login" ? "block" : "none";
+    formRegistro.style.display = tipo === "registro" ? "block" : "none";
+  }
+
+  // ======================================================================================
+  // PREVISUALIZACIÓN DE FOTO
+  // ======================================================================================
+  const regFoto = document.getElementById("regFoto");
+  const previewContainer = document.getElementById("previewContainer");
+  const fotoPreview = document.getElementById("fotoPreview");
+
+  regFoto?.addEventListener("change", () => {
+    const file = regFoto.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fotoPreview.src = e.target.result;
+        previewContainer.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    }
   });
 
-  // --- LOGIN ---
-  const btnLogin = loginForm.querySelector("#btnLogin");
-  btnLogin.addEventListener("click", () => {
-    const nombre = document.getElementById("loginNombre").value.trim();
+  // ======================================================================================
+  // FUNCIÓN PARA MOSTRAR AVISOS
+  // ======================================================================================
+  function mostrarAviso(mensaje, tipo = "info") {
+    const aviso = document.createElement("div");
+    aviso.textContent = mensaje;
+    Object.assign(aviso.style, {
+      position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+      background: tipo === "error" ? "#e74c3c" : tipo === "success" ? "#27ae60" : "#3498db",
+      color: "white", padding: "12px 24px", borderRadius: "8px", zIndex: "100000",
+      fontFamily: "Arial", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      animation: "fadeInOut 3s forwards"
+    });
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.remove(), 3000);
+  }
+
+  // CSS para animación
+  const style = document.createElement("style");
+  style.textContent = `
+    @keyframes fadeInOut { 
+      0% { opacity:0; transform:translate(-50%, -20px); } 
+      10% { opacity:1; transform:translateX(-50%); } 
+      90% { opacity:1; } 
+      100% { opacity:0; transform:translate(-50%, -20px); } 
+    }
+    .tab-btn.active { border-bottom: 3px solid #0077cc; color: #0077cc; }
+  `;
+  document.head.appendChild(style);
+
+  // ======================================================================================
+  // URL DEL GOOGLE APPS SCRIPT (REEMPLAZA CON TU URL)
+  // ======================================================================================
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec"; // <-- TU URL AQUÍ
+
+  // ======================================================================================
+  // LOGIN CON GOOGLE APPS SCRIPT
+  // ======================================================================================
+  document.getElementById("btnLogin")?.addEventListener("click", async () => {
     const correo = document.getElementById("loginCorreo").value.trim();
     const pin = document.getElementById("loginPin").value.trim();
 
-    if (!nombre || !correo || !pin) {
-      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-      return;
-    }
+    if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
-    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!correoValido.test(correo)) {
-      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
-      return;
-    }
-
-    fetch("https://script.google.com/macros/s/TU_SCRIPT_ID/exec", {
-      method: "POST",
-      body: new URLSearchParams({ accion:"login", correo, pin })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === "📨success") {
-        const usuario = { nombre: data.nombre, correo: data.correo, foto: data.fotoPerfil || "" };
-        localStorage.setItem("usuario", JSON.stringify(usuario));
-        modal.style.display = "none";
-        overlay.style.opacity = "0";
-        setTimeout(() => overlay.remove(), 400);
-        mostrarAviso("✅ Sesión iniciada correctamente", "success");
-        location.reload();
-      } else {
-        mostrarAviso("📌 " + data.message, "error");
-      }
-    })
-    .catch(err => mostrarAviso("❌ Error al iniciar sesión: " + err.message, "error"));
-  });
-
-  return;
-}
-
-
-// ======================================================================================
-// 👇 Tu código original (ajustado para mantener dentro de la app)
-// ======================================================================================
-
-// ----------------------
-// Resaltado compatible para botones del header (no toca navegación)
-// ----------------------
-// ----------------------
-// Resaltado compatible para .header-btn (con o sin href)
-// ----------------------
-(function(){
-  const headerBtns = Array.from(document.querySelectorAll('.header-btn')); // Incluye <button>
-  
-  function cleanPath(path) {
-    if (!path) return "";
     try {
-      const u = new URL(path, location.origin);
-      return u.pathname.split('/').filter(Boolean).join('/');
-    } catch (e) {
-      return (path || "").toString();
-    }
-  }
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accion: "login", correo, pin })
+      });
+      const data = await res.json();
 
-  function normalizeForCompare(p) {
-    return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
-  }
-
-  function setActiveByLocation() {
-    const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
-    headerBtns.forEach(btn => btn.classList.remove('selected'));
-
-    // Resaltar por href (para <a>)
-    for (const btn of headerBtns) {
-      const href = btn.getAttribute('href');
-      if (href) {
-        const hrefFile = normalizeForCompare(cleanPath(href).split('/').pop());
-        if (hrefFile && locFile && hrefFile === locFile) {
-          btn.classList.add('selected');
-          return;
-        }
+      if (data.status === "success") {
+        const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil };
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        localStorage.setItem("autor", data.nombre);
+        localStorage.setItem("correo", data.correo);
+        currentAuthorName = data.nombre;
+        currentAuthorEmail = data.correo;
+        cerrarModalYContinuar();
+        mostrarAviso("Bienvenido, " + data.nombre, "success");
+      } else {
+        mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
       }
+    } catch (err) {
+      mostrarAviso("Error de conexión", "error");
     }
-
-    // Resaltar por ruta completa
-    for (const btn of headerBtns) {
-      const href = btn.getAttribute('href');
-      if (href) {
-        const hrefClean = normalizeForCompare(cleanPath(href));
-        if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
-          btn.classList.add('selected');
-          return;
-        }
-      }
-    }
-
-    // === RESALTADO MANUAL PARA VISTAS INTERNAS ===
-    if (locFile.includes("fotos") || locFile.includes("slider")) {
-      const imagesBtn = document.getElementById("imagesBtn");
-      if (imagesBtn && (locFile.includes("fotos") || document.body.dataset.view === "fotos")) {
-        imagesBtn.classList.add('selected');
-      }
-    }
-  }
-
-  setActiveByLocation();
-
-  headerBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      headerBtns.forEach(x => x.classList.remove('selected'));
-      btn.classList.add('selected');
-    });
   });
 
-  window.addEventListener('popstate', setActiveByLocation);
-  let lastPath = location.pathname;
-  setInterval(() => {
-    if (location.pathname !== lastPath) {
-      lastPath = location.pathname;
-      setActiveByLocation();
-    }
-  }, 300);
-})();
-// ------------------------------------------------------------------------------------
+  // ======================================================================================
+  // REGISTRO CON GOOGLE APPS SCRIPT
+  // ======================================================================================
+  document.getElementById("btnRegistro")?.addEventListener("click", async () => {
+    const nombre = document.getElementById("regNombre").value.trim();
+    const correo = document.getElementById("regCorreo").value.trim();
+    const pin = document.getElementById("regPin").value;
+    const pinConfirm = document.getElementById("regPinConfirm").value;
+    const file = regFoto.files[0];
 
-const imagesBtn = document.querySelector('#btnImages');
-const videosBtn = document.querySelector('#btnVideos');
+    if (!nombre || !correo || !pin || !pinConfirm || !file) return mostrarAviso("Todos los campos son obligatorios", "error");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+    if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
+    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
-// ✅ Mantener navegación interna sin salir del entorno principal
-if (videosBtn) {
-  videosBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    cargarVistaInterna("videos/sliderVideos.html", videosBtn);
-  });
-}
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const fotoBase64 = reader.result.split(",")[1];
 
-if (imagesBtn) {
-  imagesBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    cargarVistaInterna("fotos/fotos.html", imagesBtn);
-  });
-}
-
-// Función para cargar contenido dentro del mismo DOM
-function cargarVistaInterna(ruta, botonActivo) {
-    const contenedor = document.getElementById("mainContent");
-    if (!contenedor) {
-        window.location.href = ruta;
-        return;
-    }
-    document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
-    botonActivo.classList.add('selected');
-    contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
-    fetch(ruta)
-        .then(res => res.text())
-        .then(html => {
-            contenedor.innerHTML = html;
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        })
-        .catch(() => {
-            contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
-        });
-}
-
-
-// ======================================================================================
-// 🔔 Notificaciones
-// ======================================================================================
-const lblContador = document.getElementById('lblContador');
-if (lblContador) {
-  lblContador.innerHTML = `
-    <i class="far fa-bell"></i>
-    <span id="notificationCount" style="display:none"></span>
-  `;
-  lblContador.style.display = "flex";
-}
-
-
-// ======================================================================================
-// 📱 Integración AppInventor
-// ======================================================================================
-if (window.AppInventor) {
-  setInterval(() => {
-    const comando = window.AppInventor.getWebViewString?.();
-    if (comando) {
       try {
-        const data = JSON.parse(comando);
-        if (data.action === "updateUserData") {
-          currentAuthorEmail = data.email;
-          currentAuthorName = data.name;
-          localStorage.setItem("autor", currentAuthorName || "");
-          localStorage.setItem("correo", currentAuthorEmail || "");
-          console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accion: "registro", nombre, correo, pin, foto: fotoBase64 })
+        });
+        const texto = await res.text();
+
+        if (texto.includes("registrado")) {
+          mostrarAviso("Cuenta creada! Inicia sesión", "success");
+          mostrarForm("login");
+          document.getElementById("loginCorreo").value = correo;
+        } else {
+          mostrarAviso(texto, "error");
         }
+      } catch (err) {
+        mostrarAviso("Error al registrarse", "error");
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ======================================================================================
+  // CERRAR MODAL Y CONTINUAR
+  // ======================================================================================
+  function cerrarModalYContinuar() {
+    modal.style.display = "none";
+    document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
+    if (usuarioGuardado) mostrarUsuario(usuarioGuardado);
+    setTimeout(() => location.reload(), 500);
+  }
+
+  // ======================================================================================
+  // TU CÓDIGO ORIGINAL (SIN MODIFICAR)
+  // ======================================================================================
+  // ----------------------
+  // Resaltado compatible para botones del header
+  // ----------------------
+  (function(){
+    const headerBtns = Array.from(document.querySelectorAll('.header-btn'));
+   
+    function cleanPath(path) {
+      if (!path) return "";
+      try {
+        const u = new URL(path, location.origin);
+        return u.pathname.split('/').filter(Boolean).join('/');
       } catch (e) {
-        if (comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
-          console.log("Reiniciando contador y cargando anuncios.");
-          contadorAcumulado = 0;
-          contadorTotalAnterior = -1;
-          verificarComentarios().then(() => cargarImagenes());
+        return (path || "").toString();
+      }
+    }
+    function normalizeForCompare(p) {
+      return (p || "").replace(/^\.\//, "").replace(/^\/+/, "").toLowerCase();
+    }
+    function setActiveByLocation() {
+      const locFile = normalizeForCompare(location.pathname.split('/').pop() || "");
+      headerBtns.forEach(btn => btn.classList.remove('selected'));
+      for (const btn of headerBtns) {
+        const href = btn.getAttribute('href');
+        if (href) {
+          const hrefFile = normalizeForCompare(cleanPath(href).split('/').pop());
+          if (hrefFile && locFile && hrefFile === locFile) {
+            btn.classList.add('selected');
+            return;
+          }
         }
-        if (comando.startsWith("irATitulo:")) {
-          const tituloBuscado = comando.replace("irATitulo:", "").trim();
-          const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-          const tituloNormalizado = normalizar(tituloBuscado);
-          const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
-          if (index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+      }
+      for (const btn of headerBtns) {
+        const href = btn.getAttribute('href');
+        if (href) {
+          const hrefClean = normalizeForCompare(cleanPath(href));
+          if (hrefClean && location.pathname.toLowerCase().includes(hrefClean)) {
+            btn.classList.add('selected');
+            return;
+          }
         }
-        if (comando.startsWith("irAIndice:")) {
-          const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
-          if (!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance)
-            swiperInstance.slideToLoop(indice, 0, false);
+      }
+      if (locFile.includes("fotos") || locFile.includes("slider")) {
+        const imagesBtn = document.getElementById("imagesBtn");
+        if (imagesBtn && (locFile.includes("fotos") || document.body.dataset.view === "fotos")) {
+          imagesBtn.classList.add('selected');
         }
       }
     }
-  }, 500);
-}
+    setActiveByLocation();
+    headerBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        headerBtns.forEach(x => x.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    window.addEventListener('popstate', setActiveByLocation);
+    let lastPath = location.pathname;
+    setInterval(() => {
+      if (location.pathname !== lastPath) {
+        lastPath = location.pathname;
+        setActiveByLocation();
+      }
+    }, 300);
+  })();
 
-
-// ======================================================================================
-// 👤 Manejo de usuario
-// ======================================================================================
-const userBtn = document.getElementById("userBtn");
-const userMenu = document.getElementById("userMenu");
-const userName = document.getElementById("userName");
-const userEmail = document.getElementById("userEmail");
-const logoutBtn = document.getElementById("logoutBtn");
-
-if (modal && userBtn && userMenu) {
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
-
-  if (!usuario) {
-    modal.style.display = "flex";
-  } else {
-    mostrarUsuario(usuario);
+  // ------------------------------------------------------------------------------------
+  const imagesBtn = document.querySelector('#btnImages');
+  const videosBtn = document.querySelector('#btnVideos');
+  if (videosBtn) {
+    videosBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      cargarVistaInterna("videos/sliderVideos.html", videosBtn);
+    });
+  }
+  if (imagesBtn) {
+    imagesBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      cargarVistaInterna("fotos/fotos.html", imagesBtn);
+    });
   }
 
-  function mostrarUsuario(u) {
-    const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-    userBtn.textContent = iniciales;
-    userName.textContent = u.nombre;
-    userEmail.textContent = u.correo;
-    userName.style.color = "#333";
-    userEmail.style.color = "#555";
-    currentAuthorName = u.nombre;
-    currentAuthorEmail = u.correo;
+  function cargarVistaInterna(ruta, botonActivo) {
+      const contenedor = document.getElementById("mainContent");
+      if (!contenedor) {
+          window.location.href = ruta;
+          return;
+      }
+      document.querySelectorAll('.selected').forEach(btn => btn.classList.remove('selected'));
+      botonActivo.classList.add('selected');
+      contenedor.innerHTML = `<div class="loading">Cargando...</div>`;
+      fetch(ruta)
+          .then(res => res.text())
+          .then(html => {
+              contenedor.innerHTML = html;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+          })
+          .catch(() => {
+              contenedor.innerHTML = `<p style="color:red;">Error al cargar la vista ${ruta}</p>`;
+          });
   }
 
-  userBtn.addEventListener("click", () => {
-    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-  });
+  // ======================================================================================
+  // Notificaciones
+  // ======================================================================================
+  const lblContador = document.getElementById('lblContador');
+  if (lblContador) {
+    lblContador.innerHTML = `
+      <i class="far fa-bell"></i>
+      <span id="notificationCount" style="display:none"></span>
+    `;
+    lblContador.style.display = "flex";
+  }
 
-  logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("autor");
-    localStorage.removeItem("correo");
-    currentAuthorName = "";
-    currentAuthorEmail = "";
-    userMenu.style.display = "none";
-    mostrarAviso("🚪 Sesión cerrada", "info");
-    setTimeout(() => location.reload(), 1200);
-  });
-}
+  // ======================================================================================
+  // Integración AppInventor
+  // ======================================================================================
+  if (window.AppInventor) {
+    setInterval(() => {
+      const comando = window.AppInventor.getWebViewString?.();
+      if (comando) {
+        try {
+          const data = JSON.parse(comando);
+          if (data.action === "updateUserData") {
+            currentAuthorEmail = data.email;
+            currentAuthorName = data.name;
+            localStorage.setItem("autor", currentAuthorName || "");
+            localStorage.setItem("correo", currentAuthorEmail || "");
+            console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
+          }
+        } catch (e) {
+          if (comando === "https://artisticaipucbochicasur-code.github.io/Slider-de-fotos/slider.html") {
+            console.log("Reiniciando contador y cargando anuncios.");
+            contadorAcumulado = 0;
+            contadorTotalAnterior = -1;
+            verificarComentarios().then(() => cargarImagenes());
+          }
+          if (comando.startsWith("irATitulo:")) {
+            const tituloBuscado = comando.replace("irATitulo:", "").trim();
+            const normalizar = txt => (txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const tituloNormalizado = normalizar(tituloBuscado);
+            const index = anunciosData.findIndex(a => normalizar(a.titulo) === tituloNormalizado);
+            if (index >= 0 && swiperInstance) swiperInstance.slideToLoop(index, 0, false);
+          }
+          if (comando.startsWith("irAIndice:")) {
+            const indice = parseInt(comando.replace("irAIndice:", "").trim(), 10);
+            if (!isNaN(indice) && indice >= 0 && indice < anunciosData.length && swiperInstance)
+              swiperInstance.slideToLoop(indice, 0, false);
+          }
+        }
+      }
+    }, 500);
+  }
+
+  // ======================================================================================
+  // Manejo de usuario (MEJORADO CON FOTO)
+  // ======================================================================================
+  const userBtn = document.getElementById("userBtn");
+  const userMenu = document.getElementById("userMenu");
+  const userName = document.getElementById("userName");
+  const userEmail = document.getElementById("userEmail");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  if (modal && userBtn && userMenu) {
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (usuario) mostrarUsuario(usuario);
+
+    function mostrarUsuario(u) {
+      if (u.fotoPerfil) {
+        userBtn.innerHTML = `<img src="${u.fotoPerfil}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #0077cc;">`;
+      } else {
+        const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+        userBtn.textContent = iniciales;
+      }
+      userName.textContent = u.nombre;
+      userEmail.textContent = u.correo;
+      userName.style.color = "#333";
+      userEmail.style.color = "#555";
+      currentAuthorName = u.nombre;
+      currentAuthorEmail = u.correo;
+    }
+
+    userBtn.addEventListener("click", () => {
+      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("autor");
+      localStorage.removeItem("correo");
+      currentAuthorName = "";
+      currentAuthorEmail = "";
+      userMenu.style.display = "none";
+      mostrarAviso("Sesión cerrada", "info");
+      setTimeout(() => location.reload(), 1200);
+    });
+  }
 });
-
 
 
 
@@ -3356,11 +3359,3 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
