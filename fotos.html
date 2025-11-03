@@ -2983,12 +2983,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.zIndex = "99999";
     setTimeout(() => (overlay.style.opacity = "1"), 50);
   } else {
-    // === CORREGIDO: Esperar a que los elementos existan ===
-    setTimeout(() => {
-      if (document.getElementById("userBtn")) {
-        mostrarUsuario(usuarioGuardado);
-      }
-    }, 100);
+    mostrarUsuario(usuarioGuardado);
   }
 
   // ======================================================================================
@@ -3014,7 +3009,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================================================================================
-  // PREVISUALIZACIÓN DE FOTO (CORREGIDO: valida tamaño)
+  // PREVISUALIZACIÓN DE FOTO
   // ======================================================================================
   const regFoto = document.getElementById("regFoto");
   const previewContainer = document.getElementById("previewContainer");
@@ -3023,12 +3018,6 @@ document.addEventListener("DOMContentLoaded", () => {
   regFoto?.addEventListener("change", () => {
     const file = regFoto.files[0];
     if (file) {
-      if (file.size > 900 * 1024) {
-        mostrarAviso("Foto muy grande. Máx 900 KB", "error");
-        regFoto.value = "";
-        previewContainer.style.display = "none";
-        return;
-      }
       const reader = new FileReader();
       reader.onload = (e) => {
         fotoPreview.src = e.target.result;
@@ -3097,11 +3086,11 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const texto = await res.text();
-      console.log("Login:", texto);
+      console.log("Login respuesta:", texto);
 
       try {
         const data = JSON.parse(texto);
-        if (data.status && data.status.includes("success")) {
+        if (data.status && data.status.includes("success")) { // Acepta emoji
           const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil || "" };
           localStorage.setItem("usuario", JSON.stringify(usuario));
           localStorage.setItem("autor", data.nombre);
@@ -3117,16 +3106,17 @@ document.addEventListener("DOMContentLoaded", () => {
         mostrarAviso("Error del servidor", "error");
       }
     } catch (err) {
+      console.error("Error:", err);
       mostrarAviso("Error de conexión", "error");
     }
   });
 
   // ======================================================================================
-  // REGISTRO (CORREGIDO: correo duplicado + tamaño foto + mensaje claro)
+  // REGISTRO (CORREGIDO: envía todo bien + espera respuesta real)
   // ======================================================================================
   document.getElementById("btnRegistro")?.addEventListener("click", async () => {
     const nombre = document.getElementById("regNombre").value.trim();
-    const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
+    const correo = document.getElementById("regCorreo").value.trim().toLowerCase(); // Normaliza
     const pin = document.getElementById("regPin").value;
     const pinConfirm = document.getElementById("regPinConfirm").value;
     const file = regFoto.files[0];
@@ -3135,7 +3125,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
     if (pin !== pinConfirm) return mostrarAviso("Los PIN no coinciden", "error");
     if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
-    if (file.size > 900 * 1024) return mostrarAviso("Foto muy grande. Máx 900 KB", "error");
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -3144,7 +3133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const formData = new URLSearchParams();
       formData.append("accion", "registro");
       formData.append("nombre", nombre);
-      formData.append("correo", correo);
+      formData.append("correo", correo); // Ya en minúsculas
       formData.append("pin", pin);
       formData.append("foto", fotoBase64);
 
@@ -3156,18 +3145,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         const texto = await res.text();
-        console.log("Registro:", texto);
+        console.log("Registro respuesta:", texto);
 
-        if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
+        if (texto.includes("registrado") || texto.includes("Usuario registrado")) {
           mostrarAviso("Cuenta creada! Inicia sesión", "success");
           mostrarForm("login");
           document.getElementById("loginCorreo").value = correo;
-        } else if (texto.includes("ya registrado")) {
-          mostrarAviso("Ya existe un usuario con ese correo", "error");
         } else {
           mostrarAviso(texto || "Error al registrarse", "error");
         }
       } catch (err) {
+        console.error("Error:", err);
         mostrarAviso("Error de conexión", "error");
       }
     };
@@ -3191,6 +3179,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ----------------------
   (function(){
     const headerBtns = Array.from(document.querySelectorAll('.header-btn'));
+ 
     function cleanPath(path) {
       if (!path) return "";
       try {
@@ -3339,7 +3328,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================================================================================
-  // MANEJO DE USUARIO (CORREGIDO: se llama al final)
+  // MANEJO DE USUARIO
   // ======================================================================================
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
@@ -3407,13 +3396,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // MOSTRAR USUARIO AL FINAL
-  if (usuarioGuardado) {
-    setTimeout(() => {
-      if (document.getElementById("userBtn")) {
-        mostrarUsuario(usuarioGuardado);
-      }
-    }, 100);
+  if (usuarioGuardado && userBtn) {
+    mostrarUsuario(usuarioGuardado);
   }
 });
 
@@ -3425,6 +3409,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
