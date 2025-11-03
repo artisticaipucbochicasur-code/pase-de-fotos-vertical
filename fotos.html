@@ -2471,8 +2471,8 @@ async function cargarImagenes() {
 
         const currentSlideId = currentId;
         anunciosData = newAnunciosData;
-      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
-reconstruirIndiceBusqueda();
+        // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+        reconstruirIndiceBusqueda();
         
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
@@ -2536,12 +2536,64 @@ reconstruirIndiceBusqueda();
         const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
         updateContentOverlay(activeIndex);
 
+        // === 🧩 Parche iOS: prevenir "pull-to-refresh" en WebView sin romper swipe ===
+        (function iosSwipeFix() {
+            const swiperEl = document.querySelector(".swiper");
+            if (!swiperEl) return;
+
+            let startY = 0;
+            let startX = 0;
+            let isMoving = false;
+
+            function onTouchStart(e) {
+                if (e.touches.length > 1) return;
+                startY = e.touches[0].clientY;
+                startX = e.touches[0].clientX;
+                isMoving = true;
+            }
+
+            function onTouchMove(e) {
+                if (!isMoving || e.touches.length > 1) return;
+                const currentY = e.touches[0].clientY;
+                const currentX = e.touches[0].clientX;
+                const deltaY = currentY - startY;
+                const deltaX = currentX - startX;
+
+                // Si es más horizontal que vertical, no interferir
+                if (Math.abs(deltaX) > Math.abs(deltaY)) return;
+
+                // Si empezó cerca del borde superior y se arrastra hacia abajo → bloquear recarga
+                const startedNearTop =
+                    window.scrollY === 0 ||
+                    document.documentElement.scrollTop === 0 ||
+                    startY < 80;
+                const draggingDown = deltaY > 0;
+
+                if (startedNearTop && draggingDown) {
+                    e.preventDefault(); // evita "pull-to-refresh"
+                }
+            }
+
+            function onTouchEnd() {
+                isMoving = false;
+            }
+
+            swiperEl.removeEventListener("touchstart", onTouchStart);
+            swiperEl.removeEventListener("touchmove", onTouchMove);
+            swiperEl.removeEventListener("touchend", onTouchEnd);
+
+            swiperEl.addEventListener("touchstart", onTouchStart, { passive: true });
+            swiperEl.addEventListener("touchmove", onTouchMove, { passive: false });
+            swiperEl.addEventListener("touchend", onTouchEnd, { passive: true });
+        })();
+
     } catch(error) {
         console.error("Error al cargar las imágenes:", error);
     } finally {
         loader.style.display = 'none';
     }
 }
+
 
 
 
@@ -3328,6 +3380,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
