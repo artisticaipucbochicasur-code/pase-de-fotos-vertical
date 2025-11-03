@@ -2303,48 +2303,21 @@ lblContador.addEventListener("click", () => {
 // 🔹 Guardamos los IDs ya vistos
 let anunciosVistosIds = new Set();
 
-// Lista de títulos nuevos y contador acumulado
-let nuevosTitulos = [];
-let contadorAcumulado = 0;
-let contadorTotalAnterior = -1;
-
-// === Función que actualiza todos los badges en el DOM ===
-function actualizarBadges() {
-    // Todos los spans de imágenes con contador
-    const badges = document.querySelectorAll("#imagesNotificationCount");
-    badges.forEach(span => {
-        if (contadorAcumulado > 0) {
-            span.textContent = contadorAcumulado;
-            span.style.display = "flex";
-        } else {
-            span.textContent = "";
-            span.style.display = "none";
-        }
-    });
-
-    // Campana de notificaciones
-    const notificationCount = document.getElementById('notificationCount');
-    if (notificationCount) {
-        notificationCount.textContent = contadorAcumulado > 0 ? contadorAcumulado : "";
-        notificationCount.style.display = contadorAcumulado > 0 ? "flex" : "none";
-        const icon = document.querySelector("#lblContador i");
-        if (icon) icon.className = contadorAcumulado > 0 ? "fas fa-bell" : "far fa-bell";
-    }
-
-    // Guardamos en localStorage
-    localStorage.setItem("nuevosAnunciosCount", contadorAcumulado);
-}
-
-// === Función para actualizar contador desde servidor ===
+// Modificamos actualizarContador para guardar títulos nuevos
+// Modificamos actualizarContador para actualizar ambos botones
 async function actualizarContador() {
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
         const data = await response.json();
         const totalActual = data.contador || 0;
+        const notificationCount = document.getElementById('notificationCount');
+        const imagesNotificationCount = document.getElementById('imagesNotificationCount');
 
-        if (contadorTotalAnterior === -1) contadorTotalAnterior = totalActual;
+        if (contadorTotalAnterior === -1) {
+            contadorTotalAnterior = totalActual;
+        }
 
-        // Detectar nuevos anuncios
+        // === DETECTAR NUEVOS ANUNCIOS ===
         if (totalActual !== contadorTotalAnterior) {
             const diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
@@ -2353,19 +2326,17 @@ async function actualizarContador() {
                 const ultimosIds = dataAnuncios.id.slice(-diferencia);
                 const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
                 const nuevos = [];
-
                 ultimosIds.forEach((id, idx) => {
                     if (!anunciosVistosIds.has(id)) {
                         nuevos.push(ultimosTitulos[idx]);
                         anunciosVistosIds.add(id);
                     }
                 });
-
                 if (nuevos.length > 0) {
                     nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
                     nuevosTitulos = [...new Set(nuevosTitulos)];
                     contadorAcumulado = nuevosTitulos.length;
-                    cargarImagenes(true); // recarga imágenes
+                    cargarImagenes(true);
                 }
             } else if (diferencia < 0) {
                 contadorAcumulado = 0;
@@ -2376,90 +2347,29 @@ async function actualizarContador() {
             contadorTotalAnterior = totalActual;
         }
 
-        // Actualizar todos los badges
-        actualizarBadges();
+        // === ACTUALIZAR BADGE EN AMBOS BOTONES ===
+        const mostrarBadge = contadorAcumulado > 0;
+
+        // Campana
+        if (notificationCount) {
+            notificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            notificationCount.style.display = mostrarBadge ? "flex" : "none";
+            const icon = document.querySelector("#lblContador i");
+            if (icon) icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
+        }
+
+        // Botón Imágenes
+        if (imagesNotificationCount) {
+            imagesNotificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            imagesNotificationCount.style.display = mostrarBadge ? "flex" : "none";
+        }
+      // === AL FINAL DE LA FUNCIÓN ===
+localStorage.setItem("nuevosAnunciosCount", contadorAcumulado);
 
     } catch (e) {
         console.error("Error al obtener contador:", e);
     }
 }
-
-// === Mostrar alert con títulos nuevos ===
-function showCustomAlert(title, titlesList) {
-    const overlay = document.getElementById('customAlertOverlay');
-    const alertDiv = overlay.querySelector('.custom-alert');
-    const alertTitle = document.getElementById('alertTitle');
-    const alertMessage = document.getElementById('alertMessage');
-
-    alertDiv.className = 'custom-alert';
-    alertMessage.innerHTML = '';
-    alertTitle.textContent = title;
-
-    if (titlesList.length > 0) {
-        const list = document.createElement('ul');
-        list.className = 'titles-list';
-        titlesList.forEach((titulo, index) => {
-            const li = document.createElement('li');
-            li.textContent = titulo;
-            li.dataset.index = index;
-            li.addEventListener('click', () => {
-                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                if (selectedIndex !== -1 && swiperInstance) {
-                    swiperInstance.slideToLoop(selectedIndex, 500);
-                    setTimeout(() => {
-                        const titleElement = document.getElementById('currentTitle');
-                        if (titleElement) {
-                            titleElement.classList.remove('highlight-title-zoom');
-                            void titleElement.offsetWidth;
-                            titleElement.classList.add('highlight-title-zoom');
-                            setTimeout(() => titleElement.classList.remove('highlight-title-zoom'), 1500);
-                        }
-                    }, 600);
-
-                    // Actualizar contador
-                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
-                    contadorAcumulado = nuevosTitulos.length;
-                    actualizarBadges();
-                    overlay.style.display = 'none';
-                }
-            });
-            list.appendChild(li);
-        });
-        alertMessage.appendChild(list);
-    } else {
-        const p = document.createElement('p');
-        p.textContent = "No hay anuncios nuevos.";
-        alertMessage.appendChild(p);
-    }
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = "Cerrar";
-    closeBtn.id = "closeAlertButton";
-    closeBtn.onclick = () => overlay.style.display = 'none';
-    alertMessage.appendChild(closeBtn);
-    overlay.style.display = 'flex';
-}
-
-// === Configurar clic en botones de imágenes ===
-document.querySelectorAll("#imagesBtn, #imagesNotificationBtn").forEach(btn => {
-    btn.addEventListener("click", e => {
-        e.preventDefault();
-        if (contadorAcumulado > 0) {
-            showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
-        } else {
-            cargarVistaInterna("fotos/fotos.html", btn);
-            document.body.dataset.view = "fotos";
-        }
-    });
-});
-
-// === Inicializar intervalos ===
-setInterval(actualizarContador, 5000);
-setInterval(verificarComentarios, 5000);
-
-// Carga inicial
-verificarComentarios().then(() => cargarImagenes());
-
 
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
@@ -2806,7 +2716,8 @@ function aplicarTruncado(element, maxLength = 80) {
 }
 
 
-    function showCustomAlert(title, titlesList) {
+    
+function showCustomAlert(title, titlesList) {
     const overlay = document.getElementById('customAlertOverlay');
     const alertDiv = overlay.querySelector('.custom-alert');
     const alertTitle = document.getElementById('alertTitle');
@@ -2847,7 +2758,16 @@ function aplicarTruncado(element, maxLength = 80) {
                         }
                     }, 600); // Esperar a que termine el deslizamiento
 
-                  actualizarBadges();
+                    // === ACTUALIZAR CONTADOR ===
+                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                    contadorAcumulado = nuevosTitulos.length;
+                    if (contadorAcumulado > 0) {
+                        notificationCount.textContent = contadorAcumulado;
+                        notificationCount.style.display = "flex";
+                    } else {
+                        notificationCount.textContent = "";
+                        notificationCount.style.display = "none";
+                    }
 
                     document.getElementById('customAlertOverlay').style.display = 'none';
                 }
@@ -2868,9 +2788,6 @@ function aplicarTruncado(element, maxLength = 80) {
     alertMessage.appendChild(closeBtn);
     overlay.style.display = 'flex';
 }
-
-
-
 
     function showConfirmationDialog(message, onConfirm) {
         const overlay = document.getElementById('customAlertOverlay');
@@ -3324,8 +3241,6 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
-
-
 
 
 
