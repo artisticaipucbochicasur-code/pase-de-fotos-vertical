@@ -1523,16 +1523,23 @@ btnUploadVideo.addEventListener("click", async () => {
   const progressContainer = document.getElementById("progressContainerVideo");
   const metrics = document.getElementById("uploadMetricsVideo");
   const status = document.getElementById("statusVideo");
-
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
 
-  if (!file) return alert("Selecciona un video para subir.");
-  if (!tituloUsuario) return alert("Escribe un título para el video.");
+  // Validaciones
+  if (!file) {
+    mostrarAviso("Selecciona un video para subir.", "error");
+    return;
+  }
+  if (!tituloUsuario) {
+    mostrarAviso("Escribe un título para el video.", "error");
+    return;
+  }
 
+  // Mostrar progreso
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
-  status.textContent = "";
+  status.textContent = "Iniciando subida...";
   metrics.textContent = "";
 
   const identifier = "artistica_bochica_" + Date.now();
@@ -1540,15 +1547,14 @@ btnUploadVideo.addEventListener("click", async () => {
   const accessKey = "KPJmAQCm1UyNJWqv";
   const secretKey = "9JkBrIGexGNOynyf";
   const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
-  const xhr = new XMLHttpRequest();
 
+  const xhr = new XMLHttpRequest();
   let startTime = Date.now();
 
   xhr.upload.onprogress = (event) => {
     if (event.lengthComputable) {
       const percent = (event.loaded / event.total) * 100;
       progressBar.style.width = percent + "%";
-
       const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
       const totalMB = (event.total / (1024 * 1024)).toFixed(2);
       const elapsed = (Date.now() - startTime) / 1000;
@@ -1560,29 +1566,60 @@ btnUploadVideo.addEventListener("click", async () => {
     }
   };
 
-  xhr.onload = function () {
+  xhr.onload = async function () {
     if (xhr.status === 200) {
       const fileEncoded = encodeURIComponent(fileName);
       const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
-      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
 
-      // Guarda los datos en tu Apps Script
-      fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
-        + `&titulo=${encodeURIComponent(tituloUsuario)}`
-        + `&link=${encodeURIComponent(directLink)}`
-        + `&autor=${encodeURIComponent(autor)}`
-        + `&correo=${encodeURIComponent(correo)}`
-        + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
+      status.innerHTML = `Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
 
+      // Guardar en Google Apps Script
+      await fetch(
+        `${SCRIPT_URL}?accion=guardar&tipo=video` +
+        `&titulo=${encodeURIComponent(tituloUsuario)}` +
+        `&link=${encodeURIComponent(directLink)}` +
+        `&autor=${encodeURIComponent(autor)}` +
+        `&correo=${encodeURIComponent(correo)}` +
+        `&descripcion=${encodeURIComponent(descripcionUsuario)}`
+      );
+
+      // === LIMPIAR FORMULARIO ===
+      document.getElementById("fileInput").value = "";
+      document.getElementById("videoTitle").value = "";
+      document.getElementById("videoDescripcion").value = "";
+      progressBar.style.width = "0%";
       progressContainer.style.display = "none";
       metrics.textContent = "";
+      status.textContent = "";
+
+      // === CERRAR MODAL CON RETRASO ===
+      setTimeout(() => {
+        publishModal.style.display = "none";
+
+        // === RESALTAR BOTÓN DE VIDEOS ===
+        const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
+        if (videosBtn) {
+          document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+          videosBtn.classList.add('selected');
+        }
+
+        // === RECARGAR VIDEOS SI EXISTE LA FUNCIÓN ===
+        if (typeof cargarVideos === "function") {
+          cargarVideos();
+        }
+
+        mostrarAviso("Video publicado con éxito", "success");
+      }, 1200);
+
     } else {
-      status.textContent = "❌ Error al subir el video.";
+      status.textContent = "Error al subir el video.";
+      progressContainer.style.display = "none";
     }
   };
 
   xhr.onerror = () => {
-    status.textContent = "❌ Error de conexión.";
+    status.textContent = "Error de conexión.";
+    progressContainer.style.display = "none";
   };
 
   xhr.open("PUT", url, true);
@@ -3864,6 +3901,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
