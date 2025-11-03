@@ -3128,12 +3128,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.status && data.status.includes("success")) {
           // FOTO EN COLUMNA 4: data.fotoPerfil o data[3] si es array
           const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "");
-         const usuario = { 
-  nombre: data.nombre, 
-  correo: data.correo, 
-  fotoPerfil: (fotoPerfil || "").trim()
-};
-
+          const usuario = { 
+            nombre: data.nombre, 
+            correo: data.correo, 
+            fotoPerfil: fotoPerfil 
+          };
           localStorage.setItem("usuario", JSON.stringify(usuario));
           localStorage.setItem("autor", data.nombre);
           localStorage.setItem("correo", data.correo);
@@ -3242,11 +3241,7 @@ document.addEventListener("DOMContentLoaded", () => {
       img.style.objectFit = "cover";
       img.style.border = "2px solid #0077cc";
       img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
-      img.onerror = () => {
-  console.warn("Imagen rota, volviendo a iniciales:", u.fotoPerfil);
-  mostrarIniciales(u);
-};
-
+      img.onerror = () => mostrarIniciales(u);
       userBtn.appendChild(img);
     } else {
       mostrarIniciales(u);
@@ -3295,33 +3290,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-// MOSTRAR USUARIO AL FINAL (MEJORADO: asegura y limpia fotoPerfil)
-if (usuarioGuardado) {
-
-  usuarioGuardado.fotoPerfil = (usuarioGuardado.fotoPerfil || usuarioGuardado.foto || "").trim();
-
-  // Si contiene id=... pero NO uc?export=view → convertir
-  if (usuarioGuardado.fotoPerfil.includes("drive.google.com")
-      && !usuarioGuardado.fotoPerfil.includes("uc?export=view")) {
-
-    // Extraer ID
-    const match = usuarioGuardado.fotoPerfil.match(/[-\w]{25,}/);
-    if (match) {
-      usuarioGuardado.fotoPerfil = `https://drive.google.com/uc?export=view&id=${match[0]}`;
-    }
+  // MOSTRAR USUARIO AL FINAL
+  if (usuarioGuardado) {
+    setTimeout(() => {
+      if (document.getElementById("userBtn")) {
+        mostrarUsuario(usuarioGuardado);
+      }
+    }, 100);
   }
-
-  // Persistimos la versión limpia
-  localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
-
-  setTimeout(() => {
-    if (document.getElementById("userBtn")) {
-      mostrarUsuario(usuarioGuardado);
-    }
-  }, 100);
-}
-
-
 });
 
 
@@ -3332,8 +3308,4 @@ if (usuarioGuardado) {
   </script>
 </body>
 </html>
-
-
-
-
 
