@@ -924,59 +924,68 @@ body {
 <header id="socialHeader">
   <div class="header-content" style="display:flex;align-items:center;justify-content:space-between;">
     <h1>DECOM</h1>
-
     <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-  <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
-<button id="imagesBtn" class="header-btn" title="Imágenes" style="position: relative;">
-  <i class="fas fa-image"></i>
-  <span id="imagesNotificationCount" style="
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: red;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    display: none;
-    z-index: 10;
-  "></span>
-</button>
 
-<a href="./videosSesion2.html" class="header-btn" title="Videos">
-  <i class="fas fa-video"></i>
-</a>
+      <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
+      <button id="imagesBtn" class="header-btn" title="Imágenes" style="position: relative;">
+        <i class="fas fa-image"></i>
+        <span id="imagesNotificationCount" style="
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: red;
+          color: white;
+          font-size: 11px;
+          font-weight: bold;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          display: none;
+          z-index: 10;
+        "></span>
+      </button>
+
+      <a href="./videosSesion2.html" class="header-btn" title="Videos">
+        <i class="fas fa-video"></i>
+      </a>
 
       <a href="#" class="header-btn" id="publishBtn" title="Publicar">
         <i class="fas fa-plus-circle"></i>
       </a>
-<button id="btnBuscar" class="header-btn" title="Buscar anuncios">
-  <i class="fas fa-search"></i>
-</button>
 
-      <!-- 🔹 Botón de usuario (ahora al lado del botón Publicar) -->
-      <div id="userMenuContainer" style="position:relative;">
-        <div id="userBtn" 
-             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;
-                    font-weight:bold;cursor:pointer;">
-        </div>
+      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+        <i class="fas fa-search"></i>
+      </button>
 
-        <div id="userMenu" 
-             style="display:none;position:absolute;top:50px;right:0;background:white;
-                    border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
-                    padding:10px;min-width:180px;text-align:left;z-index:999;">
-          <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
-          <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
-          <button id="logoutBtn" 
-                  style="margin-top:8px;width:100%;padding:8px;border:none;
-                         background:#e74c3c;color:white;border-radius:6px;">
-            🚪 Cerrar sesión
+      <!-- BOTÓN DE USUARIO + MENÚ DESPLEGABLE (MEJORADO) -->
+      <div style="position:relative;">
+        <button id="userBtn" class="header-btn" title="Mi perfil"
+                style="width:40px;height:40px;padding:0;border:none;background:none;cursor:pointer;overflow:hidden;border-radius:50%;border:2px solid #0077cc;">
+          <!-- JS llenará con foto o iniciales -->
+        </button>
+
+        <div id="userMenu" style="display:none;position:absolute;top:50px;right:0;background:white;
+                                 border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);
+                                 min-width:200px;z-index:1000;padding:12px;font-family:Arial,sans-serif;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid #0077cc;">
+              <img id="menuFotoImg" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <div id="menuIniciales" style="width:100%;height:100%;background:#0077cc;color:white;
+                                          display:flex;align-items:center;justify-content:center;
+                                          font-weight:bold;font-size:14px;"></div>
+            </div>
+            <div>
+              <div id="userName" style="font-weight:bold;color:#333;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">Nombre</div>
+              <div id="userEmail" style="color:#555;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">correo@ejemplo.com</div>
+            </div>
+          </div>
+          <hr style="margin:8px 0;border:none;border-top:1px solid #eee;">
+          <button id="logoutBtn" style="width:100%;padding:8px 12px;background:#e74c3c;color:white;
+                                        border:none;border-radius:6px;cursor:pointer;font-size:13px;">
+            Cerrar sesión
           </button>
         </div>
       </div>
@@ -3097,59 +3106,62 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
-  // ======================================================================================
-  // LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
-  // ======================================================================================
-  document.getElementById("btnLogin")?.addEventListener("click", async () => {
-    const correo = document.getElementById("loginCorreo").value.trim();
-    const pin = document.getElementById("loginPin").value.trim();
+ // ======================================================================================
+// LOGIN (CORREGIDO: convierte foto de Drive a enlace público)
+// ======================================================================================
+document.getElementById("btnLogin")?.addEventListener("click", async () => {
+  const correo = document.getElementById("loginCorreo").value.trim();
+  const pin = document.getElementById("loginPin").value.trim();
 
-    if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-    if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+  if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
+  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
-    const formData = new URLSearchParams();
-    formData.append("accion", "login");
-    formData.append("correo", correo);
-    formData.append("pin", pin);
+  const formData = new URLSearchParams();
+  formData.append("accion", "login");
+  formData.append("correo", correo);
+  formData.append("pin", pin);
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData
+    });
+
+    const texto = await res.text();
+    console.log("Login:", texto);
 
     try {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData
-      });
+      const data = JSON.parse(texto);
+      if (data.status && data.status.includes("success")) {
+        let fotoPerfil = data.fotoPerfil || "";
 
-      const texto = await res.text();
-      console.log("Login:", texto);
-
-      try {
-        const data = JSON.parse(texto);
-        if (data.status && data.status.includes("success")) {
-          // FOTO EN COLUMNA 4: data.fotoPerfil o data[3] si es array
-          const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "");
-          const usuario = { 
-            nombre: data.nombre, 
-            correo: data.correo, 
-            fotoPerfil: fotoPerfil 
-          };
-          localStorage.setItem("usuario", JSON.stringify(usuario));
-          localStorage.setItem("autor", data.nombre);
-          localStorage.setItem("correo", data.correo);
-          currentAuthorName = data.nombre;
-          currentAuthorEmail = data.correo;
-          cerrarModalYContinuar();
-          mostrarAviso("Bienvenido, " + data.nombre, "success");
-        } else {
-          mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
+        // CONVERTIR ENLACE DE DRIVE A PÚBLICO
+        if (fotoPerfil.includes("drive.google.com") && fotoPerfil.includes("id=")) {
+          const id = fotoPerfil.split("id=")[1].split("&")[0];
+          fotoPerfil = `https://lh3.googleusercontent.com/d/${id}`;
         }
-      } catch (e) {
-        mostrarAviso("Error del servidor", "error");
+
+        const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil };
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        localStorage.setItem("autor", data.nombre);
+        localStorage.setItem("correo", data.correo);
+        currentAuthorName = data.nombre;
+        currentAuthorEmail = data.correo;
+
+        cerrarModalYContinuar();
+        mostrarAviso("Bienvenido, " + data.nombre, "success");
+      } else {
+        mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
       }
-    } catch (err) {
-      mostrarAviso("Error de conexión", "error");
+    } catch (e) {
+      mostrarAviso("Error del servidor", "error");
     }
-  });
+  } catch (err) {
+    mostrarAviso("Error de conexión", "error");
+  }
+});
 
   // ======================================================================================
   // REGISTRO (CORREGIDO: todo bien)
@@ -3218,86 +3230,99 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   // ... [todo igual hasta el final] ...
 
-  // ======================================================================================
-  // MANEJO DE USUARIO (CORREGIDO: foto de columna 4)
-  // ======================================================================================
-  const userBtn = document.getElementById("userBtn");
-  const userMenu = document.getElementById("userMenu");
-  const userName = document.getElementById("userName");
-  const userEmail = document.getElementById("userEmail");
-  const logoutBtn = document.getElementById("logoutBtn");
+ // ======================================================================================
+// MANEJO DE USUARIO (CORREGIDO: foto pública + menú bonito)
+// ======================================================================================
+const userBtn = document.getElementById("userBtn");
+const userMenu = document.getElementById("userMenu");
+const userName = document.getElementById("userName");
+const userEmail = document.getElementById("userEmail");
+const menuFotoImg = document.getElementById("menuFotoImg");
+const menuIniciales = document.getElementById("menuIniciales");
+const logoutBtn = document.getElementById("logoutBtn");
 
-  function mostrarUsuario(u) {
-    if (!userBtn) return;
-    userBtn.innerHTML = "";
-    
-    // FOTO DE COLUMNA 4: u.fotoPerfil debe tener la URL
-    if (u.fotoPerfil && u.fotoPerfil.trim() !== "" && u.fotoPerfil.includes("http")) {
-      const img = document.createElement("img");
-      img.src = u.fotoPerfil;
-      img.style.width = "32px";
-      img.style.height = "32px";
-      img.style.borderRadius = "50%";
-      img.style.objectFit = "cover";
-      img.style.border = "2px solid #0077cc";
-      img.style.boxShadow = "0 1px 3px rgba(0,0,0,0.2)";
-      img.onerror = () => mostrarIniciales(u);
-      userBtn.appendChild(img);
-    } else {
-      mostrarIniciales(u);
-    }
+function mostrarUsuario(u) {
+  if (!userBtn || !u) return;
 
-    if (userName) userName.textContent = u.nombre;
-    if (userEmail) userEmail.textContent = u.correo;
-    if (userName) userName.style.color = "#333";
-    if (userEmail) userEmail.style.color = "#555";
-    currentAuthorName = u.nombre;
-    currentAuthorEmail = u.correo;
+  // === BOTÓN PRINCIPAL ===
+  userBtn.innerHTML = "";
+  if (u.fotoPerfil && u.fotoPerfil.includes("http")) {
+    const img = document.createElement("img");
+    img.src = u.fotoPerfil;
+    img.style.width = "40px";
+    img.style.height = "40px";
+    img.style.borderRadius = "50%";
+    img.style.objectFit = "cover";
+    img.style.border = "2px solid #0077cc";
+    img.onerror = () => mostrarIniciales(u);
+    userBtn.appendChild(img);
+  } else {
+    mostrarIniciales(u);
   }
 
-  function mostrarIniciales(u) {
-    if (!userBtn) return;
+  // === MENÚ DESPLEGABLE ===
+  if (userName) userName.textContent = u.nombre;
+  if (userEmail) userEmail.textContent = u.correo;
+
+  if (u.fotoPerfil && u.fotoPerfil.includes("http")) {
+    menuFotoImg.src = u.fotoPerfil;
+    menuFotoImg.style.display = "block";
+    menuIniciales.style.display = "none";
+  } else {
     const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-    userBtn.textContent = iniciales;
-    userBtn.style.background = "#0077cc";
-    userBtn.style.color = "white";
-    userBtn.style.width = "32px";
-    userBtn.style.height = "32px";
-    userBtn.style.borderRadius = "50%";
-    userBtn.style.display = "flex";
-    userBtn.style.alignItems = "center";
-    userBtn.style.justifyContent = "center";
-    userBtn.style.fontWeight = "bold";
-    userBtn.style.fontSize = "12px";
+    menuIniciales.textContent = iniciales;
+    menuIniciales.style.display = "flex";
+    menuFotoImg.style.display = "none";
   }
 
-  if (userBtn && userMenu) {
-    userBtn.addEventListener("click", () => {
-      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-    });
-  }
+  currentAuthorName = u.nombre;
+  currentAuthorEmail = u.correo;
+}
 
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("autor");
-      localStorage.removeItem("correo");
-      currentAuthorName = "";
-      currentAuthorEmail = "";
-      if (userMenu) userMenu.style.display = "none";
-      mostrarAviso("Sesión cerrada", "info");
-      setTimeout(() => location.reload(), 1200);
-    });
-  }
+function mostrarIniciales(u) {
+  const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  userBtn.textContent = iniciales;
+  userBtn.style.cssText = `
+    width:40px;height:40px;border-radius:50%;background:#0077cc;color:white;
+    display:flex;align-items:center;justify-content:center;font-weight:bold;
+    font-size:14px;border:2px solid #0077cc;
+  `;
+}
 
-  // MOSTRAR USUARIO AL FINAL
-  if (usuarioGuardado) {
-    setTimeout(() => {
-      if (document.getElementById("userBtn")) {
-        mostrarUsuario(usuarioGuardado);
-      }
-    }, 100);
-  }
+// Mostrar menú al hacer clic
+if (userBtn && userMenu) {
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+  });
+  document.addEventListener("click", () => {
+    userMenu.style.display = "none";
+  });
+  userMenu.addEventListener("click", (e) => e.stopPropagation());
+}
+
+// Cerrar sesión
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("autor");
+    localStorage.removeItem("correo");
+    currentAuthorName = "";
+    currentAuthorEmail = "";
+    userMenu.style.display = "none";
+    mostrarAviso("Sesión cerrada", "info");
+    setTimeout(() => location.reload(), 1200);
+  });
+}
+
+// Mostrar al cargar
+if (usuarioGuardado) {
+  setTimeout(() => {
+    if (document.getElementById("userBtn")) {
+      mostrarUsuario(usuarioGuardado);
+    }
+  }, 100);
+}
 });
 
 
@@ -3308,6 +3333,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
