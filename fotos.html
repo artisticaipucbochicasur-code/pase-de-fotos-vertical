@@ -2698,126 +2698,55 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
 function initSwiper(initialIndex = 0) {
-  if (!swiperInstance) {
-    swiperInstance = new Swiper(".swiper", {
-      loop: true,
-      direction: "vertical",
-      slidesPerView: 1,
-      spaceBetween: 10,
-      zoom: { maxRatio: 3, minRatio: 1 },
-      simulateTouch: true,
-      touchStartPreventDefault: false,
-      passiveListeners: false,
-      cssMode: false,
-    });
+    if(!swiperInstance) {
+        swiperInstance = new Swiper('.swiper', {
+            loop: true,
+            direction: 'vertical',
+            slidesPerView: 1,
+            spaceBetween: 10,
+            zoom: { maxRatio: 3, minRatio: 1 }
+        });
 
-    // === 🧩 Parche iOS REAL: bloquear pull-to-refresh sin romper swipe ===
-    (function iosSwipeFix() {
-      const swiperEl = document.querySelector(".swiper");
-      if (!swiperEl) return;
+        swiperInstance.on('slideChange', () => {
+            const activeIndex = swiperInstance.realIndex;
+            updateContentOverlay(activeIndex);
 
-      let startY = 0;
-      let startX = 0;
-      let isMoving = false;
+            if(window.AppInventor && anunciosData.length > 0) {
+                const anuncioActual = anunciosData[activeIndex];
+                
+                if (!anuncioActual) return;
 
-      function onTouchStart(e) {
-        if (e.touches.length > 1) return;
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        isMoving = true;
-      }
-
-      function onTouchMove(e) {
-        if (!isMoving || e.touches.length > 1) return;
-        const currentY = e.touches[0].clientY;
-        const currentX = e.touches[0].clientX;
-        const deltaY = currentY - startY;
-        const deltaX = currentX - startX;
-
-        // si el gesto es horizontal, no interferir
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-
-        // si empieza cerca del top y va hacia abajo → bloquear reload
-        const startedNearTop =
-          window.scrollY === 0 ||
-          document.documentElement.scrollTop === 0 ||
-          startY < 80;
-        const draggingDown = deltaY > 0;
-
-        if (startedNearTop && draggingDown) {
-          e.preventDefault();
-        }
-      }
-
-      function onTouchEnd() {
-        isMoving = false;
-      }
-
-      swiperEl.removeEventListener("touchstart", onTouchStart);
-      swiperEl.removeEventListener("touchmove", onTouchMove);
-      swiperEl.removeEventListener("touchend", onTouchEnd);
-
-      swiperEl.addEventListener("touchstart", onTouchStart, { passive: true });
-      swiperEl.addEventListener("touchmove", onTouchMove, { passive: false });
-      swiperEl.addEventListener("touchend", onTouchEnd, { passive: true });
-    })();
-
-    // === Tu lógica existente ===
-    swiperInstance.on("slideChange", () => {
-      const activeIndex = swiperInstance.realIndex;
-      updateContentOverlay(activeIndex);
-
-      if (window.AppInventor && anunciosData.length > 0) {
-        const anuncioActual = anunciosData[activeIndex];
-        if (!anuncioActual) return;
-
-        const id = anuncioActual.id;
-        const hayServidor =
-          Array.isArray(comentariosPorAnuncio[id]) &&
-          comentariosPorAnuncio[id].length > 0;
-        if (hayServidor) {
-          anuncioActual.comentarios = normalizarComentarios(
-            comentariosPorAnuncio[id]
-          );
-        }
-
-        const listaTitulos = anunciosData.map((a) => a.titulo);
-        const payload = {
-          ...anuncioActual,
-          titulos: listaTitulos,
-          contador: contadorAcumulado,
-        };
-        window.AppInventor.setWebViewString(JSON.stringify(payload));
-      }
-    });
-  }
-
-  if (anunciosData.length > 0) {
-    const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-    swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-    updateContentOverlay(initialSlideIndex);
-
-    if (window.AppInventor) {
-      const anuncioInicial = anunciosData[initialSlideIndex];
-      const id = anuncioInicial.id;
-      const hayServidor =
-        Array.isArray(comentariosPorAnuncio[id]) &&
-        comentariosPorAnuncio[id].length > 0;
-      if (hayServidor) {
-        anuncioInicial.comentarios = normalizarComentarios(
-          comentariosPorAnuncio[id]
-        );
-      }
-      const listaTitulos = anunciosData.map((a) => a.titulo);
-      const payload = {
-        ...anuncioInicial,
-        titulos: listaTitulos,
-        contador: contadorAcumulado,
-      };
-      window.AppInventor.setWebViewString(JSON.stringify(payload));
+                const id = anuncioActual.id;
+                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+                if (hayServidor) {
+                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+                }
+                const listaTitulos = anunciosData.map(a => a.titulo);
+                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+                window.AppInventor.setWebViewString(JSON.stringify(payload));
+            }
+        });
     }
-  }
+
+    if(anunciosData.length > 0) {
+        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+        updateContentOverlay(initialSlideIndex);
+        
+        if(window.AppInventor){
+            const anuncioInicial = anunciosData[initialSlideIndex];
+            const id = anuncioInicial.id;
+            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+            if (hayServidor) {
+                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+            }
+            const listaTitulos = anunciosData.map(a => a.titulo);
+            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+    }
 }
+
 
 
 
@@ -3380,6 +3309,7 @@ if (modal && userBtn && userMenu) {
   </script>
 </body>
 </html>
+
 
 
 
