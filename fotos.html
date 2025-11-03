@@ -2957,7 +2957,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 6000);
   }, 300);
 
+  // ======================================================================================
   // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+  // ======================================================================================
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
   const modal = document.getElementById("loginModal");
 
@@ -2984,7 +2986,9 @@ document.addEventListener("DOMContentLoaded", () => {
     mostrarUsuario(usuarioGuardado);
   }
 
+  // ======================================================================================
   // GESTIÓN DE PESTAÑAS Y FORMULARIOS
+  // ======================================================================================
   const tabLogin = document.getElementById("tabLogin");
   const tabRegistro = document.getElementById("tabRegistro");
   const formLogin = document.getElementById("formLogin");
@@ -3004,7 +3008,9 @@ document.addEventListener("DOMContentLoaded", () => {
     formRegistro.style.display = tipo === "registro" ? "block" : "none";
   }
 
+  // ======================================================================================
   // PREVISUALIZACIÓN DE FOTO
+  // ======================================================================================
   const regFoto = document.getElementById("regFoto");
   const previewContainer = document.getElementById("previewContainer");
   const fotoPreview = document.getElementById("fotoPreview");
@@ -3021,7 +3027,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // ======================================================================================
   // FUNCIÓN PARA MOSTRAR AVISOS
+  // ======================================================================================
   function mostrarAviso(mensaje, tipo = "info") {
     const aviso = document.createElement("div");
     aviso.textContent = mensaje;
@@ -3036,6 +3044,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => aviso.remove(), 3000);
   }
 
+  // CSS para animación
   const style = document.createElement("style");
   style.textContent = `
     @keyframes fadeInOut {
@@ -3048,10 +3057,14 @@ document.addEventListener("DOMContentLoaded", () => {
   `;
   document.head.appendChild(style);
 
+  // ======================================================================================
   // URL DEL GOOGLE APPS SCRIPT
+  // ======================================================================================
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
-  // LOGIN
+  // ======================================================================================
+  // LOGIN (CORREGIDO: acepta status con emoji)
+  // ======================================================================================
   document.getElementById("btnLogin")?.addEventListener("click", async () => {
     const correo = document.getElementById("loginCorreo").value.trim();
     const pin = document.getElementById("loginPin").value.trim();
@@ -3071,12 +3084,13 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData
       });
+
       const texto = await res.text();
       console.log("Login respuesta:", texto);
 
       try {
         const data = JSON.parse(texto);
-        if (data.status === "success") {
+        if (data.status && data.status.includes("success")) { // Acepta emoji
           const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil: data.fotoPerfil || "" };
           localStorage.setItem("usuario", JSON.stringify(usuario));
           localStorage.setItem("autor", data.nombre);
@@ -3097,10 +3111,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // REGISTRO
+  // ======================================================================================
+  // REGISTRO (CORREGIDO: envía todo bien + espera respuesta real)
+  // ======================================================================================
   document.getElementById("btnRegistro")?.addEventListener("click", async () => {
     const nombre = document.getElementById("regNombre").value.trim();
-    const correo = document.getElementById("regCorreo").value.trim();
+    const correo = document.getElementById("regCorreo").value.trim().toLowerCase(); // Normaliza
     const pin = document.getElementById("regPin").value;
     const pinConfirm = document.getElementById("regPinConfirm").value;
     const file = regFoto.files[0];
@@ -3117,7 +3133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const formData = new URLSearchParams();
       formData.append("accion", "registro");
       formData.append("nombre", nombre);
-      formData.append("correo", correo);
+      formData.append("correo", correo); // Ya en minúsculas
       formData.append("pin", pin);
       formData.append("foto", fotoBase64);
 
@@ -3127,10 +3143,11 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formData
         });
-        const texto = await res.text();
-        console.log("Registro:", texto);
 
-        if (texto.includes("registrado")) {
+        const texto = await res.text();
+        console.log("Registro respuesta:", texto);
+
+        if (texto.includes("registrado") || texto.includes("Usuario registrado")) {
           mostrarAviso("Cuenta creada! Inicia sesión", "success");
           mostrarForm("login");
           document.getElementById("loginCorreo").value = correo;
@@ -3145,6 +3162,9 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.readAsDataURL(file);
   });
 
+  // ======================================================================================
+  // CERRAR MODAL Y CONTINUAR
+  // ======================================================================================
   function cerrarModalYContinuar() {
     modal.style.display = "none";
     document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
@@ -3308,7 +3328,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================================================================================
-  // MANEJO DE USUARIO (CORREGIDO: funciones fuera del if)
+  // MANEJO DE USUARIO
   // ======================================================================================
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
@@ -3316,7 +3336,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const userEmail = document.getElementById("userEmail");
   const logoutBtn = document.getElementById("logoutBtn");
 
-  // FUNCIONES FUERA DEL IF
   function mostrarUsuario(u) {
     if (!userBtn) return;
     userBtn.innerHTML = "";
@@ -3358,7 +3377,6 @@ document.addEventListener("DOMContentLoaded", () => {
     userBtn.style.fontSize = "12px";
   }
 
-  // Eventos solo si existen
   if (userBtn && userMenu) {
     userBtn.addEventListener("click", () => {
       userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
@@ -3378,6 +3396,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (usuarioGuardado && userBtn) {
+    mostrarUsuario(usuarioGuardado);
+  }
+});
   // Mostrar usuario al inicio si existe
   if (usuarioGuardado && userBtn) {
     mostrarUsuario(usuarioGuardado);
@@ -3393,6 +3415,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
