@@ -3228,18 +3228,24 @@ if (imagesBtn) {
     const logoutBtn = document.getElementById("logoutBtn");
 
     // --- Helper para construir URL directa de Google Drive si el usuario envió solo el ID ---
-    function buildDriveUrlIfNeeded(urlOrId) {
-      if (!urlOrId) return "";
-      const s = String(urlOrId).trim();
-      // Si parece un id (solo letras/números y guiones/underscore, 20-80 chars), conviértelo
-      if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) {
-        return `https://drive.google.com/uc?export=view&id=${s}`;
-      }
-      // Si es una URL de drive con "id=" o "/file/d/ID/" extrae ID
-      const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-      if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-      return s;
-    }
+  function buildDriveUrlIfNeeded(urlOrId) {
+  if (!urlOrId) return "";
+  const s = String(urlOrId).trim();
+
+  // Es sólo ID
+  if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) {
+    return `https://drive.google.com/uc?export=download&id=${s}`;
+  }
+
+  // Extraer ID de URLs Drive
+  const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+  if (m && m[1]) {
+    return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+  }
+
+  return s;
+}
+
 
     // --- Mostrar usuario con preloader y logs de depuración ---
     function mostrarUsuario(u) {
@@ -3419,5 +3425,6 @@ if (imagesBtn) {
   </script>
 </body>
 </html>
+
 
 
