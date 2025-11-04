@@ -3362,6 +3362,7 @@ function buildDriveUrlIfNeeded(urlOrId) {
 
 // --- Mostrar usuario con preloader y logs de depuración ---
 // --- Mostrar usuario con preloader y logs de depuración ---
+// --- Mostrar usuario con preloader y logs de depuración ---
 function mostrarUsuario(u) {
   if (!userBtn) return;
   console.log("mostrarUsuario - objeto recibido:", u);
@@ -3416,6 +3417,10 @@ function mostrarUsuario(u) {
 
   function fallback() {
     mostrarIniciales(u);
+
+    // ✅ Asegurar iniciales en el menú
+    const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
+    if (fotoUsuarioMenu) fotoUsuarioMenu.style.backgroundImage = "";
   }
 
   if (!foto) {
@@ -3441,6 +3446,13 @@ function mostrarUsuario(u) {
     };
 
     if (!yaTieneImagen) userBtn.appendChild(img);
+
+    // ✅ poner foto en menú
+    const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
+    if (fotoUsuarioMenu) {
+      fotoUsuarioMenu.style.backgroundImage = `url(${foto})`;
+      fotoUsuarioMenu.textContent = "";
+    }
 
   } else {
     const candidates = buildDriveCandidates(foto);
@@ -3483,6 +3495,13 @@ function mostrarUsuario(u) {
         });
 
         if (!yaTieneImagen) userBtn.appendChild(img);
+
+        // ✅ menú foto
+        const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
+        if (fotoUsuarioMenu) {
+          fotoUsuarioMenu.style.backgroundImage = `url(${finalUrl})`;
+          fotoUsuarioMenu.textContent = "";
+        }
       };
 
       testImg.onload = () => {
@@ -3524,55 +3543,54 @@ function mostrarUsuario(u) {
   currentAuthorEmail = u.correo;
 
   // === Sincronizar también la foto en el menú desplegable ===
-const menuPhoto = document.getElementById("userMenuPhoto");
-if (menuPhoto) {
-  menuPhoto.innerHTML = ""; // limpiar
+  const menuPhoto = document.getElementById("userMenuPhoto");
+  if (menuPhoto) {
+    menuPhoto.innerHTML = ""; // limpiar
 
-  const imgBtn = userBtn.querySelector("img");
-  
-  if (imgBtn && imgBtn.src) {
-    // ✅ Mostrar exactamente la misma foto
-    menuPhoto.innerHTML = `
-      <img src="${imgBtn.src}" style="
-        width:80px;
-        height:80px;
-        border-radius:50%;
-        object-fit:cover;
-        border:2px solid #0077cc;
-      ">
-    `;
-  } else {
-    // ✅ Iniciales elegantes
-    const iniciales = (u.nombre || "US")
-      .trim()
-      .split(" ")
-      .map(p => p.charAt(0).toUpperCase())
-      .join("")
-      .substring(0,2);
+    const imgBtn = userBtn.querySelector("img");
 
-    menuPhoto.innerHTML = `
-      <div style="
-        width:80px;
-        height:80px;
-        border-radius:50%;
-        background:#0077cc;
-        color:white;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:28px;
-        font-weight:bold;
-      ">
-        ${iniciales}
-      </div>
-    `;
+    if (imgBtn && imgBtn.src) {
+      // ✅ Mostrar exactamente la misma foto
+      menuPhoto.innerHTML = `
+        <img src="${imgBtn.src}" style="
+          width:80px;
+          height:80px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid #0077cc;
+        ">
+      `;
+    } else {
+      // ✅ Iniciales elegantes
+      const iniciales = (u.nombre || "US")
+        .trim()
+        .split(" ")
+        .map(p => p.charAt(0).toUpperCase())
+        .join("")
+        .substring(0,2);
+
+      menuPhoto.innerHTML = `
+        <div style="
+          width:80px;
+          height:80px;
+          border-radius:50%;
+          background:#0077cc;
+          color:white;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:28px;
+          font-weight:bold;
+        ">
+          ${iniciales}
+        </div>
+      `;
+    }
+
+    // 🔗 Abrir modal perfil al tocar la foto grande
+    menuPhoto.style.cursor = "pointer";
+    menuPhoto.onclick = abrirPerfil;
   }
-
-  // 🔗 Abrir modal perfil al tocar la foto grande
-  menuPhoto.style.cursor = "pointer";
-  menuPhoto.onclick = abrirPerfil;
-}
-
 }
 
 
@@ -3626,6 +3644,11 @@ if (logoutBtn) {
 
 
    function abrirPerfil() {
+
+  // ✅ Cerrar menú si está abierto
+  const menuUsuario = document.getElementById("menuUsuario");
+  if (menuUsuario) menuUsuario.style.display = "none";
+
   const modal = document.getElementById("modalPerfil");
   modal.style.display = "flex";
 
@@ -3698,6 +3721,13 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
     const menuPhoto = document.getElementById("userMenuPhoto");
     menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
+    // ✅ Actualizar foto del icono del menú también
+    const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
+    if (fotoUsuarioMenu) {
+      fotoUsuarioMenu.style.backgroundImage = `url(${base64})`;
+      fotoUsuarioMenu.textContent = "";
+    }
+
     // ENVIAR AL SCRIPT BACKEND
     await fetch("TU_SCRIPT_GUARDAR_FOTO.php", {
       method: "POST",
@@ -3722,6 +3752,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   </script>
 </body>
 </html>
+
 
 
 
