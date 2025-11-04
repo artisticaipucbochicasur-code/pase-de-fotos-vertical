@@ -1108,7 +1108,7 @@ body {
 </button>
 
 
-  <!-- MODAL PERFIL -->
+ <!-- MODAL PERFIL -->
 <div id="modalPerfil" style="
   position: fixed;
   top: 0; left: 0;
@@ -1119,7 +1119,7 @@ body {
   justify-content:center;
   z-index: 9999;
 ">
-  <div style="
+  <div id="contenidoModalPerfil" style="
     width:320px;
     background:white;
     border-radius:12px;
@@ -1169,6 +1169,7 @@ body {
   </div>
 </div>
 
+
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -1176,29 +1177,6 @@ body {
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
-
-function abrirPerfil() {
-  const modal = document.getElementById("modalPerfil");
-  modal.style.display = "flex";
-
-  // copiar foto actual
-  const imgBtn = document.querySelector("#userBtn img");
-  const fotoModal = document.getElementById("fotoPerfilModal");
-
-  if (imgBtn) {
-    fotoModal.src = imgBtn.src;
-  }
-
-  document.getElementById("nombrePerfil").innerText =
-    document.getElementById("userName").innerText;
-
-  document.getElementById("correoPerfil").innerText =
-    document.getElementById("userEmail").innerText;
-}
-
-function cerrarModalPerfil() {
-  document.getElementById("modalPerfil").style.display = "none";
-}
 
 
 
@@ -3351,19 +3329,19 @@ function buildDriveUrlIfNeeded(urlOrId) {
 }
 
 // --- Mostrar usuario con preloader y logs de depuración ---
+// --- Mostrar usuario con preloader y logs de depuración ---
 function mostrarUsuario(u) {
   if (!userBtn) return;
   console.log("mostrarUsuario - objeto recibido:", u);
 
-  // ✅ Evitar duplicación si ya hay imagen
-  if (userBtn.querySelector("img")) {
-    console.warn("mostrarUsuario - imagen ya renderizada, evitando duplicados");
-    return;
-  }
+  // ✅ Detectar si ya hay imagen en el botón (pero NO salir de la función)
+  let yaTieneImagen = !!userBtn.querySelector("img");
 
-  // ✅ Limpiar cualquier nodo previo
-  while (userBtn.firstChild) {
-    userBtn.removeChild(userBtn.firstChild);
+  // ✅ Limpiar cualquier nodo previo si no tiene imagen aun
+  if (!yaTieneImagen) {
+    while (userBtn.firstChild) {
+      userBtn.removeChild(userBtn.firstChild);
+    }
   }
 
   u = u || {};
@@ -3430,7 +3408,8 @@ function mostrarUsuario(u) {
       fallback();
     };
 
-    userBtn.appendChild(img);
+    if (!yaTieneImagen) userBtn.appendChild(img);
+
   } else {
     const candidates = buildDriveCandidates(foto);
     console.log("mostrarUsuario - candidatos de imagen:", candidates);
@@ -3471,7 +3450,7 @@ function mostrarUsuario(u) {
           boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
         });
 
-        userBtn.appendChild(img);
+        if (!yaTieneImagen) userBtn.appendChild(img);
       };
 
       testImg.onload = () => {
@@ -3513,29 +3492,30 @@ function mostrarUsuario(u) {
   currentAuthorEmail = u.correo;
 
   // === Sincronizar también la foto en el menú desplegable ===
-const menuPhoto = document.getElementById("userMenuPhoto");
-if (menuPhoto) {
-  menuPhoto.innerHTML = ""; // limpiar
+  const menuPhoto = document.getElementById("userMenuPhoto");
+  if (menuPhoto) {
+    menuPhoto.innerHTML = ""; // limpiar
 
-  if (userBtn.querySelector("img")) {
-    const clone = userBtn.querySelector("img").cloneNode(true);
-    clone.style.width = "80px";
-    clone.style.height = "80px";
-    clone.style.borderRadius = "50%";
-    clone.style.border = "2px solid #0077cc";
-    menuPhoto.appendChild(clone);
-  } else {
-    // si son iniciales
-    const iniciales = userBtn.textContent || "US";
-    menuPhoto.textContent = iniciales;
-    menuPhoto.style.background = "#0077cc";
+    if (userBtn.querySelector("img")) {
+      const clone = userBtn.querySelector("img").cloneNode(true);
+      clone.style.width = "80px";
+      clone.style.height = "80px";
+      clone.style.borderRadius = "50%";
+      clone.style.border = "2px solid #0077cc";
+      menuPhoto.appendChild(clone);
+    } else {
+      // si son iniciales
+      const iniciales = userBtn.textContent || "US";
+      menuPhoto.textContent = iniciales;
+      menuPhoto.style.background = "#0077cc";
+    }
+
+    // Abrir perfil al hacer click en la foto grande
+    menuPhoto.style.cursor = "pointer";
+    menuPhoto.onclick = abrirPerfil;
   }
 }
-// Abrir perfil al hacer click en la foto grande
-menuPhoto.style.cursor = "pointer";
-menuPhoto.onclick = abrirPerfil;
 
-}
 
 function mostrarIniciales(u) {
   if (!userBtn) return;
@@ -3585,12 +3565,61 @@ if (logoutBtn) {
   });
 
 
-// Abrir selector al hacer click en el lápiz
+
+   function abrirPerfil() {
+  const modal = document.getElementById("modalPerfil");
+  modal.style.display = "flex";
+
+  // copiar foto actual
+  const imgBtn = document.querySelector("#userBtn img");
+  const fotoModal = document.getElementById("fotoPerfilModal");
+
+  if (imgBtn) {
+    fotoModal.src = imgBtn.src;
+  }
+
+  document.getElementById("nombrePerfil").innerText =
+    document.getElementById("userName").innerText;
+
+  document.getElementById("correoPerfil").innerText =
+    document.getElementById("userEmail").innerText;
+}
+
+function cerrarModalPerfil() {
+  document.getElementById("modalPerfil").style.display = "none";
+}
+
+// ==============================
+// CERRAR AL HACER CLICK AFUERA
+// ==============================
+window.addEventListener("click", function (e) {
+  const modal = document.getElementById("modalPerfil");
+  const contenido = document.getElementById("contenidoModalPerfil");
+
+  if (e.target === modal) {
+    cerrarModalPerfil();
+  }
+});
+
+// ==============================
+// CERRAR CON TECLA ESC
+// ==============================
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    cerrarModalPerfil();
+  }
+});
+
+// ==============================
+// ABRIR SELECTOR CON ✏️
+// ==============================
 document.getElementById("editarFotoBtn").addEventListener("click", () => {
   document.getElementById("inputFotoPerfil").click();
 });
 
-// Cuando seleccionan nueva foto
+// ==============================
+// CUANDO SE SELECCIONA UNA FOTO
+// ==============================
 document.getElementById("inputFotoPerfil").addEventListener("change", async (e) => {
   const archivo = e.target.files[0];
   if (!archivo) return;
@@ -3599,18 +3628,18 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   lector.onload = async () => {
     const base64 = lector.result;
 
-    // Update visual en modal
+    // Actualizar en modal
     document.getElementById("fotoPerfilModal").src = base64;
 
-    // update en el botón usuario
+    // Actualizar botón usuario
     const userBtn = document.getElementById("userBtn");
     userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
 
-    // update en menú desplegable
+    // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
     menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
-    // 👉 enviarlo al script
+    // ENVIAR AL SCRIPT BACKEND
     await fetch("TU_SCRIPT_GUARDAR_FOTO.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3625,6 +3654,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 });
 
 
+
     
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
@@ -3633,6 +3663,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   </script>
 </body>
 </html>
+
 
 
 
