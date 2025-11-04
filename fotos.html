@@ -971,6 +971,13 @@ body {
              style="display:none;position:absolute;top:50px;right:0;background:white;
                     border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
                     padding:10px;min-width:180px;text-align:left;z-index:999;">
+          <!-- FOTO GRANDE EN EL MENÚ DE USUARIO -->
+<div id="userMenuPhoto" 
+     style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
+            background:#ddd;display:flex;align-items:center;justify-content:center;
+            font-size:26px;font-weight:bold;color:white;">
+</div>
+
           <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
           <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
           <button id="logoutBtn" 
@@ -3418,6 +3425,27 @@ function mostrarUsuario(u) {
 
   currentAuthorName = u.nombre;
   currentAuthorEmail = u.correo;
+
+  // === Sincronizar también la foto en el menú desplegable ===
+const menuPhoto = document.getElementById("userMenuPhoto");
+if (menuPhoto) {
+  menuPhoto.innerHTML = ""; // limpiar
+
+  if (userBtn.querySelector("img")) {
+    const clone = userBtn.querySelector("img").cloneNode(true);
+    clone.style.width = "80px";
+    clone.style.height = "80px";
+    clone.style.borderRadius = "50%";
+    clone.style.border = "2px solid #0077cc";
+    menuPhoto.appendChild(clone);
+  } else {
+    // si son iniciales
+    const iniciales = userBtn.textContent || "US";
+    menuPhoto.textContent = iniciales;
+    menuPhoto.style.background = "#0077cc";
+  }
+}
+
 }
 
 function mostrarIniciales(u) {
@@ -3474,6 +3502,7 @@ if (logoutBtn) {
   </script>
 </body>
 </html>
+
 
 
 
