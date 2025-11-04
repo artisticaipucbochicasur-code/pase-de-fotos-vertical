@@ -1106,6 +1106,70 @@ body {
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
 </button>
+
+
+  <!-- MODAL PERFIL -->
+<div id="modalPerfil" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+">
+  <div style="
+    width:320px;
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    text-align:center;
+    position:relative;
+  ">
+    <!-- Botón cerrar -->
+    <span onclick="cerrarModalPerfil()" style="
+      position:absolute;
+      right:12px;
+      top:8px;
+      font-size:20px;
+      cursor:pointer;">✖</span>
+
+    <div style="position:relative; display:inline-block;">
+      <img id="fotoPerfilModal" src="" style="
+        width:100px;
+        height:100px;
+        border-radius:50%;
+        object-fit:cover;
+        border:3px solid #0077cc;
+      ">
+
+      <!-- ✏️ Icono editar -->
+      <span id="editarFotoBtn" style="
+        position:absolute;
+        right:-5px;
+        bottom:-5px;
+        background:#0077cc;
+        color:white;
+        border-radius:50%;
+        width:28px;
+        height:28px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
+        font-size:16px;
+      ">✏️</span>
+    </div>
+
+    <p id="nombrePerfil" style="margin-top:12px;font-weight:bold;"></p>
+    <p id="correoPerfil" style="color:#777;font-size:14px;"></p>
+
+    <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
+  </div>
+</div>
+
+  
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
@@ -1113,6 +1177,28 @@ body {
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
+function abrirPerfil() {
+  const modal = document.getElementById("modalPerfil");
+  modal.style.display = "flex";
+
+  // copiar foto actual
+  const imgBtn = document.querySelector("#userBtn img");
+  const fotoModal = document.getElementById("fotoPerfilModal");
+
+  if (imgBtn) {
+    fotoModal.src = imgBtn.src;
+  }
+
+  document.getElementById("nombrePerfil").innerText =
+    document.getElementById("userName").innerText;
+
+  document.getElementById("correoPerfil").innerText =
+    document.getElementById("userEmail").innerText;
+}
+
+function cerrarModalPerfil() {
+  document.getElementById("modalPerfil").style.display = "none";
+}
 
 
 
@@ -3445,6 +3531,9 @@ if (menuPhoto) {
     menuPhoto.style.background = "#0077cc";
   }
 }
+// Abrir perfil al hacer click en la foto grande
+menuPhoto.style.cursor = "pointer";
+menuPhoto.onclick = abrirPerfil;
 
 }
 
@@ -3495,6 +3584,48 @@ if (logoutBtn) {
 
   });
 
+
+// Abrir selector al hacer click en el lápiz
+document.getElementById("editarFotoBtn").addEventListener("click", () => {
+  document.getElementById("inputFotoPerfil").click();
+});
+
+// Cuando seleccionan nueva foto
+document.getElementById("inputFotoPerfil").addEventListener("change", async (e) => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+
+  const lector = new FileReader();
+  lector.onload = async () => {
+    const base64 = lector.result;
+
+    // Update visual en modal
+    document.getElementById("fotoPerfilModal").src = base64;
+
+    // update en el botón usuario
+    const userBtn = document.getElementById("userBtn");
+    userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+
+    // update en menú desplegable
+    const menuPhoto = document.getElementById("userMenuPhoto");
+    menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+
+    // 👉 enviarlo al script
+    await fetch("TU_SCRIPT_GUARDAR_FOTO.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuario: document.getElementById("userEmail").innerText,
+        foto: base64
+      })
+    });
+  };
+
+  lector.readAsDataURL(archivo);
+});
+
+
+    
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
@@ -3502,6 +3633,7 @@ if (logoutBtn) {
   </script>
 </body>
 </html>
+
 
 
 
