@@ -3730,6 +3730,7 @@ document.getElementById("editarFotoBtn").addEventListener("click", () => {
 
 // ==============================
 // CUANDO SE SELECCIONA UNA FOTO
+// ==============================
 document.getElementById("inputFotoPerfil").addEventListener("change", async (e) => {
   const archivo = e.target.files[0];
   if (!archivo) return;
@@ -3738,50 +3739,56 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   lector.onload = async () => {
     const base64 = lector.result;
 
-    // Mostrar inmediatamente en modal
+    // Mostrar inmediatamente la imagen en la interfaz
     const fotoModal = document.getElementById("fotoPerfilModal");
     if (fotoModal) fotoModal.src = base64;
 
-    // Actualizar botón usuario
     const userBtn = document.getElementById("userBtn");
     if (userBtn) {
       userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
     }
 
-    // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
     if (menuPhoto) {
       menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
     }
 
-    // Guardar localmente
-    try { localStorage.setItem("fotoPerfil", base64); } catch(e) {}
+    try { localStorage.setItem("fotoPerfil", base64); } catch (err) {}
 
-    // Enviar al backend para subir a Drive
+    // ==============================
+    // Enviar al Apps Script (como formulario)
+    // ==============================
     try {
+      const formData = new FormData();
+      formData.append("accion", "actualizarFoto");
+      formData.append("usuario", document.getElementById("userEmail").innerText);
+      formData.append("foto", base64);
+
       const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accion: "actualizarFoto",
-          usuario: document.getElementById("userEmail").innerText,
-          foto: base64
-        })
+        body: formData
       });
 
-      const data = await resp.json();
+      const text = await resp.text(); // a veces el GAS devuelve texto plano
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Respuesta no válida:", text);
+        throw new Error("Respuesta no válida del servidor");
+      }
 
       if (data.status === "success" && data.foto) {
         // Actualizar interfaz con la URL real de Drive
         if (fotoModal) fotoModal.src = data.foto;
         if (userBtn) userBtn.innerHTML = `<img src="${data.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
         if (menuPhoto) menuPhoto.innerHTML = `<img src="${data.foto}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-        try { localStorage.setItem("fotoPerfil", data.foto); } catch(e) {}
+        try { localStorage.setItem("fotoPerfil", data.foto); } catch (err) {}
       } else {
         console.error("Error al actualizar foto:", data.message || data);
         alert("No se pudo actualizar la foto en Drive.");
       }
-    } catch(err) {
+    } catch (err) {
       console.error("Error al comunicarse con backend:", err);
       alert("Error al actualizar foto. Revisa la conexión o el script.");
     }
@@ -3891,6 +3898,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
