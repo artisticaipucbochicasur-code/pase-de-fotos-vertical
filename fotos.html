@@ -3754,7 +3754,8 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
     }
 
-    try { localStorage.setItem("fotoPerfil", base64); } catch (err) {}
+    // Guardar temporalmente (por si falla la subida)
+    try { localStorage.setItem("fotoPerfil_temp", base64); } catch (err) {}
 
     // ==============================
     // Enviar al Apps Script (como formulario)
@@ -3770,22 +3771,27 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         body: formData
       });
 
-      const text = await resp.text();
-      let data;
+      let text = await resp.text();
+      let data = {};
+
       try {
         data = JSON.parse(text);
       } catch {
-        console.error("Respuesta no válida:", text);
-        throw new Error("Respuesta no válida del servidor");
+        // Si no es JSON pero contiene una URL de Drive, lo adaptamos manualmente
+        const match = text.match(/[-\w]{25,}/);
+        if (match) {
+          data = { status: "success", foto: `https://drive.google.com/uc?export=view&id=${match[0]}` };
+        } else {
+          console.error("Respuesta no válida del servidor:", text);
+          throw new Error("Respuesta no válida del servidor");
+        }
       }
 
       // ==============================
       // ✅ BLOQUE ACTUALIZADO Y COMPATIBLE CON DRIVE ID
       // ==============================
       if (data.status === "success" && data.foto) {
-        // 🔧 Asegurar URL válida (si viene ID, convertir a URL de Drive)
         const urlReal = buildDriveUrlIfNeeded(data.foto);
-        // 🚀 Forzar refresco: agregar parámetro único
         const fotoNoCache = `${urlReal}?v=${Date.now()}`;
 
         // === Actualizar interfaz con la URL real (sin caché) ===
@@ -3799,7 +3805,12 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
             style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
         }
 
-        try { localStorage.setItem("fotoPerfil", fotoNoCache); } catch (err) {}
+        // 🔄 Actualizar localStorage con la foto real (borrando la anterior)
+        try {
+          localStorage.removeItem("fotoPerfil");
+          localStorage.removeItem("fotoPerfil_temp");
+          localStorage.setItem("fotoPerfil", fotoNoCache);
+        } catch (err) {}
 
         // 🔁 Sincronizar el resto del UI con mostrarUsuario()
         setTimeout(() => {
@@ -3827,6 +3838,17 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
   lector.readAsDataURL(archivo);
 });
+
+// ==============================
+// 🔧 Función auxiliar: convertir ID de Drive a URL visible
+// ==============================
+function buildDriveUrlIfNeeded(foto) {
+  if (foto.startsWith("https://drive.google.com/")) return foto;
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(foto)) {
+    return `https://drive.google.com/uc?export=view&id=${foto}`;
+  }
+  return foto;
+}
 
 
 
@@ -3930,6 +3952,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
