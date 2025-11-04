@@ -3262,7 +3262,16 @@ function mostrarUsuario(u) {
   if (!userBtn) return;
   console.log("mostrarUsuario - objeto recibido:", u);
 
-  userBtn.innerHTML = "";
+  // ✅ Evitar duplicación si ya hay imagen
+  if (userBtn.querySelector("img")) {
+    console.warn("mostrarUsuario - imagen ya renderizada, evitando duplicados");
+    return;
+  }
+
+  // ✅ Limpiar cualquier nodo previo
+  while (userBtn.firstChild) {
+    userBtn.removeChild(userBtn.firstChild);
+  }
 
   u = u || {};
   u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
@@ -3472,6 +3481,7 @@ if (usuarioGuardado) {
   </script>
 </body>
 </html>
+
 
 
 
