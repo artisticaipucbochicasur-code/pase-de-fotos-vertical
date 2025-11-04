@@ -3749,22 +3749,29 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
     // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
     menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-// Guardar para recuperarlo si la UI no tiene la <img> por algún motivo
-try { localStorage.setItem("fotoPerfil", base64); } catch (e) { console.warn("No se pudo guardar foto en localStorage", e); }
+
+    // 🔥 Guardar para recuperarlo luego
+    try { localStorage.setItem("fotoPerfil", base64); } catch(e) {}
+
+    // ✅ Forzar sincronización inmediata
+    syncUserMenuPhoto();
 
     // ENVIAR AL SCRIPT BACKEND
-    await fetch("TU_SCRIPT_GUARDAR_FOTO.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        usuario: document.getElementById("userEmail").innerText,
-        foto: base64
-      })
-    });
+    await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    accion: "actualizarFoto",
+    usuario: document.getElementById("userEmail").innerText,
+    foto: base64
+  })
+});
+
   };
 
   lector.readAsDataURL(archivo);
 });
+
 
 // --------------------------
 // Sincronizar foto del menú
@@ -3865,6 +3872,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
