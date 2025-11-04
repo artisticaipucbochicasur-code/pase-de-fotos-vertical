@@ -3778,16 +3778,45 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         throw new Error("Respuesta no válida del servidor");
       }
 
+      // ==============================
+      // ✅ BLOQUE ACTUALIZADO CON CONTROL DE CACHÉ Y SINCRONIZACIÓN
+      // ==============================
       if (data.status === "success" && data.foto) {
-        // Actualizar interfaz con la URL real de Drive
-        if (fotoModal) fotoModal.src = data.foto;
-        if (userBtn) userBtn.innerHTML = `<img src="${data.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
-        if (menuPhoto) menuPhoto.innerHTML = `<img src="${data.foto}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-        try { localStorage.setItem("fotoPerfil", data.foto); } catch (err) {}
+        // 🚀 Forzar refresco: agregar un parámetro único para evitar caché
+        const fotoNoCache = `${data.foto}?v=${Date.now()}`;
+
+        // === Actualizar interfaz con la URL real (sin caché) ===
+        if (fotoModal) fotoModal.src = fotoNoCache;
+        if (userBtn) {
+          userBtn.innerHTML = `<img src="${fotoNoCache}" 
+            style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+        }
+        if (menuPhoto) {
+          menuPhoto.innerHTML = `<img src="${fotoNoCache}" 
+            style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+        }
+
+        try { localStorage.setItem("fotoPerfil", fotoNoCache); } catch (err) {}
+
+        // 🔁 Sincronizar el resto del UI con pequeña pausa (para evitar conflicto con observer)
+        setTimeout(() => {
+          if (typeof syncUserMenuPhoto === "function") syncUserMenuPhoto();
+          if (typeof mostrarUsuario === "function") {
+            const u = {
+              nombre: document.getElementById("userName")?.textContent || "",
+              correo: document.getElementById("userEmail")?.textContent || "",
+              fotoPerfil: fotoNoCache
+            };
+            mostrarUsuario(u);
+          }
+        }, 400);
+
+        console.log("✅ Foto actualizada correctamente:", fotoNoCache);
       } else {
         console.error("Error al actualizar foto:", data.message || data);
         alert("No se pudo actualizar la foto en Drive.");
       }
+
     } catch (err) {
       console.error("Error al comunicarse con backend:", err);
       alert("Error al actualizar foto. Revisa la conexión o el script.");
@@ -3898,6 +3927,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
