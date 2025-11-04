@@ -3625,43 +3625,75 @@ if (logoutBtn) {
 
 
 
- function abrirPerfil() {
-  // 🔥 Cerrar menú usuario si está abierto
-  document.getElementById("userMenu").style.display = "none";
+function abrirPerfil() {
+  // Cerrar userMenu si está abierto
+  const userMenu = document.getElementById("userMenu");
+  if (userMenu) userMenu.style.display = "none";
 
+  // Mostrar modal
   const modal = document.getElementById("modalPerfil");
   modal.style.display = "flex";
 
-  // copiar foto actual al modal
-  const imgBtn = document.querySelector("#userBtn img");
+  // Elementos relevantes
+  const userBtn = document.getElementById("userBtn");
+  const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
   const fotoModal = document.getElementById("fotoPerfilModal");
+  const menuPhoto = document.getElementById("userMenuPhoto");
 
-  if (imgBtn) {
-    fotoModal.src = imgBtn.src;
+  // Determinar la fuente de la foto (prioridad)
+  let fotoSrc = "";
+
+  // 1) imagen en el botón
+  if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
+
+  // 2) si no, la que ya tenga el modal
+  if (!fotoSrc && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") {
+    fotoSrc = fotoModal.src;
   }
 
-  // ✅ Sincronizar también la foto del menú
-  const imgBtn2 = document.querySelector("#userBtn img");
-  const menuPhoto2 = document.getElementById("userMenuPhoto");
+  // 3) si no, la que tenga userMenuPhoto
+  const menuImg = menuPhoto ? menuPhoto.querySelector("img") : null;
+  if (!fotoSrc && menuImg && menuImg.src) fotoSrc = menuImg.src;
 
-  if (imgBtn2 && menuPhoto2) {
-    menuPhoto2.innerHTML = `
-      <img src="${imgBtn2.src}" style="
-        width:80px;
-        height:80px;
-        border-radius:50%;
-        object-fit:cover;
-        border:2px solid #0077cc;
-      ">
-    `;
+  // 4) si no, intentar desde localStorage (si guardaste la foto)
+  if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
+    fotoSrc = localStorage.getItem("fotoPerfil");
   }
 
-  document.getElementById("nombrePerfil").innerText =
-    document.getElementById("userName").innerText;
+  // Aplicar la foto donde corresponda
+  if (fotoSrc) {
+    // al modal
+    if (fotoModal) fotoModal.src = fotoSrc;
 
-  document.getElementById("correoPerfil").innerText =
-    document.getElementById("userEmail").innerText;
+    // al menú desplegable (foto grande)
+    if (menuPhoto) {
+      menuPhoto.innerHTML = `
+        <img src="${fotoSrc}" style="
+          width:80px;
+          height:80px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid #0077cc;
+        ">
+      `;
+      menuPhoto.style.cursor = "pointer";
+      menuPhoto.onclick = abrirPerfil;
+    }
+
+    // al botón pequeño (si por alguna razón no tiene imagen)
+    if (userBtn && !userBtnImg) {
+      userBtn.innerHTML = `<img src="${fotoSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+    }
+  }
+
+  // Nombre y correo
+  const uiName = document.getElementById("userName");
+  const uiEmail = document.getElementById("userEmail");
+
+  if (uiName) document.getElementById("nombrePerfil").innerText = uiName.innerText;
+  if (uiEmail) document.getElementById("correoPerfil").innerText = uiEmail.innerText;
 }
+
 
 
 function cerrarModalPerfil() {
@@ -3717,6 +3749,8 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
     // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
     menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+// Guardar para recuperarlo si la UI no tiene la <img> por algún motivo
+try { localStorage.setItem("fotoPerfil", base64); } catch (e) { console.warn("No se pudo guardar foto en localStorage", e); }
 
     // ENVIAR AL SCRIPT BACKEND
     await fetch("TU_SCRIPT_GUARDAR_FOTO.php", {
@@ -3742,5 +3776,6 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   </script>
 </body>
 </html>
+
 
 
