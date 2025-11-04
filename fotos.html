@@ -3777,38 +3777,84 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         return;
       }
 
-      alert("Respuesta del servidor:\n" + text);
+      // --- Eliminamos el alert anterior ---
+      // alert("Respuesta del servidor:\n" + text);
 
       if (data.status === "success" && data.foto) {
         // 🚀 Nuevo enlace Drive con parámetro único para evitar caché
         const fotoNoCache = `${data.foto}?v=${Date.now()}`;
 
-        // === Actualizar interfaz completa ===
-        if (fotoModal) fotoModal.src = fotoNoCache;
-        if (userBtn) userBtn.innerHTML = `<img src="${fotoNoCache}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
-        if (menuPhoto) menuPhoto.innerHTML = `<img src="${fotoNoCache}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-
-        // === Guardar correctamente en localStorage ===
-        try {
-          localStorage.setItem("fotoPerfil", fotoNoCache);
-          const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
-          usuarioGuardado.fotoPerfil = fotoNoCache;
-          localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
-        } catch (err) {
-          console.warn("No se pudo guardar la foto nueva localmente:", err);
-        }
-
-        // === Actualizar objeto usuario en ejecución ===
-        if (typeof mostrarUsuario === "function") {
-          const u = {
-            nombre: document.getElementById("userName")?.textContent || "",
-            correo: document.getElementById("userEmail")?.textContent || "",
-            fotoPerfil: fotoNoCache
+        // --- Precarga para evitar ícono roto ---
+        const preload = new Image();
+        preload.onload = () => {
+          // === Fade suave ===
+          const fadeIn = (el, newSrc) => {
+            if (!el) return;
+            el.style.transition = "opacity 0.4s ease";
+            el.style.opacity = "0";
+            setTimeout(() => {
+              el.src = newSrc;
+              el.onerror = () => console.warn("⚠️ Error cargando imagen nueva, se mantiene la anterior.");
+              el.onload = () => { el.style.opacity = "1"; };
+            }, 200);
           };
-          mostrarUsuario(u);
-        }
 
-        console.log("✅ Foto actualizada correctamente:", fotoNoCache);
+          // === Actualizar interfaz completa ===
+          fadeIn(fotoModal, fotoNoCache);
+
+          if (userBtn) {
+            const imgBtn = userBtn.querySelector("img");
+            if (imgBtn) fadeIn(imgBtn, fotoNoCache);
+            else userBtn.innerHTML = `<img src="${fotoNoCache}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+
+            // ✨ Efecto de brillo temporal
+            userBtn.style.position = "relative";
+            userBtn.style.boxShadow = "0 0 12px 4px rgba(0, 180, 255, 0.7)";
+            userBtn.style.transition = "box-shadow 0.6s ease";
+            setTimeout(() => {
+              userBtn.style.boxShadow = "0 0 0 0 rgba(0, 180, 255, 0)";
+            }, 1200);
+          }
+
+          if (menuPhoto) {
+            const imgMenu = menuPhoto.querySelector("img");
+            if (imgMenu) fadeIn(imgMenu, fotoNoCache);
+            else menuPhoto.innerHTML = `<img src="${fotoNoCache}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+
+            // 💫 Brillo también en el recuadro del menú
+            menuPhoto.style.boxShadow = "0 0 16px 5px rgba(0, 180, 255, 0.6)";
+            menuPhoto.style.transition = "box-shadow 0.6s ease";
+            setTimeout(() => {
+              menuPhoto.style.boxShadow = "0 0 0 0 rgba(0, 180, 255, 0)";
+            }, 1200);
+          }
+
+          // === Guardar correctamente en localStorage ===
+          try {
+            localStorage.setItem("fotoPerfil", fotoNoCache);
+            const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
+            usuarioGuardado.fotoPerfil = fotoNoCache;
+            localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+          } catch (err) {
+            console.warn("No se pudo guardar la foto nueva localmente:", err);
+          }
+
+          // === Actualizar objeto usuario en ejecución ===
+          if (typeof mostrarUsuario === "function") {
+            const u = {
+              nombre: document.getElementById("userName")?.textContent || "",
+              correo: document.getElementById("userEmail")?.textContent || "",
+              fotoPerfil: fotoNoCache
+            };
+            mostrarUsuario(u);
+          }
+        };
+
+        preload.onerror = () => {
+          console.warn("⚠️ No se pudo precargar la imagen nueva, se conserva la actual.");
+        };
+
+        preload.src = fotoNoCache; // inicia precarga
       } else {
         console.error("Error al actualizar foto:", data.message || data);
         alert("No se pudo actualizar la foto en Drive.");
@@ -3822,6 +3868,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
   lector.readAsDataURL(archivo);
 });
+
 
 
 
@@ -3928,6 +3975,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
