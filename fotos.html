@@ -3766,6 +3766,95 @@ try { localStorage.setItem("fotoPerfil", base64); } catch (e) { console.warn("No
   lector.readAsDataURL(archivo);
 });
 
+// --------------------------
+// Sincronizar foto del menú
+// --------------------------
+function syncUserMenuPhoto() {
+  const userBtn = document.getElementById("userBtn");
+  const menuPhoto = document.getElementById("userMenuPhoto");
+  const fotoModal = document.getElementById("fotoPerfilModal");
+
+  if (!menuPhoto) return;
+
+  // buscar img en userBtn
+  const imgBtn = userBtn ? userBtn.querySelector("img") : null;
+  let src = "";
+
+  if (imgBtn && imgBtn.src) src = imgBtn.src;
+  // si no, usar la del modal (si ya tiene)
+  if (!src && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") src = fotoModal.src;
+  // si no, intentar localStorage
+  if (!src && localStorage.getItem("fotoPerfil")) src = localStorage.getItem("fotoPerfil");
+
+  // aplicar al menu
+  if (src) {
+    menuPhoto.innerHTML = `
+      <img src="${src}" style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        object-fit:cover;
+        border:2px solid #0077cc;
+      ">
+    `;
+  } else {
+    // fallback a iniciales (mantenemos tu estilo)
+    const uNombre = (document.getElementById("userName")?.textContent || "Usuario").trim();
+    const iniciales = uNombre.split(" ").map(p => p.charAt(0).toUpperCase()).join("").substring(0,2) || "US";
+    menuPhoto.innerHTML = `
+      <div style="
+        width:80px;height:80px;border-radius:50%;
+        background:#0077cc;color:white;display:flex;
+        align-items:center;justify-content:center;font-size:28px;font-weight:bold;
+      ">${iniciales}</div>
+    `;
+  }
+
+  // comportamiento extra
+  menuPhoto.style.cursor = "pointer";
+  menuPhoto.onclick = abrirPerfil;
+}
+
+// --------------------------
+// Toggle / abrir menú usuario
+// --------------------------
+function toggleUserMenu() {
+  const menu = document.getElementById("userMenu");
+  if (!menu) return;
+
+  const isHidden = window.getComputedStyle(menu).display === "none";
+  if (isHidden) {
+    // sincronizar justo antes de mostrar
+    syncUserMenuPhoto();
+    menu.style.display = "block";
+  } else {
+    menu.style.display = "none";
+  }
+}
+
+// --------------------------
+// Observador: si cambia userBtn (ej: se inserta img), actualizar menú
+// --------------------------
+(function observeUserBtnImg() {
+  const userBtn = document.getElementById("userBtn");
+  if (!userBtn) return;
+
+  const mo = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      // si se agregó/quitó nodo o cambió atributo src en un <img>, sincronizar
+      if (m.type === "childList" && (m.addedNodes.length || m.removedNodes.length)) {
+        syncUserMenuPhoto();
+        return;
+      }
+      if (m.type === "attributes" && m.target && m.target.tagName === "IMG" && m.attributeName === "src") {
+        syncUserMenuPhoto();
+        return;
+      }
+    }
+  });
+
+  mo.observe(userBtn, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+})();
 
 
     
@@ -3776,6 +3865,7 @@ try { localStorage.setItem("fotoPerfil", base64); } catch (e) { console.warn("No
   </script>
 </body>
 </html>
+
 
 
 
