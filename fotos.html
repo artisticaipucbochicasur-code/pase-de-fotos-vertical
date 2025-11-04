@@ -3625,19 +3625,35 @@ if (logoutBtn) {
 
 
 
-  function abrirPerfil() {
+ function abrirPerfil() {
   // 🔥 Cerrar menú usuario si está abierto
   document.getElementById("userMenu").style.display = "none";
 
   const modal = document.getElementById("modalPerfil");
   modal.style.display = "flex";
 
-  // copiar foto actual
+  // copiar foto actual al modal
   const imgBtn = document.querySelector("#userBtn img");
   const fotoModal = document.getElementById("fotoPerfilModal");
 
   if (imgBtn) {
     fotoModal.src = imgBtn.src;
+  }
+
+  // ✅ Sincronizar también la foto del menú
+  const imgBtn2 = document.querySelector("#userBtn img");
+  const menuPhoto2 = document.getElementById("userMenuPhoto");
+
+  if (imgBtn2 && menuPhoto2) {
+    menuPhoto2.innerHTML = `
+      <img src="${imgBtn2.src}" style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        object-fit:cover;
+        border:2px solid #0077cc;
+      ">
+    `;
   }
 
   document.getElementById("nombrePerfil").innerText =
@@ -3726,4 +3742,5 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   </script>
 </body>
 </html>
+
 
