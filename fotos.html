@@ -3739,26 +3739,17 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   lector.onload = async () => {
     const base64 = lector.result;
 
-    // Mostrar inmediatamente la imagen en la interfaz
     const fotoModal = document.getElementById("fotoPerfilModal");
     const userBtn = document.getElementById("userBtn");
     const menuPhoto = document.getElementById("userMenuPhoto");
 
+    // Mostrar inmediatamente
     if (fotoModal) fotoModal.src = base64;
-    if (userBtn) {
-      userBtn.innerHTML = `<img src="${base64}" 
-        style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
-    }
-    if (menuPhoto) {
-      menuPhoto.innerHTML = `<img src="${base64}" 
-        style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-    }
+    if (userBtn) userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+    if (menuPhoto) menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
-    try { localStorage.setItem("fotoPerfil_temp", base64); } catch (err) {}
+    try { localStorage.setItem("fotoPerfil", base64); } catch (err) {}
 
-    // ==============================
-    // Enviar al Apps Script (como formulario)
-    // ==============================
     try {
       const formData = new FormData();
       formData.append("accion", "actualizarFoto");
@@ -3770,89 +3761,58 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         body: formData
       });
 
-      let text = await resp.text();
-
-      // 🧩 NUEVO: mostrar respuesta cruda en consola y alerta
-      console.log("📩 Respuesta completa del servidor:", text);
-      alert("Respuesta del servidor:\n\n" + text.substring(0, 500)); // muestra los primeros 500 caracteres
-
-      let data = {};
+      const text = await resp.text();
+      let data;
       try {
         data = JSON.parse(text);
       } catch {
-        // Si no es JSON pero contiene una URL o ID de Drive, lo adaptamos
-        const match = text.match(/[-\w]{25,}/);
-        if (match) {
-          data = { status: "success", foto: `https://drive.google.com/uc?export=view&id=${match[0]}` };
-        } else {
-          console.error("Respuesta no válida del servidor:", text);
-          alert("⚠️ Respuesta no válida del servidor:\n" + text);
-          throw new Error("Respuesta no válida del servidor");
-        }
+        console.error("Respuesta no válida:", text);
+        alert("Respuesta no válida del servidor: " + text);
+        return;
       }
 
-      // ==============================
-      // ✅ BLOQUE ACTUALIZADO Y COMPATIBLE CON DRIVE ID
-      // ==============================
+      // ✅ Mostrar alerta con lo que llega
+      alert("Respuesta del servidor:\n" + text);
+
       if (data.status === "success" && data.foto) {
-        const urlReal = buildDriveUrlIfNeeded(data.foto);
-        const fotoNoCache = `${urlReal}?v=${Date.now()}`;
+        // 🚀 Forzar refresco: parámetro único
+        const fotoNoCache = `${data.foto}?v=${Date.now()}`;
 
-        // === Actualizar interfaz con la URL real (sin caché) ===
+        // Actualizar interfaz
         if (fotoModal) fotoModal.src = fotoNoCache;
-        if (userBtn) {
-          userBtn.innerHTML = `<img src="${fotoNoCache}" 
-            style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
-        }
-        if (menuPhoto) {
-          menuPhoto.innerHTML = `<img src="${fotoNoCache}" 
-            style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-        }
+        if (userBtn) userBtn.innerHTML = `<img src="${fotoNoCache}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+        if (menuPhoto) menuPhoto.innerHTML = `<img src="${fotoNoCache}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
-        // 🔄 Actualizar localStorage con la foto real (borrando la anterior)
-        try {
-          localStorage.removeItem("fotoPerfil");
-          localStorage.removeItem("fotoPerfil_temp");
-          localStorage.setItem("fotoPerfil", fotoNoCache);
-        } catch (err) {}
+        // Guardar en localStorage correctamente
+        try { localStorage.setItem("fotoPerfil", fotoNoCache); } catch (err) {}
 
-        // 🔁 Sincronizar el resto del UI con mostrarUsuario()
-        setTimeout(() => {
-          if (typeof mostrarUsuario === "function") {
-            const u = {
-              nombre: document.getElementById("userName")?.textContent || "",
-              correo: document.getElementById("userEmail")?.textContent || "",
-              fotoPerfil: fotoNoCache
-            };
-            mostrarUsuario(u);
-          }
-        }, 400);
+        // Actualizar UI
+        if (typeof mostrarUsuario === "function") {
+          const u = {
+            nombre: document.getElementById("userName")?.textContent || "",
+            correo: document.getElementById("userEmail")?.textContent || "",
+            fotoPerfil: fotoNoCache
+          };
+          mostrarUsuario(u);
+        }
 
         console.log("✅ Foto actualizada correctamente:", fotoNoCache);
       } else {
         console.error("Error al actualizar foto:", data.message || data);
-        alert("⚠️ No se pudo actualizar la foto en Drive.\n" + JSON.stringify(data, null, 2));
+        alert("No se pudo actualizar la foto en Drive.");
       }
 
     } catch (err) {
       console.error("Error al comunicarse con backend:", err);
-      alert("❌ Error al actualizar foto.\n" + err.message);
+      alert("Error al actualizar foto. Revisa la conexión o el script.");
     }
   };
 
   lector.readAsDataURL(archivo);
 });
 
-// ==============================
-// 🔧 Función auxiliar: convertir ID de Drive a URL visible
-// ==============================
-function buildDriveUrlIfNeeded(foto) {
-  if (foto.startsWith("https://drive.google.com/")) return foto;
-  if (/^[a-zA-Z0-9_-]{20,}$/.test(foto)) {
-    return `https://drive.google.com/uc?export=view&id=${foto}`;
-  }
-  return foto;
-}
+
+
 
 
 
@@ -3957,6 +3917,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
