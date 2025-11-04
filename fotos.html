@@ -3754,7 +3754,6 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
     }
 
-    // Guardar temporalmente (por si falla la subida)
     try { localStorage.setItem("fotoPerfil_temp", base64); } catch (err) {}
 
     // ==============================
@@ -3772,17 +3771,22 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
       });
 
       let text = await resp.text();
-      let data = {};
 
+      // 🧩 NUEVO: mostrar respuesta cruda en consola y alerta
+      console.log("📩 Respuesta completa del servidor:", text);
+      alert("Respuesta del servidor:\n\n" + text.substring(0, 500)); // muestra los primeros 500 caracteres
+
+      let data = {};
       try {
         data = JSON.parse(text);
       } catch {
-        // Si no es JSON pero contiene una URL de Drive, lo adaptamos manualmente
+        // Si no es JSON pero contiene una URL o ID de Drive, lo adaptamos
         const match = text.match(/[-\w]{25,}/);
         if (match) {
           data = { status: "success", foto: `https://drive.google.com/uc?export=view&id=${match[0]}` };
         } else {
           console.error("Respuesta no válida del servidor:", text);
+          alert("⚠️ Respuesta no válida del servidor:\n" + text);
           throw new Error("Respuesta no válida del servidor");
         }
       }
@@ -3827,12 +3831,12 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         console.log("✅ Foto actualizada correctamente:", fotoNoCache);
       } else {
         console.error("Error al actualizar foto:", data.message || data);
-        alert("No se pudo actualizar la foto en Drive.");
+        alert("⚠️ No se pudo actualizar la foto en Drive.\n" + JSON.stringify(data, null, 2));
       }
 
     } catch (err) {
       console.error("Error al comunicarse con backend:", err);
-      alert("Error al actualizar foto. Revisa la conexión o el script.");
+      alert("❌ Error al actualizar foto.\n" + err.message);
     }
   };
 
@@ -3849,6 +3853,7 @@ function buildDriveUrlIfNeeded(foto) {
   }
   return foto;
 }
+
 
 
 
@@ -3952,6 +3957,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
