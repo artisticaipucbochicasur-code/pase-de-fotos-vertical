@@ -3362,7 +3362,6 @@ function buildDriveUrlIfNeeded(urlOrId) {
 
 // --- Mostrar usuario con preloader y logs de depuración ---
 // --- Mostrar usuario con preloader y logs de depuración ---
-// --- Mostrar usuario con preloader y logs de depuración ---
 function mostrarUsuario(u) {
   if (!userBtn) return;
   console.log("mostrarUsuario - objeto recibido:", u);
@@ -3417,24 +3416,6 @@ function mostrarUsuario(u) {
 
   function fallback() {
     mostrarIniciales(u);
-
-    // ✅ Asegurar iniciales en el menú
-    const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
-    if (fotoUsuarioMenu) fotoUsuarioMenu.style.backgroundImage = "";
-
-    // === Mostrar iniciales en el menú lateral
-    const menuProfilePic = document.getElementById("menuProfilePic");
-    if (menuProfilePic) {
-      const iniciales = (u.nombre || "US")
-        .trim()
-        .split(" ")
-        .map(p => p.charAt(0).toUpperCase())
-        .join("")
-        .substring(0, 2);
-
-      menuProfilePic.style.backgroundImage = "";
-      menuProfilePic.textContent = iniciales;
-    }
   }
 
   if (!foto) {
@@ -3460,20 +3441,6 @@ function mostrarUsuario(u) {
     };
 
     if (!yaTieneImagen) userBtn.appendChild(img);
-
-    // ✅ poner foto en menú
-    const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
-    if (fotoUsuarioMenu) {
-      fotoUsuarioMenu.style.backgroundImage = `url(${foto})`;
-      fotoUsuarioMenu.textContent = "";
-    }
-
-    // === Mostrar foto en el menú lateral
-    const menuProfilePic = document.getElementById("menuProfilePic");
-    if (menuProfilePic) {
-      menuProfilePic.style.backgroundImage = `url('${foto}')`;
-      menuProfilePic.textContent = "";
-    }
 
   } else {
     const candidates = buildDriveCandidates(foto);
@@ -3516,20 +3483,6 @@ function mostrarUsuario(u) {
         });
 
         if (!yaTieneImagen) userBtn.appendChild(img);
-
-        // ✅ menú foto
-        const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
-        if (fotoUsuarioMenu) {
-          fotoUsuarioMenu.style.backgroundImage = `url(${finalUrl})`;
-          fotoUsuarioMenu.textContent = "";
-        }
-
-        // === Mostrar foto en el menú lateral
-        const menuProfilePic = document.getElementById("menuProfilePic");
-        if (menuProfilePic) {
-          menuProfilePic.style.backgroundImage = `url('${finalUrl}')`;
-          menuProfilePic.textContent = "";
-        }
       };
 
       testImg.onload = () => {
@@ -3571,55 +3524,57 @@ function mostrarUsuario(u) {
   currentAuthorEmail = u.correo;
 
   // === Sincronizar también la foto en el menú desplegable ===
-  const menuPhoto = document.getElementById("userMenuPhoto");
-  if (menuPhoto) {
-    menuPhoto.innerHTML = ""; // limpiar
+const menuPhoto = document.getElementById("userMenuPhoto");
+if (menuPhoto) {
+  menuPhoto.innerHTML = ""; // limpiar
 
-    const imgBtn = userBtn.querySelector("img");
+  const imgBtn = userBtn.querySelector("img");
+  
+  if (imgBtn && imgBtn.src) {
+    // ✅ Mostrar exactamente la misma foto
+    menuPhoto.innerHTML = `
+      <img src="${imgBtn.src}" style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        object-fit:cover;
+        border:2px solid #0077cc;
+      ">
+    `;
+  } else {
+    // ✅ Iniciales elegantes
+    const iniciales = (u.nombre || "US")
+      .trim()
+      .split(" ")
+      .map(p => p.charAt(0).toUpperCase())
+      .join("")
+      .substring(0,2);
 
-    if (imgBtn && imgBtn.src) {
-      // ✅ Mostrar exactamente la misma foto
-      menuPhoto.innerHTML = `
-        <img src="${imgBtn.src}" style="
-          width:80px;
-          height:80px;
-          border-radius:50%;
-          object-fit:cover;
-          border:2px solid #0077cc;
-        ">
-      `;
-    } else {
-      // ✅ Iniciales elegantes
-      const iniciales = (u.nombre || "US")
-        .trim()
-        .split(" ")
-        .map(p => p.charAt(0).toUpperCase())
-        .join("")
-        .substring(0,2);
-
-      menuPhoto.innerHTML = `
-        <div style="
-          width:80px;
-          height:80px;
-          border-radius:50%;
-          background:#0077cc;
-          color:white;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size:28px;
-          font-weight:bold;
-        ">
-          ${iniciales}
-        </div>
-      `;
-    }
-
-    // 🔗 Abrir modal perfil al tocar la foto grande
-    menuPhoto.style.cursor = "pointer";
-    menuPhoto.onclick = abrirPerfil;
+    menuPhoto.innerHTML = `
+      <div style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        background:#0077cc;
+        color:white;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:28px;
+        font-weight:bold;
+      ">
+        ${iniciales}
+      </div>
+    `;
   }
+
+  // 🔗 Abrir modal perfil al tocar la foto grande
+  menuPhoto.style.cursor = "pointer";
+  menuPhoto.onclick = abrirPerfil;
 }
+
+}
+
 
 function mostrarIniciales(u) {
   if (!userBtn) return;
@@ -3670,12 +3625,7 @@ if (logoutBtn) {
 
 
 
-function abrirPerfil() {
-
-  // ✅ Cerrar menú si está abierto
-  const menuUsuario = document.getElementById("menuUsuario");
-  if (menuUsuario) menuUsuario.style.display = "none";
-
+   function abrirPerfil() {
   const modal = document.getElementById("modalPerfil");
   modal.style.display = "flex";
 
@@ -3685,19 +3635,6 @@ function abrirPerfil() {
 
   if (imgBtn) {
     fotoModal.src = imgBtn.src;
-  }
-
-  // ✅ Quitar borde redondo para que se vea grande estilo WhatsApp
-  fotoModal.style.borderRadius = "8px";
-  fotoModal.style.width = "260px";
-  fotoModal.style.height = "260px";
-  fotoModal.style.objectFit = "cover";
-
-  // ✅ Actualizar foto también en el menú (donde antes salía US)
-  const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
-  if (fotoUsuarioMenu && imgBtn) {
-    fotoUsuarioMenu.style.backgroundImage = `url(${imgBtn.src})`;
-    fotoUsuarioMenu.textContent = ""; // ✅ eliminar letras
   }
 
   document.getElementById("nombrePerfil").innerText =
@@ -3759,14 +3696,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
     // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
-    menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;border:2px solid #0077cc;">`;
-
-    // ✅ Actualizar foto del icono del menú también
-    const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
-    if (fotoUsuarioMenu) {
-      fotoUsuarioMenu.style.backgroundImage = `url(${base64})`;
-      fotoUsuarioMenu.textContent = "";
-    }
+    menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
     // ENVIAR AL SCRIPT BACKEND
     await fetch("TU_SCRIPT_GUARDAR_FOTO.php", {
@@ -3792,18 +3722,3 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
