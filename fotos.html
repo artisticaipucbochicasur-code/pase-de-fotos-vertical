@@ -3730,7 +3730,6 @@ document.getElementById("editarFotoBtn").addEventListener("click", () => {
 
 // ==============================
 // CUANDO SE SELECCIONA UNA FOTO
-// ==============================
 document.getElementById("inputFotoPerfil").addEventListener("change", async (e) => {
   const archivo = e.target.files[0];
   if (!archivo) return;
@@ -3739,38 +3738,47 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   lector.onload = async () => {
     const base64 = lector.result;
 
-    // Actualizar en modal
-    document.getElementById("fotoPerfilModal").src = base64;
+    // Mostrar la imagen inmediatamente
+    const fotoModal = document.getElementById("fotoPerfilModal");
+    fotoModal.src = base64;
 
-    // Actualizar botón usuario
     const userBtn = document.getElementById("userBtn");
     userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
 
-    // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
     menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
-    // 🔥 Guardar para recuperarlo luego
     try { localStorage.setItem("fotoPerfil", base64); } catch(e) {}
 
-    // ✅ Forzar sincronización inmediata
-    syncUserMenuPhoto();
+    // Enviar al backend y obtener URL real de Drive
+    const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accion: "actualizarFoto",
+        usuario: document.getElementById("userEmail").innerText,
+        foto: base64
+      })
+    });
 
-    // ENVIAR AL SCRIPT BACKEND
-    await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    accion: "actualizarFoto",
-    usuario: document.getElementById("userEmail").innerText,
-    foto: base64
-  })
-});
+    const data = await resp.json();
 
+    if (data.status === "success" && data.foto) {
+      // Actualizar la interfaz con la URL real de Drive
+      fotoModal.src = data.foto;
+      userBtn.innerHTML = `<img src="${data.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+      menuPhoto.innerHTML = `<img src="${data.foto}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+
+      try { localStorage.setItem("fotoPerfil", data.foto); } catch(e) {}
+    } else {
+      console.error("Error al actualizar foto:", data.message || data);
+      alert("No se pudo actualizar la foto en Drive.");
+    }
   };
 
   lector.readAsDataURL(archivo);
 });
+
 
 
 // --------------------------
@@ -3872,6 +3880,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
