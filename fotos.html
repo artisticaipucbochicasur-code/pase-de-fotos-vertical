@@ -1050,38 +1050,36 @@ body {
       </p>
     </div>
 
-<!-- Formulario Recuperar PIN -->
-<div id="formRecuperarPin" style="display:none;">
-  <h3>🔑 Recuperar PIN</h3>
-  <p style="font-size:13px; color:#555;">Ingresa el correo con el que registraste tu cuenta. Te enviaremos un PIN temporal.</p>
-  <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-  <button id="btnEnviarPinTemp" style="width:100%; padding:12px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
-  
-  <div id="verificarPinTempContainer" style="display:none; margin-top:15px;">
-    <h4>Verificar PIN temporal</h4>
-    <input id="recPinTemp" type="password" maxlength="4" placeholder="PIN temporal recibido" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-    <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar</button>
-  </div>
+    <!-- 🔹 Recuperar PIN con verificación -->
+    <div id="formRecuperarPin" style="display:none;">
+      <h3>🔁 Recuperar PIN</h3>
+      <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal para restablecerlo.</p>
+      <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <button id="btnEnviarPinTemp" style="width:100%; padding:12px; margin-top:10px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
+      
+      <div id="verificarPinTempContainer" style="display:none; margin-top:15px;">
+        <h4>Verificar PIN temporal</h4>
+        <input id="recPinTemp" type="password" maxlength="4" placeholder="PIN temporal recibido" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar</button>
+      </div>
 
-  <div id="cambiarPinContainer" style="display:none; margin-top:15px;">
-    <h4>Establecer nuevo PIN</h4>
-    <input id="nuevoPin" type="password" maxlength="4" placeholder="Nuevo PIN" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-    <input id="confirmarPin" type="password" maxlength="4" placeholder="Confirmar nuevo PIN" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-    <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Cambiar PIN</button>
-  </div>
+      <div id="cambiarPinContainer" style="display:none; margin-top:15px;">
+        <h4>Establecer nuevo PIN</h4>
+        <input id="nuevoPin" type="password" maxlength="4" placeholder="Nuevo PIN" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="confirmarPin" type="password" maxlength="4" placeholder="Confirmar nuevo PIN" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Cambiar PIN</button>
+      </div>
 
-  <p style="margin-top:10px; font-size:13px; color:#666;">
-    ¿Recordaste tu PIN? <a href="#" id="volverLoginDesdeRec" style="color:#0077cc; text-decoration:underline;">Volver a iniciar sesión</a>
-  </p>
-</div>
-
-<p id="olvidastePin" style="margin-top:10px; font-size:13px; color:#0077cc; text-decoration:underline; cursor:pointer;">¿Olvidaste tu PIN?</p>
-
+      <p style="margin-top:10px; font-size:13px;">
+        <a href="#" id="volverLogin" style="color:#0077cc; text-decoration:underline;">Volver a Iniciar Sesión</a>
+      </p>
+    </div>
 
     <button onclick="document.getElementById('loginModal').style.display='none'" 
             style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
   </div>
 </div>
+
 
   
   
@@ -3353,101 +3351,99 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
 });
 
 
-// ===============================
-// 🔑 Recuperar PIN
-// ===============================
-const olvidaPinLink = document.getElementById("olvidastePin");
-const formLogin = document.getElementById("formLogin");
-const formRecuperarPin = document.getElementById("formRecuperarPin");
-const volverLoginDesdeRec = document.getElementById("volverLoginDesdeRec");
+// ============================
+// 🔁 Recuperar PIN olvidado (con verificación y cambio definitivo)
+// ============================
+let pinTemporalGenerado = "";
+let correoRecuperacion = "";
 
-olvidaPinLink.addEventListener("click", () => {
-  formLogin.style.display = "none";
-  formRecuperarPin.style.display = "block";
+document.getElementById("olvidastePin").addEventListener("click", () => {
+  document.getElementById("formLogin").style.display = "none";
+  document.getElementById("formRegistro").style.display = "none";
+  document.getElementById("formRecuperarPin").style.display = "block";
   document.getElementById("verificarPinTempContainer").style.display = "none";
   document.getElementById("cambiarPinContainer").style.display = "none";
 });
 
-volverLoginDesdeRec.addEventListener("click", () => {
-  formRecuperarPin.style.display = "none";
-  formLogin.style.display = "block";
+document.getElementById("volverLogin").addEventListener("click", () => {
+  document.getElementById("formRecuperarPin").style.display = "none";
+  document.getElementById("formRegistro").style.display = "none";
+  document.getElementById("formLogin").style.display = "block";
 });
 
-let pinTemporalGenerado = "";
-let correoRecuperacion = "";
-
-// Enviar PIN temporal
+// === Enviar PIN temporal ===
 document.getElementById("btnEnviarPinTemp").addEventListener("click", async () => {
   const correo = document.getElementById("recCorreo").value.trim();
-  if (!correo) return alert("Por favor ingresa tu correo registrado.");
+  if (!correo) return alert("Por favor, ingresa tu correo.");
   correoRecuperacion = correo;
 
   pinTemporalGenerado = Math.floor(1000 + Math.random() * 9000).toString();
 
-  try {
-    const formData = new FormData();
-    formData.append("accion", "cambiarPin");
-    formData.append("correo", correo);
-    formData.append("nuevoPin", pinTemporalGenerado);
+  const formData = new FormData();
+  formData.append("accion", "cambiarPin");
+  formData.append("correo", correo);
+  formData.append("nuevoPin", pinTemporalGenerado);
 
+  try {
     const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
       method: "POST",
       body: formData
     });
-
     const data = await resp.json();
+
     if (data.status === "sipin") {
-      alert("Se ha enviado un PIN temporal al correo registrado.");
+      alert("✅ Se ha enviado un PIN temporal a tu correo.");
       document.getElementById("verificarPinTempContainer").style.display = "block";
     } else {
-      alert("No se encontró un usuario con ese correo.");
+      alert("⚠️ No se encontró ese correo. Verifica e inténtalo de nuevo.");
     }
   } catch (err) {
-    alert("Error al enviar el PIN temporal.");
+    alert("Error al enviar el PIN temporal. Intenta nuevamente.");
   }
 });
 
-// Verificar PIN temporal
+// === Verificar PIN temporal ===
 document.getElementById("btnVerificarPinTemp").addEventListener("click", () => {
   const pinIngresado = document.getElementById("recPinTemp").value.trim();
   if (pinIngresado === pinTemporalGenerado) {
-    alert("PIN temporal verificado correctamente.");
+    alert("✅ PIN temporal verificado. Ahora puedes establecer un nuevo PIN.");
     document.getElementById("cambiarPinContainer").style.display = "block";
   } else {
-    alert("El PIN temporal no coincide.");
+    alert("❌ El PIN temporal no coincide.");
   }
 });
 
-// Cambiar PIN definitivo
+// === Cambiar PIN definitivo ===
 document.getElementById("btnCambiarPin").addEventListener("click", async () => {
   const nuevoPin = document.getElementById("nuevoPin").value.trim();
   const confirmarPin = document.getElementById("confirmarPin").value.trim();
   if (!nuevoPin || nuevoPin.length !== 4) return alert("El nuevo PIN debe tener 4 dígitos.");
   if (nuevoPin !== confirmarPin) return alert("Los PIN no coinciden.");
 
-  try {
-    const formData = new FormData();
-    formData.append("accion", "cambiarPin");
-    formData.append("correo", correoRecuperacion);
-    formData.append("nuevoPin", nuevoPin);
+  const formData = new FormData();
+  formData.append("accion", "cambiarPin");
+  formData.append("correo", correoRecuperacion);
+  formData.append("nuevoPin", nuevoPin);
 
+  try {
     const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
       method: "POST",
       body: formData
     });
-
     const data = await resp.json();
+
     if (data.status === "sipin") {
-      alert("Tu PIN ha sido cambiado correctamente. Revisa tu correo.");
-      formRecuperarPin.style.display = "none";
-      formLogin.style.display = "block";
+      alert("✅ Tu PIN ha sido cambiado exitosamente. Revisa tu correo.");
+      document.getElementById("formRecuperarPin").style.display = "none";
+      document.getElementById("formLogin").style.display = "block";
     } else {
       alert("Error al cambiar el PIN.");
     }
   } catch (err) {
-    alert("Error de conexión al cambiar el PIN.");
+    alert("Error de conexión. Intenta nuevamente.");
   }
 });
+
 
 
    
@@ -4106,20 +4102,3 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
