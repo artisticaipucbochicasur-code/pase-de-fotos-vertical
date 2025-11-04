@@ -3741,16 +3741,17 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
     // Mostrar inmediatamente la imagen en la interfaz
     const fotoModal = document.getElementById("fotoPerfilModal");
-    if (fotoModal) fotoModal.src = base64;
-
     const userBtn = document.getElementById("userBtn");
-    if (userBtn) {
-      userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
-    }
-
     const menuPhoto = document.getElementById("userMenuPhoto");
+
+    if (fotoModal) fotoModal.src = base64;
+    if (userBtn) {
+      userBtn.innerHTML = `<img src="${base64}" 
+        style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+    }
     if (menuPhoto) {
-      menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+      menuPhoto.innerHTML = `<img src="${base64}" 
+        style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
     }
 
     try { localStorage.setItem("fotoPerfil", base64); } catch (err) {}
@@ -3769,7 +3770,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         body: formData
       });
 
-      const text = await resp.text(); // a veces el GAS devuelve texto plano
+      const text = await resp.text();
       let data;
       try {
         data = JSON.parse(text);
@@ -3779,11 +3780,13 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
       }
 
       // ==============================
-      // ✅ BLOQUE ACTUALIZADO CON CONTROL DE CACHÉ Y SINCRONIZACIÓN
+      // ✅ BLOQUE ACTUALIZADO Y COMPATIBLE CON DRIVE ID
       // ==============================
       if (data.status === "success" && data.foto) {
-        // 🚀 Forzar refresco: agregar un parámetro único para evitar caché
-        const fotoNoCache = `${data.foto}?v=${Date.now()}`;
+        // 🔧 Asegurar URL válida (si viene ID, convertir a URL de Drive)
+        const urlReal = buildDriveUrlIfNeeded(data.foto);
+        // 🚀 Forzar refresco: agregar parámetro único
+        const fotoNoCache = `${urlReal}?v=${Date.now()}`;
 
         // === Actualizar interfaz con la URL real (sin caché) ===
         if (fotoModal) fotoModal.src = fotoNoCache;
@@ -3798,9 +3801,8 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
         try { localStorage.setItem("fotoPerfil", fotoNoCache); } catch (err) {}
 
-        // 🔁 Sincronizar el resto del UI con pequeña pausa (para evitar conflicto con observer)
+        // 🔁 Sincronizar el resto del UI con mostrarUsuario()
         setTimeout(() => {
-          if (typeof syncUserMenuPhoto === "function") syncUserMenuPhoto();
           if (typeof mostrarUsuario === "function") {
             const u = {
               nombre: document.getElementById("userName")?.textContent || "",
@@ -3825,6 +3827,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
   lector.readAsDataURL(archivo);
 });
+
 
 
 
@@ -3927,6 +3930,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
