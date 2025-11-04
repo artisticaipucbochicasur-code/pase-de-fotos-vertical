@@ -3421,6 +3421,20 @@ function mostrarUsuario(u) {
     // ✅ Asegurar iniciales en el menú
     const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
     if (fotoUsuarioMenu) fotoUsuarioMenu.style.backgroundImage = "";
+
+    // === Mostrar iniciales en el menú lateral
+    const menuProfilePic = document.getElementById("menuProfilePic");
+    if (menuProfilePic) {
+      const iniciales = (u.nombre || "US")
+        .trim()
+        .split(" ")
+        .map(p => p.charAt(0).toUpperCase())
+        .join("")
+        .substring(0, 2);
+
+      menuProfilePic.style.backgroundImage = "";
+      menuProfilePic.textContent = iniciales;
+    }
   }
 
   if (!foto) {
@@ -3452,6 +3466,13 @@ function mostrarUsuario(u) {
     if (fotoUsuarioMenu) {
       fotoUsuarioMenu.style.backgroundImage = `url(${foto})`;
       fotoUsuarioMenu.textContent = "";
+    }
+
+    // === Mostrar foto en el menú lateral
+    const menuProfilePic = document.getElementById("menuProfilePic");
+    if (menuProfilePic) {
+      menuProfilePic.style.backgroundImage = `url('${foto}')`;
+      menuProfilePic.textContent = "";
     }
 
   } else {
@@ -3501,6 +3522,13 @@ function mostrarUsuario(u) {
         if (fotoUsuarioMenu) {
           fotoUsuarioMenu.style.backgroundImage = `url(${finalUrl})`;
           fotoUsuarioMenu.textContent = "";
+        }
+
+        // === Mostrar foto en el menú lateral
+        const menuProfilePic = document.getElementById("menuProfilePic");
+        if (menuProfilePic) {
+          menuProfilePic.style.backgroundImage = `url('${finalUrl}')`;
+          menuProfilePic.textContent = "";
         }
       };
 
@@ -3593,7 +3621,6 @@ function mostrarUsuario(u) {
   }
 }
 
-
 function mostrarIniciales(u) {
   if (!userBtn) return;
 
@@ -3643,7 +3670,7 @@ if (logoutBtn) {
 
 
 
-   function abrirPerfil() {
+function abrirPerfil() {
 
   // ✅ Cerrar menú si está abierto
   const menuUsuario = document.getElementById("menuUsuario");
@@ -3658,6 +3685,19 @@ if (logoutBtn) {
 
   if (imgBtn) {
     fotoModal.src = imgBtn.src;
+  }
+
+  // ✅ Quitar borde redondo para que se vea grande estilo WhatsApp
+  fotoModal.style.borderRadius = "8px";
+  fotoModal.style.width = "260px";
+  fotoModal.style.height = "260px";
+  fotoModal.style.objectFit = "cover";
+
+  // ✅ Actualizar foto también en el menú (donde antes salía US)
+  const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
+  if (fotoUsuarioMenu && imgBtn) {
+    fotoUsuarioMenu.style.backgroundImage = `url(${imgBtn.src})`;
+    fotoUsuarioMenu.textContent = ""; // ✅ eliminar letras
   }
 
   document.getElementById("nombrePerfil").innerText =
@@ -3719,7 +3759,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
     // Actualizar menú desplegable
     const menuPhoto = document.getElementById("userMenuPhoto");
-    menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+    menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;border:2px solid #0077cc;">`;
 
     // ✅ Actualizar foto del icono del menú también
     const fotoUsuarioMenu = document.getElementById("fotoUsuarioMenu");
@@ -3752,6 +3792,7 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
   </script>
 </body>
 </html>
+
 
 
 
