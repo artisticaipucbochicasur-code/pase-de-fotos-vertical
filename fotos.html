@@ -3097,7 +3097,7 @@ if (imagesBtn) {
     // ======================================================================================
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
-// ====================================================================================== 
+ // ====================================================================================== 
 // LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async () => {
@@ -3341,8 +3341,127 @@ function mostrarUsuario(u) {
       if (idx >= candidates.length) {
         console.warn("mostrarUsuario - ningún candidato funcionó, fallback");
         finished = true;
-        fa
+        fallback();
+        return;
+      }
 
+      const url = candidates[idx++];
+      if (!url) return tryNext();
+
+      const testImg = new Image();
+      testImg.referrerPolicy = "no-referrer";
+
+      let loaded = false;
+
+      const cleanupAndAppend = (finalUrl) => {
+        if (finished) return;
+        finished = true;
+        const img = document.createElement("img");
+        img.src = finalUrl;
+        img.alt = u.nombre || "avatar";
+
+        Object.assign(img.style, {
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: "2px solid #0077cc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+        });
+
+        userBtn.appendChild(img);
+      };
+
+      testImg.onload = () => {
+        loaded = true;
+        console.log("mostrarUsuario - carga OK:", url);
+        cleanupAndAppend(url);
+      };
+
+      testImg.onerror = (e) => {
+        console.warn("mostrarUsuario - fallo carga candidato:", url, e);
+        setTimeout(() => tryNext(), 150);
+      };
+
+      const to = setTimeout(() => {
+        if (!loaded && !finished) {
+          console.warn("mostrarUsuario - timeout candidato:", url);
+          tryNext();
+        }
+      }, 3500);
+
+      try {
+        testImg.src = url;
+      } catch (err) {
+        console.warn("mostrarUsuario - error al asignar src:", err);
+        clearTimeout(to);
+        tryNext();
+      }
+    };
+
+    tryNext();
+  }
+
+  if (userName) userName.textContent = u.nombre;
+  if (userEmail) userEmail.textContent = u.correo;
+  if (userName) userName.style.color = "#333";
+  if (userEmail) userEmail.style.color = "#555";
+
+  currentAuthorName = u.nombre;
+  currentAuthorEmail = u.correo;
+}
+
+function mostrarIniciales(u) {
+  if (!userBtn) return;
+
+  userBtn.innerHTML = "";
+  const iniciales = (u && u.nombre)
+    ? u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+    : "US";
+
+  userBtn.textContent = iniciales;
+  userBtn.style.background = "#0077cc";
+  userBtn.style.color = "white";
+  userBtn.style.width = "40px";
+  userBtn.style.height = "40px";
+  userBtn.style.borderRadius = "50%";
+  userBtn.style.display = "flex";
+  userBtn.style.alignItems = "center";
+  userBtn.style.justifyContent = "center";
+  userBtn.style.fontWeight = "bold";
+  userBtn.style.fontSize = "14px";
+}
+
+if (userBtn && userMenu) {
+  userBtn.addEventListener("click", () => {
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("autor");
+    localStorage.removeItem("correo");
+
+    currentAuthorName = "";
+    currentAuthorEmail = "";
+
+    if (userMenu) userMenu.style.display = "none";
+    mostrarAviso("Sesión cerrada", "info");
+
+    setTimeout(() => location.reload(), 1200);
+  });
+}
+
+// MOSTRAR USUARIO AL FINAL
+if (usuarioGuardado) {
+  setTimeout(() => {
+    if (document.getElementById("userBtn")) {
+      mostrarUsuario(usuarioGuardado);
+    }
+  }, 100);
+}
 
   });
 
@@ -3353,6 +3472,7 @@ function mostrarUsuario(u) {
   </script>
 </body>
 </html>
+
 
 
 
