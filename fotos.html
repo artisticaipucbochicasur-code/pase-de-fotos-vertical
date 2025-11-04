@@ -3743,12 +3743,18 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
     const userBtn = document.getElementById("userBtn");
     const menuPhoto = document.getElementById("userMenuPhoto");
 
-    // Mostrar inmediatamente
+    // Mostrar inmediatamente previsualización local
     if (fotoModal) fotoModal.src = base64;
     if (userBtn) userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
     if (menuPhoto) menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
-    try { localStorage.setItem("fotoPerfil", base64); } catch (err) {}
+    // Guardar previsualización temporal local
+    try {
+      localStorage.setItem("fotoPerfil", base64);
+      const u = JSON.parse(localStorage.getItem("usuario")) || {};
+      u.fotoPerfil = base64;
+      localStorage.setItem("usuario", JSON.stringify(u));
+    } catch (err) {}
 
     try {
       const formData = new FormData();
@@ -3771,22 +3777,28 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         return;
       }
 
-      // ✅ Mostrar alerta con lo que llega
       alert("Respuesta del servidor:\n" + text);
 
       if (data.status === "success" && data.foto) {
-        // 🚀 Forzar refresco: parámetro único
+        // 🚀 Nuevo enlace Drive con parámetro único para evitar caché
         const fotoNoCache = `${data.foto}?v=${Date.now()}`;
 
-        // Actualizar interfaz
+        // === Actualizar interfaz completa ===
         if (fotoModal) fotoModal.src = fotoNoCache;
         if (userBtn) userBtn.innerHTML = `<img src="${fotoNoCache}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
         if (menuPhoto) menuPhoto.innerHTML = `<img src="${fotoNoCache}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
 
-        // Guardar en localStorage correctamente
-        try { localStorage.setItem("fotoPerfil", fotoNoCache); } catch (err) {}
+        // === Guardar correctamente en localStorage ===
+        try {
+          localStorage.setItem("fotoPerfil", fotoNoCache);
+          const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
+          usuarioGuardado.fotoPerfil = fotoNoCache;
+          localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+        } catch (err) {
+          console.warn("No se pudo guardar la foto nueva localmente:", err);
+        }
 
-        // Actualizar UI
+        // === Actualizar objeto usuario en ejecución ===
         if (typeof mostrarUsuario === "function") {
           const u = {
             nombre: document.getElementById("userName")?.textContent || "",
@@ -3810,7 +3822,6 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
 
   lector.readAsDataURL(archivo);
 });
-
 
 
 
@@ -3917,6 +3928,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
