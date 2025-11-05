@@ -3153,28 +3153,99 @@ if (imagesBtn) {
       }
     }
 
-    // ======================================================================================
-    // PREVISUALIZACIÓN DE FOTO (CORREGIDO: siempre funciona)
-    // ======================================================================================
-    const regFoto = document.getElementById("regFoto");
+ // ======================================================================================
+// PREVISUALIZACIÓN DE FOTO (MEJORADO: compresión automática + spinner si es grande)
+// ======================================================================================
+const regFoto = document.getElementById("regFoto");
 
-    regFoto?.addEventListener("change", () => {
-      const file = regFoto.files[0];
-      if (file) {
-        if (file.size > 900 * 1024) {
-          mostrarAviso("Foto muy grande. Máx 900 KB", "error");
-          regFoto.value = "";
-          previewContainer.style.display = "none";
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          fotoPreview.src = e.target.result;
-          previewContainer.style.display = "block";
+regFoto?.addEventListener("change", async () => {
+  const file = regFoto.files[0];
+  if (!file) return;
+
+  // Mostrar el contenedor y limpiar el contenido previo
+  previewContainer.style.display = "block";
+  previewContainer.innerHTML = "";
+  fotoPreview.src = "";
+  fotoPreview.alt = "Procesando...";
+
+  // --- Spinner visible mientras se comprime ---
+  const spinner = document.createElement("div");
+  spinner.innerHTML = `
+    <div class="spinner" style="
+      width:40px;height:40px;border:4px solid #ccc;
+      border-top-color:#3498db;border-radius:50%;
+      animation:spin 1s linear infinite;margin:auto;
+    "></div>`;
+  previewContainer.appendChild(spinner);
+
+  // --- Función para comprimir imagen ---
+  const compressImage = (file, maxSizeKB = 900, maxWidth = 800, maxHeight = 800) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+          width *= ratio;
+          height *= ratio;
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let quality = 0.8;
+          let base64 = canvas.toDataURL("image/jpeg", quality);
+
+          while (base64.length / 1024 > maxSizeKB && quality > 0.3) {
+            quality -= 0.1;
+            base64 = canvas.toDataURL("image/jpeg", quality);
+          }
+
+          resolve(base64);
         };
-        reader.readAsDataURL(file);
-      }
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     });
+  };
+
+  try {
+    // Si la imagen es grande, se comprime; si no, se muestra directamente
+    const base64 = file.size > 900 * 1024
+      ? await compressImage(file)
+      : await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+
+    // Guardar globalmente para usar en el registro
+    window.fotoComprimida = base64;
+
+    // Mostrar imagen final (ya comprimida si era grande)
+    previewContainer.innerHTML = "";
+    fotoPreview.src = base64;
+    fotoPreview.alt = "Foto seleccionada";
+    previewContainer.appendChild(fotoPreview);
+    previewContainer.style.display = "block";
+  } catch (err) {
+    mostrarAviso("Error al procesar imagen", "error");
+    regFoto.value = "";
+    previewContainer.style.display = "none";
+  }
+});
+
+// --- Animación CSS para spinner (una sola vez global) ---
+const spinStyle = document.createElement("style");
+spinStyle.textContent = `
+@keyframes spin { 
+  to { transform: rotate(360deg); } 
+}`;
+document.head.appendChild(spinStyle);
+
 
     // ======================================================================================
     // GESTIÓN DE PESTAÑAS Y FORMULARIOS
@@ -3291,17 +3362,16 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
 });
 
 // ======================================================================================
-// REGISTRO (MEJORADO: compresión automática con spinner si la imagen es muy grande)
+// REGISTRO (OPTIMIZADO: usa la imagen comprimida de la previsualización)
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
-  const file = regFoto.files[0];
   const preview = document.getElementById("previewFoto"); // zona de previsualización
 
-  if (!nombre || !correo || !pin || !pinConfirm || !file)
+  if (!nombre || !correo || !pin || !pinConfirm)
     return mostrarAviso("Todos los campos son obligatorios", "error");
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
@@ -3313,66 +3383,13 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   if (!/^\d{4}$/.test(pin))
     return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
-  // --- Crear y mostrar spinner temporal mientras se procesa imagen ---
-  const spinner = document.createElement("div");
-  spinner.innerHTML = `
-    <div class="spinner" style="
-      width:50px;height:50px;border:5px solid #ccc;
-      border-top-color:#3498db;border-radius:50%;
-      animation:spin 1s linear infinite;margin:auto;
-    "></div>`;
-  if (preview) {
-    preview.innerHTML = "";
-    preview.appendChild(spinner);
-  }
-
-  // --- Función para comprimir imagen ---
-  const compressImage = (file, maxSizeKB = 900, maxWidth = 800, maxHeight = 800) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          let { width, height } = img;
-          const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
-          width *= ratio;
-          height *= ratio;
-
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-
-          let quality = 0.8;
-          let base64 = canvas.toDataURL("image/jpeg", quality);
-
-          while (base64.length / 1024 > maxSizeKB && quality > 0.3) {
-            quality -= 0.1;
-            base64 = canvas.toDataURL("image/jpeg", quality);
-          }
-
-          resolve(base64);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
+  if (!window.fotoComprimida)
+    return mostrarAviso("Selecciona una foto antes de registrarte", "error");
 
   try {
-    // Si la imagen es grande, comprímela antes de previsualizar
-    const fotoBase64 = file.size > 900 * 1024
-      ? (await compressImage(file))
-      : await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-
-    // Mostrar la previsualización ya comprimida
+    // Mostrar la previsualización ya comprimida (por seguridad)
     if (preview) {
-      preview.innerHTML = `<img src="${fotoBase64}" alt="Previsualización" 
+      preview.innerHTML = `<img src="${window.fotoComprimida}" alt="Previsualización" 
         style="max-width:120px;border-radius:10px;display:block;margin:auto;">`;
     }
 
@@ -3382,7 +3399,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
     formData.append("nombre", nombre);
     formData.append("correo", correo);
     formData.append("pin", pin);
-    formData.append("foto", fotoBase64.split(",")[1]);
+    formData.append("foto", window.fotoComprimida.split(",")[1]);
 
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
@@ -3406,14 +3423,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
-
-// Animación CSS para el spinner
-const styleSpin = document.createElement("style");
-styleSpin.textContent = `
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}`;
-document.head.appendChild(styleSpin);
 
 
 
@@ -4180,5 +4189,6 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
