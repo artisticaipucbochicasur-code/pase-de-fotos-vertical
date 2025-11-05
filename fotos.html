@@ -3154,7 +3154,8 @@ if (imagesBtn) {
     }
 
 // ======================================================================================
-// PREVISUALIZACIÓN DE FOTO (MEJORADO: siempre comprime a ~900 KB con spinner)
+// ======================================================================================
+// PREVISUALIZACIÓN DE FOTO (OPTIMIZADA: buena nitidez, máximo 900 KB)
 // ======================================================================================
 const regFoto = document.getElementById("regFoto");
 
@@ -3162,13 +3163,12 @@ regFoto?.addEventListener("change", async () => {
   const file = regFoto.files[0];
   if (!file) return;
 
-  // Mostrar el contenedor y limpiar el contenido previo
+  // Mostrar contenedor y spinner
   previewContainer.style.display = "block";
   previewContainer.innerHTML = "";
   fotoPreview.src = "";
   fotoPreview.alt = "Procesando...";
 
-  // --- Spinner visible mientras se comprime ---
   const spinner = document.createElement("div");
   spinner.innerHTML = `
     <div class="spinner" style="
@@ -3178,8 +3178,8 @@ regFoto?.addEventListener("change", async () => {
     "></div>`;
   previewContainer.appendChild(spinner);
 
-  // --- Función para comprimir imagen (siempre a máximo 900 KB) ---
-  const compressTo900KB = (file, targetKB = 900, maxWidth = 900, maxHeight = 900) => {
+  // --- Compresión equilibrada (~900 KB, buena calidad) ---
+  const compressTo900KB = (file, targetKB = 900) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -3187,30 +3187,31 @@ regFoto?.addEventListener("change", async () => {
         img.onload = () => {
           let width = img.width;
           let height = img.height;
-          let quality = 0.9;
+
+          // 🔹 Solo reducimos resolución si es muy grande (>1600px)
+          const maxDimension = 1600;
+          if (width > maxDimension || height > maxDimension) {
+            const scale = maxDimension / Math.max(width, height);
+            width *= scale;
+            height *= scale;
+          }
 
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
+          canvas.width = width;
+          canvas.height = height;
 
-          const generate = () => {
-            canvas.width = width;
-            canvas.height = height;
-            ctx.clearRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return canvas.toDataURL("image/jpeg", quality);
-          };
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, width, height);
 
-          let base64 = generate();
+          let quality = 0.9; // empieza alta
+          let base64 = canvas.toDataURL("image/jpeg", quality);
 
-          // Reducir calidad o tamaño hasta acercarse a 900 KB
-          while (base64.length / 1024 > targetKB) {
-            if (quality > 0.65) {
-              quality -= 0.05;
-            } else {
-              width *= 0.9;
-              height *= 0.9;
-            }
-            base64 = generate();
+          // 🔹 Ajustar solo calidad, sin destruir resolución
+          while (base64.length / 1024 > targetKB && quality > 0.55) {
+            quality -= 0.05;
+            base64 = canvas.toDataURL("image/jpeg", quality);
           }
 
           resolve(base64);
@@ -3222,18 +3223,16 @@ regFoto?.addEventListener("change", async () => {
   };
 
   try {
-    // --- Comprimir siempre a ~900 KB ---
     const base64 = await compressTo900KB(file);
 
-    // Guardar globalmente para usar en el registro
+    // Guardar globalmente
     window.fotoComprimida = base64;
 
-    // Mostrar imagen final (ya comprimida)
+    // Mostrar resultado final
     previewContainer.innerHTML = "";
     fotoPreview.src = base64;
     fotoPreview.alt = "Foto seleccionada";
     previewContainer.appendChild(fotoPreview);
-    previewContainer.style.display = "block";
   } catch (err) {
     mostrarAviso("Error al procesar imagen", "error");
     regFoto.value = "";
@@ -3241,12 +3240,10 @@ regFoto?.addEventListener("change", async () => {
   }
 });
 
-// --- Animación CSS para spinner (una sola vez global) ---
+// --- Spinner animación global ---
 const spinStyle = document.createElement("style");
 spinStyle.textContent = `
-@keyframes spin { 
-  to { transform: rotate(360deg); } 
-}`;
+@keyframes spin { to { transform: rotate(360deg); } }`;
 document.head.appendChild(spinStyle);
 
 
@@ -4192,6 +4189,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
