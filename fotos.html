@@ -1611,8 +1611,8 @@ btnUploadVideo.addEventListener("click", async () => {
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
 
-  if (!file) return alert("Selecciona un video para subir.");
-  if (!tituloUsuario) return alert("Escribe un título para el video.");
+  if (!file) return  mostrarAviso("Selecciona un video para subir.");
+  if (!tituloUsuario) return  mostrarAviso("Escribe un título para el video.");
 
   // 🔹 Deshabilitar botón mientras sube
   btnUploadVideo.disabled = true;
@@ -3716,7 +3716,7 @@ document.getElementById("btnEnviarPinTemp").addEventListener("click", async () =
       document.getElementById("pasoVerificar").style.display = "block";
       document.getElementById("tituloRecuperar").innerText = "📩 Ingresa el PIN que recibiste";
     } else {
-      mostrarAviso("⚠️ No se encontró ese correo.");
+      mostrarAviso("⚠️ Este correo no está registrado en DECOM.");
     }
   } catch {
     mostrarAviso("Error al enviar el PIN temporal.");
@@ -4234,12 +4234,12 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         data = JSON.parse(text);
       } catch {
         console.error("Respuesta no válida:", text);
-        alert("Respuesta no válida del servidor: " + text);
+         mostrarAviso("Respuesta no válida del servidor: " + text);
         return;
       }
 
-      // --- Eliminamos el alert anterior ---
-      // alert("Respuesta del servidor:\n" + text);
+      // --- Eliminamos el  mostrarAviso anterior ---
+      //  mostrarAviso("Respuesta del servidor:\n" + text);
 
       if (data.status === "success" && data.foto) {
         // 🚀 Nuevo enlace Drive con parámetro único para evitar caché
@@ -4318,12 +4318,12 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         preload.src = fotoNoCache; // inicia precarga
       } else {
         console.error("Error al actualizar foto:", data.message || data);
-        alert("No se pudo actualizar la foto en Drive.");
+         mostrarAviso("No se pudo actualizar la foto en Drive.");
       }
 
     } catch (err) {
       console.error("Error al comunicarse con backend:", err);
-      alert("Error al actualizar foto. Revisa la conexión o el script.");
+       mostrarAviso("Error al actualizar foto de perfil. Revisa la conexión o el script.");
     }
   };
 
@@ -4464,6 +4464,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
