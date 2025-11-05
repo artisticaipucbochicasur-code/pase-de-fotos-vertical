@@ -6412,7 +6412,7 @@ document.head.appendChild(style);
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
 // ====================================================================================== 
-// LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
+// LOGIN (sin cambios)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async () => {
   const correo = document.getElementById("loginCorreo").value.trim();
@@ -6433,27 +6433,18 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData
     });
-
     const texto = await res.text();
 
     try {
       const data = JSON.parse(texto);
       if (data.status && data.status.includes("success")) {
         const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "");
-
-        const usuario = { 
-          nombre: data.nombre, 
-          correo: data.correo, 
-          fotoPerfil: fotoPerfil 
-        };
-
+        const usuario = { nombre: data.nombre, correo: data.correo, fotoPerfil };
         localStorage.setItem("usuario", JSON.stringify(usuario));
         localStorage.setItem("autor", data.nombre);
         localStorage.setItem("correo", data.correo);
-
         currentAuthorName = data.nombre;
         currentAuthorEmail = data.correo;
-
         cerrarModalYContinuar();
         mostrarAviso("Bienvenido, " + data.nombre, "success");
       } else {
@@ -6468,77 +6459,65 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
 });
 
 // ======================================================================================
-// COMPRESOR DE IMAGEN Y PREVISUALIZACIÓN
-// ======================================================================================
-async function comprimirImagen(file, maxWidth = 600, quality = 0.7) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      img.src = e.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const scale = Math.min(maxWidth / img.width, 1);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const base64 = canvas.toDataURL("image/jpeg", quality);
-        resolve(base64.split(",")[1]);
-      };
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-// Previsualización
-const regFoto = document.getElementById("regFoto");
-const imgPreview = document.getElementById("imgPreview");
-if (regFoto) {
-  regFoto.addEventListener("change", () => {
-    const file = regFoto.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (imgPreview) imgPreview.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-}
-
-// ======================================================================================
-// REGISTRO (con compresión automática)
+// REGISTRO (💡 con compresor automático)
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
-  const file = regFoto?.files?.[0];
+  const file = regFoto.files[0];
 
   if (!nombre || !correo || !pin || !pinConfirm || !file)
     return mostrarAviso("Todos los campos son obligatorios", "error");
-
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
     return mostrarAviso("Correo inválido", "error");
-
   if (pin !== pinConfirm)
     return mostrarAviso("Los PIN no coinciden", "error");
-
   if (!/^\d{4}$/.test(pin))
     return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
+  // 🔹 Función para comprimir imagen si supera los 900 KB
+  async function comprimirImagen(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const maxWidth = 600; // límite de ancho
+          const scale = Math.min(1, maxWidth / img.width);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // calidad adaptativa
+          let calidad = 0.8;
+          let base64 = canvas.toDataURL("image/jpeg", calidad).split(",")[1];
+          while ((base64.length * 0.75) > 900 * 1024 && calidad > 0.3) {
+            calidad -= 0.1;
+            base64 = canvas.toDataURL("image/jpeg", calidad).split(",")[1];
+          }
+          resolve(base64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  mostrarAviso("Procesando foto...", "info");
+  const fotoBase64 = await comprimirImagen(file);
+
+  const formData = new URLSearchParams();
+  formData.append("accion", "registro");
+  formData.append("nombre", nombre);
+  formData.append("correo", correo);
+  formData.append("pin", pin);
+  formData.append("foto", fotoBase64);
+
   try {
-    const fotoBase64 = await comprimirImagen(file, 600, 0.7);
-
-    const formData = new URLSearchParams();
-    formData.append("accion", "registro");
-    formData.append("nombre", nombre);
-    formData.append("correo", correo);
-    formData.append("pin", pin);
-    formData.append("foto", fotoBase64);
-
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -6562,6 +6541,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
 });
 
 
+
 // ============================
 // 🔁 Recuperar PIN olvidado (con verificación y cambio definitivo)
 // ============================
@@ -8091,5 +8071,6 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
