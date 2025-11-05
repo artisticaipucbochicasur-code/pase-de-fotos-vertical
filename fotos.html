@@ -3450,7 +3450,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 });
 
 // ======================================================================================
-// REGISTRO (spinner instantáneo al presionar botón)
+// REGISTRO (spinner instantáneo al presionar botón, PIN libre de mínimo 4 caracteres)
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
   e.preventDefault();
@@ -3483,10 +3483,11 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     return mostrarAviso("Los PIN no coinciden", "error");
   }
 
-  if (!/^\d{4}$/.test(pin)) {
+  // ✅ Ahora acepta cualquier carácter, pero mínimo 4
+  if (pin.length < 4) {
     btnRegistro.disabled = false;
     btnRegistro.classList.remove("btn-loading");
-    return mostrarAviso("PIN debe ser 4 dígitos", "error");
+    return mostrarAviso("El PIN debe tener al menos 4 caracteres", "error");
   }
 
   if (!window.fotoComprimida) {
@@ -3540,6 +3541,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
+
 
 // ======================================================================================
 // FUNCIONES DE SPINNER GLOBAL
@@ -4386,6 +4388,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
