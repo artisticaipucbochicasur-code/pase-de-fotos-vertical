@@ -714,6 +714,37 @@ body {
   to   { opacity:1; }
 }
 
+
+    /* === BOTONES INTERACTIVOS LOGIN / REGISTRO === */
+#btnLogin, #btnRegistro {
+  background: linear-gradient(135deg, #007bff, #00c6ff);
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+#btnLogin:hover, #btnRegistro:hover {
+  transform: scale(1.04);
+  box-shadow: 0 5px 12px rgba(0, 150, 255, 0.4);
+}
+
+#btnLogin:active, #btnRegistro:active {
+  transform: scale(0.96);
+  background: linear-gradient(135deg, #0062cc, #0094cc);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2) inset;
+}
+
+#btnLogin:disabled, #btnRegistro:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
     
   </style>
 </head>
@@ -3309,12 +3340,28 @@ document.head.appendChild(spinStyle);
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
   e.preventDefault(); // evita dobles envíos
+  const btnLogin = e.target;
+  btnLogin.disabled = true; // 🔒 evita múltiples clics
+  btnLogin.classList.add("btn-loading"); // animación visual
+
   const correo = document.getElementById("loginCorreo").value.trim();
   const pin = document.getElementById("loginPin").value.trim();
 
-  if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
-  if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+  if (!correo || !pin) {
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    return mostrarAviso("Completa todos los campos", "error");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    return mostrarAviso("Correo inválido", "error");
+  }
+  if (!/^\d{4}$/.test(pin)) {
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    return mostrarAviso("PIN debe ser 4 dígitos", "error");
+  }
 
   // Mostrar spinner inmediatamente
   const loader = mostrarLoader("Iniciando sesión...");
@@ -3354,18 +3401,26 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
         currentAuthorEmail = data.correo;
 
         cerrarLoader(loader);
+        btnLogin.disabled = false;
+        btnLogin.classList.remove("btn-loading");
         cerrarModalYContinuar();
         mostrarAviso("Bienvenido, " + data.nombre, "success");
       } else {
         cerrarLoader(loader);
+        btnLogin.disabled = false;
+        btnLogin.classList.remove("btn-loading");
         mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
       }
     } catch {
       cerrarLoader(loader);
+      btnLogin.disabled = false;
+      btnLogin.classList.remove("btn-loading");
       mostrarAviso("Error del servidor", "error");
     }
   } catch {
     cerrarLoader(loader);
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
     mostrarAviso("Error de conexión", "error");
   }
 });
@@ -3376,26 +3431,45 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
   e.preventDefault();
 
+  const btnRegistro = e.target;
+  btnRegistro.disabled = true; // 🔒 evita múltiples clics
+  btnRegistro.classList.add("btn-loading"); // animación visual
+
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
   const preview = document.getElementById("previewFoto");
 
-  if (!nombre || !correo || !pin || !pinConfirm)
+  if (!nombre || !correo || !pin || !pinConfirm) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
     return mostrarAviso("Todos los campos son obligatorios", "error");
+  }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
     return mostrarAviso("Correo inválido", "error");
+  }
 
-  if (pin !== pinConfirm)
+  if (pin !== pinConfirm) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
     return mostrarAviso("Los PIN no coinciden", "error");
+  }
 
-  if (!/^\d{4}$/.test(pin))
+  if (!/^\d{4}$/.test(pin)) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
     return mostrarAviso("PIN debe ser 4 dígitos", "error");
+  }
 
-  if (!window.fotoComprimida)
+  if (!window.fotoComprimida) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
     return mostrarAviso("Selecciona una foto antes de registrarte", "error");
+  }
 
   // Mostrar spinner de inmediato
   const loader = mostrarLoader("Registrando usuario...");
@@ -3423,6 +3497,8 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     const texto = await res.text();
     console.log("Registro:", texto);
     cerrarLoader(loader);
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
 
     if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
       mostrarAviso("Cuenta creada! Inicia sesión", "success");
@@ -3435,6 +3511,8 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     }
   } catch {
     cerrarLoader(loader);
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
@@ -4256,6 +4334,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
