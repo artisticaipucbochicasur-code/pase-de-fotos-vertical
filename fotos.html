@@ -6355,63 +6355,63 @@ if (imagesBtn) {
     });
 
     // ======================================================================================
-    // GESTIÓN DE PESTAÑAS Y FORMULARIOS
-    // ======================================================================================
-    const tabLogin = document.getElementById("tabLogin");
-    const tabRegistro = document.getElementById("tabRegistro");
-    const formLogin = document.getElementById("formLogin");
-    const formRegistro = document.getElementById("formRegistro");
-    const irARegistro = document.getElementById("irARegistro");
-    const irALogin = document.getElementById("irALogin");
+// GESTIÓN DE PESTAÑAS Y FORMULARIOS
+// ======================================================================================
+const tabLogin = document.getElementById("tabLogin");
+const tabRegistro = document.getElementById("tabRegistro");
+const formLogin = document.getElementById("formLogin");
+const formRegistro = document.getElementById("formRegistro");
+const irARegistro = document.getElementById("irARegistro");
+const irALogin = document.getElementById("irALogin");
 
-    tabLogin?.addEventListener("click", () => mostrarForm("login"));
-    tabRegistro?.addEventListener("click", () => mostrarForm("registro"));
-    irARegistro?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("registro"); });
-    irALogin?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("login"); });
+tabLogin?.addEventListener("click", () => mostrarForm("login"));
+tabRegistro?.addEventListener("click", () => mostrarForm("registro"));
+irARegistro?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("registro"); });
+irALogin?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("login"); });
 
-    function mostrarForm(tipo) {
-      tabLogin && tabLogin.classList.toggle("active", tipo === "login");
-      tabRegistro && tabRegistro.classList.toggle("active", tipo === "registro");
-      if (formLogin) formLogin.style.display = tipo === "login" ? "block" : "none";
-      if (formRegistro) formRegistro.style.display = tipo === "registro" ? "block" : "none";
-    }
+function mostrarForm(tipo) {
+  tabLogin && tabLogin.classList.toggle("active", tipo === "login");
+  tabRegistro && tabRegistro.classList.toggle("active", tipo === "registro");
+  if (formLogin) formLogin.style.display = tipo === "login" ? "block" : "none";
+  if (formRegistro) formRegistro.style.display = tipo === "registro" ? "block" : "none";
+}
 
-    // ======================================================================================
-    // FUNCIÓN PARA MOSTRAR AVISOS
-    // ======================================================================================
-    function mostrarAviso(mensaje, tipo = "info") {
-      const aviso = document.createElement("div");
-      aviso.textContent = mensaje;
-      Object.assign(aviso.style, {
-        position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
-        background: tipo === "error" ? "#e74c3c" : tipo === "success" ? "#27ae60" : "#3498db",
-        color: "white", padding: "12px 24px", borderRadius: "8px", zIndex: "100000",
-        fontFamily: "Arial", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        animation: "fadeInOut 3s forwards"
-      });
-      document.body.appendChild(aviso);
-      setTimeout(() => aviso.remove(), 3000);
-    }
+// ======================================================================================
+// FUNCIÓN PARA MOSTRAR AVISOS
+// ======================================================================================
+function mostrarAviso(mensaje, tipo = "info") {
+  const aviso = document.createElement("div");
+  aviso.textContent = mensaje;
+  Object.assign(aviso.style, {
+    position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+    background: tipo === "error" ? "#e74c3c" : tipo === "success" ? "#27ae60" : "#3498db",
+    color: "white", padding: "12px 24px", borderRadius: "8px", zIndex: "100000",
+    fontFamily: "Arial", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    animation: "fadeInOut 3s forwards"
+  });
+  document.body.appendChild(aviso);
+  setTimeout(() => aviso.remove(), 3000);
+}
 
-    // CSS para animación
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes fadeInOut {
-        0% { opacity:0; transform:translate(-50%, -20px); }
-        10% { opacity:1; transform:translateX(-50%); }
-        90% { opacity:1; }
-        100% { opacity:0; transform:translate(-50%, -20px); }
-      }
-      .tab-btn.active { border-bottom: 3px solid #0077cc; color: #0077cc; }
-    `;
-    document.head.appendChild(style);
+// CSS para animación
+const style = document.createElement("style");
+style.textContent = `
+  @keyframes fadeInOut {
+    0% { opacity:0; transform:translate(-50%, -20px); }
+    10% { opacity:1; transform:translateX(-50%); }
+    90% { opacity:1; }
+    100% { opacity:0; transform:translate(-50%, -20px); }
+  }
+  .tab-btn.active { border-bottom: 3px solid #0077cc; color: #0077cc; }
+`;
+document.head.appendChild(style);
 
-    // ======================================================================================
-    // URL DEL GOOGLE APPS SCRIPT
-    // ======================================================================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+// ======================================================================================
+// URL DEL GOOGLE APPS SCRIPT
+// ======================================================================================
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
- // ====================================================================================== 
+// ====================================================================================== 
 // LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async () => {
@@ -6435,7 +6435,6 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
     });
 
     const texto = await res.text();
-    console.log("Login:", texto);
 
     try {
       const data = JSON.parse(texto);
@@ -6460,23 +6459,63 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
       } else {
         mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
       }
-    } catch (e) {
+    } catch {
       mostrarAviso("Error del servidor", "error");
     }
-  } catch (err) {
+  } catch {
     mostrarAviso("Error de conexión", "error");
   }
 });
 
 // ======================================================================================
-// REGISTRO (CORREGIDO: todo bien)
+// COMPRESOR DE IMAGEN Y PREVISUALIZACIÓN
+// ======================================================================================
+async function comprimirImagen(file, maxWidth = 600, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(maxWidth / img.width, 1);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64 = canvas.toDataURL("image/jpeg", quality);
+        resolve(base64.split(",")[1]);
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Previsualización
+const regFoto = document.getElementById("regFoto");
+const imgPreview = document.getElementById("imgPreview");
+if (regFoto) {
+  regFoto.addEventListener("change", () => {
+    const file = regFoto.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (imgPreview) imgPreview.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+// ======================================================================================
+// REGISTRO (con compresión automática)
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
-  const file = regFoto.files[0];
+  const file = regFoto?.files?.[0];
 
   if (!nombre || !correo || !pin || !pinConfirm || !file)
     return mostrarAviso("Todos los campos son obligatorios", "error");
@@ -6490,12 +6529,8 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   if (!/^\d{4}$/.test(pin))
     return mostrarAviso("PIN debe ser 4 dígitos", "error");
 
-  if (file.size > 900 * 1024)
-    return mostrarAviso("Foto muy grande. Máx 900 KB", "error");
-
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const fotoBase64 = reader.result.split(",")[1];
+  try {
+    const fotoBase64 = await comprimirImagen(file, 600, 0.7);
 
     const formData = new URLSearchParams();
     formData.append("accion", "registro");
@@ -6504,31 +6539,26 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
     formData.append("pin", pin);
     formData.append("foto", fotoBase64);
 
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData
-      });
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData
+    });
 
-      const texto = await res.text();
-      console.log("Registro:", texto);
+    const texto = await res.text();
 
-      if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
-        mostrarAviso("Cuenta creada! Inicia sesión", "success");
-        mostrarForm("login");
-        document.getElementById("loginCorreo").value = correo;
-      } else if (texto.includes("ya registrado")) {
-        mostrarAviso("Ya existe un usuario con ese correo", "error");
-      } else {
-        mostrarAviso(texto || "Error al registrarse", "error");
-      }
-    } catch (err) {
-      mostrarAviso("Error de conexión", "error");
+    if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
+      mostrarAviso("Cuenta creada! Inicia sesión", "success");
+      mostrarForm("login");
+      document.getElementById("loginCorreo").value = correo;
+    } else if (texto.includes("ya registrado")) {
+      mostrarAviso("Ya existe un usuario con ese correo", "error");
+    } else {
+      mostrarAviso(texto || "Error al registrarse", "error");
     }
-  };
-
-  reader.readAsDataURL(file);
+  } catch {
+    mostrarAviso("Error de conexión", "error");
+  }
 });
 
 
@@ -8061,4 +8091,5 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
