@@ -3381,10 +3381,11 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
     btnLogin.classList.remove("btn-loading");
     return mostrarAviso("Correo inválido", "error");
   }
-  if (!/^\d{4}$/.test(pin)) {
+  // ✅ Nueva validación: mínimo 4 caracteres, sin límite ni restricción de tipo
+  if (pin.length < 4) {
     btnLogin.disabled = false;
     btnLogin.classList.remove("btn-loading");
-    return mostrarAviso("PIN debe ser 4 dígitos", "error");
+    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres", "error");
   }
 
   // Mostrar spinner inmediatamente
@@ -3657,7 +3658,7 @@ document.getElementById("btnVerificarPinTemp").addEventListener("click", () => {
     mostrarAviso("✅ PIN temporal verificado.");
     document.getElementById("pasoVerificar").style.display = "none";
     document.getElementById("pasoNuevoPin").style.display = "block";
-    document.getElementById("tituloRecuperar").innerText = "🔒 Crear nuevo PIN";
+    document.getElementById("tituloRecuperar").innerText = "🔒 Crear nuevo PIN o contraseña";
   } else {
     mostrarAviso("❌ El PIN temporal no coincide.");
   }
@@ -3668,8 +3669,12 @@ document.getElementById("btnCambiarPin").addEventListener("click", async () => {
   const nuevoPin = document.getElementById("nuevoPin").value.trim();
   const confirmarPin = document.getElementById("confirmarPin").value.trim();
 
-  if (!nuevoPin || nuevoPin.length !== 4) return mostrarAviso("El PIN debe tener 4 dígitos.");
-  if (nuevoPin !== confirmarPin) return mostrarAviso("Los PIN no coinciden.");
+  // ✅ Nuevo: acepta cualquier valor, mínimo 4 caracteres
+  if (!nuevoPin || nuevoPin.length < 4)
+    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres.");
+
+  if (nuevoPin !== confirmarPin)
+    return mostrarAviso("Los PIN no coinciden.");
 
   const formData = new FormData();
   formData.append("accion", "cambiarPin");
@@ -3700,7 +3705,6 @@ function ocultarTodo() {
   ["formLogin","formRegistro","formRecuperarPin"].forEach(id => document.getElementById(id).style.display = "none");
   ["pasoCorreo","pasoVerificar","pasoNuevoPin"].forEach(id => document.getElementById(id).style.display = "none");
 }
-
 
 
 
@@ -4388,6 +4392,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
