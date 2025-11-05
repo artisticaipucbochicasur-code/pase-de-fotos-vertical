@@ -3442,21 +3442,22 @@ function mostrarLoader(texto = "Procesando...") {
   Object.assign(overlay.style, {
     position: "fixed",
     inset: "0",
-    background: "rgba(0,0,0,0.55)",
+    background: "rgba(0,0,0,0.6)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: "9999",
+    zIndex: "10000",
     color: "#fff",
-    fontFamily: "sans-serif",
+    fontFamily: "system-ui, sans-serif",
     fontSize: "1.1em",
-    textAlign: "center"
+    textAlign: "center",
+    animation: "fadeIn 0.3s ease"
   });
   overlay.innerHTML = `
     <div style="
-      width:55px;height:55px;
-      border:5px solid #ccc;
+      width:60px;height:60px;
+      border:6px solid rgba(255,255,255,0.3);
       border-top-color:#00aaff;
       border-radius:50%;
       animation:spin 1s linear infinite;
@@ -3469,14 +3470,21 @@ function mostrarLoader(texto = "Procesando...") {
 }
 
 function cerrarLoader(loader) {
-  if (loader && loader.parentNode) loader.remove();
+  if (loader && loader.parentNode) {
+    loader.style.animation = "fadeOut 0.2s ease";
+    setTimeout(() => loader.remove(), 180);
+  }
 }
 
-// --- CSS para animación spin ---
+// --- CSS global para animaciones ---
 const styleSpinGlobal = document.createElement("style");
 styleSpinGlobal.textContent = `
-@keyframes spin { to { transform: rotate(360deg); } }`;
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+`;
 document.head.appendChild(styleSpinGlobal);
+
 
 
 // ============================
@@ -4242,6 +4250,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
