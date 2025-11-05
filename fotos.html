@@ -3304,8 +3304,8 @@ document.head.appendChild(spinStyle);
     // ======================================================================================
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
- // ====================================================================================== 
-// LOGIN (CORREGIDO: usa fotoPerfil de columna 4)
+// ====================================================================================== 
+// LOGIN (con spinner e indicador de progreso)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async () => {
   const correo = document.getElementById("loginCorreo").value.trim();
@@ -3314,6 +3314,9 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
   if (!correo || !pin) return mostrarAviso("Completa todos los campos", "error");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return mostrarAviso("Correo inválido", "error");
   if (!/^\d{4}$/.test(pin)) return mostrarAviso("PIN debe ser 4 dígitos", "error");
+
+  // Mostrar spinner
+  const loader = mostrarLoader("Iniciando sesión...");
 
   const formData = new URLSearchParams();
   formData.append("accion", "login");
@@ -3348,28 +3351,32 @@ document.getElementById("btnLogin")?.addEventListener("click", async () => {
         currentAuthorName = data.nombre;
         currentAuthorEmail = data.correo;
 
+        cerrarLoader(loader);
         cerrarModalYContinuar();
         mostrarAviso("Bienvenido, " + data.nombre, "success");
       } else {
+        cerrarLoader(loader);
         mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
       }
     } catch (e) {
+      cerrarLoader(loader);
       mostrarAviso("Error del servidor", "error");
     }
   } catch (err) {
+    cerrarLoader(loader);
     mostrarAviso("Error de conexión", "error");
   }
 });
 
 // ======================================================================================
-// REGISTRO (OPTIMIZADO: usa la imagen comprimida de la previsualización)
+// REGISTRO (con spinner e indicador de progreso)
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
-  const preview = document.getElementById("previewFoto"); // zona de previsualización
+  const preview = document.getElementById("previewFoto");
 
   if (!nombre || !correo || !pin || !pinConfirm)
     return mostrarAviso("Todos los campos son obligatorios", "error");
@@ -3386,14 +3393,15 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
   if (!window.fotoComprimida)
     return mostrarAviso("Selecciona una foto antes de registrarte", "error");
 
+  // Mostrar spinner
+  const loader = mostrarLoader("Registrando usuario...");
+
   try {
-    // Mostrar la previsualización ya comprimida (por seguridad)
     if (preview) {
       preview.innerHTML = `<img src="${window.fotoComprimida}" alt="Previsualización" 
         style="max-width:120px;border-radius:10px;display:block;margin:auto;">`;
     }
 
-    // --- Enviar al servidor ---
     const formData = new URLSearchParams();
     formData.append("accion", "registro");
     formData.append("nombre", nombre);
@@ -3409,6 +3417,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
 
     const texto = await res.text();
     console.log("Registro:", texto);
+    cerrarLoader(loader);
 
     if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
       mostrarAviso("Cuenta creada! Inicia sesión", "success");
@@ -3420,9 +3429,54 @@ document.getElementById("btnRegistro")?.addEventListener("click", async () => {
       mostrarAviso(texto || "Error al registrarse", "error");
     }
   } catch (err) {
+    cerrarLoader(loader);
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
+
+// ======================================================================================
+// FUNCIONES DE SPINNER GLOBAL
+// ======================================================================================
+function mostrarLoader(texto = "Procesando...") {
+  const overlay = document.createElement("div");
+  Object.assign(overlay.style, {
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0,0,0,0.55)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: "9999",
+    color: "#fff",
+    fontFamily: "sans-serif",
+    fontSize: "1.1em",
+    textAlign: "center"
+  });
+  overlay.innerHTML = `
+    <div style="
+      width:55px;height:55px;
+      border:5px solid #ccc;
+      border-top-color:#00aaff;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      margin-bottom:15px;
+    "></div>
+    <span>${texto}</span>
+  `;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function cerrarLoader(loader) {
+  if (loader && loader.parentNode) loader.remove();
+}
+
+// --- CSS para animación spin ---
+const styleSpinGlobal = document.createElement("style");
+styleSpinGlobal.textContent = `
+@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(styleSpinGlobal);
 
 
 // ============================
@@ -4188,6 +4242,7 @@ function toggleUserMenu() {
   </script>
 </body>
 </html>
+
 
 
 
