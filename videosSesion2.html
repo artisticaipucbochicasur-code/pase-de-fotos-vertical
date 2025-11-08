@@ -2123,7 +2123,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 // ======================================================================================
-// ======================================================================================
 // 👇 Ajuste DOM para navegación local dentro del mismo repositorio
 // ======================================================================================
 
@@ -2136,14 +2135,13 @@ if (currentUrl.includes("fotos.html")) {
 } else if (currentUrl.includes("videosSesion2.html")) {
   videosBtn?.classList.add("selected");
 
-  // ✅ Si estás en videosSesion2, intercepta el clic del botón de imágenes
   if (imagesBtn) {
     imagesBtn.addEventListener("click", async (e) => {
-      e.preventDefault(); // Evita navegar a fotos.html completa
-      console.log("📸 Cargando módulo de imágenes (desde fotos.html) sin recargar...");
+      e.preventDefault();
+      console.log("📸 Cargando fotos.html sin recargar...");
 
       try {
-        // 🔹 Ocultar sección de videos si existe
+        // 🔹 Oculta el contenedor de videos si existe
         const contenedorVideos = document.querySelector(".videos-container");
         if (contenedorVideos) contenedorVideos.style.display = "none";
 
@@ -2160,33 +2158,41 @@ if (currentUrl.includes("fotos.html")) {
             height: "100vh",
             color: "white",
             fontSize: "1.2rem",
+            background: "rgba(0,0,0,0.7)",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            zIndex: 9999,
           });
           document.body.appendChild(loader);
+        } else {
+          loader.style.display = "flex";
         }
 
-        // 🔹 Cargar el contenido del archivo fotos.html
+        // 🔹 Obtener contenido de fotos.html
         const response = await fetch("./fotos.html");
         if (!response.ok) throw new Error("Error al cargar fotos.html");
         const htmlText = await response.text();
 
-        // 🔹 Extraer solo el <body> del HTML
+        // 🔹 Crear contenedor temporal
         const temp = document.createElement("div");
         temp.innerHTML = htmlText;
-        const bodyContent = temp.querySelector("body")?.innerHTML || htmlText;
 
-        // 🔹 Crear contenedor para mostrar las fotos si no existe
+        // 🔹 Extraer body
+        const bodyContent = temp.querySelector("body");
+        if (!bodyContent) throw new Error("No se encontró el <body> en fotos.html");
+
+        // 🔹 Crear contenedor visible
         let contenedorFotos = document.getElementById("contenedorFotos");
         if (!contenedorFotos) {
           contenedorFotos = document.createElement("div");
           contenedorFotos.id = "contenedorFotos";
-          contenedorFotos.innerHTML = bodyContent;
           document.body.appendChild(contenedorFotos);
         }
+        contenedorFotos.innerHTML = bodyContent.innerHTML;
 
-        // 🔹 Ocultar loader
-        loader.style.display = "none";
-
-        // 🔹 Ejecutar los <script> del fotos.html (donde está cargarImagenes)
+        // 🔹 Ejecutar los scripts manualmente (sí evalúa)
         const scripts = temp.querySelectorAll("script");
         for (const oldScript of scripts) {
           const newScript = document.createElement("script");
@@ -2196,16 +2202,34 @@ if (currentUrl.includes("fotos.html")) {
             newScript.textContent = oldScript.textContent;
           }
           document.body.appendChild(newScript);
+          await new Promise((res) => newScript.onload = res); // espera carga si es externo
         }
 
-        console.log("✅ fotos.html cargado y scripts ejecutados");
+        // 🔹 Esperar a que cargarImagenes esté disponible
+        const esperaFuncion = async (fnName, timeout = 4000) => {
+          const start = Date.now();
+          while (typeof window[fnName] !== "function") {
+            if (Date.now() - start > timeout) throw new Error(`${fnName} no se encontró`);
+            await new Promise((r) => setTimeout(r, 100));
+          }
+          return window[fnName];
+        };
+
+        const cargarImagenesFn = await esperaFuncion("cargarImagenes");
+        await cargarImagenesFn();
+
+        loader.style.display = "none";
+        console.log("✅ Fotos cargadas correctamente sin recargar la página");
 
       } catch (error) {
-        console.error("❌ Error al cargar fotos.html dinámicamente:", error);
+        console.error("❌ Error al cargar fotos dinámicamente:", error);
+        const loader = document.getElementById("loaderFotos");
+        if (loader) loader.textContent = "Error al cargar fotos";
       }
     });
   }
 }
+
 
 
 
@@ -2292,9 +2316,10 @@ if (currentUrl.includes("fotos.html")) {
       setTimeout(() => {
         location.reload();
       }, 1200);
-    });
+        });
   }
-});
+}); // 👈 este cierra el if del logoutBtn
+}); // 👈 este cierra el document.addEventListener
 
 
 
@@ -3982,6 +4007,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
