@@ -4094,6 +4094,4102 @@ if (logoutBtn) {
 
 
 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <!-- PWA y Iconos para Android e iOS -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Iconos para Android (Chrome) -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  
+  <!-- Meta tags para iOS (Safari) -->
+  <link rel="apple-touch-icon" href="apple-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DECOM">
+  
+  <!-- Meta para color de barra de estado en Android/iOS -->
+  <meta name="theme-color" content="#111111">
+  
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <title>DECOM - Fotos</title>
+  <style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #111;
+        font-family: Arial, sans-serif;
+        color: white;
+        transition: transform 0.3s ease; /* Transición para el movimiento */
+    }
+    .swiper { width: 100vw; height: 100vh; }
+    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
+    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+
+#lblContador {
+  position: absolute;
+  bottom: 195px; /* un poco arriba del icono de comentarios */
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: white;
+  font-size: 24px; /* tamaño del ícono */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  z-index: 5000;
+}
+
+
+
+
+#lblContador span {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: red;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    width: 20px;       /* ancho fijo */
+    height: 20px;      /* alto fijo */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+
+
+
+
+    #customAlertOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85) !important; /* Más oscuro y elegante */
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    }
+/* Botón de eliminar anuncio */
+.delete-announcement-btn {
+   width: 40px;
+    height: 40px;  
+  position: fixed;
+    bottom: 90px; /* 🔥 lo subimos más arriba */
+    right: 18px;
+   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+    border: none;
+    color: white;
+    padding: 8px 10px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 24px; /* grande pero sin tapar */
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+   box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+
+.delete-announcement-btn.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Asegura que el overlay de búsqueda quede arriba y pegado al top */
+#searchOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  justify-content: center;
+  align-items: flex-start;   /* 👈 arriba, no centrado */
+  padding-top: 12px;         /* separadito del borde superior */
+  z-index: 9999;             /* más alto que cualquier otro overlay */
+}
+
+    /* La tarjeta interior puede tener un ancho máximo razonable */
+#searchOverlay .custom-alert {
+  width: 90%;
+  max-width: 700px;
+}
+/* La lista de resultados con scroll para no “cortar” resultados */
+#searchResults.titles-list {
+  max-height: 60vh;          /* 👈 hace visible muchos resultados */
+  overflow: auto;
+}
+
+.resultado-item {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+.resultado-item:hover {
+  background: #f0f0f0;
+}
+
+.highlight {
+  background: #a7d8ff;
+  transition: background 1s ease;
+}
+
+
+
+    
+
+ /* 🔹 Estilo para texto truncado con "más" */
+  .truncated {
+    cursor: pointer;
+  }
+ .more-link {
+  color: white;   /* azul tipo Twitter */
+  font-weight: bold;
+  font-style: italic;  /* 🔹 cursiva */
+  cursor: pointer;
+}
+
+.truncate {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;    /* número de líneas visibles en modo truncado */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.4s ease; /* 🔹 animación suave */
+  max-height: 3em; /* altura aprox de 2 líneas */
+  opacity: 0.9;
+}
+
+.expandido {
+  -webkit-line-clamp: unset;
+  max-height: 1000px; /* suficiente para que quepa todo */
+  opacity: 1;
+}
+
+
+    /* 🔹 Para truncar y expandir título/descripcion */
+.truncate-text {
+  cursor: pointer;
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expanded {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+    
+    .custom-alert {
+    background-color: #1e1e1e !important; /* Fondo oscuro */
+    color: #fff !important; /* Texto blanco */
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+    max-width: 80%;
+    text-align: center;
+    border: 1px solid #333; /* Borde gris oscuro */
+    display: flex;
+    flex-direction: column;
+}
+    
+    .custom-alert.confirm-delete {
+      width: 300px;
+      text-align: center;
+    }
+    
+    .custom-alert.confirm-delete .btn-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .custom-alert h2 {
+    color: #fff !important; /* Blanco para títulos */
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+    .custom-alert p {
+        margin: 0 0 20px;
+        white-space: pre-wrap;
+    }
+
+   .custom-alert button {
+    background-color: #2a2a2a !important; /* Gris oscuro */
+    color: #fff !important;
+    border: 1px solid #444;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+    
+    .custom-alert button:hover {
+    background-color: #444 !important; /* Gris un poco más claro */
+    transform: scale(1.05);
+}
+
+
+    .titles-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px;
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+    }
+
+  .titles-list li {
+    padding: 8px;
+    background-color: #2a2a2a !important;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    color: #fff;
+}
+    .titles-list li:hover {
+    background-color: #444 !important;
+}
+
+    /* 🎨 Notificaciones emergentes */
+.info-dialog {
+    background-color: #1e1e1e !important;
+    color: #fff !important;
+    border: 1px solid #333;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+}
+
+.info-dialog h2 {
+    color: #fff !important;
+}
+    /* Estilos para el overlay de título y descripción */
+   .content-overlay {
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-align: left;
+    max-width: 80%;
+    box-sizing: border-box;
+    z-index: 999;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+
+    .content-overlay h3 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .content-overlay p {
+        margin-top: 0;
+        font-size: 0.9rem;
+        line-height: 1.2;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+  /* Contenedor de comentarios */
+.comments-overlay-container {
+  position: fixed;
+  bottom: 47px; /* 👈 ahora justo arriba de la barra de escribir */
+  left: 10px;
+  width: calc(80% - 20px);
+  background: rgba(0, 0, 0, 0.2); /* más transparente */
+  color: #eee;
+  padding: 8px;
+  border-radius: 5px;
+  box-sizing: border-box;
+  z-index: 998;
+  overflow-y: auto;
+  transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+  max-height: 4em;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+
+  /* expandido */
+.comments-overlay-container.expanded {
+  max-height: 70vh;
+}
+    /* Estilos para la lista de comentarios */
+    .comments-overlay-container ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Estilos para cada comentario individual */
+    .comments-overlay-container li {
+        font-size: 0.8rem;
+        line-height: 1.2;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 8px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+    }
+
+    .comments-overlay-container li:last-child {
+      border-bottom: none;
+    }
+    
+    /* Estilo para los comentarios que se pueden borrar */
+    .comments-overlay-container li.deletable {
+        cursor: pointer;
+    }
+    
+    /* Contenedor del botón de borrado */
+    .delete-btn-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 0; 
+    }
+    
+    /* Botón de borrado en sí mismo */
+    .delete-btn {
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    /* El comentario se desliza */
+    .comment-content {
+      width: 100%;
+      padding-left: 10px;
+      padding-right: 10px;
+      box-sizing: border-box;
+      transition: transform 0.3s ease;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .comment-content.swiped {
+      transform: translateX(100px);
+    }
+    
+    .delete-btn-container.visible {
+        transform: translateX(0);
+    }
+    
+    /* Clase para ocultar los overlays */
+.hidden-overlay {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s;
+}
+
+
+
+    /* Estilos del nuevo contador de comentarios */
+.comments-counter {
+  position: fixed;
+  bottom: 140px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  z-index: 999;
+}
+
+.comments-counter .icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.comments-counter span#commentCountValue {
+  display: none;
+  position: absolute;
+  bottom: -10px; /* Posiciona el número debajo del círculo */
+  left: -10px; /* Posiciona el número a la izquierda */
+  background: rgba(255, 255, 255, 0.1); /* Mismo fondo desenfocado que el círculo principal */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+    .comments-counter .count {
+        font-size: 0.9rem;
+    }
+
+/* Barra de entrada de comentarios */
+.comment-input-container {
+  position: fixed;
+  bottom: 0px;
+  left: 0;
+  width: 100%;
+  background: transparent;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  z-index: 1000;
+}
+
+
+
+    
+    .comment-input-container .send-comment-btn:hover {
+        background: transparent;
+    }
+
+/* ✅ Nuevo diseño: óvalo translúcido */
+.comment-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1); /* 👈 blanco transparente */
+  border: 1.5px solid rgba(255, 255, 255, 0.4); /* 👈 borde translúcido */
+  border-radius: 25px;   /* ovalado completo */
+  width: 95%;            /* 👈 ancho controlado */
+  margin: 0 auto;        /* 👈 centrado */
+  padding: 4px 8px;      /* 👈 menos alto */
+  backdrop-filter: blur(3px); /* 👈 efecto vidrio esmerilado */
+}
+
+
+
+.comment-input-wrapper input {
+  flex-grow: 1;
+  background: transparent;
+  border: none;          /* 👈 quita borde extra */
+  outline: none;
+  padding: 6px 8px;      /* 👈 más compacto */
+  font-size: 0.9rem;
+  color: white;
+}
+
+.comment-input-wrapper input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+
+.comment-input-wrapper button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.2rem;    /* 👈 tamaño justo */
+  cursor: pointer;
+  padding: 4px 6px;
+}
+/* Oculta el modal por defecto */
+.hidden {
+  display: none !important;
+}
+
+
+.refresh-btn {
+    position: fixed;
+    bottom: 250px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.refresh-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+
+/* ✨ Resaltado temporal + zoom del título */
+.highlight-title-zoom {
+    background-color: rgba(0, 150, 255, 0.3);
+    padding: 3px 6px;
+    border-radius: 5px;
+    animation: highlightZoom 0.4s ease-in-out;
+    transition: background-color 1s ease;
+}
+
+/* 🎥 Animación de zoom */
+@keyframes highlightZoom {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+    #savedList {
+    scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  font-family: Arial, sans-serif;
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+/* Estilos para el encabezado */
+#socialHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.9); /* Ligeramente más opaco para elegancia */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10001; /* Más alto que el resto de los overlays */
+  padding: 8px 0; /* Reducido para un look más compacto */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* Sombra más sutil */
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 12px; /* Reducido para consistencia */
+}
+
+.header-content h1 {
+  color: white;
+  font-size: 1.4rem; /* Ligeramente más pequeño */
+  margin: 0;
+  font-weight: 600; /* Menos agresivo que bold */
+  letter-spacing: 1px; /* Espaciado para elegancia */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px; /* Espaciado más ajustado */
+}
+
+.header-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none; /* Sin borde para un look más limpio */
+  border-radius: 50%; /* Botones circulares */
+  width: 36px; /* Tamaño fijo para íconos */
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.1rem; /* Tamaño del ícono */
+  text-decoration: none;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1); /* Efecto sutil de aumento */
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); /* Brillo suave */
+}
+
+.header-btn.selected {
+  background: #ffffff; /* Fondo blanco */
+  color: #111111; /* Ícono oscuro */
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.5); /* Sombra para destacar */
+  font-weight: bold; /* Mantenido para consistencia */
+}
+
+.header-btn.selected:hover {
+  background: #e0e0e0; /* Ligeramente más oscuro al pasar el ratón */
+  transform: scale(1); /* Evitar zoom al estar seleccionado */
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: row; /* Mantener en fila para ahorrar espacio */
+    gap: 8px;
+  }
+
+  .header-content h1 {
+    font-size: 1.2rem; /* Más pequeño en móviles */
+  }
+
+  .header-buttons {
+    gap: 6px; /* Menos espacio entre botones */
+  }
+
+  .header-btn {
+    width: 32px; /* Botones más pequeños */
+    height: 32px;
+    font-size: 1rem; /* Íconos más pequeños */
+  }
+}
+
+    @keyframes zoomIn {
+  from { transform: scale(0.85); opacity:0; }
+  to   { transform: scale(1); opacity:1; }
+}
+@keyframes fadeIn {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+
+
+    /* === BOTONES INTERACTIVOS LOGIN / REGISTRO === */
+#btnLogin, #btnRegistro {
+  background: linear-gradient(135deg, #007bff, #00c6ff);
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+#btnLogin:hover, #btnRegistro:hover {
+  transform: scale(1.04);
+  box-shadow: 0 5px 12px rgba(0, 150, 255, 0.4);
+}
+
+#btnLogin:active, #btnRegistro:active {
+  transform: scale(0.96);
+  background: linear-gradient(135deg, #0062cc, #0094cc);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2) inset;
+}
+
+#btnLogin:disabled, #btnRegistro:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+    /* === EFECTO RIPPLE ELEGANTE === */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple-anim 0.6s linear;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 2;
+}
+
+#btnLogin, #btnRegistro {
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes ripple-anim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+    .toggle-pin {
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+.toggle-pin:hover {
+  transform: scale(1.1);
+}
+.toggle-pin.active {
+  color: #00a2ff;
+  text-shadow: 0 0 6px rgba(0,162,255,0.6);
+}
+    
+  </style>
+</head>
+
+<body>
+
+<!-- 🔹 Modal de Publicar (Anuncio / Video) -->
+<div id="publishModal" style="
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(3px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    background:#fff;
+    border-radius:16px;
+    width:90%;
+    max-width:520px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    position:relative;
+  ">
+    <button id="closePublishModal" style="
+      position:absolute;
+      top:10px; right:15px;
+      background:none;
+      border:none;
+      font-size:22px;
+      cursor:pointer;
+      color:#333;
+    ">×</button>
+
+    <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
+
+    <!-- 🔹 Selector de tipo -->
+    <div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
+      <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">📰 Anuncio</button>
+      <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">🎥 Video</button>
+    </div>
+
+    <!-- 🔹 Sección de Anuncio -->
+    <div id="anuncioSection" style="margin-top:15px;">
+      <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
+      <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+      <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+     <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+<div style="display:flex;align-items:center;gap:10px;">
+  <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
+  <button id="abrirCamaraImg" title="Abrir cámara" 
+    style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
+    <i class="fas fa-camera"></i>
+  </button>
+</div>
+
+      <div style="margin-top:10px;text-align:center;">
+        <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
+      </div>
+
+      <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+        <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
+      </div>
+
+      <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
+      <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+    </div>
+
+    <!-- 🔹 Sección de Video -->
+    <div id="videoSection" style="display:none;margin-top:15px;">
+      <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
+      <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+      <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+     <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+<div style="display:flex;align-items:center;gap:10px;">
+  <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
+  <button id="abrirCamaraVideo" title="Grabar video" 
+    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
+    <i class="fas fa-video"></i>
+  </button>
+</div>
+
+
+      <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+        <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
+      </div>
+
+      <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
+
+      <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
+
+      <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+    </div>
+  </div>
+</div>
+
+
+  
+
+
+  
+<!-- BOTÓN GUARDAR/VER -->
+<button id="saveBtn" style="
+    position: fixed;
+    bottom: 300px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 2000;
+">
+    <i class="far fa-bookmark" style="font-size: 24px;"></i>
+</button>
+  
+<!-- 📌 Modal Guardados -->
+<div id="savedModal" style="
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: flex-start; /* 🔹 Arranca desde arriba */
+    flex-direction: column;
+    padding: 15px;
+">
+    <div id="savedModalInner" style="
+        background-color: #1c1c1c;
+        color: white;
+        width: 90%;
+        max-width: 420px;
+        max-height: 80%;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        overflow: hidden; /* 🔹 Aislamos scroll interno */
+        margin-top: 16vh; /* 🔹 Siempre más arriba */
+        transition: margin-top 0.25s ease;
+    ">
+        <!-- Encabezado -->
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background-color: #1c1c1c;
+            z-index: 20;
+            padding-bottom: 8px;
+        ">
+            <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
+            <button id="closeSavedBtn" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                line-height: 1;
+            ">&times;</button>
+        </div>
+
+        <!-- Input de búsqueda -->
+        <input
+            id="savedSearchInput"
+            type="text"
+            placeholder="Buscar guardados..."
+            style="
+                position: sticky;
+                top: 40px; /* 🔹 Debajo del encabezado */
+                z-index: 15;
+                margin-top: 12px;
+                padding: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #2c2c2c;
+                color: white;
+                font-size: 15px;
+            "
+        />
+
+        <!-- Lista de guardados -->
+        <ul id="savedList" style="
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0;
+            max-height: 250px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #1c1c1c;
+        "></ul>
+    </div>
+</div>
+
+<header id="socialHeader">
+  <div class="header-content" style="display:flex;align-items:center;justify-content:space-between;">
+    <h1>DECOM</h1>
+
+    <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
+      <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
+      <button id="imagesBtn" class="header-btn selected" title="Imágenes" style="position: relative;">
+        <i class="fas fa-image"></i>
+        <span id="imagesNotificationCount" style="
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: red;
+          color: white;
+          font-size: 11px;
+          font-weight: bold;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          display: none;
+          z-index: 10;
+        "></span>
+      </button>
+
+      <a href="./videosSesion2.html" class="header-btn" title="Videos">
+        <i class="fas fa-video"></i>
+      </a>
+
+      <a href="#" class="header-btn" id="publishBtn" title="Publicar">
+        <i class="fas fa-plus-circle"></i>
+      </a>
+
+      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+        <i class="fas fa-search"></i>
+      </button>
+
+      <!-- 🔹 Botón de usuario -->
+      <div id="userMenuContainer" style="position:relative;">
+        <div id="userBtn" 
+             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    font-weight:bold;cursor:pointer;">
+        </div>
+
+        <div id="userMenu" 
+             style="display:none;position:absolute;top:50px;right:0;background:white;
+                    border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
+                    padding:10px;min-width:180px;text-align:left;z-index:999;">
+          <!-- FOTO GRANDE EN EL MENÚ DE USUARIO -->
+          <div id="userMenuPhoto" 
+               style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
+                      background:#ddd;display:flex;align-items:center;justify-content:center;
+                      font-size:26px;font-weight:bold;color:white;">
+          </div>
+
+          <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
+          <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
+          <button id="logoutBtn" 
+                  style="margin-top:8px;width:100%;padding:8px;border:none;
+                         background:#e74c3c;color:white;border-radius:6px;">
+            🚪 Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<!-- Modal de inicio de sesión / registro -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+.toggle-pin {
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+.toggle-pin:hover {
+  transform: scale(1.1);
+}
+.toggle-pin.active {
+  color: #00a2ff;
+  text-shadow: 0 0 6px rgba(0,162,255,0.6);
+}
+</style>
+
+<div id="loginModal"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:25px; border-radius:15px; width:320px; max-height:90vh; overflow-y:auto; text-align:center; font-family:Arial,sans-serif;">
+    
+    <!-- Pestañas -->
+    <div style="display:flex; margin-bottom:15px; border-bottom:1px solid #ddd;">
+      <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:bold;">Iniciar Sesión</button>
+      <button id="tabRegistro" class="tab-btn" style="flex:1; padding:10px; border:none; background:none;">Registrarse</button>
+    </div>
+
+    <!-- Formulario Login -->
+    <div id="formLogin">
+      <h3>🔐 Iniciar Sesión</h3>
+      <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+
+      <div style="position:relative;">
+        <input id="loginPin" type="password" placeholder="PIN (Mínimo 4 caracteres)" minlength="4"
+               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+        <i class="fa-solid fa-eye toggle-pin" data-target="loginPin"
+           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      </div>
+
+      <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
+      <p style="margin-top:10px; font-size:13px; color:#666;">
+        ¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a>
+      </p>
+      <p style="margin-top:8px; font-size:13px; color:#0077cc; cursor:pointer;" id="olvidastePin">
+        ¿Olvidaste tu PIN?
+      </p>
+    </div>
+
+    <!-- Formulario Registro -->
+    <div id="formRegistro" style="display:none;">
+      <h3>✨ Crear Cuenta</h3>
+      <input id="regNombre" type="text" placeholder="Tu nombre completo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="regCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      
+      <div style="position:relative;">
+        <input id="regPin" type="password" placeholder="Crea un PIN (Mínimo 4 caracteres)" minlength="4"
+               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+        <i class="fa-solid fa-eye toggle-pin" data-target="regPin"
+           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      </div>
+
+      <div style="position:relative;">
+        <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" minlength="4"
+               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+        <i class="fa-solid fa-eye toggle-pin" data-target="regPinConfirm"
+           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      </div>
+      
+      <div style="margin:15px 0; text-align:left; font-size:13px;">
+        <label>Foto de perfil:</label>
+        <input id="regFoto" type="file" accept="image/*" style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:8px;">
+        <div id="previewContainer" style="margin-top:10px; text-align:center; display:none;">
+          <img id="fotoPreview" src="" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:3px solid #0077cc;">
+        </div>
+      </div>
+
+      <button id="btnRegistro" style="width:100%; padding:12px; margin-top:10px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Crear Cuenta</button>
+      <p style="margin-top:10px; font-size:13px; color:#666;">
+        ¿Ya tienes cuenta? <a href="#" id="irALogin" style="color:#0077cc; text-decoration:underline;">Inicia sesión</a>
+      </p>
+    </div>
+
+    <!-- Recuperar PIN -->
+    <div id="formRecuperarPin" style="display:none;">
+      <h3 id="tituloRecuperar">🔁 Recuperar PIN</h3>
+
+      <div id="pasoCorreo">
+        <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal.</p>
+        <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <button id="btnEnviarPinTemp" style="width:100%; padding:12px; margin-top:10px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
+      </div>
+
+      <div id="pasoVerificar" style="display:none;">
+        <p style="font-size:13px;">Revisa tu correo e ingresa el PIN temporal recibido:</p>
+        <div style="position:relative;">
+          <input id="recPinTemp" type="password" minlength="4" placeholder="PIN temporal"
+                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="recPinTemp"
+             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+        </div>
+        <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar PIN</button>
+      </div>
+
+      <div id="pasoNuevoPin" style="display:none;">
+        <p style="font-size:13px;">Crea tu nuevo PIN de acceso:</p>
+        <div style="position:relative;">
+          <input id="nuevoPin" type="password" minlength="4" placeholder="Nuevo PIN"
+                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="nuevoPin"
+             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+        </div>
+
+        <div style="position:relative;">
+          <input id="confirmarPin" type="password" minlength="4" placeholder="Confirmar nuevo PIN"
+                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="confirmarPin"
+             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+        </div>
+
+        <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Guardar Nuevo PIN</button>
+      </div>
+
+      <p style="margin-top:10px; font-size:13px;">
+        <a href="#" id="volverLogin" style="color:#0077cc; text-decoration:underline;">Volver al inicio</a>
+      </p>
+    </div>
+
+    <button onclick="document.getElementById('loginModal').style.display='none'" 
+            style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
+  </div>
+</div>
+  
+  
+  <div class="swiper"><div class="swiper-wrapper"></div></div>
+ <div id="loader">
+  <i class="fas fa-spinner fa-spin"></i>
+</div>
+
+  
+ <div id="lblContador">
+  <i class="far fa-bell"></i>
+  <span id="notificationCount"></span>
+</div>
+
+  <div id="customAlertOverlay">
+      <div class="custom-alert">
+          <h2 id="alertTitle"></h2>
+          <div class="titles-list" id="alertMessage"></div>
+      </div>
+  </div>
+
+<!-- 🔄 Botón de actualizar -->
+<button id="refreshBtn" class="refresh-btn" title="Actualizar página">
+  <i class="fas fa-sync-alt"></i>
+</button>
+
+
+  
+<!-- 🔍 Overlay de búsqueda -->
+<div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
+  <div class="custom-alert">
+    <h2>Buscar anuncio</h2>
+    <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
+    <div id="searchResults" class="titles-list"></div>
+    <button onclick="cerrarBusqueda()">Cerrar</button>
+  </div>
+</div>
+
+
+  <div class="content-overlay" id="contentOverlay">
+    <h3 id="currentTitle"></h3>
+    <p id="currentDescription"></p>
+  </div>
+ <div class="comments-overlay-container" id="commentsOverlay">
+  <ul id="commentsList"></ul>
+</div>
+
+<div class="comments-counter" id="commentsCounter">
+  <span class="icon">
+    <i class="fa-regular fa-comment"></i>
+  </span>
+  <span class="count" id="commentCountValue">0</span>
+</div>
+
+<div class="comment-input-container" id="commentInputContainer">
+  <div class="comment-input-wrapper">
+    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+
+
+
+  <!-- Botón fijo para eliminar anuncio -->
+<button id="deleteAnnouncementBtn" class="delete-announcement-btn">
+  <i class="fas fa-trash"></i>
+</button>
+
+
+<!-- MODAL PERFIL -->
+<div id="modalPerfil" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+  animation: fadeIn 0.25s ease;
+">
+  <div id="contenidoModalPerfil" style="
+    width:85%;
+    max-width:380px;
+    background:white;
+    border-radius:14px;
+    padding:18px;
+    text-align:center;
+    position:relative;
+    animation: zoomIn 0.25s ease;
+  ">
+    <!-- Botón cerrar -->
+    <span onclick="cerrarModalPerfil()" style="
+      position:absolute;
+      right:12px;
+      top:8px;
+      font-size:23px;
+      cursor:pointer;
+      color:#333;
+      font-weight:bold;
+    ">✖</span>
+
+    <div style="position:relative; display:inline-block; margin-top:10px;">
+      <img id="fotoPerfilModal" src="" style="
+        width:100%;
+        max-width:250px;
+        height:250px;
+        border-radius:12px;
+        object-fit:cover;
+        border:3px solid #0077cc;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">
+
+      <!-- ✏️ Icono editar -->
+      <span id="editarFotoBtn" style="
+        position:absolute;
+        right:6px;
+        bottom:6px;
+        background:#0077cc;
+        color:white;
+        border-radius:50%;
+        width:38px;
+        height:38px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
+        font-size:18px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">✏️</span>
+    </div>
+
+    <p id="nombrePerfil" style="
+      margin-top:12px;
+      font-weight:bold;
+      color:#222;
+      font-size:18px;
+    "></p>
+
+    <p id="correoPerfil" style="
+      color:#555;
+      font-size:14px;
+      margin-top:4px;
+    "></p>
+
+    <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
+  </div>
+</div>
+
+
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+    let anunciosData = [];
+    let indiceBusqueda = []; // [{ i, key, titulo }]
+
+
+
+  document.querySelectorAll('.toggle-pin').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    const isPassword = input.type === 'password';
+    
+    input.type = isPassword ? 'text' : 'password';
+    
+    // Alternar ícono FontAwesome
+    btn.classList.toggle('fa-eye', !isPassword);
+    btn.classList.toggle('fa-eye-slash', isPassword);
+    btn.classList.toggle('active', isPassword);
+  });
+});
+
+
+
+const publishBtn = document.getElementById("publishBtn");
+const publishModal = document.getElementById("publishModal");
+const closePublishModal = document.getElementById("closePublishModal");
+const fileInput = document.getElementById("imagen");
+const previewImg = document.getElementById("previewImg");
+const progressContainer = document.getElementById("progressContainer");
+const progressBar = document.getElementById("progressBar");
+const btnPublicar = document.getElementById("btnPublicar");
+const mensaje = document.getElementById("mensaje");
+
+let base64Imagen = "";
+
+// 🔹 Abrir modal
+publishBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  publishModal.style.display = "flex";
+
+  // === MARCAR EL BOTÓN DE PUBLICAR COMO SELECCIONADO ===
+  document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+  publishBtn.classList.add('selected');
+});
+
+// 🔹 Cerrar modal
+closePublishModal.addEventListener("click", () => {
+  publishModal.style.display = "none";
+  // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) {
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    imagesBtn.classList.add('selected');
+  }
+});
+
+// 🔹 Función para comprimir imágenes
+function compressImage(base64, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      let width = img.width;
+      let height = img.height;
+
+      // 🔹 Redimensionar si es más grande que el ancho máximo
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // 🔹 Dibujar y comprimir
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+      resolve(compressedBase64);
+    };
+    img.src = base64;
+  });
+}
+
+// 🔹 Vista previa y compresión de imagen
+fileInput.addEventListener("change", function () {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadstart = function () {
+      progressContainer.style.display = "block";
+      progressBar.style.width = "0%";
+    };
+    reader.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        progressBar.style.width = percent + "%";
+      }
+    };
+    reader.onloadend = async function (e) {
+      const originalBase64 = e.target.result;
+
+      // 🔹 Comprimir imagen antes de mostrarla
+      const compressedBase64 = await compressImage(originalBase64, 800, 0.7);
+      base64Imagen = compressedBase64.split(",")[1];
+
+      previewImg.src = compressedBase64;
+      previewImg.style.display = "block";
+      previewImg.style.maxWidth = "100%";
+      previewImg.style.maxHeight = "180px";
+      previewImg.style.objectFit = "cover";
+      previewImg.style.borderRadius = "12px";
+
+      progressBar.style.width = "100%";
+      setTimeout(() => (progressContainer.style.display = "none"), 500);
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// 🔹 Enviar anuncio (con barra de progreso simulada durante subida)
+btnPublicar.addEventListener("click", async () => {
+  const titulo = document.getElementById("titulo").value.trim();
+  const descripcion = document.getElementById("descripcion").value.trim();
+  const autor = localStorage.getItem("autor") || window.currentAuthorName || "";
+  const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "";
+
+  if (!titulo || !descripcion || !base64Imagen || !autor || !correo) {
+    mensaje.textContent = "⚠️ Por favor completa todos los campos o inicia sesión.";
+    mensaje.style.color = "red";
+    return;
+  }
+
+  btnPublicar.disabled = true;
+  mensaje.textContent = "⏳ Subiendo anuncio...";
+  mensaje.style.color = "#0077cc";
+
+  const formData = new FormData();
+  formData.append("accion", "guardar");
+  formData.append("tipo", "anuncio");
+  formData.append("titulo", titulo);
+  formData.append("descripcion", descripcion);
+  formData.append("imagen", base64Imagen);
+  formData.append("autor", autor);
+  formData.append("correo", correo);
+
+  // 🔹 Mostrar barra de progreso
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+
+  // Simular progreso mientras se sube
+  let simulatedProgress = 0;
+  const interval = setInterval(() => {
+    if (simulatedProgress < 90) {
+      simulatedProgress += Math.random() * 5; // sube entre 1% y 5%
+      progressBar.style.width = simulatedProgress + "%";
+    }
+  }, 200);
+
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: formData
+    });
+
+    clearInterval(interval);
+    progressBar.style.width = "100%";
+
+    const result = await response.text();
+
+    mensaje.textContent = "✅ Anuncio enviado correctamente.";
+    mensaje.style.color = "green";
+
+    // 🔹 Esperar un poco para que se vea el 100%
+    await new Promise(res => setTimeout(res, 600));
+
+    // Limpiar formulario
+    document.getElementById("titulo").value = "";
+    document.getElementById("descripcion").value = "";
+    fileInput.value = "";
+    previewImg.src = "";
+    previewImg.style.display = "none";
+    base64Imagen = "";
+
+    // 🔹 Ocultar barra y cerrar modal
+    progressBar.style.width = "0%";
+    progressContainer.style.display = "none";
+
+   // 🔹 Cierre automático después de subir anuncio
+setTimeout(() => {
+  publishModal.style.display = "none";
+  mensaje.textContent = "";
+  if (typeof cargarAnuncios === "function") {
+    cargarAnuncios();
+  }
+  // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) {
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    imagesBtn.classList.add('selected');
+  }
+}, 1000);
+  } catch (err) {
+    clearInterval(interval);
+    console.error(err);
+    mensaje.textContent = "🚫 Error al conectar con el servidor.";
+    mensaje.style.color = "red";
+    progressContainer.style.display = "none";
+    progressBar.style.width = "0%";
+  }
+
+  btnPublicar.disabled = false;
+});
+
+
+
+// =============================
+// 🎬 CONTROL DE SECCIONES EN MODAL PUBLICAR
+// =============================
+const tabAnuncio = document.getElementById("tabAnuncio");
+const tabVideo = document.getElementById("tabVideo");
+const anuncioSection = document.getElementById("anuncioSection");
+const videoSection = document.getElementById("videoSection");
+
+tabAnuncio.addEventListener("click", () => {
+  tabAnuncio.style.background = "#0077cc";
+  tabAnuncio.style.color = "white";
+  tabVideo.style.background = "#ccc";
+  tabVideo.style.color = "#333";
+  anuncioSection.style.display = "block";
+  videoSection.style.display = "none";
+});
+
+tabVideo.addEventListener("click", () => {
+  tabVideo.style.background = "#6b46c1";
+  tabVideo.style.color = "white";
+  tabAnuncio.style.background = "#ccc";
+  tabAnuncio.style.color = "#333";
+  anuncioSection.style.display = "none";
+  videoSection.style.display = "block";
+});
+
+    
+
+
+
+// =============================
+// 🎥 MODAL DE SUBIDA DE VIDEOS
+// =============================
+
+// 📤 Subida del video (mantiene compatibilidad con tu sistema)
+btnUploadVideo.addEventListener("click", async () => {
+  const file = document.getElementById("fileInput").files[0];
+  const tituloUsuario = document.getElementById("videoTitle").value.trim();
+  const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
+  const progressBar = document.getElementById("progressVideo");
+  const progressContainer = document.getElementById("progressContainerVideo");
+  const metrics = document.getElementById("uploadMetricsVideo");
+  const status = document.getElementById("statusVideo");
+
+  const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
+  const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
+
+  if (!file) return  mostrarAviso("Selecciona un video para subir.");
+  if (!tituloUsuario) return  mostrarAviso("Escribe un título para el video.");
+
+  // 🔹 Deshabilitar botón mientras sube
+  btnUploadVideo.disabled = true;
+  const originalText = btnUploadVideo.textContent;
+  btnUploadVideo.textContent = "⏳ Subiendo...";
+
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+  status.textContent = "";
+  metrics.textContent = "";
+
+  const identifier = "artistica_bochica_" + Date.now();
+  const fileName = file.name;
+  const accessKey = "KPJmAQCm1UyNJWqv";
+  const secretKey = "9JkBrIGexGNOynyf";
+  const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
+  const xhr = new XMLHttpRequest();
+
+  let startTime = Date.now();
+
+  xhr.upload.onprogress = (event) => {
+    if (event.lengthComputable) {
+      const percent = (event.loaded / event.total) * 100;
+      progressBar.style.width = percent + "%";
+
+      const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
+      const totalMB = (event.total / (1024 * 1024)).toFixed(2);
+      const elapsed = (Date.now() - startTime) / 1000;
+      const speedMB = (event.loaded / elapsed / (1024 * 1024)).toFixed(2);
+      const timeLeft = ((event.total - event.loaded) / (event.loaded / elapsed)) || 0;
+      const mins = Math.floor(timeLeft / 60);
+      const secs = Math.floor(timeLeft % 60);
+      metrics.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
+    }
+  };
+
+  xhr.onload = async function () {
+    // 🔹 Rehabilitar botón al terminar
+    btnUploadVideo.disabled = false;
+    btnUploadVideo.textContent = originalText;
+
+    if (xhr.status === 200) {
+      const fileEncoded = encodeURIComponent(fileName);
+      const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
+      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
+
+      // Guarda los datos en tu Apps Script
+      await fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
+        + `&titulo=${encodeURIComponent(tituloUsuario)}`
+        + `&link=${encodeURIComponent(directLink)}`
+        + `&autor=${encodeURIComponent(autor)}`
+        + `&correo=${encodeURIComponent(correo)}`
+        + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
+
+      // Esperar un poco para mostrar 100%
+      await new Promise(res => setTimeout(res, 600));
+
+      // 🔹 Limpiar campos del formulario
+      document.getElementById("fileInput").value = "";
+      document.getElementById("videoTitle").value = "";
+      document.getElementById("videoDescripcion").value = "";
+      progressBar.style.width = "0%";
+      progressContainer.style.display = "none";
+      metrics.textContent = "";
+      status.textContent = "";
+
+      // 🔹 Cerrar modal automáticamente
+      setTimeout(() => {
+        publishModal.style.display = "none";
+        if (typeof cargarAnuncios === "function") {
+          cargarAnuncios();
+        }
+        // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
+        const imagesBtn = document.getElementById("imagesBtn");
+        if (imagesBtn) {
+          document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+          imagesBtn.classList.add('selected');
+        }
+      }, 1000);
+    } else {
+      status.textContent = "❌ Error al subir el video.";
+    }
+  };
+
+  xhr.onerror = () => {
+    // 🔹 Rehabilitar botón si falla
+    btnUploadVideo.disabled = false;
+    btnUploadVideo.textContent = originalText;
+    status.textContent = "❌ Error de conexión.";
+  };
+
+  xhr.open("PUT", url, true);
+  xhr.setRequestHeader("Authorization", `LOW ${accessKey}:${secretKey}`);
+  xhr.setRequestHeader("x-archive-auto-make-bucket", "1");
+  xhr.setRequestHeader("x-archive-meta-title", fileName);
+  xhr.setRequestHeader("x-archive-meta-mediatype", "movies");
+  xhr.setRequestHeader("x-archive-meta-description", "Video subido desde la app DECOM");
+  xhr.setRequestHeader("x-archive-meta-collection", "opensource_movies");
+  xhr.setRequestHeader("x-archive-meta-creator", autor);
+  xhr.setRequestHeader("Content-Type", file.type);
+  xhr.send(file);
+});
+
+
+    // =============================
+// 📸 BOTONES DE CÁMARA (imagen y video)
+// =============================
+document.getElementById("abrirCamaraImg")?.addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.capture = "environment";
+  input.onchange = (e) => {
+    document.getElementById("imagen").files = e.target.files;
+    document.getElementById("imagen").dispatchEvent(new Event("change"));
+  };
+  input.click();
+});
+
+document.getElementById("abrirCamaraVideo")?.addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "video/*";
+  input.capture = "camera";
+  input.onchange = (e) => {
+    document.getElementById("fileInput").files = e.target.files;
+    document.getElementById("fileInput").dispatchEvent(new Event("change"));
+  };
+  input.click();
+});
+
+
+
+
+    
+
+// ==========================
+// 🔖 GUARDAR Y VER TITULOS
+// ==========================
+const saveBtn = document.getElementById("saveBtn");
+const viewSavedBtn = document.getElementById("viewSavedBtn");
+const savedModal = document.getElementById("savedModal");
+const savedList = document.getElementById("savedList");
+const savedSearchInput = document.getElementById("savedSearchInput");
+const closeSavedBtn = document.getElementById("closeSavedBtn");
+
+
+// === 💬 Aviso elegante, centrado y adaptable a móviles ===
+function mostrarAviso(mensaje, tipo = "info") {
+  let alertBox = document.getElementById("alertBox");
+
+  if (!alertBox) {
+    alertBox = document.createElement("div");
+    alertBox.id = "alertBox";
+    document.body.appendChild(alertBox);
+
+    Object.assign(alertBox.style, {
+      display: "none",
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%) scale(0.9)",
+      background: "rgba(30, 30, 30, 0.9)",
+      color: "#fff",
+      padding: "14px 24px",
+      borderRadius: "14px",
+      boxShadow: "0 8px 25px rgba(0,0,0,0.4)",
+      fontWeight: "500",
+      fontSize: "15px",
+      fontFamily: "Poppins, sans-serif",
+      zIndex: "100000",
+      opacity: "0",
+      transition: "all 0.4s ease",
+      textAlign: "center",
+      whiteSpace: "nowrap", // ✅ evita salto de línea
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      maxWidth: "90vw", // ✅ limita al ancho de pantalla
+      letterSpacing: "0.3px",
+      backdropFilter: "blur(10px)",
+      border: "1px solid rgba(255,255,255,0.1)",
+    });
+  }
+
+  // 🎨 Colores neutros según tipo
+  let bgColor = "rgba(30, 30, 30, 0.9)";
+  if (tipo === "error") bgColor = "rgba(50, 50, 50, 0.95)";
+  if (tipo === "success") bgColor = "rgba(45, 45, 45, 0.95)";
+  if (tipo === "warning") bgColor = "rgba(70, 70, 70, 0.95)";
+  if (tipo === "info") bgColor = "rgba(35, 35, 35, 0.9)";
+
+  alertBox.style.background = bgColor;
+  alertBox.textContent = mensaje;
+  alertBox.style.display = "block";
+
+  // ✨ Animación elegante
+  setTimeout(() => {
+    alertBox.style.opacity = "1";
+    alertBox.style.transform = "translate(-50%, -50%) scale(1)";
+  }, 50);
+
+  // ⏳ Desaparición automática
+  setTimeout(() => {
+    alertBox.style.opacity = "0";
+    alertBox.style.transform = "translate(-50%, -50%) scale(0.95)";
+    setTimeout(() => {
+      alertBox.style.display = "none";
+    }, 400);
+  }, 3000);
+}
+
+
+
+
+
+// ==========================
+// ✅ FUNCIONES DE COOKIES (Compatibilidad WebViewer)
+// ==========================
+function setSavedTitles(data) {
+    document.cookie = "savedTitles=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
+}
+
+function getSavedTitles() {
+    const match = document.cookie.match(/(^| )savedTitles=([^;]+)/);
+    return match ? JSON.parse(decodeURIComponent(match[2])) : [];
+}
+
+// ==========================
+// 💾 GUARDAR ANUNCIO ACTUAL
+// ==========================
+function saveCurrentTitle() {
+    if (!swiperInstance || anunciosData.length === 0) {
+        showToast("⚠️ No hay anuncios para guardar");
+        return;
+    }
+
+    const currentIndex = swiperInstance.realIndex;
+    const currentAnuncio = anunciosData[currentIndex];
+
+    let saved = getSavedTitles();
+
+    // Evitamos duplicados por ID
+    if (!saved.find(item => item.id === currentAnuncio.id)) {
+        saved.push({ id: currentAnuncio.id, titulo: currentAnuncio.titulo });
+        setSavedTitles(saved);
+        showToast("✅ Anuncio guardado");
+    } else {
+        showToast("ℹ️ Este anuncio ya está guardado");
+    }
+}
+
+    // 🔧 Normaliza texto: minúsculas, sin tildes, sin espacios extras
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .normalize("NFD")                  // separa acentos
+        .replace(/[\u0300-\u036f]/g, "")  // elimina tildes
+        .replace(/\s+/g, " ")              // colapsa espacios múltiples
+        .trim();                           // quita espacios al inicio/fin
+}
+
+// ==========================
+// 📜 RENDERIZAR TITULOS GUARDADOS (ANUNCIOS)
+// ==========================
+function renderSavedTitles(filter = "") {
+    const saved = getSavedTitles();
+    savedList.innerHTML = "";
+
+    const filtered = saved.filter(item =>
+        normalizeText(item.titulo).includes(normalizeText(filter))
+    );
+
+    // 🔹 Contenedor de botones (Guardar actual + Eliminar todo)
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.style.display = "flex";
+    buttonsContainer.style.justifyContent = "space-between";
+    buttonsContainer.style.gap = "10px";
+    buttonsContainer.style.margin = "8px 0 10px";
+
+    // Botón Guardar actual (siempre visible)
+    const saveCurrentBtn = document.createElement("button");
+    saveCurrentBtn.textContent = "💾 Guardar actual";
+    saveCurrentBtn.style.flex = "1";
+    saveCurrentBtn.style.background = "#007bff";
+    saveCurrentBtn.style.color = "#fff";
+    saveCurrentBtn.style.border = "none";
+    saveCurrentBtn.style.borderRadius = "6px";
+    saveCurrentBtn.style.padding = "6px 12px";
+    saveCurrentBtn.style.cursor = "pointer";
+    saveCurrentBtn.style.fontSize = "13px";
+    saveCurrentBtn.style.transition = "background 0.2s ease";
+
+    saveCurrentBtn.addEventListener("mouseenter", () => {
+        saveCurrentBtn.style.background = "#3399ff";
+    });
+    saveCurrentBtn.addEventListener("mouseleave", () => {
+        saveCurrentBtn.style.background = "#007bff";
+    });
+    saveCurrentBtn.addEventListener("click", () => {
+        saveCurrentTitle();
+        renderSavedTitles(filter); // refresca la lista
+    });
+
+    buttonsContainer.appendChild(saveCurrentBtn);
+
+    // Botón Eliminar todo (solo si hay más de uno)
+    if (filtered.length > 1) {
+        const clearAllBtn = document.createElement("button");
+        clearAllBtn.textContent = "Eliminar todo";
+        clearAllBtn.style.flex = "1";
+        clearAllBtn.style.background = "#2c2c2c";
+        clearAllBtn.style.color = "#ccc";
+        clearAllBtn.style.border = "1px solid #444";
+        clearAllBtn.style.borderRadius = "6px";
+        clearAllBtn.style.padding = "6px 12px";
+        clearAllBtn.style.cursor = "pointer";
+        clearAllBtn.style.fontSize = "13px";
+        clearAllBtn.style.transition = "background 0.2s ease";
+
+        clearAllBtn.addEventListener("mouseenter", () => {
+            clearAllBtn.style.background = "#3a3a3a";
+        });
+        clearAllBtn.addEventListener("mouseleave", () => {
+            clearAllBtn.style.background = "#2c2c2c";
+        });
+        clearAllBtn.addEventListener("click", () => {
+            setSavedTitles([]);
+            renderSavedTitles();
+            showToast("✅ Todos los anuncios fueron eliminados");
+        });
+
+        buttonsContainer.appendChild(clearAllBtn);
+    }
+
+    savedList.appendChild(buttonsContainer);
+
+    if (filtered.length === 0) {
+        // ⬇️ Crear mensaje vacío sin borrar el botón
+        const emptyMsg = document.createElement("li");
+        emptyMsg.textContent = "No hay títulos guardados";
+        emptyMsg.style.color = "#777";
+        emptyMsg.style.padding = "10px";
+        savedList.appendChild(emptyMsg);
+
+        savedModalInner.style.transform = "translateY(-60px)";
+    } else {
+        savedModalInner.style.transform = "translateY(0)";
+    }
+
+    // 🔹 Renderizar cada título guardado
+    filtered.forEach(item => {
+        const li = document.createElement("li");
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.alignItems = "center";
+        li.style.padding = "10px";
+        li.style.borderBottom = "1px solid #333";
+        li.style.color = "#fff";
+        li.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = item.titulo;
+        titleSpan.style.cursor = "pointer";
+        titleSpan.style.flex = "1";
+
+        // Click → ir al anuncio
+        titleSpan.addEventListener("click", () => {
+            const anuncioIndex = anunciosData.findIndex(a => a.id === item.id);
+
+            if (anuncioIndex !== -1) {
+                swiperInstance.slideToLoop(anuncioIndex, 0, false);
+                savedModal.style.display = "none";
+
+                setTimeout(() => {
+                    const tituloActual = document.querySelector(".content-overlay h3");
+                    if (tituloActual) {
+                        tituloActual.classList.add("highlight-title-zoom");
+                        tituloActual.scrollIntoView({ behavior: "smooth", block: "center" });
+                        setTimeout(() => {
+                            tituloActual.classList.remove("highlight-title-zoom");
+                        }, 2000);
+                    }
+                }, 400);
+            } else {
+                showToast("⚠️ Este anuncio ya no está disponible");
+            }
+        });
+
+        // Botón eliminar ❌
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "✕";
+        deleteBtn.style.background = "transparent";
+        deleteBtn.style.border = "none";
+        deleteBtn.style.color = "#aaa";
+        deleteBtn.style.fontSize = "14px";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.style.marginLeft = "10px";
+        deleteBtn.style.transition = "color 0.2s ease";
+
+        deleteBtn.addEventListener("mouseenter", () => {
+            deleteBtn.style.color = "#fff";
+        });
+        deleteBtn.addEventListener("mouseleave", () => {
+            deleteBtn.style.color = "#aaa";
+        });
+
+        deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            li.style.opacity = "0";
+            li.style.transform = "translateX(30px)";
+
+            setTimeout(() => {
+                const updated = saved.filter(s => s.id !== item.id);
+                setSavedTitles(updated);
+                renderSavedTitles(filter);
+                showToast("🗑️ Eliminado de guardados");
+            }, 300);
+        });
+
+        li.appendChild(titleSpan);
+        li.appendChild(deleteBtn);
+        savedList.appendChild(li);
+    });
+}
+
+
+
+
+
+// ==========================
+// 📌 EVENTOS DEL BOTÓN ÚNICO (Guardar / Ver Anuncios)
+// ==========================
+saveBtn.addEventListener("click", () => {
+    savedSearchInput.value = "";
+    renderSavedTitles();
+    setTimeout(() => {
+        savedModal.style.display = "flex";
+        savedList.scrollTop = 0;
+    }, 50);
+});
+
+savedSearchInput.addEventListener("input", (e) => {
+    renderSavedTitles(e.target.value);
+});
+
+closeSavedBtn.addEventListener("click", () => {
+    savedModal.style.display = "none";
+});
+
+savedModal.addEventListener("click", (e) => {
+    if (e.target === savedModal) {
+        savedModal.style.display = "none";
+    }
+});
+
+
+// ==========================
+// 🍞 TOASTS PERSONALIZADOS
+// ==========================
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.textContent = msg;
+    toast.style.position = "fixed";
+    toast.style.bottom = "80px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.background = "rgba(0,0,0,0.85)";
+    toast.style.color = "white";
+    toast.style.padding = "10px 16px";
+    toast.style.borderRadius = "6px";
+    toast.style.fontSize = "14px";
+    toast.style.zIndex = "100000";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
+
+
+
+const savedSearchInputEl = document.getElementById("savedSearchInput");
+const savedModalInner = document.getElementById("savedModalInner");
+
+// ✅ Mantener posición fija siempre
+savedSearchInputEl.addEventListener("focus", () => {
+    if (window.innerWidth <= 768) {
+        // Cuando se toca, NO movemos nada
+        savedModalInner.style.transform = "translateY(0)";
+    }
+});
+
+savedSearchInputEl.addEventListener("input", () => {
+    if (window.innerWidth <= 768) {
+        // Cuando escribes, tampoco movemos nada
+        savedModalInner.style.transform = "translateY(0)";
+    }
+});
+
+savedSearchInputEl.addEventListener("blur", () => {
+    if (window.innerWidth <= 768) {
+        // Cuando cierras teclado, vuelve igual
+        savedModalInner.style.transform = "translateY(0)";
+    }
+});
+
+
+
+
+
+    
+    
+
+    let swiperInstance = null;
+    let contadorTotalAnterior = -1;
+    let contadorAcumulado = 0;
+    let nuevosTitulos = []; 
+    const loader = document.getElementById('loader');
+    const lblContador = document.getElementById("lblContador");
+
+    const contentOverlay = document.getElementById('contentOverlay');
+    const commentsOverlay = document.getElementById('commentsOverlay');
+    const commentsCounter = document.getElementById('commentsCounter');
+    const commentCountValue = document.getElementById('commentCountValue');
+    const commentsList = document.getElementById('commentsList');
+    const currentTitle = document.getElementById('currentTitle');
+    const currentDescription = document.getElementById('currentDescription');
+    const commentInputContainer = document.querySelector('.comment-input-container');
+    const commentInput = document.getElementById('commentInput');
+    const sendCommentBtn = document.querySelector('.send-comment-btn');
+
+    let contadorComentariosAnterior = -1;
+    let comentariosPorAnuncio = {};
+    let lastTapTime = 0;
+    
+    let currentAuthorEmail = "deimer.herrera91@gmail.com";
+    let currentAuthorName = "AnónimoDH";
+
+  
+
+    
+    // Variables para el swipe
+    let startX = 0;
+    let activeComment = null;
+    let isSwiping = false;
+
+
+const refreshBtn = document.getElementById("refreshBtn");
+
+if (refreshBtn) {
+  refreshBtn.addEventListener("click", () => {
+    location.reload(); // 🔄 Recarga la página completamente
+  });
+}
+
+    
+
+function reconstruirIndiceBusqueda() {
+  indiceBusqueda = anunciosData.map((a, i) => {
+    const titulo = a?.titulo || "";
+    const descripcion = a?.descripcion || "";
+    // Clave normalizada: título + descripción
+    const key = normalizar(`${titulo} ${descripcion}`);
+    return { i, key, titulo: titulo || "(Sin título)" };
+  });
+}
+
+// 🔹 Normalizar texto (ignora tildes, mayúsculas y espacios de más)
+function normalizar(txt) {
+  return txt
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .replace(/\s+/g, " ") // unifica espacios
+    .trim();
+}
+
+// ABRIR BUSCADOR
+function abrirBusqueda() {
+  document.getElementById("searchOverlay").style.display = "flex";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchResults").innerHTML = "";
+  document.getElementById("searchInput").focus();
+
+  // RESALTAR BOTÓN DE BÚSQUEDA AL ABRIR
+  document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+  const btnBuscar = document.getElementById("btnBuscar");
+  if (btnBuscar) btnBuscar.classList.add('selected');
+}
+
+// CERRAR BUSCADOR + RESALTAR IMÁGENES
+function cerrarBusqueda() {
+  document.getElementById("searchOverlay").style.display = "none";
+
+  // RESALTAR BOTÓN DE IMÁGENES AL CERRAR
+  document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) imagesBtn.classList.add('selected');
+}
+
+document.getElementById("searchInput").addEventListener("input", function () {
+  const query = normalizar(this.value);
+  const resultadosDiv = document.getElementById("searchResults");
+  resultadosDiv.innerHTML = "";
+  if (query.length < 2) return;
+  if (!Array.isArray(indiceBusqueda) || indiceBusqueda.length === 0) {
+    resultadosDiv.innerHTML = "<p>Todavía no se han cargado anuncios</p>";
+    return;
+  }
+  const coincidencias = indiceBusqueda.filter(item => item.key.includes(query));
+  coincidencias.forEach(item => {
+    const li = document.createElement("div");
+    li.textContent = item.titulo;
+    li.classList.add("resultado-item");
+    li.onclick = () => {
+      cerrarBusqueda(); // ← Usa la función corregida
+      if (swiperInstance) {
+        swiperInstance.slideToLoop(item.i, 500);
+        setTimeout(() => {
+          currentTitle.classList.add("highlight");
+          setTimeout(() => currentTitle.classList.remove("highlight"), 2000);
+        }, 400);
+      }
+    };
+    resultadosDiv.appendChild(li);
+  });
+  if (!resultadosDiv.hasChildNodes()) {
+    resultadosDiv.innerHTML = "<p>No se encontraron coincidencias</p>";
+  }
+});
+
+// VINCULAR BOTÓN DE BÚSQUEDA
+const btnBuscar = document.getElementById("btnBuscar");
+if (btnBuscar) {
+  btnBuscar.addEventListener("click", abrirBusqueda);
+}
+
+// ESCUCHAR DESDE APP INVENTOR
+setInterval(() => {
+  if (window.AppInventor && window.AppInventor.getWebViewString) {
+    let command = window.AppInventor.getWebViewString();
+    if (command === "buscar") {
+      abrirBusqueda();
+      window.AppInventor.setWebViewString("");
+    }
+  }
+}, 1000);
+
+    
+
+    // 🔹 Toggle título y descripción (expandir/colapsar)
+function updateInfo(title, description) {
+  // Guardar valores completos
+  currentTitle.setAttribute("data-full", title);
+  currentDescription.setAttribute("data-full", description);
+
+  // Guardar versiones cortas con span estilizado
+  const shortTitle = title.length > 50 
+    ? title.substring(0, 50) + ` <span class="more-link">...más</span>` 
+    : title;
+
+  const shortDescription = description.length > 80 
+    ? description.substring(0, 80) + ` <span class="more-link">...más</span>` 
+    : description;
+
+  currentTitle.setAttribute("data-short", shortTitle);
+  currentDescription.setAttribute("data-short", shortDescription);
+
+  // Mostrar versión corta por defecto
+  currentTitle.innerHTML = shortTitle;
+  currentDescription.innerHTML = shortDescription;
+
+  // Quitar estado expandido
+  currentTitle.classList.remove("expanded");
+  currentDescription.classList.remove("expanded");
+}
+
+// Eventos de click
+currentTitle.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.innerHTML = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
+    this.classList.add("expanded");
+  }
+});
+
+currentDescription.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.innerHTML = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
+    this.classList.add("expanded");
+  }
+});
+
+
+
+    function normalizeText(text) {
+        if (!text) return "";
+        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    }
+
+
+    
+// Toggle para ocultar/mostrar overlays al tocar la imagen
+document.querySelector('.swiper').addEventListener('click', () => {
+    const currentTime = new Date().getTime();
+    if (currentTime - lastTapTime > 300) {
+        // ✅ Estos se alternan normal
+        commentsOverlay.classList.toggle('hidden-overlay');
+        commentsCounter.classList.toggle('hidden-overlay');
+        commentInputContainer.classList.toggle('hidden-overlay');
+
+        // ✅ contentOverlay invertido → lo forzamos al mismo sentido
+        if (contentOverlay.classList.contains('hidden-overlay')) {
+            contentOverlay.classList.remove('hidden-overlay'); // se hace visible
+        } else {
+            contentOverlay.classList.add('hidden-overlay'); // se oculta
+        }
+
+        // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
+        const lblContador = document.getElementById('lblContador');
+        if (lblContador) {
+            lblContador.classList.toggle('hidden-overlay');
+        }
+
+        // 🆕 Alternar el botón de actualizar
+        const refreshBtn = document.getElementById("refreshBtn");
+        if (refreshBtn) {
+            refreshBtn.classList.toggle("hidden-overlay");
+        }
+
+        // 🆕 Ocultar/mostrar guardar y ver guardados
+        const saveBtn = document.getElementById("saveBtn");
+        const viewSavedBtn = document.getElementById("viewSavedBtn");
+        if (saveBtn) saveBtn.classList.toggle("hidden-overlay");
+        if (viewSavedBtn) viewSavedBtn.classList.toggle("hidden-overlay");
+
+        // 🆕 Alternar el encabezado DECOM y botones
+        const socialHeader = document.getElementById("socialHeader");
+        if (socialHeader) {
+            socialHeader.classList.toggle("hidden-overlay");
+        }
+
+        // 🆕 Botón eliminar anuncio — se agregan más selectores por compatibilidad
+        const deleteBtn = document.getElementById("deleteBtn") ||
+                          document.getElementById("deleteAnnouncementBtn") ||
+                          document.querySelector(".delete-announcement-btn") ||
+                          document.querySelector(".delete-btn");
+        if (deleteBtn) {
+            deleteBtn.classList.toggle("hidden-overlay");
+        }
+    }
+    lastTapTime = currentTime;
+});
+
+
+
+
+    // Toggle para expandir/colapsar el contenedor de comentarios con un toque
+    commentsOverlay.addEventListener('click', (e) => {
+        if (!isSwiping) {
+            commentsOverlay.classList.toggle('expanded');
+        }
+        isSwiping = false; 
+    });
+
+    // Lógica para el swipe
+    commentsList.addEventListener('touchstart', (e) => {
+      const commentElement = e.target.closest('li');
+      if (!commentElement) return;
+
+      const commentData = commentElement.dataset;
+      const autorCorreo = commentData.correo;
+
+      if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
+          startX = e.touches[0].clientX;
+          activeComment = commentElement;
+          activeComment.querySelector('.comment-content').style.transition = 'none';
+          isSwiping = false; 
+      }
+    });
+
+    commentsList.addEventListener('touchmove', (e) => {
+      if (!activeComment) return;
+
+      const currentX = e.touches[0].clientX;
+      const diffX = currentX - startX;
+      
+      if (Math.abs(diffX) > 10) { 
+        isSwiping = true;
+      }
+      
+      if (diffX > 0) { 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(${diffX}px)`;
+        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(0)`;
+        }
+      } else { 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`; 
+        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(-100%)`;
+        }
+      }
+    });
+
+    commentsList.addEventListener('touchend', (e) => {
+      if (!activeComment) return;
+      
+      const swipeThreshold = 50;
+      const diffX = e.changedTouches[0].clientX - startX;
+      
+      const commentContent = activeComment.querySelector('.comment-content');
+      let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+
+      commentContent.style.transition = 'transform 0.3s ease';
+
+      if (diffX > swipeThreshold) {
+        commentContent.style.transform = `translateX(100px)`; 
+        
+        if (!deleteBtnContainer) {
+            deleteBtnContainer = document.createElement('div');
+            deleteBtnContainer.className = 'delete-btn-container';
+            
+            let deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Borrar';
+            deleteBtnContainer.appendChild(deleteBtn);
+            
+            activeComment.insertBefore(deleteBtnContainer, commentContent);
+            deleteBtnContainer.style.transform = `translateX(0)`;
+            
+            deleteBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation(); 
+                const commentData = activeComment.dataset;
+                const comentario = commentData.texto;
+                const autorCorreo = commentData.correo;
+                
+                showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
+                  const activeIndex = swiperInstance.realIndex;
+                  const currentAnuncio = anunciosData[activeIndex];
+                  if(currentAnuncio) {
+                    eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
+                  }
+                });
+            });
+        } else {
+            deleteBtnContainer.style.transform = `translateX(0)`;
+        }
+        
+      } else {
+        commentContent.style.transform = `translateX(0)`;
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(-100%)`;
+        }
+      }
+
+      activeComment = null;
+      startX = 0;
+    });
+
+    async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'eliminarComentario');
+            formData.append('idAnuncio', anuncioId);
+            formData.append('textoComentario', comentarioTexto);
+            formData.append('correoAutor', autorCorreo);
+            
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.status === "✅ success") {
+                console.log("Comentario eliminado con éxito.");
+                await verificarComentarios(); 
+            } else {
+                console.error("Error al eliminar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo eliminar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al eliminar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar eliminar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    async function enviarComentario() {
+        const comentarioTexto = commentInput.value.trim();
+        const activeIndex = swiperInstance.realIndex;
+        const currentAnuncio = anunciosData[activeIndex];
+
+        if (!comentarioTexto || !currentAnuncio) {
+            showInfoDialog("Error", "No puedes enviar un comentario vacío.");
+            return;
+        }
+
+        loader.style.display = 'block';
+        try {
+            const formData = new FormData();
+            formData.append('accion', 'agregarComentario');
+            formData.append('anuncioId', currentAnuncio.id);
+            formData.append('comentario', comentarioTexto);
+            formData.append('autor', currentAuthorName);
+            formData.append('correo', currentAuthorEmail);
+
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.status === "🗣️ success") {
+                console.log("Comentario agregado con éxito.");
+                commentInput.value = ''; // Limpiar el campo
+                await verificarComentarios(); 
+            } else {
+                console.error("Error al agregar el comentario:", result.message);
+                showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error de red al agregar el comentario:", error);
+            showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    sendCommentBtn.addEventListener('click', enviarComentario);
+    commentInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            enviarComentario();
+        }
+    });
+
+    // Lógica para subir la barra de comentarios
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-58%)`;
+    });
+
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
+    });
+
+    function normalizarComentarios(lista) {
+      if (!Array.isArray(lista)) return [];
+      return [...lista]
+        .reverse()
+        .map(c => {
+          try { if (typeof c === "string") c = JSON.parse(c); } catch(e) {}
+          const autor = c?.autor ?? "";
+          const fecha = c?.fecha ?? "";
+          const comentario = c?.comentario ?? "";
+          const correo = c?.correo ?? "";
+          if (autor || fecha || comentario) {
+            return { texto: `${autor} (${fecha}) - ${comentario}`, autorCorreo: correo, textoPuro: comentario };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    }
+
+    const INTERVALO_VERIFICACION = 5000;
+
+   // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón
+lblContador.addEventListener("click", () => {
+    if (nuevosTitulos.length === 0) {
+        showCustomAlert("Nuevos anuncios", []);
+    } else {
+        showCustomAlert("Nuevos anuncios", nuevosTitulos);
+    }
+});
+
+// 🔹 Guardamos los IDs ya vistos
+let anunciosVistosIds = new Set();
+
+// Modificamos actualizarContador para guardar títulos nuevos
+// Modificamos actualizarContador para actualizar ambos botones
+async function actualizarContador() {
+    try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
+        const data = await response.json();
+        const totalActual = data.contador || 0;
+        const notificationCount = document.getElementById('notificationCount');
+        const imagesNotificationCount = document.getElementById('imagesNotificationCount');
+
+        if (contadorTotalAnterior === -1) {
+            contadorTotalAnterior = totalActual;
+        }
+
+        // === DETECTAR NUEVOS ANUNCIOS ===
+        if (totalActual !== contadorTotalAnterior) {
+            const diferencia = totalActual - contadorTotalAnterior;
+            if (diferencia > 0) {
+                const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+                const dataAnuncios = await responseAnuncios.json();
+                const ultimosIds = dataAnuncios.id.slice(-diferencia);
+                const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
+                const nuevos = [];
+                ultimosIds.forEach((id, idx) => {
+                    if (!anunciosVistosIds.has(id)) {
+                        nuevos.push(ultimosTitulos[idx]);
+                        anunciosVistosIds.add(id);
+                    }
+                });
+                if (nuevos.length > 0) {
+                    nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
+                    nuevosTitulos = [...new Set(nuevosTitulos)];
+                    contadorAcumulado = nuevosTitulos.length;
+                    cargarImagenes(true);
+                }
+            } else if (diferencia < 0) {
+                contadorAcumulado = 0;
+                nuevosTitulos = [];
+                anunciosVistosIds.clear();
+                cargarImagenes(true);
+            }
+            contadorTotalAnterior = totalActual;
+        }
+
+        // === ACTUALIZAR BADGE EN AMBOS BOTONES ===
+        const mostrarBadge = contadorAcumulado > 0;
+
+        // Campana
+        if (notificationCount) {
+            notificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            notificationCount.style.display = mostrarBadge ? "flex" : "none";
+            const icon = document.querySelector("#lblContador i");
+            if (icon) icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
+        }
+
+        // Botón Imágenes
+        if (imagesNotificationCount) {
+            imagesNotificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
+            imagesNotificationCount.style.display = mostrarBadge ? "flex" : "none";
+        }
+      // === AL FINAL DE LA FUNCIÓN ===
+localStorage.setItem("nuevosAnunciosCount", contadorAcumulado);
+
+    } catch (e) {
+        console.error("Error al obtener contador:", e);
+    }
+}
+
+setInterval(actualizarContador, INTERVALO_VERIFICACION);
+
+
+    async function verificarComentarios() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
+        const data = await response.json();
+        const totalComentariosActual = data.contadorComentarios || 0;
+
+        if (data.comentarios) {
+          comentariosPorAnuncio = data.comentarios;
+        }
+
+        if (contadorComentariosAnterior === -1) {
+          contadorComentariosAnterior = totalComentariosActual;
+        } else if (totalComentariosActual !== contadorComentariosAnterior) {
+          console.log("💬 Cambio detectado en comentarios, recargando...");
+          contadorComentariosAnterior = totalComentariosActual;
+          recargarComentariosDelAnuncioActual();
+        }
+      } catch (e) {
+        console.error("Error al verificar comentarios:", e);
+      }
+    }
+
+    function recargarComentariosDelAnuncioActual() {
+      if (!swiperInstance || anunciosData.length === 0) return;
+      const activeIndex = swiperInstance.realIndex;
+      const anuncioActual = anunciosData[activeIndex];
+      
+      if (anuncioActual) {
+        const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
+        anuncioActual.comentarios = normalizarComentarios(comentarios);
+        updateContentOverlay(activeIndex);
+        
+        console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
+        
+        if (window.AppInventor) {
+          const payload = {
+            ...anuncioActual,
+            titulos: anunciosData.map(a => a.titulo),
+            contador: contadorAcumulado
+          };
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+      }
+    }
+
+async function cargarImagenes() {
+    loader.style.display = 'block';
+    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        let newAnunciosData = [];
+
+        if(data.url && data.url.length > 0) {
+            data.url.forEach((url, index) => {
+                const idAnuncio = data.id[index];
+                const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+                const comentariosFormateados = normalizarComentarios(comentarios);
+                newAnunciosData.push({
+                    titulo: data.titulo[index] || "",
+                    descripcion: data.descripcion[index] || "",
+                    comentarios: comentariosFormateados,
+                    url: url,
+                    deleteurl: data.deleteurl[index] || "",
+                    autor: data.autor[index] || "",
+                    correo: data.correo[index] || "",
+                    fecha: data.fecha[index] || "",
+                    id: idAnuncio || ""
+                });
+            });
+        }
+
+        newAnunciosData.reverse();
+
+        const oldAnunciosIds = anunciosData.map(a => a.id);
+        const newAnunciosIds = newAnunciosData.map(a => a.id);
+        
+        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
+            loader.style.display = 'none';
+            return;
+        }
+
+        const currentSlideId = currentId;
+        anunciosData = newAnunciosData;
+      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+reconstruirIndiceBusqueda();
+        
+        if (swiperInstance) {
+            swiperInstance.removeAllSlides();
+            
+            anunciosData.forEach(anuncio => {
+                const slide = document.createElement('div');
+                slide.classList.add('swiper-slide');
+                slide.dataset.id = anuncio.id;
+
+                const zoomContainer = document.createElement('div');
+                zoomContainer.classList.add('swiper-zoom-container');
+
+                const img = document.createElement('img');
+                img.src = anuncio.url;
+                img.alt = anuncio.titulo;
+
+                zoomContainer.appendChild(img);
+                slide.appendChild(zoomContainer);
+
+                swiperInstance.appendSlide(slide);
+            });
+            
+            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
+            let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
+            if (newIndex !== -1) {
+                swiperInstance.slideToLoop(newIndex, 0, false);
+            } else {
+                if (currentIndex < anunciosData.length) {
+                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
+                } else {
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
+                }
+            }
+
+            swiperInstance.update();
+        } else {
+            const swiperWrapper = document.querySelector('.swiper-wrapper');
+            swiperWrapper.innerHTML = '';
+            
+            anunciosData.forEach(anuncio => {
+                const slide = document.createElement('div');
+                slide.classList.add('swiper-slide');
+                slide.dataset.id = anuncio.id;
+
+                const zoomContainer = document.createElement('div');
+                zoomContainer.classList.add('swiper-zoom-container');
+
+                const img = document.createElement('img');
+                img.src = anuncio.url;
+                img.alt = anuncio.titulo;
+
+                zoomContainer.appendChild(img);
+                slide.appendChild(zoomContainer);
+
+                swiperWrapper.appendChild(slide);
+            });
+            
+            initSwiper(0);
+        }
+
+        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+        updateContentOverlay(activeIndex);
+
+    } catch(error) {
+        console.error("Error al cargar las imágenes:", error);
+    } finally {
+        loader.style.display = 'none';
+    }
+}
+
+
+
+async function eliminarAnuncio(anuncioId, deleteUrl) {
+    loader.style.display = 'block';
+    try {
+        const formData = new FormData();
+        formData.append('accion', 'eliminarAnuncio');
+        formData.append('id', anuncioId);
+        formData.append('correo', currentAuthorEmail);
+        formData.append('deleteurl', deleteUrl);
+
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+      if (result.status && result.status.toLowerCase().includes("success")) {
+    showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
+    await cargarImagenes();
+} else {
+    showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
+}
+
+    } catch (error) {
+        console.error("Error eliminando anuncio:", error);
+        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
+    } finally {
+        loader.style.display = 'none';
+    }
+}
+
+
+    
+   function updateContentOverlay(index) {
+    if (anunciosData.length > index) {
+        const anuncio = anunciosData[index];
+
+        // 🔹 Usar updateInfo para manejar texto corto/largo
+        updateInfo(anuncio.titulo, anuncio.descripcion);
+
+        // ✅ Mostrar/ocultar el botón fijo
+        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+            deleteAnnouncementBtn.classList.add("visible");
+            deleteAnnouncementBtn.onclick = () => {
+                showConfirmationDialog(
+                    "¿Estás seguro de que quieres eliminar este anuncio?",
+                    () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+                );
+            };
+        } else {
+            deleteAnnouncementBtn.classList.remove("visible");
+        }
+
+        commentsList.innerHTML = '';
+        commentsOverlay.classList.remove('expanded'); 
+
+        if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+            anuncio.comentarios.forEach(comentario => {
+                const li = document.createElement('li');
+                li.classList.add('deletable');
+
+                const commentContent = document.createElement('div');
+                commentContent.classList.add('comment-content');
+                commentContent.textContent = comentario.texto;
+                
+                const deleteBtnContainer = document.createElement('div');
+                deleteBtnContainer.className = 'delete-btn-container';
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Borrar';
+                deleteBtnContainer.appendChild(deleteBtn);
+                
+                li.appendChild(deleteBtnContainer);
+                li.appendChild(commentContent);
+
+                li.dataset.id = comentario.id;
+                li.dataset.correo = comentario.autorCorreo;
+                li.dataset.texto = comentario.textoPuro;
+                
+                deleteBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation(); 
+                    const activeIndex = swiperInstance.realIndex;
+                    const currentAnuncio = anunciosData[activeIndex];
+                    if(currentAnuncio) {
+                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+                    }
+                });
+                
+                commentsList.appendChild(li);
+            });
+            commentCountValue.textContent = anuncio.comentarios.length;
+        } else {
+            const li = document.createElement('li');
+            li.textContent = "No hay comentarios aún.";
+            commentsList.appendChild(li);
+            commentCountValue.textContent = 0;
+        }
+    }
+}
+
+
+
+   function initSwiper(initialIndex = 0) {
+    if(!swiperInstance) {
+        swiperInstance = new Swiper('.swiper', {
+            loop: true,
+            direction: 'vertical',
+            slidesPerView: 1,
+            spaceBetween: 10,
+            zoom: { maxRatio: 3, minRatio: 1 }
+        });
+
+        swiperInstance.on('slideChange', () => {
+            const activeIndex = swiperInstance.realIndex;
+            updateContentOverlay(activeIndex);
+
+            if(window.AppInventor && anunciosData.length > 0) {
+                const anuncioActual = anunciosData[activeIndex];
+                
+                if (!anuncioActual) return;
+
+                const id = anuncioActual.id;
+                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+                if (hayServidor) {
+                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+                }
+                const listaTitulos = anunciosData.map(a => a.titulo);
+                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+                window.AppInventor.setWebViewString(JSON.stringify(payload));
+            }
+        });
+    }
+
+    if(anunciosData.length > 0) {
+        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+        updateContentOverlay(initialSlideIndex);
+        
+        if(window.AppInventor){
+            const anuncioInicial = anunciosData[initialSlideIndex];
+            const id = anuncioInicial.id;
+            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+            if (hayServidor) {
+                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+            }
+            const listaTitulos = anunciosData.map(a => a.titulo);
+            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+            window.AppInventor.setWebViewString(JSON.stringify(payload));
+        }
+    }
+}
+
+function aplicarTruncado(element, maxLength = 80) {
+    const fullText = element.textContent.trim();
+
+    if (fullText.length > maxLength) {
+        const shortText = fullText.substring(0, maxLength);
+
+        // Mostrar texto truncado con "... más"
+        element.innerHTML = `${shortText} <span class="more-link">... más</span>`;
+
+        element.dataset.fullText = fullText;
+        element.dataset.shortText = shortText;
+        element.dataset.expanded = "false";
+
+        element.onclick = (e) => {
+            // Evita que solo el span sea clickeable, sino todo el elemento
+            e.stopPropagation();
+
+            const expanded = element.dataset.expanded === "true";
+            if (expanded) {
+                element.innerHTML = `${element.dataset.shortText} <span class="more-link">... más</span>`;
+                element.dataset.expanded = "false";
+            } else {
+                element.innerHTML = `${element.dataset.fullText} <span class="more-link">menos</span>`;
+                element.dataset.expanded = "true";
+            }
+        };
+    }
+}
+
+
+    
+function showCustomAlert(title, titlesList) {
+    const overlay = document.getElementById('customAlertOverlay');
+    const alertDiv = overlay.querySelector('.custom-alert');
+    const alertTitle = document.getElementById('alertTitle');
+    const alertMessage = document.getElementById('alertMessage');
+    const notificationCount = document.getElementById('notificationCount'); // span del contador
+
+    alertDiv.className = 'custom-alert';
+    alertMessage.innerHTML = '';
+
+    alertTitle.textContent = title;
+
+    if (titlesList.length > 0) {
+        const list = document.createElement('ul');
+        list.className = 'titles-list';
+        titlesList.forEach((titulo, index) => {
+            const li = document.createElement('li');
+            li.textContent = titulo;
+            li.dataset.index = index;
+            li.addEventListener('click', () => {
+                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
+                if (selectedIndex !== -1 && swiperInstance) {
+                    // Desplazar al anuncio
+                    swiperInstance.slideToLoop(selectedIndex, 500);
+
+                    // === EFECTO DE RESALTADO + ZOOM EN EL TÍTULO ===
+                    setTimeout(() => {
+                        const titleElement = document.getElementById('currentTitle');
+                        if (titleElement) {
+                            // Forzar reflow para reiniciar animación
+                            titleElement.classList.remove('highlight-title-zoom');
+                            void titleElement.offsetWidth;
+                            titleElement.classList.add('highlight-title-zoom');
+
+                            // Quitar el efecto después de 1.5 segundos
+                            setTimeout(() => {
+                                titleElement.classList.remove('highlight-title-zoom');
+                            }, 1500);
+                        }
+                    }, 600); // Esperar a que termine el deslizamiento
+
+                    // === ACTUALIZAR CONTADOR ===
+                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
+                    contadorAcumulado = nuevosTitulos.length;
+                    if (contadorAcumulado > 0) {
+                        notificationCount.textContent = contadorAcumulado;
+                        notificationCount.style.display = "flex";
+                    } else {
+                        notificationCount.textContent = "";
+                        notificationCount.style.display = "none";
+                    }
+
+                    document.getElementById('customAlertOverlay').style.display = 'none';
+                }
+            });
+            list.appendChild(li);
+        });
+        alertMessage.appendChild(list);
+    } else {
+        const p = document.createElement('p');
+        p.textContent = "No hay anuncios nuevos.";
+        alertMessage.appendChild(p);
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = "Cerrar";
+    closeBtn.id = "closeAlertButton";
+    closeBtn.onclick = () => overlay.style.display = 'none';
+    alertMessage.appendChild(closeBtn);
+    overlay.style.display = 'flex';
+}
+
+    function showConfirmationDialog(message, onConfirm) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert confirm-delete';
+        alertTitle.textContent = "Confirmar eliminación";
+        alertMessage.innerHTML = `<p>${message}</p>`;
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'btn-group';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Sí, borrar';
+        confirmBtn.style.backgroundColor = '#e74c3c';
+        confirmBtn.onclick = () => {
+            onConfirm();
+            overlay.style.display = 'none';
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancelar';
+        cancelBtn.onclick = () => {
+            overlay.style.display = 'none';
+        };
+
+        buttonGroup.appendChild(confirmBtn);
+        buttonGroup.appendChild(cancelBtn);
+        alertMessage.appendChild(buttonGroup);
+
+        overlay.style.display = 'flex';
+    }
+    
+    function showInfoDialog(title, message) {
+        const overlay = document.getElementById('customAlertOverlay');
+        const alertDiv = overlay.querySelector('.custom-alert');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        alertDiv.className = 'custom-alert';
+        alertTitle.textContent = title;
+        alertMessage.innerHTML = `<p>${message}</p>`;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Aceptar';
+        closeBtn.onclick = () => overlay.style.display = 'none';
+        alertMessage.appendChild(closeBtn);
+        
+        overlay.style.display = 'flex';
+    }
+
+    setInterval(actualizarContador, 5000);
+    setInterval(verificarComentarios, 5000);
+
+    verificarComentarios().then(() => {
+        cargarImagenes();
+    });
+
+    if (lblContador) {
+        lblContador.addEventListener('click', () => {
+            showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
+        });
+    }
+
+
+
+    // === BOTÓN DE IMÁGENES COMO CAMPANA ===
+const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
+if (imagesNotificationBtn) {
+    imagesNotificationBtn.addEventListener("click", () => {
+        showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+    });
+}
+
+
+// === BOTÓN IMÁGENES: NUEVOS ANUNCIOS O CARGAR VISTA ===
+const imagesBtn = document.getElementById("imagesBtn");
+if (imagesBtn) {
+    imagesBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        if (contadorAcumulado > 0) {
+            showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+        } else {
+            cargarVistaInterna("fotos/fotos.html", imagesBtn);
+            // Marcar como vista activa
+            document.body.dataset.view = "fotos";
+        }
+    });
+}
+
+ document.addEventListener("DOMContentLoaded", () => {
+    // Intro de video 100% compatible con iOS / Android / PC
+    setTimeout(() => {
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "flex";
+      const videoIntro = document.createElement("video");
+      Object.assign(videoIntro, {
+        src: "Ini.mp4",
+        autoplay: true,
+        muted: true,
+        playsInline: true,
+        preload: "auto",
+      });
+      Object.assign(videoIntro.style, {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        objectFit: "cover",
+        zIndex: "999999",
+        backgroundColor: "black",
+        opacity: "0",
+        transition: "opacity 1s ease",
+      });
+      document.body.appendChild(videoIntro);
+      videoIntro.addEventListener("canplaythrough", () => {
+        if (loader) loader.style.display = "none";
+        videoIntro.style.opacity = "1";
+        videoIntro.play().catch(() => {});
+      });
+      videoIntro.addEventListener("ended", () => {
+        videoIntro.style.opacity = "0";
+        setTimeout(() => videoIntro.remove(), 1000);
+      });
+      setTimeout(() => {
+        if (videoIntro.readyState < 3 || videoIntro.paused) {
+          console.warn("iOS bloqueó autoplay, omitiendo video...");
+          videoIntro.remove();
+          if (loader) loader.style.display = "none";
+        }
+      }, 6000);
+    }, 300);
+  const imagesBtn = document.getElementById("imagesBtn");
+    if (imagesBtn) {
+      imagesBtn.classList.add("selected");
+    }
+   
+    // ======================================================================================
+    // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
+    // ======================================================================================
+    const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+    const modal = document.getElementById("loginModal");
+
+    if (!usuarioGuardado) {
+      const overlay = document.createElement("div");
+      Object.assign(overlay.style, {
+        position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+        background: "linear-gradient(180deg, #000, #222)", color: "white",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        zIndex: "99998", fontFamily: "Poppins, sans-serif", textAlign: "center",
+        opacity: "0", transition: "opacity 0.4s ease"
+      });
+      overlay.innerHTML = `
+        <h2 style="margin-bottom:12px; font-size:22px;">Acceso restringido</h2>
+        <p style="color:#ccc; max-width:80%; line-height:1.5;">
+          Debes iniciar sesión para acceder al contenido.
+        </p>
+      `;
+      document.body.appendChild(overlay);
+      modal.style.display = "flex";
+      modal.style.zIndex = "99999";
+      setTimeout(() => (overlay.style.opacity = "1"), 50);
+    } else {
+      setTimeout(() => {
+        if (document.getElementById("userBtn")) {
+          mostrarUsuario(usuarioGuardado);
+        }
+      }, 100);
+    }
+
+    // ======================================================================================
+    // CREAR PREVIEW SI NO EXISTE
+    // ======================================================================================
+    let previewContainer = document.getElementById("previewContainer");
+    let fotoPreview = document.getElementById("fotoPreview");
+
+    if (!previewContainer) {
+      previewContainer = document.createElement("div");
+      previewContainer.id = "previewContainer";
+      previewContainer.style.display = "none";
+      previewContainer.style.marginTop = "10px";
+      previewContainer.style.textAlign = "center";
+
+      fotoPreview = document.createElement("img");
+      fotoPreview.id = "fotoPreview";
+      fotoPreview.style.width = "80px";
+      fotoPreview.style.height = "80px";
+      fotoPreview.style.borderRadius = "50%";
+      fotoPreview.style.objectFit = "cover";
+      fotoPreview.style.border = "2px solid #0077cc";
+
+      previewContainer.appendChild(fotoPreview);
+      const regFoto = document.getElementById("regFoto");
+      if (regFoto && regFoto.parentNode) {
+        regFoto.parentNode.insertBefore(previewContainer, regFoto.nextSibling);
+      }
+    }
+
+// ======================================================================================
+// PREVISUALIZACIÓN DE FOTO (OPTIMIZADA: buena nitidez, máximo 900 KB)
+// ======================================================================================
+const regFoto = document.getElementById("regFoto");
+
+regFoto?.addEventListener("change", async () => {
+  const file = regFoto.files[0];
+  if (!file) return;
+
+  // Mostrar contenedor y spinner
+  previewContainer.style.display = "block";
+  previewContainer.innerHTML = "";
+  fotoPreview.src = "";
+  fotoPreview.alt = "Procesando...";
+
+  const spinner = document.createElement("div");
+  spinner.innerHTML = `
+    <div class="spinner" style="
+      width:40px;height:40px;border:4px solid #ccc;
+      border-top-color:#3498db;border-radius:50%;
+      animation:spin 1s linear infinite;margin:auto;
+    "></div>`;
+  previewContainer.appendChild(spinner);
+
+  // --- Compresión equilibrada (~900 KB, buena calidad) ---
+  const compressTo900KB = (file, targetKB = 900) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          // 🔹 Solo reducimos resolución si es muy grande (>1600px)
+          const maxDimension = 1600;
+          if (width > maxDimension || height > maxDimension) {
+            const scale = maxDimension / Math.max(width, height);
+            width *= scale;
+            height *= scale;
+          }
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = width;
+          canvas.height = height;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let quality = 0.9; // empieza alta
+          let base64 = canvas.toDataURL("image/jpeg", quality);
+
+          // 🔹 Ajustar solo calidad, sin destruir resolución
+          while (base64.length / 1024 > targetKB && quality > 0.55) {
+            quality -= 0.05;
+            base64 = canvas.toDataURL("image/jpeg", quality);
+          }
+
+          resolve(base64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  try {
+    const base64 = await compressTo900KB(file);
+
+    // Guardar globalmente
+    window.fotoComprimida = base64;
+
+    // Mostrar resultado final
+    previewContainer.innerHTML = "";
+    fotoPreview.src = base64;
+    fotoPreview.alt = "Foto seleccionada";
+    previewContainer.appendChild(fotoPreview);
+  } catch (err) {
+    mostrarAviso("Error al procesar imagen", "error");
+    regFoto.value = "";
+    previewContainer.style.display = "none";
+  }
+});
+
+// --- Spinner animación global ---
+const spinStyle = document.createElement("style");
+spinStyle.textContent = `
+@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(spinStyle);
+
+
+
+    // ======================================================================================
+    // GESTIÓN DE PESTAÑAS Y FORMULARIOS
+    // ======================================================================================
+    const tabLogin = document.getElementById("tabLogin");
+    const tabRegistro = document.getElementById("tabRegistro");
+    const formLogin = document.getElementById("formLogin");
+    const formRegistro = document.getElementById("formRegistro");
+    const irARegistro = document.getElementById("irARegistro");
+    const irALogin = document.getElementById("irALogin");
+
+    tabLogin?.addEventListener("click", () => mostrarForm("login"));
+    tabRegistro?.addEventListener("click", () => mostrarForm("registro"));
+    irARegistro?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("registro"); });
+    irALogin?.addEventListener("click", (e) => { e.preventDefault(); mostrarForm("login"); });
+
+    function mostrarForm(tipo) {
+      tabLogin && tabLogin.classList.toggle("active", tipo === "login");
+      tabRegistro && tabRegistro.classList.toggle("active", tipo === "registro");
+      if (formLogin) formLogin.style.display = tipo === "login" ? "block" : "none";
+      if (formRegistro) formRegistro.style.display = tipo === "registro" ? "block" : "none";
+    }
+
+    // ======================================================================================
+    // FUNCIÓN PARA MOSTRAR AVISOS
+    // ======================================================================================
+    function mostrarAviso(mensaje, tipo = "info") {
+      const aviso = document.createElement("div");
+      aviso.textContent = mensaje;
+      Object.assign(aviso.style, {
+        position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+        background: tipo === "error" ? "#e74c3c" : tipo === "success" ? "#27ae60" : "#3498db",
+        color: "white", padding: "12px 24px", borderRadius: "8px", zIndex: "100000",
+        fontFamily: "Arial", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+        animation: "fadeInOut 3s forwards"
+      });
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 3000);
+    }
+
+    // CSS para animación
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity:0; transform:translate(-50%, -20px); }
+        10% { opacity:1; transform:translateX(-50%); }
+        90% { opacity:1; }
+        100% { opacity:0; transform:translate(-50%, -20px); }
+      }
+      .tab-btn.active { border-bottom: 3px solid #0077cc; color: #0077cc; }
+    `;
+    document.head.appendChild(style);
+
+    // ======================================================================================
+    // URL DEL GOOGLE APPS SCRIPT
+    // ======================================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+
+// ====================================================================================== 
+// LOGIN (spinner instantáneo al presionar botón)
+// ======================================================================================
+document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
+  e.preventDefault(); // evita dobles envíos
+  const btnLogin = e.target;
+  btnLogin.disabled = true; // 🔒 evita múltiples clics
+  btnLogin.classList.add("btn-loading"); // animación visual
+
+  const correo = document.getElementById("loginCorreo").value.trim();
+  const pin = document.getElementById("loginPin").value.trim();
+
+  if (!correo || !pin) {
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    return mostrarAviso("Completa todos los campos", "error");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    return mostrarAviso("Correo inválido", "error");
+  }
+  // ✅ Nueva validación: mínimo 4 caracteres, sin límite ni restricción de tipo
+  if (pin.length < 4) {
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres", "error");
+  }
+
+  // Mostrar spinner inmediatamente
+  const loader = mostrarLoader("Iniciando sesión...");
+  await new Promise(requestAnimationFrame); // ⚡ fuerza a renderizar el loader antes del fetch
+
+  const formData = new URLSearchParams();
+  formData.append("accion", "login");
+  formData.append("correo", correo);
+  formData.append("pin", pin);
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData
+    });
+
+    const texto = await res.text();
+    console.log("Login:", texto);
+
+    try {
+      const data = JSON.parse(texto);
+      if (data.status && data.status.includes("success")) {
+        const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "");
+
+        const usuario = { 
+          nombre: data.nombre, 
+          correo: data.correo, 
+          fotoPerfil: fotoPerfil 
+        };
+
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        localStorage.setItem("autor", data.nombre);
+        localStorage.setItem("correo", data.correo);
+
+        currentAuthorName = data.nombre;
+        currentAuthorEmail = data.correo;
+
+        cerrarLoader(loader);
+        btnLogin.disabled = false;
+        btnLogin.classList.remove("btn-loading");
+        cerrarModalYContinuar();
+        mostrarAviso("Bienvenido, " + data.nombre, "success");
+      } else {
+        cerrarLoader(loader);
+        btnLogin.disabled = false;
+        btnLogin.classList.remove("btn-loading");
+        mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
+      }
+    } catch {
+      cerrarLoader(loader);
+      btnLogin.disabled = false;
+      btnLogin.classList.remove("btn-loading");
+      mostrarAviso("Error del servidor", "error");
+    }
+  } catch {
+    cerrarLoader(loader);
+    btnLogin.disabled = false;
+    btnLogin.classList.remove("btn-loading");
+    mostrarAviso("Error de conexión", "error");
+  }
+});
+
+// ======================================================================================
+// REGISTRO (spinner instantáneo al presionar botón, PIN libre de mínimo 4 caracteres)
+// ======================================================================================
+document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+
+  const btnRegistro = e.target;
+  btnRegistro.disabled = true; // 🔒 evita múltiples clics
+  btnRegistro.classList.add("btn-loading"); // animación visual
+
+  const nombre = document.getElementById("regNombre").value.trim();
+  const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
+  const pin = document.getElementById("regPin").value;
+  const pinConfirm = document.getElementById("regPinConfirm").value;
+  const preview = document.getElementById("previewFoto");
+
+  if (!nombre || !correo || !pin || !pinConfirm) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+    return mostrarAviso("Todos los campos son obligatorios", "error");
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+    return mostrarAviso("Correo inválido", "error");
+  }
+
+  if (pin !== pinConfirm) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+    return mostrarAviso("Los PIN no coinciden", "error");
+  }
+
+  // ✅ Ahora acepta cualquier carácter, pero mínimo 4
+  if (pin.length < 4) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+    return mostrarAviso("El PIN debe tener al menos 4 caracteres", "error");
+  }
+
+  if (!window.fotoComprimida) {
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+    return mostrarAviso("Selecciona una foto antes de registrarte", "error");
+  }
+
+  // Mostrar spinner de inmediato
+  const loader = mostrarLoader("Registrando usuario...");
+  await new Promise(requestAnimationFrame);
+
+  try {
+    if (preview) {
+      preview.innerHTML = `<img src="${window.fotoComprimida}" alt="Previsualización" 
+        style="max-width:120px;border-radius:10px;display:block;margin:auto;">`;
+    }
+
+    const formData = new URLSearchParams();
+    formData.append("accion", "registro");
+    formData.append("nombre", nombre);
+    formData.append("correo", correo);
+    formData.append("pin", pin);
+    formData.append("foto", window.fotoComprimida.split(",")[1]);
+
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData
+    });
+
+    const texto = await res.text();
+    console.log("Registro:", texto);
+    cerrarLoader(loader);
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+
+    if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
+      mostrarAviso("Cuenta creada! Inicia sesión", "success");
+      mostrarForm("login");
+      document.getElementById("loginCorreo").value = correo;
+    } else if (texto.includes("ya registrado")) {
+      mostrarAviso("Ya existe un usuario con ese correo", "error");
+    } else {
+      mostrarAviso(texto || "Error al registrarse", "error");
+    }
+  } catch {
+    cerrarLoader(loader);
+    btnRegistro.disabled = false;
+    btnRegistro.classList.remove("btn-loading");
+    mostrarAviso("Error de conexión o al procesar imagen", "error");
+  }
+});
+
+
+// ======================================================================================
+// FUNCIONES DE SPINNER GLOBAL
+// ======================================================================================
+function mostrarLoader(texto = "Procesando...") {
+  const overlay = document.createElement("div");
+  Object.assign(overlay.style, {
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0,0,0,0.65)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: "10000",
+    color: "#fff",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "1.1em",
+    textAlign: "center",
+    backdropFilter: "blur(3px)",
+    animation: "fadeIn 0.25s ease"
+  });
+  overlay.innerHTML = `
+    <div style="
+      width:60px;height:60px;
+      border:6px solid rgba(255,255,255,0.3);
+      border-top-color:#00aaff;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      margin-bottom:15px;
+    "></div>
+    <span>${texto}</span>
+  `;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function cerrarLoader(loader) {
+  if (loader && loader.parentNode) {
+    loader.style.animation = "fadeOut 0.25s ease";
+    setTimeout(() => loader.remove(), 200);
+  }
+}
+
+const styleSpinGlobal = document.createElement("style");
+styleSpinGlobal.textContent = `
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+`;
+document.head.appendChild(styleSpinGlobal);
+
+
+
+
+// ============================
+// 🔁 Recuperar PIN olvidado (con verificación y cambio definitivo)
+// ============================
+let pinTemporalGenerado = "";
+let correoRecuperacion = "";
+
+// === Abrir flujo de recuperación ===
+document.getElementById("olvidastePin").addEventListener("click", () => {
+  ocultarTodo();
+  document.getElementById("formRecuperarPin").style.display = "block";
+  document.getElementById("pasoCorreo").style.display = "block";
+});
+
+// === Volver al login ===
+document.getElementById("volverLogin").addEventListener("click", () => {
+  ocultarTodo();
+  document.getElementById("formLogin").style.display = "block";
+});
+
+// === Enviar PIN temporal ===
+document.getElementById("btnEnviarPinTemp").addEventListener("click", async () => {
+  const correo = document.getElementById("recCorreo").value.trim();
+  if (!correo) return mostrarAviso("Por favor ingresa tu correo.");
+
+  correoRecuperacion = correo;
+  pinTemporalGenerado = Math.floor(1000 + Math.random() * 9000).toString();
+
+  const formData = new FormData();
+  formData.append("accion", "cambiarPin");
+  formData.append("correo", correo);
+  formData.append("nuevoPin", pinTemporalGenerado);
+  formData.append("modo", "temporal"); // para diferenciar si lo usas en el Apps Script
+
+  try {
+    const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
+      method: "POST",
+      body: formData
+    });
+    const data = await resp.json();
+
+    if (data.status === "sipin") {
+      mostrarAviso(`✅ Se envió un PIN temporal a ${correo}.`);
+      document.getElementById("pasoCorreo").style.display = "none";
+      document.getElementById("pasoVerificar").style.display = "block";
+      document.getElementById("tituloRecuperar").innerText = "📩 Ingresa el PIN que recibiste";
+    } else {
+      mostrarAviso("⚠️ Este correo no está registrado en DECOM.");
+    }
+  } catch {
+    mostrarAviso("Error al enviar el PIN temporal.");
+  }
+});
+
+// === Verificar PIN temporal ===
+document.getElementById("btnVerificarPinTemp").addEventListener("click", () => {
+  const pinIngresado = document.getElementById("recPinTemp").value.trim();
+  if (pinIngresado === pinTemporalGenerado) {
+    mostrarAviso("✅ PIN temporal verificado.");
+    document.getElementById("pasoVerificar").style.display = "none";
+    document.getElementById("pasoNuevoPin").style.display = "block";
+    document.getElementById("tituloRecuperar").innerText = "🔒 Crear nuevo PIN o contraseña";
+  } else {
+    mostrarAviso("❌ El PIN temporal no coincide.");
+  }
+});
+
+// === Cambiar PIN definitivo ===
+document.getElementById("btnCambiarPin").addEventListener("click", async () => {
+  const nuevoPin = document.getElementById("nuevoPin").value.trim();
+  const confirmarPin = document.getElementById("confirmarPin").value.trim();
+
+  // ✅ Nuevo: acepta cualquier valor, mínimo 4 caracteres
+  if (!nuevoPin || nuevoPin.length < 4)
+    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres.");
+
+  if (nuevoPin !== confirmarPin)
+    return mostrarAviso("Los PIN no coinciden.");
+
+  const formData = new FormData();
+  formData.append("accion", "cambiarPin");
+  formData.append("correo", correoRecuperacion);
+  formData.append("nuevoPin", nuevoPin);
+
+  try {
+    const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
+      method: "POST",
+      body: formData
+    });
+    const data = await resp.json();
+
+    if (data.status === "sipin") {
+      mostrarAviso("✅ PIN cambiado exitosamente. Revisa tu correo de confirmación.");
+      ocultarTodo();
+      document.getElementById("formLogin").style.display = "block";
+    } else {
+      mostrarAviso("Error al cambiar el PIN.");
+    }
+  } catch {
+    mostrarAviso("Error de conexión.");
+  }
+});
+
+// === Función auxiliar ===
+function ocultarTodo() {
+  ["formLogin","formRegistro","formRecuperarPin"].forEach(id => document.getElementById(id).style.display = "none");
+  ["pasoCorreo","pasoVerificar","pasoNuevoPin"].forEach(id => document.getElementById(id).style.display = "none");
+}
+
+
+
+   
+// ======================================================================================
+// CERRAR MODAL Y CONTINUAR
+// ======================================================================================
+function cerrarModalYContinuar() {
+  modal.style.display = "none";
+  document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
+  setTimeout(() => location.reload(), 500);
+}
+
+// ======================================================================================
+// TU CÓDIGO ORIGINAL (SIN MODIFICAR)
+// ======================================================================================
+// ... [todo igual hasta el final] ...
+
+// ======================================================================================
+// MANEJO DE USUARIO (MEJORADO: preloader, soporte Drive ID, base64, logs)
+// ======================================================================================
+const userBtn = document.getElementById("userBtn");
+const userMenu = document.getElementById("userMenu");
+const userName = document.getElementById("userName");
+const userEmail = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// --- Helper para construir URL directa de Google Drive si el usuario envió solo el ID o link ---
+function buildDriveUrlIfNeeded(urlOrId) {
+  if (!urlOrId) return "";
+  const s = String(urlOrId).trim();
+
+  if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) {
+    return `https://drive.google.com/uc?export=view&id=${s}`;
+  }
+
+  const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+  if (m && m[1]) {
+    return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  }
+
+  return s;
+}
+
+// --- Mostrar usuario con preloader y logs de depuración ---
+// --- Mostrar usuario con preloader y logs de depuración ---
+function mostrarUsuario(u) {
+  if (!userBtn) return;
+  console.log("mostrarUsuario - objeto recibido:", u);
+
+  // ✅ Detectar si ya hay imagen en el botón (pero NO salir de la función)
+  let yaTieneImagen = !!userBtn.querySelector("img");
+
+  // ✅ Limpiar cualquier nodo previo si no tiene imagen aun
+  if (!yaTieneImagen) {
+    while (userBtn.firstChild) {
+      userBtn.removeChild(userBtn.firstChild);
+    }
+  }
+
+  u = u || {};
+  u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
+  u.correo = u.correo || u.email || localStorage.getItem("correo") || "";
+
+  let foto = u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "";
+  if (Array.isArray(foto) && foto.length) foto = foto[0];
+
+  const isDataUrl = typeof foto === "string" && foto.startsWith("data:");
+
+  function buildDriveCandidates(src) {
+    const s = String(src || "").trim();
+    const candidates = [];
+    if (!s) return candidates;
+
+    candidates.push(s);
+
+    const idOnlyMatch = s.match(/^[A-Za-z0-9_-]{20,80}$/);
+    if (idOnlyMatch) {
+      const id = idOnlyMatch[0];
+      candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+      candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+      candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+      candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
+      return candidates;
+    }
+
+    const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+    if (m && m[1]) {
+      const id = m[1];
+      candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+      candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+      candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+      candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
+    }
+
+    return Array.from(new Set(candidates));
+  }
+
+  function fallback() {
+    mostrarIniciales(u);
+  }
+
+  if (!foto) {
+    console.warn("mostrarUsuario - no hay foto para mostrar, usando iniciales");
+    fallback();
+  } else if (isDataUrl) {
+    const img = document.createElement("img");
+    img.src = foto;
+    img.alt = u.nombre || "avatar";
+
+    Object.assign(img.style, {
+      width: "36px",
+      height: "36px",
+      borderRadius: "50%",
+      objectFit: "cover",
+      border: "2px solid #0077cc",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+    });
+
+    img.onerror = () => {
+      console.error("Imagen base64 falló al cargar");
+      fallback();
+    };
+
+    if (!yaTieneImagen) userBtn.appendChild(img);
+
+  } else {
+    const candidates = buildDriveCandidates(foto);
+    console.log("mostrarUsuario - candidatos de imagen:", candidates);
+
+    let idx = 0;
+    let finished = false;
+
+    const tryNext = () => {
+      if (finished) return;
+      if (idx >= candidates.length) {
+        console.warn("mostrarUsuario - ningún candidato funcionó, fallback");
+        finished = true;
+        fallback();
+        return;
+      }
+
+      const url = candidates[idx++];
+      if (!url) return tryNext();
+
+      const testImg = new Image();
+      testImg.referrerPolicy = "no-referrer";
+
+      let loaded = false;
+
+      const cleanupAndAppend = (finalUrl) => {
+        if (finished) return;
+        finished = true;
+        const img = document.createElement("img");
+        img.src = finalUrl;
+        img.alt = u.nombre || "avatar";
+
+        Object.assign(img.style, {
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: "2px solid #0077cc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+        });
+
+        if (!yaTieneImagen) userBtn.appendChild(img);
+      };
+
+      testImg.onload = () => {
+        loaded = true;
+        console.log("mostrarUsuario - carga OK:", url);
+        cleanupAndAppend(url);
+      };
+
+      testImg.onerror = (e) => {
+        console.warn("mostrarUsuario - fallo carga candidato:", url, e);
+        setTimeout(() => tryNext(), 150);
+      };
+
+      const to = setTimeout(() => {
+        if (!loaded && !finished) {
+          console.warn("mostrarUsuario - timeout candidato:", url);
+          tryNext();
+        }
+      }, 3500);
+
+      try {
+        testImg.src = url;
+      } catch (err) {
+        console.warn("mostrarUsuario - error al asignar src:", err);
+        clearTimeout(to);
+        tryNext();
+      }
+    };
+
+    tryNext();
+  }
+
+  if (userName) userName.textContent = u.nombre;
+  if (userEmail) userEmail.textContent = u.correo;
+  if (userName) userName.style.color = "#333";
+  if (userEmail) userEmail.style.color = "#555";
+
+  currentAuthorName = u.nombre;
+  currentAuthorEmail = u.correo;
+
+  // === Sincronizar también la foto en el menú desplegable ===
+const menuPhoto = document.getElementById("userMenuPhoto");
+if (menuPhoto) {
+  menuPhoto.innerHTML = ""; // limpiar
+
+  const imgBtn = userBtn.querySelector("img");
+  
+  if (imgBtn && imgBtn.src) {
+    // ✅ Mostrar exactamente la misma foto
+    menuPhoto.innerHTML = `
+      <img src="${imgBtn.src}" style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        object-fit:cover;
+        border:2px solid #0077cc;
+      ">
+    `;
+  } else {
+    // ✅ Iniciales elegantes
+    const iniciales = (u.nombre || "US")
+      .trim()
+      .split(" ")
+      .map(p => p.charAt(0).toUpperCase())
+      .join("")
+      .substring(0,2);
+
+    menuPhoto.innerHTML = `
+      <div style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        background:#0077cc;
+        color:white;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:28px;
+        font-weight:bold;
+      ">
+        ${iniciales}
+      </div>
+    `;
+  }
+
+  // 🔗 Abrir modal perfil al tocar la foto grande
+  menuPhoto.style.cursor = "pointer";
+  menuPhoto.onclick = abrirPerfil;
+}
+
+}
+
+
+function mostrarIniciales(u) {
+  if (!userBtn) return;
+
+  userBtn.innerHTML = "";
+  const iniciales = (u && u.nombre)
+    ? u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+    : "US";
+
+  userBtn.textContent = iniciales;
+  userBtn.style.background = "#0077cc";
+  userBtn.style.color = "white";
+  userBtn.style.width = "40px";
+  userBtn.style.height = "40px";
+  userBtn.style.borderRadius = "50%";
+  userBtn.style.display = "flex";
+  userBtn.style.alignItems = "center";
+  userBtn.style.justifyContent = "center";
+  userBtn.style.fontWeight = "bold";
+  userBtn.style.fontSize = "14px";
+}
+
+if (userBtn && userMenu) {
+  userBtn.addEventListener("click", () => {
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("autor");
+    localStorage.removeItem("correo");
+
+    currentAuthorName = "";
+    currentAuthorEmail = "";
+
+    if (userMenu) userMenu.style.display = "none";
+    mostrarAviso("Sesión cerrada", "info");
+
+    setTimeout(() => location.reload(), 1200);
+  });
+}
+
+
+
+  });
+
+
+
 function abrirPerfil() {
   // Cerrar userMenu si está abierto
   const userMenu = document.getElementById("userMenu");
@@ -4475,6 +8571,319 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
+
+
+
+
+
+// ==============================
+// CERRAR AL HACER CLICK AFUERA
+// ==============================
+window.addEventListener("click", function (e) {
+  const modal = document.getElementById("modalPerfil");
+  const contenido = document.getElementById("contenidoModalPerfil");
+
+  if (e.target === modal) {
+    cerrarModalPerfil();
+  }
+});
+
+// ==============================
+// CERRAR CON TECLA ESC
+// ==============================
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    cerrarModalPerfil();
+  }
+});
+
+// ==============================
+// ABRIR SELECTOR CON ✏️
+// ==============================
+document.getElementById("editarFotoBtn").addEventListener("click", () => {
+  document.getElementById("inputFotoPerfil").click();
+});
+
+// ==============================
+// CUANDO SE SELECCIONA UNA FOTO
+// ==============================
+document.getElementById("inputFotoPerfil").addEventListener("change", async (e) => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+
+  const lector = new FileReader();
+  lector.onload = async () => {
+    const base64 = lector.result;
+
+    const fotoModal = document.getElementById("fotoPerfilModal");
+    const userBtn = document.getElementById("userBtn");
+    const menuPhoto = document.getElementById("userMenuPhoto");
+
+    // Mostrar inmediatamente previsualización local
+    if (fotoModal) fotoModal.src = base64;
+    if (userBtn) userBtn.innerHTML = `<img src="${base64}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+    if (menuPhoto) menuPhoto.innerHTML = `<img src="${base64}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+
+    // Guardar previsualización temporal local
+    try {
+      localStorage.setItem("fotoPerfil", base64);
+      const u = JSON.parse(localStorage.getItem("usuario")) || {};
+      u.fotoPerfil = base64;
+      localStorage.setItem("usuario", JSON.stringify(u));
+    } catch (err) {}
+
+    try {
+      const formData = new FormData();
+      formData.append("accion", "actualizarFoto");
+      formData.append("usuario", document.getElementById("userEmail").innerText);
+      formData.append("foto", base64);
+
+      const resp = await fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec", {
+        method: "POST",
+        body: formData
+      });
+
+      const text = await resp.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Respuesta no válida:", text);
+         mostrarAviso("Respuesta no válida del servidor: " + text);
+        return;
+      }
+
+      // --- Eliminamos el  mostrarAviso anterior ---
+      //  mostrarAviso("Respuesta del servidor:\n" + text);
+
+      if (data.status === "success" && data.foto) {
+        // 🚀 Nuevo enlace Drive con parámetro único para evitar caché
+        const fotoNoCache = `${data.foto}?v=${Date.now()}`;
+
+        // --- Precarga para evitar ícono roto ---
+        const preload = new Image();
+        preload.onload = () => {
+          // === Fade suave ===
+          const fadeIn = (el, newSrc) => {
+            if (!el) return;
+            el.style.transition = "opacity 0.4s ease";
+            el.style.opacity = "0";
+            setTimeout(() => {
+              el.src = newSrc;
+              el.onerror = () => console.warn("⚠️ Error cargando imagen nueva, se mantiene la anterior.");
+              el.onload = () => { el.style.opacity = "1"; };
+            }, 200);
+          };
+
+          // === Actualizar interfaz completa ===
+          fadeIn(fotoModal, fotoNoCache);
+
+          if (userBtn) {
+            const imgBtn = userBtn.querySelector("img");
+            if (imgBtn) fadeIn(imgBtn, fotoNoCache);
+            else userBtn.innerHTML = `<img src="${fotoNoCache}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+
+            // ✨ Efecto de brillo temporal
+            userBtn.style.position = "relative";
+            userBtn.style.boxShadow = "0 0 12px 4px rgba(0, 180, 255, 0.7)";
+            userBtn.style.transition = "box-shadow 0.6s ease";
+            setTimeout(() => {
+              userBtn.style.boxShadow = "0 0 0 0 rgba(0, 180, 255, 0)";
+            }, 1200);
+          }
+
+          if (menuPhoto) {
+            const imgMenu = menuPhoto.querySelector("img");
+            if (imgMenu) fadeIn(imgMenu, fotoNoCache);
+            else menuPhoto.innerHTML = `<img src="${fotoNoCache}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+
+            // 💫 Brillo también en el recuadro del menú
+            menuPhoto.style.boxShadow = "0 0 16px 5px rgba(0, 180, 255, 0.6)";
+            menuPhoto.style.transition = "box-shadow 0.6s ease";
+            setTimeout(() => {
+              menuPhoto.style.boxShadow = "0 0 0 0 rgba(0, 180, 255, 0)";
+            }, 1200);
+          }
+
+          // === Guardar correctamente en localStorage ===
+          try {
+            localStorage.setItem("fotoPerfil", fotoNoCache);
+            const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
+            usuarioGuardado.fotoPerfil = fotoNoCache;
+            localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+          } catch (err) {
+            console.warn("No se pudo guardar la foto nueva localmente:", err);
+          }
+
+          // === Actualizar objeto usuario en ejecución ===
+          if (typeof mostrarUsuario === "function") {
+            const u = {
+              nombre: document.getElementById("userName")?.textContent || "",
+              correo: document.getElementById("userEmail")?.textContent || "",
+              fotoPerfil: fotoNoCache
+            };
+            mostrarUsuario(u);
+          }
+        };
+
+        preload.onerror = () => {
+          console.warn("⚠️ No se pudo precargar la imagen nueva, se conserva la actual.");
+        };
+
+        preload.src = fotoNoCache; // inicia precarga
+      } else {
+        console.error("Error al actualizar foto:", data.message || data);
+         mostrarAviso("No se pudo actualizar la foto en Drive.");
+      }
+
+    } catch (err) {
+      console.error("Error al comunicarse con backend:", err);
+       mostrarAviso("Error al actualizar foto de perfil. Revisa la conexión o el script.");
+    }
+  };
+
+  lector.readAsDataURL(archivo);
+});
+
+
+
+
+
+
+
+
+// --------------------------
+// Sincronizar foto del menú
+// --------------------------
+function syncUserMenuPhoto() {
+  const userBtn = document.getElementById("userBtn");
+  const menuPhoto = document.getElementById("userMenuPhoto");
+  const fotoModal = document.getElementById("fotoPerfilModal");
+
+  if (!menuPhoto) return;
+
+  // buscar img en userBtn
+  const imgBtn = userBtn ? userBtn.querySelector("img") : null;
+  let src = "";
+
+  if (imgBtn && imgBtn.src) src = imgBtn.src;
+  // si no, usar la del modal (si ya tiene)
+  if (!src && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") src = fotoModal.src;
+  // si no, intentar localStorage
+  if (!src && localStorage.getItem("fotoPerfil")) src = localStorage.getItem("fotoPerfil");
+
+  // aplicar al menu
+  if (src) {
+    menuPhoto.innerHTML = `
+      <img src="${src}" style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        object-fit:cover;
+        border:2px solid #0077cc;
+      ">
+    `;
+  } else {
+    // fallback a iniciales (mantenemos tu estilo)
+    const uNombre = (document.getElementById("userName")?.textContent || "Usuario").trim();
+    const iniciales = uNombre.split(" ").map(p => p.charAt(0).toUpperCase()).join("").substring(0,2) || "US";
+    menuPhoto.innerHTML = `
+      <div style="
+        width:80px;height:80px;border-radius:50%;
+        background:#0077cc;color:white;display:flex;
+        align-items:center;justify-content:center;font-size:28px;font-weight:bold;
+      ">${iniciales}</div>
+    `;
+  }
+
+  // comportamiento extra
+  menuPhoto.style.cursor = "pointer";
+  menuPhoto.onclick = abrirPerfil;
+}
+
+// --------------------------
+// Toggle / abrir menú usuario
+// --------------------------
+function toggleUserMenu() {
+  const menu = document.getElementById("userMenu");
+  if (!menu) return;
+
+  const isHidden = window.getComputedStyle(menu).display === "none";
+  if (isHidden) {
+    // sincronizar justo antes de mostrar
+    syncUserMenuPhoto();
+    menu.style.display = "block";
+  } else {
+    menu.style.display = "none";
+  }
+}
+
+// --------------------------
+// Observador: si cambia userBtn (ej: se inserta img), actualizar menú
+// --------------------------
+(function observeUserBtnImg() {
+  const userBtn = document.getElementById("userBtn");
+  if (!userBtn) return;
+
+  const mo = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      // si se agregó/quitó nodo o cambió atributo src en un <img>, sincronizar
+      if (m.type === "childList" && (m.addedNodes.length || m.removedNodes.length)) {
+        syncUserMenuPhoto();
+        return;
+      }
+      if (m.type === "attributes" && m.target && m.target.tagName === "IMG" && m.attributeName === "src") {
+        syncUserMenuPhoto();
+        return;
+      }
+    }
+  });
+
+  mo.observe(userBtn, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+})();
+
+
+
+    // ======================================================================================
+// EFECTO RIPPLE EN BOTONES LOGIN Y REGISTRO
+// ======================================================================================
+function agregarEfectoRipple(boton) {
+  boton.addEventListener("click", function (e) {
+    const ripple = document.createElement("span");
+    ripple.classList.add("ripple");
+    this.appendChild(ripple);
+
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+
+    setTimeout(() => ripple.remove(), 600); // elimina el efecto después de animar
+  });
+}
+
+["btnLogin", "btnRegistro"].forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) agregarEfectoRipple(btn);
+});
+
+
+
+    
+    
+    function recargarDatos() {
+      verificarComentarios().then(() => cargarImagenes());
+      console.log("Datos recargados por solicitud externa.");
+    }
+  </script>
+</body>
+</html>
+
 
 
 
