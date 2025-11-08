@@ -2899,8 +2899,8 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     if (anunciosData.length > index) {
         const anuncio = anunciosData[index];
 
-        // 🔹 Usar updateInfo para manejar texto corto/largo + autor
-        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
+        // 🔹 Usar updateInfo para manejar texto corto/largo
+        updateInfo(anuncio.titulo, anuncio.descripcion);
 
         // ✅ Mostrar/ocultar el botón fijo
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
@@ -2960,21 +2960,31 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
             commentCountValue.textContent = 0;
         }
 
-        // 🆕 Mostrar el autor junto al título si existe
-        const autorElemento = document.querySelector(".autor-anuncio");
-        if (!autorElemento && anuncio.autor) {
-            const spanAutor = document.createElement("span");
-            spanAutor.className = "autor-anuncio";
-            spanAutor.textContent = ` — ${anuncio.autor}`;
-            spanAutor.style.fontSize = "13px";
-            spanAutor.style.color = "#ccc";
-            spanAutor.style.marginLeft = "8px";
+        // 🆕 Mostrar el autor junto al título como enlace clickeable de WhatsApp
+        const autorAnterior = document.querySelector(".autor-anuncio");
+        if (autorAnterior) autorAnterior.remove(); // Evitar duplicados
 
-            // Asegurar que el autor aparezca al lado del título actual
-            currentTitle.appendChild(spanAutor);
+        if (anuncio.autor) {
+            const linkAutor = document.createElement("a");
+            linkAutor.className = "autor-anuncio";
+            linkAutor.textContent = ` — ${anuncio.autor}`;
+            linkAutor.style.fontSize = "13px";
+            linkAutor.style.color = "#25D366";
+            linkAutor.style.marginLeft = "8px";
+            linkAutor.style.textDecoration = "none";
+            linkAutor.style.cursor = "pointer";
+
+            // 🔗 Enlace a WhatsApp
+            const numeroWhatsApp = "573001234567"; // <-- 🔹 pon aquí tu número (sin +)
+            const mensaje = encodeURIComponent(`Hola ${anuncio.autor}, vi tu publicación en DECOM y me interesa.`);
+            linkAutor.href = `https://wa.me/${numeroWhatsApp}?text=${mensaje}`;
+            linkAutor.target = "_blank";
+
+            currentTitle.appendChild(linkAutor);
         }
     }
 }
+
 
 
 
@@ -4601,6 +4611,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
