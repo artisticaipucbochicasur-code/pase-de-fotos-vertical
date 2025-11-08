@@ -2134,68 +2134,73 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
  // ======================================================================================
-// 🚀 Evitar cambio de página y ejecutar función cargarImagenes() de fotos.html sin recargar
+// 🚀 Cargar y ejecutar cargarImagenes() de fotos.html sin recargar toda la página
 // ======================================================================================
 if (imagesBtn) {
   imagesBtn.addEventListener("click", async (e) => {
     e.preventDefault(); // Evita abrir fotos.html completamente
 
     try {
-      // 1️⃣ Si la función ya está cargada, solo ejecútala
+      // 1️⃣ Si la función ya está disponible, solo ejecútala
       if (typeof cargarImagenes === "function") {
         console.log("✅ Ejecutando cargarImagenes() existente");
-        cargarImagenes();
+        await cargarImagenes();
         return;
       }
 
-      // 2️⃣ Si no existe, traer el contenido de fotos.html
-      console.log("🔄 Importando función cargarImagenes() desde fotos.html...");
+      // 2️⃣ Si no existe, traer fotos.html
+      console.log("🔄 Importando cargarImagenes() desde fotos.html...");
       const response = await fetch("./fotos.html");
       if (!response.ok) throw new Error(`Error al cargar fotos.html (${response.status})`);
+
       const htmlText = await response.text();
 
-      // 3️⃣ Crear un DOM temporal
+      // 3️⃣ Crear un DOM temporal para leer scripts y contenido
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlText, "text/html");
 
-      // 4️⃣ Extraer los scripts de fotos.html
+      // 4️⃣ Buscar dentro de los <script> la función cargarImagenes()
       const scripts = doc.querySelectorAll("script");
       let funcionEncontrada = null;
+
       scripts.forEach((script) => {
-        if (script.textContent.includes("function cargarImagenes")) {
+        if (script.textContent.includes("async function cargarImagenes")) {
           funcionEncontrada = script.textContent;
         }
       });
 
-      // 5️⃣ Si se encontró la función, inyectarla dinámicamente
-      if (funcionEncontrada) {
-        const scriptEl = document.createElement("script");
-        scriptEl.textContent = funcionEncontrada;
-        document.body.appendChild(scriptEl);
-
-        console.log("✅ Función cargarImagenes() importada correctamente");
-        if (typeof cargarImagenes === "function") {
-          cargarImagenes();
-        } else {
-          console.warn("⚠️ La función no se inicializó correctamente.");
-        }
-      } else {
-        console.warn("⚠️ No se encontró cargarImagenes() dentro de fotos.html");
+      if (!funcionEncontrada) {
+        console.warn("⚠️ No se encontró la función cargarImagenes() en fotos.html");
+        return;
       }
 
-      // 6️⃣ (Opcional) Si deseas traer también el contenedor de imágenes del HTML:
+      // 5️⃣ Inyectar la función en este documento
+      const scriptEl = document.createElement("script");
+      scriptEl.textContent = funcionEncontrada;
+      document.body.appendChild(scriptEl);
+
+      // 6️⃣ Crear o actualizar el contenedor visual (opcional)
       const contenedorFotos = doc.querySelector("#contenedorFotos");
       if (contenedorFotos) {
         const existente = document.querySelector("#contenedorFotos");
-        if (existente) existente.remove();
+        if (existente) existente.remove(); // Reemplazar si ya hay uno
         document.body.appendChild(contenedorFotos);
-        console.log("🖼️ Contenedor de imágenes insertado en el documento actual.");
+        console.log("🖼️ Contenedor de imágenes insertado en el documento actual");
+      }
+
+      // 7️⃣ Ejecutar la función ahora que ya existe
+      if (typeof cargarImagenes === "function") {
+        console.log("✅ Ejecutando cargarImagenes() importada");
+        await cargarImagenes();
+      } else {
+        console.warn("⚠️ La función cargarImagenes() no se inicializó correctamente");
       }
     } catch (err) {
-      console.error("❌ Error al cargar dinámicamente cargarImagenes():", err);
+      console.error("❌ Error al importar y ejecutar cargarImagenes():", err);
     }
   });
 }
+
 
 
   // 🔔 Inicializar icono de notificaciones
@@ -3959,6 +3964,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
