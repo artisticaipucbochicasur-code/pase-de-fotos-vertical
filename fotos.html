@@ -2948,7 +2948,22 @@ function updateContentOverlay(index) {
     const anuncio = anunciosData[index];
 
     // 🔹 Usar updateInfo para manejar texto corto/largo + autor (ya incluye foto y nombre)
-    updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, anuncio.fotoPerfil);
+   // ✅ Si hay autor y correo, obtenemos su foto desde el servidor
+if (anuncio.autor && anuncio.correo) {
+  fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=" + encodeURIComponent(anuncio.correo))
+    .then(r => r.json())
+    .then(data => {
+      const foto = data.status === "success" ? data.fotoPerfil : "";
+      updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, foto);
+    })
+    .catch(err => {
+      console.warn("No se pudo obtener la foto del autor:", err);
+      updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, "");
+    });
+} else {
+  updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, "");
+}
+
 
     // ✅ Mostrar/ocultar el botón fijo
     if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
@@ -4643,6 +4658,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
