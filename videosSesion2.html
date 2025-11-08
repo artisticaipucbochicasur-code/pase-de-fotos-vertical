@@ -2363,91 +2363,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
   const modal = document.getElementById("loginModal");
 
- if (!usuarioGuardado) {
+  if (!usuarioGuardado) {
     const overlay = document.createElement("div");
     Object.assign(overlay.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        width: "100%",
-        height: "100%",
-        background: "linear-gradient(180deg, #000, #222)",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: "99998",
-        fontFamily: "Poppins, sans-serif",
-        textAlign: "center",
-        opacity: "0",
-        transition: "opacity 0.4s ease",
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100%",
+      height: "100%",
+      background: "linear-gradient(180deg, #000, #222)",
+      color: "white",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "99998",
+      fontFamily: "Poppins, sans-serif",
+      textAlign: "center",
+      opacity: "0",
+      transition: "opacity 0.4s ease",
     });
     overlay.innerHTML = `
-        <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
-        <p style="color:#ccc; max-width:80%; line-height:1.5;">
-            Debes iniciar sesión para acceder al contenido.
-        </p>
+      <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
+      <p style="color:#ccc; max-width:80%; line-height:1.5;">
+        Debes iniciar sesión para acceder al contenido.
+      </p>
     `;
     document.body.appendChild(overlay);
 
     if (modal) {
-        modal.style.display = "flex";
-        modal.style.zIndex = "99999";
+      modal.style.display = "flex";
+      modal.style.zIndex = "99999";
     }
     setTimeout(() => (overlay.style.opacity = "1"), 50);
 
-    // Mantener body oculto hasta login
-    document.body.style.visibility = "hidden";
+    // ⚠️ ELIMINA el "return"
+    // No interrumpas la ejecución del resto del código
+  }
 
-    return; // detiene la ejecución de todo lo demás
-} else {
-    // Si hay usuario, mostrar body
-    document.body.style.visibility = "visible";
 
-    // ⚡ Mueve el video de intro aquí para que solo se vea a usuarios autenticados
-    setTimeout(() => {
-        const loader = document.getElementById("loader");
-        if (loader) loader.style.display = "flex";
-        const videoIntro = document.createElement("video");
-        Object.assign(videoIntro, {
-            src: "Ini.mp4",
-            autoplay: true,
-            muted: true,
-            playsInline: true,
-            preload: "auto",
-        });
-        Object.assign(videoIntro.style, {
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            objectFit: "cover",
-            zIndex: "999999",
-            backgroundColor: "black",
-            opacity: "0",
-            transition: "opacity 1s ease",
-        });
-        document.body.appendChild(videoIntro);
-        videoIntro.addEventListener("canplaythrough", () => {
-            if (loader) loader.style.display = "none";
-            videoIntro.style.opacity = "1";
-            videoIntro.play().catch(() => {});
-        });
-        videoIntro.addEventListener("ended", () => {
-            videoIntro.style.opacity = "0";
-            setTimeout(() => videoIntro.remove(), 1000);
-        });
-        setTimeout(() => {
-            if (videoIntro.readyState < 3 || videoIntro.paused) {
-                console.warn("iOS bloqueó autoplay, omitiendo video...");
-                videoIntro.remove();
-                if (loader) loader.style.display = "none";
-            }
-        }, 6000);
-    }, 300);
-}
 
 
   // ======================================================================================
@@ -3004,11 +2958,11 @@ function ocultarTodo() {
 // CERRAR MODAL Y CONTINUAR
 // ======================================================================================
 function cerrarModalYContinuar() {
-    modal.style.display = "none";
-    document.body.style.visibility = "visible"; // mostrar todo
-    document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
-    setTimeout(() => location.reload(), 500);
+  modal.style.display = "none";
+  document.querySelectorAll("div[style*='z-index: 99998'], .loading").forEach(el => el.remove());
+  setTimeout(() => location.reload(), 500);
 }
+
 
 
     
@@ -5308,6 +5262,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
