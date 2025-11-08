@@ -2292,9 +2292,13 @@ function updateInfo(title, description, autor = "Anónimo", fotoPerfil = "") {
 
   // 🆕 HTML del autor con foto circular
   const autorHTML = `
-    <span class="autor-anuncio" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #ccc; margin-left: 8px;">
+    <span class="autor-anuncio" 
+          style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #ccc; margin-left: 8px;">
       ${fotoPerfil
-        ? `<img src="${fotoPerfil}" alt="foto de ${autor}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #888;">`
+        ? `<img src="${fotoPerfil}" 
+                 alt="Foto de ${autor}" 
+                 onerror="this.style.display='none';" 
+                 style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #888;">`
         : ""
       }
       <span>— ${autor}</span>
@@ -2318,6 +2322,7 @@ function updateInfo(title, description, autor = "Anónimo", fotoPerfil = "") {
   currentTitle.classList.remove("expanded");
   currentDescription.classList.remove("expanded");
 }
+
 
 async function getFotoPerfilPorCorreo(correo) {
   try {
@@ -2912,7 +2917,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
       ? await getFotoPerfilPorCorreo(anuncio.correo)
       : "";
 
-    // 🔹 Usar updateInfo para manejar texto corto/largo + autor + foto
+    // 🔹 Actualizar la información principal
     updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, fotoPerfil);
 
     // ✅ Mostrar/ocultar el botón fijo
@@ -2972,40 +2977,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
       li.textContent = "No hay comentarios aún.";
       commentsList.appendChild(li);
       commentCountValue.textContent = 0;
-    }
-
-    // 🆕 Mostrar el autor con su foto si existe
-    const autorElemento = document.querySelector(".autor-anuncio");
-    if (!autorElemento && anuncio.autor) {
-      const spanAutor = document.createElement("span");
-      spanAutor.className = "autor-anuncio";
-      spanAutor.style.display = "inline-flex";
-      spanAutor.style.alignItems = "center";
-      spanAutor.style.gap = "6px";
-      spanAutor.style.fontSize = "13px";
-      spanAutor.style.color = "#ccc";
-      spanAutor.style.marginLeft = "8px";
-
-      // Foto circular si existe
-      if (fotoPerfil) {
-        const imgAutor = document.createElement("img");
-        imgAutor.src = fotoPerfil;
-        imgAutor.alt = `Foto de ${anuncio.autor}`;
-        imgAutor.style.width = "22px";
-        imgAutor.style.height = "22px";
-        imgAutor.style.borderRadius = "50%";
-        imgAutor.style.objectFit = "cover";
-        imgAutor.style.border = "1px solid #888";
-        spanAutor.appendChild(imgAutor);
-      }
-
-      // Nombre del autor
-      const nombreAutor = document.createElement("span");
-      nombreAutor.textContent = `— ${anuncio.autor}`;
-      spanAutor.appendChild(nombreAutor);
-
-      // Asegurar que el autor aparezca al lado del título actual
-      currentTitle.appendChild(spanAutor);
     }
   }
 }
@@ -4636,6 +4607,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
