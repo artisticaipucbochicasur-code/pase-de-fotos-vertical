@@ -2122,19 +2122,38 @@ document.addEventListener("DOMContentLoaded", () => {
     return; // No ejecutar el resto hasta iniciar sesión
   }
 
-  // ======================================================================================
-  // 👇 Ajuste DOM para navegación local dentro del mismo repositorio
-  // ======================================================================================
+ // ======================================================================================
+// 👇 Ajuste DOM para navegación local dentro del mismo repositorio
+// ======================================================================================
+const currentUrl = window.location.href;
+const imagesBtn = document.querySelector('a[href="./fotos.html"]');
+const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
 
-  const currentUrl = window.location.href;
-  const imagesBtn = document.querySelector('a[href="./fotos.html"]');
-  const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
+// Marcar el botón actual
+if (currentUrl.includes("fotos.html")) {
+  imagesBtn?.classList.add("selected");
+} else if (currentUrl.includes("videosSesion2.html")) {
+  videosBtn?.classList.add("selected");
+}
 
-  if (currentUrl.includes("fotos.html")) {
-    imagesBtn?.classList.add("selected");
-  } else if (currentUrl.includes("videosSesion2.html")) {
-    videosBtn?.classList.add("selected");
-  }
+// ======================================================================================
+// 🚀 Evitar cambio de página y ejecutar funciones locales
+// ======================================================================================
+if (imagesBtn) {
+  imagesBtn.addEventListener("click", (e) => {
+    e.preventDefault(); // evita abrir fotos.html
+    cargarImagenes();   // llama la función directamente
+  });
+}
+
+if (videosBtn) {
+  videosBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    // Si también quieres hacer algo similar para videos, puedes llamar aquí:
+    // cargarVideos(); o tu función equivalente
+  });
+}
+
 
   // 🔔 Inicializar icono de notificaciones
   const lblContador = document.getElementById('lblContador');
@@ -3908,5 +3927,6 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
