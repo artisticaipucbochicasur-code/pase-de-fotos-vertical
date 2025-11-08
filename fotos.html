@@ -2274,7 +2274,10 @@ setInterval(() => {
 
     
 // 🔹 Actualiza título, descripción y muestra foto + autor junto al título
+// 🧩 Actualiza título, descripción y muestra foto + autor junto al título
 function updateInfo(title, description, autor = "", fotoPerfil = "") {
+  console.log("📸 updateInfo → Autor:", autor, "Foto perfil:", fotoPerfil);
+
   // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
@@ -2293,50 +2296,45 @@ function updateInfo(title, description, autor = "", fotoPerfil = "") {
       "";
   }
 
-  // ✅ Helper: genera una URL válida para cualquier tipo de imagen
+  // ✅ Asegurar URL válida de foto
   function buildFotoUrl(src) {
     if (!src) return "https://via.placeholder.com/40/cccccc/FFFFFF?text=US";
     const s = String(src).trim();
 
-    // Base64
-    if (s.startsWith("data:image")) return s;
-
-    // ID de Google Drive
+    if (s.startsWith("data:image")) return s; // base64
     if (/^[A-Za-z0-9_-]{20,80}$/.test(s))
       return `https://drive.google.com/uc?export=view&id=${s}`;
-
-    // URL de Drive con parámetro id=
     const match = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
     if (match && match[1])
       return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-
-    // URL directa
     return s;
   }
 
   const fotoURL = buildFotoUrl(fotoPerfil);
 
-  // Crear versiones cortas
+  // ✅ Versiones cortas
   const shortTitleText =
     title.length > 50 ? title.substring(0, 50) + "..." : title;
   const shortDescriptionText =
     description.length > 80 ? description.substring(0, 80) + "..." : description;
 
-  // 🧩 Si el autor es válido, mostrar su foto y nombre
+  // ✅ Autor con imagen y nombre alineado
   let autorHTML = "";
   if (autor && autor.trim().toLowerCase() !== "anónimo") {
     autorHTML = `
-      <img src="${fotoURL}" 
-           onerror="this.src='https://via.placeholder.com/40/cccccc/FFFFFF?text=US'" 
-           style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid #0077cc;margin-left:8px;vertical-align:middle;">
-      <span class="autor-anuncio" 
-            style="font-size:13px;color:#ccc;margin-left:6px;vertical-align:middle;">
-        ${autor}
+      <span style="margin-left:8px;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;">
+        <img src="${fotoURL}" 
+             onerror="this.src='https://via.placeholder.com/40/cccccc/FFFFFF?text=US'" 
+             style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid #0077cc;">
+        <span class="autor-anuncio" 
+              style="font-size:13px;color:#ccc;">
+          ${autor}
+        </span>
       </span>
     `;
   }
 
-  // 🧠 Guardar HTMLs completos
+  // ✅ Guardar HTML completo
   const shortTitle = `${shortTitleText} ${autorHTML}`;
   const fullTitle = `${title} ${autorHTML}`;
 
@@ -2353,7 +2351,6 @@ function updateInfo(title, description, autor = "", fotoPerfil = "") {
   currentTitle.classList.remove("expanded");
   currentDescription.classList.remove("expanded");
 }
-
 
 // Eventos de click (mantienen expansión)
 currentTitle.addEventListener("click", function () {
@@ -2944,94 +2941,103 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
     
 function updateContentOverlay(index) {
-  if (anunciosData.length > index) {
-    const anuncio = anunciosData[index];
+  if (anunciosData.length <= index) return;
 
-    // 🔹 Usar updateInfo para manejar texto corto/largo + autor (ya incluye foto y nombre)
-   // ✅ Si hay autor y correo, obtenemos su foto desde el servidor
-if (anuncio.autor && anuncio.correo) {
-  fetch("https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=" + encodeURIComponent(anuncio.correo))
-    .then(r => r.json())
-    .then(data => {
-      const foto = data.status === "success" ? data.fotoPerfil : "";
-      updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, foto);
-    })
-    .catch(err => {
-      console.warn("No se pudo obtener la foto del autor:", err);
-      updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, "");
-    });
-} else {
-  updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, "");
-}
+  const anuncio = anunciosData[index];
+  console.log("🧠 Datos del anuncio:", anuncio);
 
+  // ✅ Detectar el campo de correo real (puede variar según la fuente de datos)
+  const correoAutor = anuncio.correo || anuncio.autorCorreo || anuncio.email || "";
 
-    // ✅ Mostrar/ocultar el botón fijo
-    if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-      deleteAnnouncementBtn.classList.add("visible");
-      deleteAnnouncementBtn.onclick = () => {
-        showConfirmationDialog(
-          "¿Estás seguro de que quieres eliminar este anuncio?",
-          () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-        );
-      };
-    } else {
-      deleteAnnouncementBtn.classList.remove("visible");
-    }
-
-    commentsList.innerHTML = "";
-    commentsOverlay.classList.remove("expanded");
-
-    // 🔹 Mostrar comentarios
-    if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-      anuncio.comentarios.forEach((comentario) => {
-        const li = document.createElement("li");
-        li.classList.add("deletable");
-
-        const commentContent = document.createElement("div");
-        commentContent.classList.add("comment-content");
-        commentContent.textContent = comentario.texto;
-
-        const deleteBtnContainer = document.createElement("div");
-        deleteBtnContainer.className = "delete-btn-container";
-        const deleteBtn = document.createElement("div");
-        deleteBtn.className = "delete-btn";
-        deleteBtn.textContent = "Borrar";
-        deleteBtnContainer.appendChild(deleteBtn);
-
-        li.appendChild(deleteBtnContainer);
-        li.appendChild(commentContent);
-
-        li.dataset.id = comentario.id;
-        li.dataset.correo = comentario.autorCorreo;
-        li.dataset.texto = comentario.textoPuro;
-
-        deleteBtn.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          const activeIndex = swiperInstance.realIndex;
-          const currentAnuncio = anunciosData[activeIndex];
-          if (currentAnuncio) {
-            eliminarComentario(
-              currentAnuncio.id,
-              comentario.textoPuro,
-              comentario.autorCorreo
-            );
-          }
-        });
-
-        commentsList.appendChild(li);
+  // 🔹 Obtener la foto desde el servidor solo si hay autor y correo
+  if (anuncio.autor && correoAutor) {
+    fetch(
+      "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=" +
+        encodeURIComponent(correoAutor)
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("🖼️ Respuesta foto:", data);
+        const foto =
+          data && data.status === "success" && data.fotoPerfil
+            ? data.fotoPerfil
+            : "";
+        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, foto);
+      })
+      .catch((err) => {
+        console.warn("⚠️ No se pudo obtener la foto del autor:", err);
+        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, "");
       });
-      commentCountValue.textContent = anuncio.comentarios.length;
-    } else {
-      const li = document.createElement("li");
-      li.textContent = "No hay comentarios aún.";
-      commentsList.appendChild(li);
-      commentCountValue.textContent = 0;
-    }
-
-    // ❌ Ya no insertamos foto/autor aquí, se maneja en updateInfo()
+  } else {
+    updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, "");
   }
-}
 
+  // ✅ Mostrar/ocultar el botón fijo (solo si es del autor actual)
+  if (normalizeText(correoAutor) === normalizeText(currentAuthorEmail)) {
+    deleteAnnouncementBtn.classList.add("visible");
+    deleteAnnouncementBtn.onclick = () => {
+      showConfirmationDialog(
+        "¿Estás seguro de que quieres eliminar este anuncio?",
+        () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+      );
+    };
+  } else {
+    deleteAnnouncementBtn.classList.remove("visible");
+  }
+
+  // 🔹 Limpiar comentarios
+  commentsList.innerHTML = "";
+  commentsOverlay.classList.remove("expanded");
+
+  // 🔹 Renderizar comentarios
+  if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+    anuncio.comentarios.forEach((comentario) => {
+      const li = document.createElement("li");
+      li.classList.add("deletable");
+
+      const commentContent = document.createElement("div");
+      commentContent.classList.add("comment-content");
+      commentContent.textContent = comentario.texto;
+
+      const deleteBtnContainer = document.createElement("div");
+      deleteBtnContainer.className = "delete-btn-container";
+      const deleteBtn = document.createElement("div");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "Borrar";
+      deleteBtnContainer.appendChild(deleteBtn);
+
+      li.appendChild(deleteBtnContainer);
+      li.appendChild(commentContent);
+
+      li.dataset.id = comentario.id;
+      li.dataset.correo = comentario.autorCorreo;
+      li.dataset.texto = comentario.textoPuro;
+
+      deleteBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const activeIndex = swiperInstance.realIndex;
+        const currentAnuncio = anunciosData[activeIndex];
+        if (currentAnuncio) {
+          eliminarComentario(
+            currentAnuncio.id,
+            comentario.textoPuro,
+            comentario.autorCorreo
+          );
+        }
+      });
+
+      commentsList.appendChild(li);
+    });
+    commentCountValue.textContent = anuncio.comentarios.length;
+  } else {
+    const li = document.createElement("li");
+    li.textContent = "No hay comentarios aún.";
+    commentsList.appendChild(li);
+    commentCountValue.textContent = 0;
+  }
+
+  // ✅ Foto y autor se manejan SOLO desde updateInfo()
+}
 
 
 
@@ -4658,6 +4664,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
