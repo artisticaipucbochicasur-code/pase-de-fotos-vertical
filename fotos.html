@@ -2273,38 +2273,27 @@ setInterval(() => {
 }, 1000);
 
     
-
-  // 🔹 Toggle título y descripción (expandir/colapsar) con autor
-// 🔹 Toggle título y descripción (expandir/colapsar) con autor limpio
-function updateInfo(title, description, autor = "") {
+  // 🔹 Toggle título y descripción (expandir/colapsar)
+function updateInfo(title, description) {
   // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
-  currentTitle.setAttribute("data-autor", autor);
 
-  // Crear versiones cortas
-  const shortTitleText = title.length > 50 ? title.substring(0, 50) + "..." : title;
-  const shortDescriptionText = description.length > 80 ? description.substring(0, 80) + "..." : description;
+  // Guardar versiones cortas con span estilizado
+  const shortTitle = title.length > 50 
+    ? title.substring(0, 50) + ` <span class="more-link">...más</span>` 
+    : title;
 
-  // 🧩 Solo agregar autor si no es "Anónimo" ni vacío
-  const autorHTML =
-    autor && autor.trim().toLowerCase() !== "anónimo"
-      ? `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`
-      : "";
-
-  // Guardar HTML completo con autor
-  const shortTitle = `${shortTitleText}${autorHTML}`;
-  const fullTitle = `${title}${autorHTML}`;
+  const shortDescription = description.length > 80 
+    ? description.substring(0, 80) + ` <span class="more-link">...más</span>` 
+    : description;
 
   currentTitle.setAttribute("data-short", shortTitle);
-  currentTitle.setAttribute("data-full-html", fullTitle);
-
-  currentDescription.setAttribute("data-short", shortDescriptionText);
-  currentDescription.setAttribute("data-full-html", description);
+  currentDescription.setAttribute("data-short", shortDescription);
 
   // Mostrar versión corta por defecto
   currentTitle.innerHTML = shortTitle;
-  currentDescription.innerHTML = shortDescriptionText;
+  currentDescription.innerHTML = shortDescription;
 
   // Quitar estado expandido
   currentTitle.classList.remove("expanded");
@@ -2317,9 +2306,7 @@ currentTitle.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML =
-      this.getAttribute("data-full-html") +
-      ` <span class="more-link">mostrar menos</span>`;
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -2329,9 +2316,7 @@ currentDescription.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML =
-      this.getAttribute("data-full-html") +
-      ` <span class="more-link">mostrar menos</span>`;
+    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -4647,6 +4632,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
