@@ -3198,48 +3198,96 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
-    // Intro de video 100% compatible con iOS / Android / PC
+   // Intro de video 100% compatible con iOS / Android / PC + botón "Omitir"
+setTimeout(() => {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex";
+
+  // 🎬 Crear video de introducción
+  const videoIntro = document.createElement("video");
+  Object.assign(videoIntro, {
+    src: "Ini.mp4",
+    autoplay: true,
+    muted: true,
+    playsInline: true,
+    preload: "auto",
+  });
+  Object.assign(videoIntro.style, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    objectFit: "cover",
+    zIndex: "999999",
+    backgroundColor: "black",
+    opacity: "0",
+    transition: "opacity 1s ease",
+  });
+  document.body.appendChild(videoIntro);
+
+  // 🟢 Crear botón "Omitir intro"
+  const skipBtn = document.createElement("button");
+  skipBtn.innerText = "Omitir intro";
+  Object.assign(skipBtn.style, {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    padding: "10px 16px",
+    fontSize: "15px",
+    background: "rgba(0,0,0,0.6)",
+    color: "white",
+    border: "1px solid rgba(255,255,255,0.3)",
+    borderRadius: "8px",
+    cursor: "pointer",
+    zIndex: "1000000",
+    opacity: "0",
+    transition: "opacity 0.5s ease",
+    backdropFilter: "blur(6px)",
+  });
+
+  // Al hacer clic en "Omitir", se cierra el video
+  skipBtn.addEventListener("click", () => {
+    videoIntro.style.opacity = "0";
+    skipBtn.style.opacity = "0";
     setTimeout(() => {
-      const loader = document.getElementById("loader");
-      if (loader) loader.style.display = "flex";
-      const videoIntro = document.createElement("video");
-      Object.assign(videoIntro, {
-        src: "Ini.mp4",
-        autoplay: true,
-        muted: true,
-        playsInline: true,
-        preload: "auto",
-      });
-      Object.assign(videoIntro.style, {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        objectFit: "cover",
-        zIndex: "999999",
-        backgroundColor: "black",
-        opacity: "0",
-        transition: "opacity 1s ease",
-      });
-      document.body.appendChild(videoIntro);
-      videoIntro.addEventListener("canplaythrough", () => {
-        if (loader) loader.style.display = "none";
-        videoIntro.style.opacity = "1";
-        videoIntro.play().catch(() => {});
-      });
-      videoIntro.addEventListener("ended", () => {
-        videoIntro.style.opacity = "0";
-        setTimeout(() => videoIntro.remove(), 1000);
-      });
-      setTimeout(() => {
-        if (videoIntro.readyState < 3 || videoIntro.paused) {
-          console.warn("iOS bloqueó autoplay, omitiendo video...");
-          videoIntro.remove();
-          if (loader) loader.style.display = "none";
-        }
-      }, 6000);
-    }, 300);
+      videoIntro.remove();
+      skipBtn.remove();
+    }, 700);
+  });
+
+  // Insertar el botón en el DOM
+  document.body.appendChild(skipBtn);
+
+  // Mostrar el video cuando esté listo
+  videoIntro.addEventListener("canplaythrough", () => {
+    if (loader) loader.style.display = "none";
+    videoIntro.style.opacity = "1";
+    skipBtn.style.opacity = "1"; // Mostrar el botón después de cargar
+    videoIntro.play().catch(() => {});
+  });
+
+  // Al terminar el video, remover ambos elementos
+  videoIntro.addEventListener("ended", () => {
+    videoIntro.style.opacity = "0";
+    skipBtn.style.opacity = "0";
+    setTimeout(() => {
+      videoIntro.remove();
+      skipBtn.remove();
+    }, 1000);
+  });
+
+  // Si iOS bloquea el autoplay o tarda demasiado → omitir automáticamente
+  setTimeout(() => {
+    if (videoIntro.readyState < 3 || videoIntro.paused) {
+      console.warn("iOS bloqueó autoplay, omitiendo video...");
+      videoIntro.remove();
+      skipBtn.remove();
+      if (loader) loader.style.display = "none";
+    }
+  }, 6000);
+}, 300);
+
   const imagesBtn = document.getElementById("imagesBtn");
     if (imagesBtn) {
       imagesBtn.classList.add("selected");
@@ -4514,6 +4562,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
