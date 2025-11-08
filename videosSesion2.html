@@ -2138,14 +2138,14 @@ if (currentUrl.includes("fotos.html")) {
   if (imagesBtn) {
     imagesBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      console.log("📸 Cargando fotos.html sin recargar...");
+      console.log("📸 Cargando galería de fotos sin recargar...");
 
       try {
-        // 🔹 Oculta el contenedor de videos si existe
+        // Oculta los videos
         const contenedorVideos = document.querySelector(".videos-container");
         if (contenedorVideos) contenedorVideos.style.display = "none";
 
-        // 🔹 Mostrar loader
+        // Mostrar loader
         let loader = document.getElementById("loaderFotos");
         if (!loader) {
           loader = document.createElement("div");
@@ -2170,56 +2170,58 @@ if (currentUrl.includes("fotos.html")) {
           loader.style.display = "flex";
         }
 
-        // 🔹 Obtener contenido de fotos.html
+        // Cargar solo la parte principal de fotos.html (sin head ni html)
         const response = await fetch("./fotos.html");
         if (!response.ok) throw new Error("Error al cargar fotos.html");
         const htmlText = await response.text();
 
-        // 🔹 Crear contenedor temporal
+        // Crear contenedor temporal
         const temp = document.createElement("div");
         temp.innerHTML = htmlText;
 
-        // 🔹 Extraer body
-        const bodyContent = temp.querySelector("body");
-        if (!bodyContent) throw new Error("No se encontró el <body> en fotos.html");
+        // Buscar el contenedor principal de las imágenes
+        const galeriaFotos = temp.querySelector("#mainContent, .swiper-wrapper, #galeriaFotos");
+        if (!galeriaFotos) throw new Error("No se encontró la galería en fotos.html");
 
-        // 🔹 Crear contenedor visible
+        // Insertar en el documento actual
         let contenedorFotos = document.getElementById("contenedorFotos");
         if (!contenedorFotos) {
           contenedorFotos = document.createElement("div");
           contenedorFotos.id = "contenedorFotos";
           document.body.appendChild(contenedorFotos);
         }
-        contenedorFotos.innerHTML = bodyContent.innerHTML;
+        contenedorFotos.innerHTML = galeriaFotos.outerHTML;
 
-        // 🔹 Ejecutar los scripts manualmente (sí evalúa)
-        const scripts = temp.querySelectorAll("script");
-        for (const oldScript of scripts) {
-          const newScript = document.createElement("script");
-          if (oldScript.src) {
-            newScript.src = oldScript.src;
-          } else {
-            newScript.textContent = oldScript.textContent;
+        // Cargar scripts de fotos.html (solo internos o uno principal)
+        const scripts = [...temp.querySelectorAll("script")];
+        for (const s of scripts) {
+          if (s.src) {
+            const newScript = document.createElement("script");
+            newScript.src = s.src;
+            document.body.appendChild(newScript);
+            await new Promise((res) => (newScript.onload = res));
+          } else if (s.textContent.includes("cargarImagenes")) {
+            const inlineScript = document.createElement("script");
+            inlineScript.textContent = s.textContent;
+            document.body.appendChild(inlineScript);
           }
-          document.body.appendChild(newScript);
-          await new Promise((res) => newScript.onload = res); // espera carga si es externo
         }
 
-        // 🔹 Esperar a que cargarImagenes esté disponible
-        const esperaFuncion = async (fnName, timeout = 4000) => {
-          const start = Date.now();
+        // Esperar que la función esté lista
+        const esperarFuncion = async (fnName, timeout = 4000) => {
+          const inicio = Date.now();
           while (typeof window[fnName] !== "function") {
-            if (Date.now() - start > timeout) throw new Error(`${fnName} no se encontró`);
+            if (Date.now() - inicio > timeout) throw new Error(`${fnName} no se encontró`);
             await new Promise((r) => setTimeout(r, 100));
           }
           return window[fnName];
         };
 
-        const cargarImagenesFn = await esperaFuncion("cargarImagenes");
+        const cargarImagenesFn = await esperarFuncion("cargarImagenes");
         await cargarImagenesFn();
 
         loader.style.display = "none";
-        console.log("✅ Fotos cargadas correctamente sin recargar la página");
+        console.log("✅ Galería de fotos cargada correctamente");
 
       } catch (error) {
         console.error("❌ Error al cargar fotos dinámicamente:", error);
@@ -4007,6 +4009,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
