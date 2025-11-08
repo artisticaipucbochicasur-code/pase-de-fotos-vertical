@@ -2319,13 +2319,14 @@ function updateInfo(title, description, autor = "Anónimo", fotoPerfil = "") {
   currentDescription.classList.remove("expanded");
 }
 
-
 async function getFotoPerfilPorCorreo(correo) {
   try {
+    const correoNormalizado = correo.trim().toLowerCase();
     const response = await fetch(
-      `${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`
+      `${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correoNormalizado)}`
     );
     const data = await response.json();
+    console.log("Respuesta getFotoPerfil:", data);
     if (data.status === "success" && data.fotoPerfil) {
       return data.fotoPerfil;
     }
@@ -2335,6 +2336,8 @@ async function getFotoPerfilPorCorreo(correo) {
     return "";
   }
 }
+
+
 
 
 
@@ -4633,6 +4636,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
