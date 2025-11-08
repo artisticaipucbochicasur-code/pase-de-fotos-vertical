@@ -2137,22 +2137,61 @@ if (currentUrl.includes("fotos.html")) {
 }
 
 // ======================================================================================
-// 🚀 Evitar cambio de página y ejecutar funciones locales
+// 🚀 Evitar cambio de página y ejecutar funciones locales o cargadas desde fotos.html
 // ======================================================================================
 if (imagesBtn) {
-  imagesBtn.addEventListener("click", (e) => {
-    e.preventDefault(); // evita abrir fotos.html
-    cargarImagenes();   // llama la función directamente
+  imagesBtn.addEventListener("click", async (e) => {
+    e.preventDefault(); // Evita abrir fotos.html
+
+    try {
+      // Verifica si ya existe la función en este documento
+      if (typeof cargarImagenes === "function") {
+        cargarImagenes();
+        return;
+      }
+
+      // Si no existe, la carga desde fotos.html
+      console.log("🔄 Cargando función cargarImagenes() desde fotos.html...");
+
+      const response = await fetch("./fotos.html");
+      if (!response.ok) throw new Error(`No se pudo cargar fotos.html (${response.status})`);
+      const htmlText = await response.text();
+
+      // Crear un DOM temporal y buscar la función dentro de <script>
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, "text/html");
+      const scripts = doc.querySelectorAll("script");
+      let scriptEncontrado = null;
+
+      scripts.forEach((script) => {
+        if (script.textContent.includes("function cargarImagenes")) {
+          scriptEncontrado = script.textContent;
+        }
+      });
+
+      if (!scriptEncontrado) {
+        console.warn("⚠️ No se encontró la función cargarImagenes en fotos.html");
+        return;
+      }
+
+      // Inyectar la función encontrada en el documento actual
+      const scriptEl = document.createElement("script");
+      scriptEl.textContent = scriptEncontrado;
+      document.body.appendChild(scriptEl);
+
+      // Ejecutar la función ahora que ya está disponible
+      if (typeof cargarImagenes === "function") {
+        console.log("✅ Ejecutando cargarImagenes()");
+        cargarImagenes();
+      } else {
+        console.warn("⚠️ La función cargarImagenes() no se pudo inicializar correctamente");
+      }
+    } catch (err) {
+      console.error("❌ Error al cargar función desde fotos.html:", err);
+    }
   });
 }
 
-if (videosBtn) {
-  videosBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    // Si también quieres hacer algo similar para videos, puedes llamar aquí:
-    // cargarVideos(); o tu función equivalente
-  });
-}
 
 
   // 🔔 Inicializar icono de notificaciones
@@ -3927,6 +3966,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
