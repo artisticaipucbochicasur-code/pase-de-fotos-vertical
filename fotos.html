@@ -2275,23 +2275,22 @@ setInterval(() => {
     
 
   // 🔹 Toggle título y descripción (expandir/colapsar) con autor
-function updateInfo(title, description, autor = "Anónimo") {
+// 🔹 Toggle título y descripción (expandir/colapsar) con autor limpio
+function updateInfo(title, description, autor = "") {
   // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
   currentTitle.setAttribute("data-autor", autor);
 
   // Crear versiones cortas
-  const shortTitleText = title.length > 50 
-    ? title.substring(0, 50) + "..."
-    : title;
+  const shortTitleText = title.length > 50 ? title.substring(0, 50) + "..." : title;
+  const shortDescriptionText = description.length > 80 ? description.substring(0, 80) + "..." : description;
 
-  const shortDescriptionText = description.length > 80 
-    ? description.substring(0, 80) + "..."
-    : description;
-
-  // 🆕 Insertar autor junto al título
-  const autorHTML = `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`;
+  // 🧩 Solo agregar autor si no es "Anónimo" ni vacío
+  const autorHTML =
+    autor && autor.trim().toLowerCase() !== "anónimo"
+      ? `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`
+      : "";
 
   // Guardar HTML completo con autor
   const shortTitle = `${shortTitleText}${autorHTML}`;
@@ -2318,7 +2317,9 @@ currentTitle.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
+    this.innerHTML =
+      this.getAttribute("data-full-html") +
+      ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -2328,10 +2329,13 @@ currentDescription.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
+    this.innerHTML =
+      this.getAttribute("data-full-html") +
+      ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
+
 
 
 
@@ -2895,120 +2899,127 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
     
-  function updateContentOverlay(index) {
-    if (anunciosData.length > index) {
-        const anuncio = anunciosData[index];
+ function updateContentOverlay(index) {
+  if (anunciosData.length > index) {
+    const anuncio = anunciosData[index];
 
-        // 🔹 Usar updateInfo para manejar texto corto/largo
-        updateInfo(anuncio.titulo, anuncio.descripcion);
+    // 🔹 Usar updateInfo para manejar texto corto/largo + autor
+    updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-        // ✅ Mostrar/ocultar el botón fijo
-        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            deleteAnnouncementBtn.classList.add("visible");
-            deleteAnnouncementBtn.onclick = () => {
-                showConfirmationDialog(
-                    "¿Estás seguro de que quieres eliminar este anuncio?",
-                    () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-                );
-            };
-        } else {
-            deleteAnnouncementBtn.classList.remove("visible");
-        }
-
-        commentsList.innerHTML = '';
-        commentsOverlay.classList.remove('expanded'); 
-
-        if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-            anuncio.comentarios.forEach(comentario => {
-                const li = document.createElement('li');
-                li.classList.add('deletable');
-
-                const commentContent = document.createElement('div');
-                commentContent.classList.add('comment-content');
-                commentContent.textContent = comentario.texto;
-                
-                const deleteBtnContainer = document.createElement('div');
-                deleteBtnContainer.className = 'delete-btn-container';
-                const deleteBtn = document.createElement('div');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Borrar';
-                deleteBtnContainer.appendChild(deleteBtn);
-                
-                li.appendChild(deleteBtnContainer);
-                li.appendChild(commentContent);
-
-                li.dataset.id = comentario.id;
-                li.dataset.correo = comentario.autorCorreo;
-                li.dataset.texto = comentario.textoPuro;
-                
-                deleteBtn.addEventListener('click', (ev) => {
-                    ev.stopPropagation(); 
-                    const activeIndex = swiperInstance.realIndex;
-                    const currentAnuncio = anunciosData[activeIndex];
-                    if(currentAnuncio) {
-                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
-                    }
-                });
-                
-                commentsList.appendChild(li);
-            });
-            commentCountValue.textContent = anuncio.comentarios.length;
-        } else {
-            const li = document.createElement('li');
-            li.textContent = "No hay comentarios aún.";
-            commentsList.appendChild(li);
-            commentCountValue.textContent = 0;
-        }
-
-        // 🆕 === NUEVO: Mostrar foto y nombre del autor junto al título ===
-        const autorInfoAnterior = document.querySelector(".autor-info");
-        if (autorInfoAnterior) autorInfoAnterior.remove();
-
-        if (anuncio.autor || anuncio.fotoPerfil) {
-            const autorContainer = document.createElement("div");
-            autorContainer.className = "autor-info";
-            autorContainer.style.display = "flex";
-            autorContainer.style.alignItems = "center";
-            autorContainer.style.gap = "8px";
-            autorContainer.style.marginTop = "6px";
-
-            // Imagen del autor
-            const fotoAutor = document.createElement("img");
-            fotoAutor.style.width = "36px";
-            fotoAutor.style.height = "36px";
-            fotoAutor.style.borderRadius = "50%";
-            fotoAutor.style.objectFit = "cover";
-            fotoAutor.style.border = "2px solid #0077cc";
-            fotoAutor.style.backgroundColor = "#eee";
-            fotoAutor.alt = "Foto del autor";
-
-            // Si existe en el anuncio, usarla
-            if (anuncio.fotoPerfil && anuncio.fotoPerfil.trim() !== "") {
-                fotoAutor.src = anuncio.fotoPerfil;
-            } else {
-                // Fallback con iniciales si no tiene imagen
-                const iniciales = (anuncio.autor || "U").split(" ")
-                  .map(p => p.charAt(0).toUpperCase())
-                  .join("")
-                  .substring(0,2);
-                fotoAutor.src = `https://via.placeholder.com/80/0077cc/FFFFFF?text=${iniciales}`;
-            }
-
-            // Nombre del autor
-            const nombreAutor = document.createElement("span");
-            nombreAutor.textContent = anuncio.autor || "Autor desconocido";
-            nombreAutor.style.fontSize = "14px";
-            nombreAutor.style.fontWeight = "500";
-            nombreAutor.style.color = "#0077cc";
-
-            autorContainer.appendChild(fotoAutor);
-            autorContainer.appendChild(nombreAutor);
-
-            // Insertar justo debajo del título
-            currentTitle.insertAdjacentElement("afterend", autorContainer);
-        }
+    // ✅ Mostrar/ocultar el botón fijo
+    if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+      deleteAnnouncementBtn.classList.add("visible");
+      deleteAnnouncementBtn.onclick = () => {
+        showConfirmationDialog(
+          "¿Estás seguro de que quieres eliminar este anuncio?",
+          () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+        );
+      };
+    } else {
+      deleteAnnouncementBtn.classList.remove("visible");
     }
+
+    commentsList.innerHTML = "";
+    commentsOverlay.classList.remove("expanded");
+
+    if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+      anuncio.comentarios.forEach((comentario) => {
+        const li = document.createElement("li");
+        li.classList.add("deletable");
+
+        const commentContent = document.createElement("div");
+        commentContent.classList.add("comment-content");
+        commentContent.textContent = comentario.texto;
+
+        const deleteBtnContainer = document.createElement("div");
+        deleteBtnContainer.className = "delete-btn-container";
+        const deleteBtn = document.createElement("div");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Borrar";
+        deleteBtnContainer.appendChild(deleteBtn);
+
+        li.appendChild(deleteBtnContainer);
+        li.appendChild(commentContent);
+
+        li.dataset.id = comentario.id;
+        li.dataset.correo = comentario.autorCorreo;
+        li.dataset.texto = comentario.textoPuro;
+
+        deleteBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const activeIndex = swiperInstance.realIndex;
+          const currentAnuncio = anunciosData[activeIndex];
+          if (currentAnuncio) {
+            eliminarComentario(
+              currentAnuncio.id,
+              comentario.textoPuro,
+              comentario.autorCorreo
+            );
+          }
+        });
+
+        commentsList.appendChild(li);
+      });
+      commentCountValue.textContent = anuncio.comentarios.length;
+    } else {
+      const li = document.createElement("li");
+      li.textContent = "No hay comentarios aún.";
+      commentsList.appendChild(li);
+      commentCountValue.textContent = 0;
+    }
+
+    // 🆕 Mostrar foto del autor junto al título (sin duplicar)
+    const autorInfoAnterior = document.querySelector(".autor-info");
+    if (autorInfoAnterior) autorInfoAnterior.remove();
+
+    if (anuncio.autor && anuncio.autor.toLowerCase() !== "anónimo") {
+      const autorContainer = document.createElement("div");
+      autorContainer.className = "autor-info";
+      autorContainer.style.display = "flex";
+      autorContainer.style.alignItems = "center";
+      autorContainer.style.gap = "8px";
+      autorContainer.style.marginTop = "6px";
+
+      const fotoAutor = document.createElement("img");
+      fotoAutor.style.width = "36px";
+      fotoAutor.style.height = "36px";
+      fotoAutor.style.borderRadius = "50%";
+      fotoAutor.style.objectFit = "cover";
+      fotoAutor.style.border = "2px solid #0077cc";
+      fotoAutor.style.backgroundColor = "#eee";
+      fotoAutor.alt = "Foto del autor";
+
+      if (anuncio.fotoPerfil && anuncio.fotoPerfil.trim() !== "") {
+        fotoAutor.src = anuncio.fotoPerfil;
+      } else {
+        // Fallback: iniciales
+        const iniciales = (anuncio.autor || "U")
+          .split(" ")
+          .map((p) => p.charAt(0).toUpperCase())
+          .join("")
+          .substring(0, 2);
+        fotoAutor.src = `https://via.placeholder.com/80/0077cc/FFFFFF?text=${iniciales}`;
+      }
+
+      fotoAutor.onerror = () => {
+        fotoAutor.src =
+          "https://via.placeholder.com/80/cccccc/FFFFFF?text=US";
+      };
+
+      const nombreAutor = document.createElement("span");
+      nombreAutor.textContent = anuncio.autor;
+      nombreAutor.style.fontSize = "14px";
+      nombreAutor.style.fontWeight = "500";
+      nombreAutor.style.color = "#0077cc";
+
+      autorContainer.appendChild(fotoAutor);
+      autorContainer.appendChild(nombreAutor);
+
+      currentTitle.insertAdjacentElement("afterend", autorContainer);
+    }
+  }
 }
+
 
 
 
@@ -4636,5 +4647,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
