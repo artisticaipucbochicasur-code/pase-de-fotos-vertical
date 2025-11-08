@@ -3180,14 +3180,20 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
-    // Intro de video 100% compatible con iOS / Android / PC
+// ======================================================================================
+// 🎬 Intro de video 100% compatible con iOS / Android / PC
+// (No se muestra al iniciar ni al cerrar sesión)
+// ======================================================================================
+
+// Verifica si venimos de un inicio/cierre de sesión reciente
 const evitandoIntro = sessionStorage.getItem("evitarIntro");
 
-// Solo ejecuta si NO venimos de un inicio/cierre de sesión reciente
+// Solo ejecuta si NO venimos de un inicio o cierre de sesión
 if (!evitandoIntro) {
   setTimeout(() => {
     const loader = document.getElementById("loader");
     if (loader) loader.style.display = "flex";
+
     const videoIntro = document.createElement("video");
     Object.assign(videoIntro, {
       src: "Ini.mp4",
@@ -3208,6 +3214,7 @@ if (!evitandoIntro) {
       opacity: "0",
       transition: "opacity 1s ease",
     });
+
     document.body.appendChild(videoIntro);
 
     videoIntro.addEventListener("canplaythrough", () => {
@@ -3221,7 +3228,7 @@ if (!evitandoIntro) {
       setTimeout(() => videoIntro.remove(), 1000);
     });
 
-    // fallback si iOS bloquea autoplay
+    // Fallback si iOS bloquea autoplay
     setTimeout(() => {
       if (videoIntro.readyState < 3 || videoIntro.paused) {
         console.warn("iOS bloqueó autoplay, omitiendo video...");
@@ -3230,16 +3237,21 @@ if (!evitandoIntro) {
       }
     }, 6000);
   }, 300);
-} else {
-  // 🔁 limpiar la bandera después de evitar una vez
-  sessionStorage.removeItem("evitarIntro");
 }
 
-// ✅ Marca para evitar el video en el siguiente reload después de login/logout
+// ======================================================================================
+// 🧭 Control para marcar inicio/cierre de sesión y evitar intro al recargar
+// ======================================================================================
 window.addEventListener("beforeunload", () => {
-  // Si se va a iniciar o cerrar sesión, algún script debería marcarlo
-  if (sessionStorage.getItem("loginEnProgreso") || sessionStorage.getItem("logoutEnProgreso")) {
+  if (
+    sessionStorage.getItem("loginEnProgreso") ||
+    sessionStorage.getItem("logoutEnProgreso")
+  ) {
+    // Marca que se debe saltar el video en el próximo reload
     sessionStorage.setItem("evitarIntro", "true");
+  } else {
+    // Limpia la marca si no hay transición de sesión
+    sessionStorage.removeItem("evitarIntro");
   }
 
   
@@ -4496,6 +4508,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
