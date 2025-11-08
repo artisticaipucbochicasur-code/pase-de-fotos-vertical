@@ -3180,68 +3180,69 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
- // ================================
-  // 🎬 Video de introducción (solo 1 vez si NO hay sesión activa)
-  // ================================
-  const usuarioIntro = JSON.parse(localStorage.getItem("usuario"));
-  const yaVisto = localStorage.getItem("introVisto");
+    // Intro de video 100% compatible con iOS / Android / PC
+const evitandoIntro = sessionStorage.getItem("evitarIntro");
 
-  // Solo mostrar si NO hay sesión activa y NO se ha visto antes
-  if (!usuarioIntro && !yaVisto) {
+// Solo ejecuta si NO venimos de un inicio/cierre de sesión reciente
+if (!evitandoIntro) {
+  setTimeout(() => {
+    const loader = document.getElementById("loader");
+    if (loader) loader.style.display = "flex";
+    const videoIntro = document.createElement("video");
+    Object.assign(videoIntro, {
+      src: "Ini.mp4",
+      autoplay: true,
+      muted: true,
+      playsInline: true,
+      preload: "auto",
+    });
+    Object.assign(videoIntro.style, {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      objectFit: "cover",
+      zIndex: "999999",
+      backgroundColor: "black",
+      opacity: "0",
+      transition: "opacity 1s ease",
+    });
+    document.body.appendChild(videoIntro);
+
+    videoIntro.addEventListener("canplaythrough", () => {
+      if (loader) loader.style.display = "none";
+      videoIntro.style.opacity = "1";
+      videoIntro.play().catch(() => {});
+    });
+
+    videoIntro.addEventListener("ended", () => {
+      videoIntro.style.opacity = "0";
+      setTimeout(() => videoIntro.remove(), 1000);
+    });
+
+    // fallback si iOS bloquea autoplay
     setTimeout(() => {
-      const loader = document.getElementById("loader");
-      if (loader) loader.style.display = "flex";
-
-      const videoIntro = document.createElement("video");
-      Object.assign(videoIntro, {
-        src: "Ini.mp4",
-        autoplay: true,
-        muted: true,
-        playsInline: true,
-        preload: "auto",
-      });
-      Object.assign(videoIntro.style, {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        objectFit: "cover",
-        zIndex: "999999",
-        backgroundColor: "black",
-        opacity: "0",
-        transition: "opacity 1s ease",
-      });
-
-      document.body.appendChild(videoIntro);
-
-      videoIntro.addEventListener("canplaythrough", () => {
+      if (videoIntro.readyState < 3 || videoIntro.paused) {
+        console.warn("iOS bloqueó autoplay, omitiendo video...");
+        videoIntro.remove();
         if (loader) loader.style.display = "none";
-        videoIntro.style.opacity = "1";
-        videoIntro.play().catch(() => {});
-      });
+      }
+    }, 6000);
+  }, 300);
+} else {
+  // 🔁 limpiar la bandera después de evitar una vez
+  sessionStorage.removeItem("evitarIntro");
+}
 
-      videoIntro.addEventListener("ended", () => {
-        videoIntro.style.opacity = "0";
-        setTimeout(() => {
-          videoIntro.remove();
-          localStorage.setItem("introVisto", "true"); // ✅ marcar que ya se mostró
-        }, 1000);
-      });
-
-      // Fallback si iOS bloquea autoplay
-      setTimeout(() => {
-        if (videoIntro.readyState < 3 || videoIntro.paused) {
-          console.warn("iOS bloqueó autoplay, omitiendo video...");
-          videoIntro.remove();
-          if (loader) loader.style.display = "none";
-          localStorage.setItem("introVisto", "true");
-        }
-      }, 6000);
-    }, 300);
+// ✅ Marca para evitar el video en el siguiente reload después de login/logout
+window.addEventListener("beforeunload", () => {
+  // Si se va a iniciar o cerrar sesión, algún script debería marcarlo
+  if (sessionStorage.getItem("loginEnProgreso") || sessionStorage.getItem("logoutEnProgreso")) {
+    sessionStorage.setItem("evitarIntro", "true");
   }
+
   
-   
   const imagesBtn = document.getElementById("imagesBtn");
     if (imagesBtn) {
       imagesBtn.classList.add("selected");
@@ -4495,9 +4496,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
 
 
 
