@@ -2960,27 +2960,52 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
             commentCountValue.textContent = 0;
         }
 
-        // 🆕 Mostrar el autor junto al título como enlace clickeable de WhatsApp
-        const autorAnterior = document.querySelector(".autor-anuncio");
-        if (autorAnterior) autorAnterior.remove(); // Evitar duplicados
+        // 🆕 === NUEVO: Mostrar foto y nombre del autor junto al título ===
+        const autorInfoAnterior = document.querySelector(".autor-info");
+        if (autorInfoAnterior) autorInfoAnterior.remove();
 
-        if (anuncio.autor) {
-            const linkAutor = document.createElement("a");
-            linkAutor.className = "autor-anuncio";
-            linkAutor.textContent = ` — ${anuncio.autor}`;
-            linkAutor.style.fontSize = "13px";
-            linkAutor.style.color = "#25D366";
-            linkAutor.style.marginLeft = "8px";
-            linkAutor.style.textDecoration = "none";
-            linkAutor.style.cursor = "pointer";
+        if (anuncio.autor || anuncio.fotoPerfil) {
+            const autorContainer = document.createElement("div");
+            autorContainer.className = "autor-info";
+            autorContainer.style.display = "flex";
+            autorContainer.style.alignItems = "center";
+            autorContainer.style.gap = "8px";
+            autorContainer.style.marginTop = "6px";
 
-            // 🔗 Enlace a WhatsApp
-            const numeroWhatsApp = "573001234567"; // <-- 🔹 pon aquí tu número (sin +)
-            const mensaje = encodeURIComponent(`Hola ${anuncio.autor}, vi tu publicación en DECOM y me interesa.`);
-            linkAutor.href = `https://wa.me/${numeroWhatsApp}?text=${mensaje}`;
-            linkAutor.target = "_blank";
+            // Imagen del autor
+            const fotoAutor = document.createElement("img");
+            fotoAutor.style.width = "36px";
+            fotoAutor.style.height = "36px";
+            fotoAutor.style.borderRadius = "50%";
+            fotoAutor.style.objectFit = "cover";
+            fotoAutor.style.border = "2px solid #0077cc";
+            fotoAutor.style.backgroundColor = "#eee";
+            fotoAutor.alt = "Foto del autor";
 
-            currentTitle.appendChild(linkAutor);
+            // Si existe en el anuncio, usarla
+            if (anuncio.fotoPerfil && anuncio.fotoPerfil.trim() !== "") {
+                fotoAutor.src = anuncio.fotoPerfil;
+            } else {
+                // Fallback con iniciales si no tiene imagen
+                const iniciales = (anuncio.autor || "U").split(" ")
+                  .map(p => p.charAt(0).toUpperCase())
+                  .join("")
+                  .substring(0,2);
+                fotoAutor.src = `https://via.placeholder.com/80/0077cc/FFFFFF?text=${iniciales}`;
+            }
+
+            // Nombre del autor
+            const nombreAutor = document.createElement("span");
+            nombreAutor.textContent = anuncio.autor || "Autor desconocido";
+            nombreAutor.style.fontSize = "14px";
+            nombreAutor.style.fontWeight = "500";
+            nombreAutor.style.color = "#0077cc";
+
+            autorContainer.appendChild(fotoAutor);
+            autorContainer.appendChild(nombreAutor);
+
+            // Insertar justo debajo del título
+            currentTitle.insertAdjacentElement("afterend", autorContainer);
         }
     }
 }
@@ -4611,17 +4636,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
 
 
