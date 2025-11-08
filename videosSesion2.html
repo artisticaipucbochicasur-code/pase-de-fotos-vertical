@@ -2125,7 +2125,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   // 👇 Ajuste DOM para navegación local dentro del mismo repositorio
   // ======================================================================================
-
   const currentUrl = window.location.href;
   const imagesBtn = document.querySelector('a[href="./fotos.html"]');
   const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
@@ -2137,23 +2136,113 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================================================================================
-  // 🖼️ SOLO EJECUTAR cargarImagenes() SIN RECARGAR LA PÁGINA
+  // 🖼️ CARGAR fotos.html dentro de videosSesion2 SIN RECARGAR
   // ======================================================================================
+  async function cargarFotosDesdeVideos() {
+    try {
+      console.log("🖼️ Cargando fotos dentro de videosSesion2...");
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "flex";
+
+      // Ocultar contenido de videos
+      const videosContent = document.getElementById("mainContent") || document.body;
+      videosContent.style.display = "none";
+
+      // Crear contenedor temporal
+      const res = await fetch("./fotos.html");
+      if (!res.ok) throw new Error("No se pudo cargar fotos.html");
+
+      const html = await res.text();
+      const temp = document.createElement("div");
+      temp.innerHTML = html;
+
+      // Buscar el contenido principal de fotos.html
+      const fotosSection = temp.querySelector(".swiper") || temp.querySelector("body");
+      if (!fotosSection) throw new Error("No se encontró la sección de fotos en fotos.html");
+
+      // Crear contenedor dinámico
+      let fotosContainer = document.getElementById("fotosInlineContainer");
+      if (!fotosContainer) {
+        fotosContainer = document.createElement("div");
+        fotosContainer.id = "fotosInlineContainer";
+        fotosContainer.style.minHeight = "100vh";
+        fotosContainer.style.background = "#111";
+        fotosContainer.style.color = "#fff";
+        document.body.appendChild(fotosContainer);
+      }
+
+      fotosContainer.innerHTML = "";
+      fotosContainer.appendChild(fotosSection.cloneNode(true));
+
+      // Cargar scripts embebidos o externos de fotos.html
+      const scripts = temp.querySelectorAll("script");
+      for (const oldScript of scripts) {
+        const newScript = document.createElement("script");
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+          await new Promise((resolve) => {
+            newScript.onload = resolve;
+            newScript.onerror = resolve;
+            document.body.appendChild(newScript);
+          });
+        } else {
+          newScript.textContent = oldScript.textContent;
+          document.body.appendChild(newScript);
+        }
+      }
+
+      // Esperar y ejecutar cargarImagenes()
+      const esperarFn = async (nombreFn, max = 6000) => {
+        const start = Date.now();
+        while (typeof window[nombreFn] !== "function") {
+          if (Date.now() - start > max) throw new Error(`${nombreFn} no encontrada`);
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        return window[nombreFn];
+      };
+
+      const fn = await esperarFn("cargarImagenes");
+      fn();
+
+      // Crear botón "Volver a Videos"
+      if (!document.getElementById("volverVideosBtn")) {
+        const volver = document.createElement("button");
+        volver.id = "volverVideosBtn";
+        volver.textContent = "← Volver a videos";
+        Object.assign(volver.style, {
+          position: "fixed",
+          top: "72px",
+          left: "12px",
+          zIndex: 10001,
+          padding: "8px 12px",
+          borderRadius: "8px",
+          background: "#00000088",
+          color: "#fff",
+          border: "1px solid #444",
+          cursor: "pointer"
+        });
+        volver.addEventListener("click", () => {
+          fotosContainer.remove();
+          videosContent.style.display = "block";
+          volver.remove();
+        });
+        document.body.appendChild(volver);
+      }
+
+    } catch (err) {
+      console.error("❌ Error al cargar fotos:", err);
+      alert("Error al cargar las fotos. Revisa la consola para más detalles.");
+    } finally {
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "none";
+    }
+  }
+
+  // Vincular el botón de imágenes
   if (imagesBtn) {
     imagesBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      console.log("🖼️ Botón de imágenes presionado...");
-
-      if (typeof cargarImagenes === "function") {
-        console.log("✅ Ejecutando cargarImagenes() sin recargar la página...");
-        try {
-          cargarImagenes();
-        } catch (err) {
-          console.error("❌ Error al ejecutar cargarImagenes():", err);
-        }
-      } else {
-        console.warn("⚠️ La función cargarImagenes() no está disponible en este contexto.");
-      }
+      cargarFotosDesdeVideos();
     });
   }
 
@@ -3929,6 +4018,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
