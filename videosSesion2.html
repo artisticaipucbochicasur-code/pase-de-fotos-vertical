@@ -2133,69 +2133,70 @@ document.addEventListener("DOMContentLoaded", () => {
     videosBtn?.classList.add("selected");
   }
 
-  // ======================================================================================
-  // 🚀 Evitar cambio de página y ejecutar funciones locales o cargadas desde fotos.html
-  // ======================================================================================
-  if (imagesBtn) {
-    imagesBtn.addEventListener("click", async (e) => {
-      e.preventDefault();
+ // ======================================================================================
+// 🚀 Evitar cambio de página y ejecutar función cargarImagenes() de fotos.html sin recargar
+// ======================================================================================
+if (imagesBtn) {
+  imagesBtn.addEventListener("click", async (e) => {
+    e.preventDefault(); // Evita abrir fotos.html completamente
 
-      try {
-        if (typeof cargarImagenes === "function") {
-          console.log("🟢 Ejecutando cargarImagenes() existente");
-          cargarImagenes();
-          return;
+    try {
+      // 1️⃣ Si la función ya está cargada, solo ejecútala
+      if (typeof cargarImagenes === "function") {
+        console.log("✅ Ejecutando cargarImagenes() existente");
+        cargarImagenes();
+        return;
+      }
+
+      // 2️⃣ Si no existe, traer el contenido de fotos.html
+      console.log("🔄 Importando función cargarImagenes() desde fotos.html...");
+      const response = await fetch("./fotos.html");
+      if (!response.ok) throw new Error(`Error al cargar fotos.html (${response.status})`);
+      const htmlText = await response.text();
+
+      // 3️⃣ Crear un DOM temporal
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, "text/html");
+
+      // 4️⃣ Extraer los scripts de fotos.html
+      const scripts = doc.querySelectorAll("script");
+      let funcionEncontrada = null;
+      scripts.forEach((script) => {
+        if (script.textContent.includes("function cargarImagenes")) {
+          funcionEncontrada = script.textContent;
         }
+      });
 
-        console.log("🔄 Importando contenido desde fotos.html...");
+      // 5️⃣ Si se encontró la función, inyectarla dinámicamente
+      if (funcionEncontrada) {
+        const scriptEl = document.createElement("script");
+        scriptEl.textContent = funcionEncontrada;
+        document.body.appendChild(scriptEl);
 
-        const response = await fetch("./fotos.html");
-        if (!response.ok) throw new Error(`No se pudo cargar fotos.html (${response.status})`);
-        const htmlText = await response.text();
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlText, "text/html");
-
-        // 1️⃣ Inyectar librerías externas si no están cargadas
-        doc.querySelectorAll('script[src]').forEach((s) => {
-          if (![...document.scripts].some(d => d.src === s.src)) {
-            const newScript = document.createElement("script");
-            newScript.src = s.src;
-            document.body.appendChild(newScript);
-          }
-        });
-
-        // 2️⃣ Inyectar script con la función cargarImagenes()
-        doc.querySelectorAll("script").forEach((script) => {
-          if (script.textContent.includes("function cargarImagenes")) {
-            const inlineScript = document.createElement("script");
-            inlineScript.textContent = script.textContent;
-            document.body.appendChild(inlineScript);
-          }
-        });
-
-        // 3️⃣ Insertar elementos clave del DOM de fotos.html si no existen
-        const loader = doc.querySelector("#loader");
-        if (loader && !document.querySelector("#loader")) document.body.appendChild(loader);
-
-        const contenedor = doc.querySelector("#contenedorImagenes");
-        if (contenedor && !document.querySelector("#contenedorImagenes"))
-          document.body.appendChild(contenedor);
-
-        // 4️⃣ Esperar que todo cargue y ejecutar la función
-        await new Promise((r) => setTimeout(r, 400));
-
+        console.log("✅ Función cargarImagenes() importada correctamente");
         if (typeof cargarImagenes === "function") {
-          console.log("✅ Ejecutando cargarImagenes() importada");
           cargarImagenes();
         } else {
-          console.warn("⚠️ No se pudo inicializar cargarImagenes()");
+          console.warn("⚠️ La función no se inicializó correctamente.");
         }
-      } catch (err) {
-        console.error("❌ Error al importar desde fotos.html:", err);
+      } else {
+        console.warn("⚠️ No se encontró cargarImagenes() dentro de fotos.html");
       }
-    });
-  }
+
+      // 6️⃣ (Opcional) Si deseas traer también el contenedor de imágenes del HTML:
+      const contenedorFotos = doc.querySelector("#contenedorFotos");
+      if (contenedorFotos) {
+        const existente = document.querySelector("#contenedorFotos");
+        if (existente) existente.remove();
+        document.body.appendChild(contenedorFotos);
+        console.log("🖼️ Contenedor de imágenes insertado en el documento actual.");
+      }
+    } catch (err) {
+      console.error("❌ Error al cargar dinámicamente cargarImagenes():", err);
+    }
+  });
+}
+
 
   // 🔔 Inicializar icono de notificaciones
   const lblContador = document.getElementById("lblContador");
@@ -3958,6 +3959,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
