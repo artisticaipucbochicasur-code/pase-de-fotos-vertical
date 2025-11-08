@@ -2084,40 +2084,40 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => (overlay.style.opacity = "1"), 50);
 
     if (btnLogin) {
-  btnLogin.addEventListener("click", () => {
-    const nombre = document.getElementById("loginNombre").value.trim();
-    const correo = document.getElementById("loginCorreo").value.trim();
+      btnLogin.addEventListener("click", () => {
+        const nombre = document.getElementById("loginNombre").value.trim();
+        const correo = document.getElementById("loginCorreo").value.trim();
 
-    if (!nombre || !correo) {
-      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-      return;
+        if (!nombre || !correo) {
+          mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+          return;
+        }
+
+        // ✅ Validación de correo
+        const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!correoValido.test(correo)) {
+          mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+          return;
+        }
+
+        const usuario = { nombre, correo };
+
+        currentAuthorName = nombre;
+        currentAuthorEmail = correo;
+
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        localStorage.setItem("autor", nombre);
+        localStorage.setItem("correo", correo);
+
+        modal.style.display = "none";
+        mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+        overlay.style.opacity = "0";
+        setTimeout(() => overlay.remove(), 400);
+
+        location.reload();
+      });
     }
-
-    // ✅ Validación de correo
-    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!correoValido.test(correo)) {
-      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
-      return;
-    }
-
-    const usuario = { nombre, correo };
-
-    currentAuthorName = nombre;
-    currentAuthorEmail = correo;
-
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    localStorage.setItem("autor", nombre);
-    localStorage.setItem("correo", correo);
-
-    modal.style.display = "none";
-    mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-    overlay.style.opacity = "0";
-    setTimeout(() => overlay.remove(), 400);
-
-    location.reload();
-  });
-}
 
     return; // No ejecutar el resto hasta iniciar sesión
   }
@@ -2192,7 +2192,7 @@ document.addEventListener("DOMContentLoaded", () => {
       currentAuthorEmail = u.correo;
     }
 
-    // 🔹 Mostrar comentarios al iniciar sesión (como antes)
+    // 🔹 Mostrar comentarios al iniciar sesión
     const commentsOverlay = document.getElementById("commentsOverlay");
     const commentsCounter = document.getElementById("commentsCounter");
     const commentInputContainer = document.querySelector(".comment-input-container");
@@ -2220,8 +2220,62 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1200);
     });
   }
-});
 
+  // ======================================================================================
+  // 🖼️ FUNCIÓN PARA CARGAR FOTOS DESDE videosSesion2.html
+  // ======================================================================================
+  async function cargarFotosDesdeVideos() {
+    try {
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "flex";
+
+      const response = await fetch("fotos.html");
+      if (!response.ok) throw new Error("No se pudo cargar fotos.html");
+
+      const htmlText = await response.text();
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlText;
+
+      const fotosSection = tempDiv.querySelector(".swiper") || tempDiv.querySelector("body");
+      if (!fotosSection) throw new Error("No se encontró la sección de fotos en fotos.html");
+
+      const mainContent = document.getElementById("mainContent") || document.body;
+      mainContent.innerHTML = "";
+      mainContent.appendChild(fotosSection.cloneNode(true));
+
+      // Reinsertar scripts de fotos.html
+      tempDiv.querySelectorAll("script").forEach(oldScript => {
+        const newScript = document.createElement("script");
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+        } else {
+          newScript.textContent = oldScript.textContent;
+        }
+        document.body.appendChild(newScript);
+      });
+
+      if (typeof cargarImagenes === "function") {
+        cargarImagenes();
+      }
+
+    } catch (err) {
+      console.error("Error al cargar fotos:", err);
+      alert("Error al cargar las fotos. Revisa la consola para más detalles.");
+    } finally {
+      const loader = document.getElementById("loader");
+      if (loader) loader.style.display = "none";
+    }
+  }
+
+  // Vincular el botón de imágenes (si existe)
+  const btnFotos = document.querySelector('a[href="./fotos.html"]');
+  if (btnFotos) {
+    btnFotos.addEventListener("click", (e) => {
+      e.preventDefault();
+      cargarFotosDesdeVideos();
+    });
+  }
+});
 
 
 
@@ -3909,6 +3963,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
