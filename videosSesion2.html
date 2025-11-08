@@ -2084,118 +2084,121 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => (overlay.style.opacity = "1"), 50);
 
     if (btnLogin) {
-  btnLogin.addEventListener("click", () => {
-    const nombre = document.getElementById("loginNombre").value.trim();
-    const correo = document.getElementById("loginCorreo").value.trim();
+      btnLogin.addEventListener("click", () => {
+        const nombre = document.getElementById("loginNombre").value.trim();
+        const correo = document.getElementById("loginCorreo").value.trim();
 
-    if (!nombre || !correo) {
-      mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-      return;
+        if (!nombre || !correo) {
+          mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
+          return;
+        }
+
+        // ✅ Validación de correo
+        const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!correoValido.test(correo)) {
+          mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
+          return;
+        }
+
+        const usuario = { nombre, correo };
+        currentAuthorName = nombre;
+        currentAuthorEmail = correo;
+
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        localStorage.setItem("autor", nombre);
+        localStorage.setItem("correo", correo);
+
+        modal.style.display = "none";
+        mostrarAviso("✅ Sesión iniciada correctamente", "success");
+
+        overlay.style.opacity = "0";
+        setTimeout(() => overlay.remove(), 400);
+        location.reload();
+      });
     }
-
-    // ✅ Validación de correo
-    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!correoValido.test(correo)) {
-      mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
-      return;
-    }
-
-    const usuario = { nombre, correo };
-
-    currentAuthorName = nombre;
-    currentAuthorEmail = correo;
-
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    localStorage.setItem("autor", nombre);
-    localStorage.setItem("correo", correo);
-
-    modal.style.display = "none";
-    mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
-    overlay.style.opacity = "0";
-    setTimeout(() => overlay.remove(), 400);
-
-    location.reload();
-  });
-}
 
     return; // No ejecutar el resto hasta iniciar sesión
   }
 
- // ======================================================================================
-// 👇 Ajuste DOM para navegación local dentro del mismo repositorio
-// ======================================================================================
-const currentUrl = window.location.href;
-const imagesBtn = document.querySelector('a[href="./fotos.html"]');
-const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
+  // ======================================================================================
+  // 👇 Ajuste DOM para navegación local dentro del mismo repositorio
+  // ======================================================================================
+  const currentUrl = window.location.href;
+  const imagesBtn = document.querySelector('a[href="./fotos.html"]');
+  const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
 
-// Marcar el botón actual
-if (currentUrl.includes("fotos.html")) {
-  imagesBtn?.classList.add("selected");
-} else if (currentUrl.includes("videosSesion2.html")) {
-  videosBtn?.classList.add("selected");
-}
+  if (currentUrl.includes("fotos.html")) {
+    imagesBtn?.classList.add("selected");
+  } else if (currentUrl.includes("videosSesion2.html")) {
+    videosBtn?.classList.add("selected");
+  }
 
-// ======================================================================================
-// 🚀 Evitar cambio de página y ejecutar funciones locales o cargadas desde fotos.html
-// ======================================================================================
-if (imagesBtn) {
-  imagesBtn.addEventListener("click", async (e) => {
-    e.preventDefault(); // Evita abrir fotos.html
+  // ======================================================================================
+  // 🚀 Evitar cambio de página y ejecutar funciones locales o cargadas desde fotos.html
+  // ======================================================================================
+  if (imagesBtn) {
+    imagesBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
 
-    try {
-      // Verifica si ya existe la función en este documento
-      if (typeof cargarImagenes === "function") {
-        cargarImagenes();
-        return;
-      }
-
-      // Si no existe, la carga desde fotos.html
-      console.log("🔄 Cargando función cargarImagenes() desde fotos.html...");
-
-      const response = await fetch("./fotos.html");
-      if (!response.ok) throw new Error(`No se pudo cargar fotos.html (${response.status})`);
-      const htmlText = await response.text();
-
-      // Crear un DOM temporal y buscar la función dentro de <script>
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlText, "text/html");
-      const scripts = doc.querySelectorAll("script");
-      let scriptEncontrado = null;
-
-      scripts.forEach((script) => {
-        if (script.textContent.includes("function cargarImagenes")) {
-          scriptEncontrado = script.textContent;
+      try {
+        if (typeof cargarImagenes === "function") {
+          console.log("🟢 Ejecutando cargarImagenes() existente");
+          cargarImagenes();
+          return;
         }
-      });
 
-      if (!scriptEncontrado) {
-        console.warn("⚠️ No se encontró la función cargarImagenes en fotos.html");
-        return;
+        console.log("🔄 Importando contenido desde fotos.html...");
+
+        const response = await fetch("./fotos.html");
+        if (!response.ok) throw new Error(`No se pudo cargar fotos.html (${response.status})`);
+        const htmlText = await response.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, "text/html");
+
+        // 1️⃣ Inyectar librerías externas si no están cargadas
+        doc.querySelectorAll('script[src]').forEach((s) => {
+          if (![...document.scripts].some(d => d.src === s.src)) {
+            const newScript = document.createElement("script");
+            newScript.src = s.src;
+            document.body.appendChild(newScript);
+          }
+        });
+
+        // 2️⃣ Inyectar script con la función cargarImagenes()
+        doc.querySelectorAll("script").forEach((script) => {
+          if (script.textContent.includes("function cargarImagenes")) {
+            const inlineScript = document.createElement("script");
+            inlineScript.textContent = script.textContent;
+            document.body.appendChild(inlineScript);
+          }
+        });
+
+        // 3️⃣ Insertar elementos clave del DOM de fotos.html si no existen
+        const loader = doc.querySelector("#loader");
+        if (loader && !document.querySelector("#loader")) document.body.appendChild(loader);
+
+        const contenedor = doc.querySelector("#contenedorImagenes");
+        if (contenedor && !document.querySelector("#contenedorImagenes"))
+          document.body.appendChild(contenedor);
+
+        // 4️⃣ Esperar que todo cargue y ejecutar la función
+        await new Promise((r) => setTimeout(r, 400));
+
+        if (typeof cargarImagenes === "function") {
+          console.log("✅ Ejecutando cargarImagenes() importada");
+          cargarImagenes();
+        } else {
+          console.warn("⚠️ No se pudo inicializar cargarImagenes()");
+        }
+      } catch (err) {
+        console.error("❌ Error al importar desde fotos.html:", err);
       }
-
-      // Inyectar la función encontrada en el documento actual
-      const scriptEl = document.createElement("script");
-      scriptEl.textContent = scriptEncontrado;
-      document.body.appendChild(scriptEl);
-
-      // Ejecutar la función ahora que ya está disponible
-      if (typeof cargarImagenes === "function") {
-        console.log("✅ Ejecutando cargarImagenes()");
-        cargarImagenes();
-      } else {
-        console.warn("⚠️ La función cargarImagenes() no se pudo inicializar correctamente");
-      }
-    } catch (err) {
-      console.error("❌ Error al cargar función desde fotos.html:", err);
-    }
-  });
-}
-
-
+    });
+  }
 
   // 🔔 Inicializar icono de notificaciones
-  const lblContador = document.getElementById('lblContador');
+  const lblContador = document.getElementById("lblContador");
   if (lblContador) {
     lblContador.innerHTML = `
       <i class="far fa-bell"></i>
@@ -2213,15 +2216,11 @@ if (imagesBtn) {
           if (data.action === "updateUserData") {
             currentAuthorEmail = data.email;
             currentAuthorName = data.name;
-
             localStorage.setItem("autor", currentAuthorName || "");
             localStorage.setItem("correo", currentAuthorEmail || "");
-
             console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
           }
-        } catch (e) {
-          // Otros comandos
-        }
+        } catch (e) {}
       }
     }, 500);
   }
@@ -2242,15 +2241,12 @@ if (imagesBtn) {
       userBtn.textContent = iniciales;
       userName.textContent = u.nombre;
       userEmail.textContent = u.correo;
-
       userName.style.color = "#333";
       userEmail.style.color = "#555";
-
       currentAuthorName = u.nombre;
       currentAuthorEmail = u.correo;
     }
 
-    // 🔹 Mostrar comentarios al iniciar sesión (como antes)
     const commentsOverlay = document.getElementById("commentsOverlay");
     const commentsCounter = document.getElementById("commentsCounter");
     const commentInputContainer = document.querySelector(".comment-input-container");
@@ -2270,12 +2266,8 @@ if (imagesBtn) {
       currentAuthorName = "";
       currentAuthorEmail = "";
       userMenu.style.display = "none";
-
       mostrarAviso("🚪 Sesión cerrada", "info");
-
-      setTimeout(() => {
-        location.reload();
-      }, 1200);
+      setTimeout(() => location.reload(), 1200);
     });
   }
 });
@@ -3966,6 +3958,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
