@@ -2249,12 +2249,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================================================
   // 🛑 BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA (LOGIN + REGISTRO)
   // ======================================================================================
-  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+  let usuario = JSON.parse(localStorage.getItem("usuario")) || null;
   const modal = document.getElementById("loginModal");
   const btnLogin = document.getElementById("btnLogin");
   const btnRegistro = document.getElementById("btnRegistro");
 
-  if (!usuarioGuardado) {
+  if (!usuario) {
     const overlay = document.createElement("div");
     Object.assign(overlay.style, {
       position: "fixed",
@@ -2293,33 +2293,21 @@ document.addEventListener("DOMContentLoaded", () => {
       btnLogin.addEventListener("click", () => {
         const nombre = document.getElementById("loginNombre").value.trim();
         const correo = document.getElementById("loginCorreo").value.trim();
-
-        if (!nombre || !correo) {
-          mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-          return;
-        }
+        if (!nombre || !correo) return mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
 
         const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!correoValido.test(correo)) {
-          mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
-          return;
-        }
+        if (!correoValido.test(correo)) return mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
 
-        const usuario = { nombre, correo };
-        currentAuthorName = nombre;
-        currentAuthorEmail = correo;
-
+        usuario = usuario || {};
+        usuario.nombre = nombre;
+        usuario.correo = correo;
         localStorage.setItem("usuario", JSON.stringify(usuario));
-        localStorage.setItem("autor", nombre);
-        localStorage.setItem("correo", correo);
 
+        mostrarUsuario(usuario);
         modal.style.display = "none";
-        mostrarAviso("✅ Sesión iniciada correctamente", "success");
-
         overlay.style.opacity = "0";
         setTimeout(() => overlay.remove(), 400);
-
-        location.reload();
+        mostrarAviso("✅ Sesión iniciada correctamente", "success");
       });
     }
 
@@ -2329,62 +2317,32 @@ document.addEventListener("DOMContentLoaded", () => {
         const nombre = document.getElementById("regNombre").value.trim();
         const correo = document.getElementById("regCorreo").value.trim();
         const foto = document.getElementById("regFoto").files[0];
-
-        if (!nombre || !correo || !foto) {
-          mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
-          return;
-        }
+        if (!nombre || !correo || !foto) return mostrarAviso("⚠️ Todos los campos son obligatorios", "error");
 
         const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!correoValido.test(correo)) {
-          mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
-          return;
-        }
+        if (!correoValido.test(correo)) return mostrarAviso("⚠️ Debes ingresar un correo válido", "error");
 
-        // Comprimir imagen antes de guardar
         const reader = new FileReader();
         reader.onload = (e) => {
           const img = new Image();
           img.onload = () => {
             const canvas = document.createElement("canvas");
             const maxDim = 500;
-            let width = img.width;
-            let height = img.height;
+            let w = img.width, h = img.height;
+            if (w > h && w > maxDim) { h *= maxDim/w; w = maxDim; }
+            else if (h > w && h > maxDim) { w *= maxDim/h; h = maxDim; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0,0,w,h);
+            const fotoPerfil = canvas.toDataURL("image/jpeg",0.7);
 
-            if (width > height) {
-              if (width > maxDim) {
-                height *= maxDim / width;
-                width = maxDim;
-              }
-            } else {
-              if (height > maxDim) {
-                width *= maxDim / height;
-                height = maxDim;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
-
-            const usuario = { nombre, correo, foto: compressedDataUrl };
-            currentAuthorName = nombre;
-            currentAuthorEmail = correo;
-
+            usuario = { nombre, correo, fotoPerfil };
             localStorage.setItem("usuario", JSON.stringify(usuario));
-            localStorage.setItem("autor", nombre);
-            localStorage.setItem("correo", correo);
 
+            mostrarUsuario(usuario);
             modal.style.display = "none";
-            mostrarAviso("✅ Registro exitoso", "success");
-
             overlay.style.opacity = "0";
             setTimeout(() => overlay.remove(), 400);
-
-            location.reload();
+            mostrarAviso("✅ Registro exitoso", "success");
           };
           img.src = e.target.result;
         };
@@ -2396,74 +2354,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================================================================================
-  // 👇 Ajuste DOM para navegación local dentro del mismo repositorio
+  // Ajuste DOM navegación
   // ======================================================================================
   const currentUrl = window.location.href;
   const imagesBtn = document.querySelector('a[href="./fotos.html"]');
   const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
+  if (currentUrl.includes("fotos.html")) imagesBtn?.classList.add("selected");
+  else if (currentUrl.includes("videosSesion2.html")) videosBtn?.classList.add("selected");
 
-  if (currentUrl.includes("fotos.html")) {
-    imagesBtn?.classList.add("selected");
-  } else if (currentUrl.includes("videosSesion2.html")) {
-    videosBtn?.classList.add("selected");
-  }
-
-  // 🔔 Inicializar icono de notificaciones
+  // Inicializar notificaciones
   const lblContador = document.getElementById('lblContador');
   if (lblContador) {
-    lblContador.innerHTML = `
-      <i class="far fa-bell"></i>
-      <span id="notificationCount" style="display:none"></span>
-    `;
+    lblContador.innerHTML = `<i class="far fa-bell"></i><span id="notificationCount" style="display:none"></span>`;
     lblContador.style.display = "flex";
   }
 
   // ======================================================================================
-  // 🎬 Video Intro
-  // ======================================================================================
-  setTimeout(() => {
-    const loader = document.getElementById("loader");
-    if (loader) loader.style.display = "flex";
-    const videoIntro = document.createElement("video");
-    Object.assign(videoIntro, {
-      src: "Ini.mp4",
-      autoplay: true,
-      muted: true,
-      playsInline: true,
-      style: "width:100%; max-height:100%; object-fit:cover; position:fixed; top:0; left:0; z-index:99997;"
-    });
-    document.body.appendChild(videoIntro);
-    videoIntro.onended = () => {
-      videoIntro.remove();
-      if (loader) loader.style.display = "none";
-    };
-  }, 200);
-
-  // ======================================================================================
-  // 🔄 AppInventor / actualización de datos de usuario
-  // ======================================================================================
-  if (window.AppInventor) {
-    setInterval(() => {
-      const comando = window.AppInventor.getWebViewString?.();
-      if (comando) {
-        try {
-          const data = JSON.parse(comando);
-          if (data.action === "updateUserData") {
-            currentAuthorEmail = data.email;
-            currentAuthorName = data.name;
-
-            localStorage.setItem("autor", currentAuthorName || "");
-            localStorage.setItem("correo", currentAuthorEmail || "");
-
-            console.log(`Datos de usuario actualizados. Nombre: ${currentAuthorName}, Correo: ${currentAuthorEmail}`);
-          }
-        } catch (e) {}
-      }
-    }, 500);
-  }
-
-  // ======================================================================================
-  // 🔐 INICIO DE SESIÓN LOCAL
+  // INICIO DE SESIÓN LOCAL
   // ======================================================================================
   const userBtn = document.getElementById("userBtn");
   const userMenu = document.getElementById("userMenu");
@@ -2471,37 +2378,50 @@ document.addEventListener("DOMContentLoaded", () => {
   const userEmail = document.getElementById("userEmail");
   const logoutBtn = document.getElementById("logoutBtn");
 
-  if (userBtn && userMenu && userName && userEmail && logoutBtn) {
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
-    if (usuario) mostrarUsuario(usuario);
-
-    function mostrarUsuario(u) {
-      const iniciales = u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-      userBtn.textContent = iniciales;
-      userName.textContent = u.nombre;
-      userEmail.textContent = u.correo;
-      currentAuthorName = u.nombre;
-      currentAuthorEmail = u.correo;
+  function mostrarUsuario(u) {
+    currentAuthorName = u.nombre || "";
+    currentAuthorEmail = u.correo || "";
+    const foto = u.fotoPerfil || "";
+    if (userName) userName.textContent = u.nombre || "";
+    if (userEmail) userEmail.textContent = u.correo || "";
+    if (userBtn) {
+      if (foto) userBtn.innerHTML = `<img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+      else userBtn.textContent = (u.nombre || "US").split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase();
     }
-
-    userBtn.addEventListener("click", () => {
-      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-    });
-
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("autor");
-      localStorage.removeItem("correo");
-      currentAuthorName = "";
-      currentAuthorEmail = "";
-      userMenu.style.display = "none";
-
-      mostrarAviso("🚪 Sesión cerrada", "info");
-      setTimeout(() => location.reload(), 1200);
-    });
+    syncUserMenuPhoto();
   }
-});
 
+  function syncUserMenuPhoto() {
+    const menuPhoto = document.getElementById("userMenuPhoto");
+    if (!menuPhoto) return;
+    const foto = usuario?.fotoPerfil || localStorage.getItem("fotoPerfil") || "";
+    if (foto) menuPhoto.innerHTML = `<img src="${foto}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+    else {
+      const iniciales = (usuario?.nombre || "US").split(" ").map(p => p[0].toUpperCase()).join("").substring(0,2);
+      menuPhoto.innerHTML = `<div style="width:80px;height:80px;border-radius:50%;background:#0077cc;color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;">${iniciales}</div>`;
+    }
+    menuPhoto.style.cursor = "pointer";
+    menuPhoto.onclick = abrirPerfil;
+  }
+
+  if (usuario) mostrarUsuario(usuario);
+
+  if (userBtn) userBtn.addEventListener("click", () => {
+    if (!userMenu) return;
+    const isHidden = window.getComputedStyle(userMenu).display === "none";
+    if (isHidden) { syncUserMenuPhoto(); userMenu.style.display = "block"; }
+    else userMenu.style.display = "none";
+  });
+
+  if (logoutBtn) logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("usuario");
+    usuario = null;
+    if (userBtn) userBtn.textContent = "";
+    if (userMenu) userMenu.style.display = "none";
+    mostrarAviso("🚪 Sesión cerrada", "info");
+    if (modal) modal.style.display = "flex";
+  });
+});
 
 
 function abrirPerfil() {
@@ -4559,4 +4479,5 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
