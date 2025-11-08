@@ -2274,13 +2274,13 @@ setInterval(() => {
 
     
 
-  // 🔹 Toggle título y descripción (expandir/colapsar) con autor
-// 🔹 Toggle título y descripción (expandir/colapsar) con autor
-function updateInfo(title, description, autor = "Anónimo") {
+// 🔹 Toggle título y descripción (expandir/colapsar) con autor + foto
+function updateInfo(title, description, autor = "Anónimo", fotoPerfil = "") {
   // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
   currentTitle.setAttribute("data-autor", autor);
+  currentTitle.setAttribute("data-foto", fotoPerfil);
 
   // Crear versiones cortas
   const shortTitleText = title.length > 50 
@@ -2291,8 +2291,13 @@ function updateInfo(title, description, autor = "Anónimo") {
     ? description.substring(0, 80) + "..."
     : description;
 
-  // 🆕 Insertar autor junto al título
-  const autorHTML = `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`;
+  // 🆕 Autor + foto
+  const autorHTML = `
+    <span class="autor-anuncio" style="display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #ccc; margin-left: 8px;">
+      ${fotoPerfil ? `<img src="${fotoPerfil}" alt="foto" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">` : ""}
+      <span>— ${autor}</span>
+    </span>
+  `;
 
   // Guardar HTML completo con autor
   const shortTitle = `${shortTitleText}${autorHTML}`;
@@ -2313,26 +2318,21 @@ function updateInfo(title, description, autor = "Anónimo") {
   currentDescription.classList.remove("expanded");
 }
 
-// Eventos de click
-currentTitle.addEventListener("click", function () {
-  if (this.classList.contains("expanded")) {
-    this.innerHTML = this.getAttribute("data-short");
-    this.classList.remove("expanded");
-  } else {
-    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
-    this.classList.add("expanded");
+async function getFotoPerfilPorCorreo(correo) {
+  try {
+    const response = await fetch(
+      `${scriptUrl}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`
+    );
+    const data = await response.json();
+    if (data.status === "success" && data.fotoPerfil) {
+      return data.fotoPerfil;
+    }
+    return "";
+  } catch (error) {
+    console.error("Error al obtener foto de perfil:", error);
+    return "";
   }
-});
-
-currentDescription.addEventListener("click", function () {
-  if (this.classList.contains("expanded")) {
-    this.innerHTML = this.getAttribute("data-short");
-    this.classList.remove("expanded");
-  } else {
-    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
-    this.classList.add("expanded");
-  }
-});
+}
 
 
 
@@ -2897,25 +2897,30 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
     
- function updateContentOverlay(index) {
-    if (anunciosData.length > index) {
-        const anuncio = anunciosData[index];
+ async function updateContentOverlay(index) {
+  if (anunciosData.length > index) {
+    const anuncio = anunciosData[index];
 
-        // 🔹 Usar updateInfo para manejar texto corto/largo + autor
-        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
+    // 🆕 Obtener la foto del autor
+    const fotoPerfil = anuncio.correo
+      ? await getFotoPerfilPorCorreo(anuncio.correo)
+      : "";
 
-        // ✅ Mostrar/ocultar el botón fijo
-        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            deleteAnnouncementBtn.classList.add("visible");
-            deleteAnnouncementBtn.onclick = () => {
-                showConfirmationDialog(
-                    "¿Estás seguro de que quieres eliminar este anuncio?",
-                    () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-                );
-            };
-        } else {
-            deleteAnnouncementBtn.classList.remove("visible");
-        }
+    // 🔹 Usar updateInfo para manejar texto corto/largo + autor + foto
+    updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, fotoPerfil);
+
+    // ✅ Mostrar/ocultar el botón fijo
+    if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+      deleteAnnouncementBtn.classList.add("visible");
+      deleteAnnouncementBtn.onclick = () => {
+        showConfirmationDialog(
+          "¿Estás seguro de que quieres eliminar este anuncio?",
+          () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+        );
+      };
+    } else {
+      deleteAnnouncementBtn.classList.remove("visible");
+    }
 
         commentsList.innerHTML = '';
         commentsOverlay.classList.remove('expanded'); 
@@ -4603,6 +4608,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
