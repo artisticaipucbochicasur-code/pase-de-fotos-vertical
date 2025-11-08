@@ -2136,6 +2136,27 @@ document.addEventListener("DOMContentLoaded", () => {
     videosBtn?.classList.add("selected");
   }
 
+  // ======================================================================================
+  // 🖼️ SOLO EJECUTAR cargarImagenes() SIN RECARGAR LA PÁGINA
+  // ======================================================================================
+  if (imagesBtn) {
+    imagesBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      console.log("🖼️ Botón de imágenes presionado...");
+
+      if (typeof cargarImagenes === "function") {
+        console.log("✅ Ejecutando cargarImagenes() sin recargar la página...");
+        try {
+          cargarImagenes();
+        } catch (err) {
+          console.error("❌ Error al ejecutar cargarImagenes():", err);
+        }
+      } else {
+        console.warn("⚠️ La función cargarImagenes() no está disponible en este contexto.");
+      }
+    });
+  }
+
   // 🔔 Inicializar icono de notificaciones
   const lblContador = document.getElementById('lblContador');
   if (lblContador) {
@@ -2218,61 +2239,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         location.reload();
       }, 1200);
-    });
-  }
-
-  // ======================================================================================
-  // 🖼️ FUNCIÓN PARA CARGAR FOTOS DESDE videosSesion2.html
-  // ======================================================================================
-  async function cargarFotosDesdeVideos() {
-    try {
-      const loader = document.getElementById("loader");
-      if (loader) loader.style.display = "flex";
-
-      const response = await fetch("fotos.html");
-      if (!response.ok) throw new Error("No se pudo cargar fotos.html");
-
-      const htmlText = await response.text();
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = htmlText;
-
-      const fotosSection = tempDiv.querySelector(".swiper") || tempDiv.querySelector("body");
-      if (!fotosSection) throw new Error("No se encontró la sección de fotos en fotos.html");
-
-      const mainContent = document.getElementById("mainContent") || document.body;
-      mainContent.innerHTML = "";
-      mainContent.appendChild(fotosSection.cloneNode(true));
-
-      // Reinsertar scripts de fotos.html
-      tempDiv.querySelectorAll("script").forEach(oldScript => {
-        const newScript = document.createElement("script");
-        if (oldScript.src) {
-          newScript.src = oldScript.src;
-        } else {
-          newScript.textContent = oldScript.textContent;
-        }
-        document.body.appendChild(newScript);
-      });
-
-      if (typeof cargarImagenes === "function") {
-        cargarImagenes();
-      }
-
-    } catch (err) {
-      console.error("Error al cargar fotos:", err);
-      alert("Error al cargar las fotos. Revisa la consola para más detalles.");
-    } finally {
-      const loader = document.getElementById("loader");
-      if (loader) loader.style.display = "none";
-    }
-  }
-
-  // Vincular el botón de imágenes (si existe)
-  const btnFotos = document.querySelector('a[href="./fotos.html"]');
-  if (btnFotos) {
-    btnFotos.addEventListener("click", (e) => {
-      e.preventDefault();
-      cargarFotosDesdeVideos();
     });
   }
 });
@@ -3963,6 +3929,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
