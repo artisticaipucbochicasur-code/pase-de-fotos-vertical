@@ -2122,7 +2122,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return; // No ejecutar el resto hasta iniciar sesión
   }
 
- // ======================================================================================
+// ======================================================================================
 // 👇 Ajuste DOM para navegación local dentro del mismo repositorio
 // ======================================================================================
 
@@ -2138,32 +2138,39 @@ if (currentUrl.includes("fotos.html")) {
   // ✅ Si estás en videosSesion2, intercepta el clic del botón de imágenes
   if (imagesBtn) {
     imagesBtn.addEventListener("click", async (e) => {
-      e.preventDefault(); // Evita recargar la página
-      console.log("📸 Cargando imágenes sin salir de videosSesion2...");
+      e.preventDefault(); // Evita navegar a fotos.html
+      console.log("📸 Cargando módulo de imágenes sin recargar...");
 
       try {
-        // Si la función cargarImagenes() ya está definida, ejecútala directamente
+        // Si la función ya está disponible
         if (typeof cargarImagenes === "function") {
           await cargarImagenes();
-        } else {
-          // Si no está cargada, la importamos dinámicamente desde fotos.js
-          const script = document.createElement("script");
-          script.src = "./fotos.js"; // ⚠️ Ajusta la ruta según tu estructura real
-          script.onload = async () => {
-            if (typeof cargarImagenes === "function") {
-              await cargarImagenes();
-            } else {
-              console.error("⚠️ No se encontró la función cargarImagenes en fotos.js");
-            }
-          };
-          document.body.appendChild(script);
+          return;
         }
+
+        // Si no está cargada, importamos fotos.js dinámicamente
+        const script = document.createElement("script");
+        script.src = "./fotos.js"; // ⚠️ Ajusta la ruta si está en otra carpeta
+        script.onload = async () => {
+          if (typeof cargarImagenes === "function") {
+            console.log("✅ fotos.js cargado, ejecutando cargarImagenes()");
+            await cargarImagenes();
+          } else {
+            console.error("⚠️ No se encontró cargarImagenes() en fotos.js");
+          }
+        };
+        script.onerror = () => {
+          console.error("❌ No se pudo cargar fotos.js");
+        };
+        document.body.appendChild(script);
+
       } catch (error) {
-        console.error("❌ Error al intentar cargar imágenes:", error);
+        console.error("❌ Error al ejecutar cargarImagenes():", error);
       }
     });
   }
 }
+
 
 
   // 🔔 Inicializar icono de notificaciones
@@ -3938,5 +3945,6 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
