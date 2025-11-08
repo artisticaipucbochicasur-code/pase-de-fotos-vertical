@@ -3180,10 +3180,18 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
-    // Intro de video 100% compatible con iOS / Android / PC
+  // ================================
+  // 🎬 Video de introducción (solo 1 vez y solo si no hay sesión activa)
+  // ================================
+  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+  const yaVisto = localStorage.getItem("introVisto");
+
+  // ✅ Solo mostrar si no hay sesión activa y no se ha visto antes
+  if (!usuarioGuardado && !yaVisto) {
     setTimeout(() => {
       const loader = document.getElementById("loader");
       if (loader) loader.style.display = "flex";
+
       const videoIntro = document.createElement("video");
       Object.assign(videoIntro, {
         src: "Ini.mp4",
@@ -3204,24 +3212,36 @@ if (imagesBtn) {
         opacity: "0",
         transition: "opacity 1s ease",
       });
+
       document.body.appendChild(videoIntro);
+
       videoIntro.addEventListener("canplaythrough", () => {
         if (loader) loader.style.display = "none";
         videoIntro.style.opacity = "1";
         videoIntro.play().catch(() => {});
       });
+
       videoIntro.addEventListener("ended", () => {
         videoIntro.style.opacity = "0";
-        setTimeout(() => videoIntro.remove(), 1000);
+        setTimeout(() => {
+          videoIntro.remove();
+          localStorage.setItem("introVisto", "true"); // ✅ marcar que ya se mostró
+        }, 1000);
       });
+
+      // fallback si iOS bloquea autoplay
       setTimeout(() => {
         if (videoIntro.readyState < 3 || videoIntro.paused) {
           console.warn("iOS bloqueó autoplay, omitiendo video...");
           videoIntro.remove();
           if (loader) loader.style.display = "none";
+          localStorage.setItem("introVisto", "true");
         }
       }, 6000);
     }, 300);
+  }
+  
+   
   const imagesBtn = document.getElementById("imagesBtn");
     if (imagesBtn) {
       imagesBtn.classList.add("selected");
@@ -4475,6 +4495,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
