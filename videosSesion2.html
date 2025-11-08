@@ -2123,53 +2123,92 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 // ======================================================================================
-// 👇 Ajuste DOM para navegación local dentro del mismo repositorio
+// 👇 Navegación local entre videos y fotos SIN recargar la página
 // ======================================================================================
 
 const currentUrl = window.location.href;
 const imagesBtn = document.querySelector('a[href="./fotos.html"]');
 const videosBtn = document.querySelector('a[href="./videosSesion2.html"]');
+const seccionVideos = document.getElementById("contenedorVideos") || document.querySelector(".videos-container");
+let seccionFotos; // se creará dinámicamente
 
 if (currentUrl.includes("fotos.html")) {
   imagesBtn?.classList.add("selected");
 } else if (currentUrl.includes("videosSesion2.html")) {
   videosBtn?.classList.add("selected");
 
-  // ✅ Si estás en videosSesion2, intercepta el clic del botón de imágenes
+  // ✅ Interceptar clic en el botón de imágenes para no recargar
   if (imagesBtn) {
     imagesBtn.addEventListener("click", async (e) => {
-      e.preventDefault(); // Evita navegar a fotos.html
-      console.log("📸 Cargando módulo de imágenes sin recargar...");
+      e.preventDefault();
+      console.log("📸 Clic en imágenes: cargando galería sin recargar...");
 
+      // Oculta temporalmente la sección de videos
+      if (seccionVideos) seccionVideos.style.display = "none";
+
+      // Crea un contenedor dinámico si no existe
+      if (!seccionFotos) {
+        seccionFotos = document.createElement("div");
+        seccionFotos.id = "contenedorFotos";
+        seccionFotos.innerHTML = `
+          <div id="loader" style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+            color:white;
+            font-size:1.2rem;
+          ">Cargando fotos...</div>
+          <div class="swiper-container" style="display:none;">
+            <div class="swiper-wrapper"></div>
+          </div>
+        `;
+        document.body.appendChild(seccionFotos);
+      }
+
+      // Cargar el script de fotos y ejecutar cargarImagenes()
       try {
-        // Si la función ya está disponible
         if (typeof cargarImagenes === "function") {
+          console.log("✅ cargarImagenes ya disponible, ejecutando...");
           await cargarImagenes();
+          mostrarSeccionFotos();
           return;
         }
 
-        // Si no está cargada, importamos fotos.js dinámicamente
+        // 📜 Si no está cargada la función, importar fotos.js
         const script = document.createElement("script");
-        script.src = "./fotos.js"; // ⚠️ Ajusta la ruta si está en otra carpeta
+        script.src = "./fotos.js"; // ⚠️ Asegúrate de que la ruta sea correcta
         script.onload = async () => {
           if (typeof cargarImagenes === "function") {
             console.log("✅ fotos.js cargado, ejecutando cargarImagenes()");
             await cargarImagenes();
+            mostrarSeccionFotos();
           } else {
             console.error("⚠️ No se encontró cargarImagenes() en fotos.js");
           }
         };
-        script.onerror = () => {
-          console.error("❌ No se pudo cargar fotos.js");
-        };
+        script.onerror = () => console.error("❌ Error al cargar fotos.js");
         document.body.appendChild(script);
-
       } catch (error) {
         console.error("❌ Error al ejecutar cargarImagenes():", error);
       }
     });
   }
 }
+
+// ======================================================================================
+// 👇 Función para mostrar visualmente la sección de fotos
+// ======================================================================================
+function mostrarSeccionFotos() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "none";
+
+  const swiperContainer = document.querySelector(".swiper-container");
+  if (swiperContainer) swiperContainer.style.display = "block";
+
+  console.log("🖼️ Sección de fotos mostrada dentro de videosSesion2.html");
+}
+
 
 
 
@@ -3945,6 +3984,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
