@@ -2323,55 +2323,63 @@ currentDescription.addEventListener("click", function () {
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
 document.querySelector('.swiper').addEventListener('click', () => {
-    const currentTime = new Date().getTime();
-    if (currentTime - lastTapTime > 300) {
-        // ✅ Estos se alternan normal
-        commentsOverlay.classList.toggle('hidden-overlay');
-        commentsCounter.classList.toggle('hidden-overlay');
-        commentInputContainer.classList.toggle('hidden-overlay');
+  const currentTime = new Date().getTime();
+  if (currentTime - lastTapTime > 300) {
+    // ✅ Estos se alternan normal
+    commentsOverlay.classList.toggle('hidden-overlay');
+    commentsCounter.classList.toggle('hidden-overlay');
+    commentInputContainer.classList.toggle('hidden-overlay');
 
-        // ✅ contentOverlay invertido → lo forzamos al mismo sentido
-        if (contentOverlay.classList.contains('hidden-overlay')) {
-            contentOverlay.classList.remove('hidden-overlay'); // se hace visible
-        } else {
-            contentOverlay.classList.add('hidden-overlay'); // se oculta
-        }
-
-        // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
-        const lblContador = document.getElementById('lblContador');
-        if (lblContador) {
-            lblContador.classList.toggle('hidden-overlay');
-        }
-
-        // 🆕 Alternar el botón de actualizar
-        const refreshBtn = document.getElementById("refreshBtn");
-        if (refreshBtn) {
-            refreshBtn.classList.toggle("hidden-overlay");
-        }
-
-        // 🆕 Ocultar/mostrar guardar y ver guardados
-        const saveBtn = document.getElementById("saveBtn");
-        const viewSavedBtn = document.getElementById("viewSavedBtn");
-        if (saveBtn) saveBtn.classList.toggle("hidden-overlay");
-        if (viewSavedBtn) viewSavedBtn.classList.toggle("hidden-overlay");
-
-        // 🆕 Alternar el encabezado DECOM y botones
-        const socialHeader = document.getElementById("socialHeader");
-        if (socialHeader) {
-            socialHeader.classList.toggle("hidden-overlay");
-        }
-
-        // 🆕 Botón eliminar anuncio — se agregan más selectores por compatibilidad
-        const deleteBtn = document.getElementById("deleteBtn") ||
-                          document.getElementById("deleteAnnouncementBtn") ||
-                          document.querySelector(".delete-announcement-btn") ||
-                          document.querySelector(".delete-btn");
-        if (deleteBtn) {
-            deleteBtn.classList.toggle("hidden-overlay");
-        }
+    // ✅ contentOverlay invertido → lo forzamos al mismo sentido
+    if (contentOverlay.classList.contains('hidden-overlay')) {
+      contentOverlay.classList.remove('hidden-overlay'); // se hace visible
+    } else {
+      contentOverlay.classList.add('hidden-overlay'); // se oculta
     }
-    lastTapTime = currentTime;
+
+    // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
+    const lblContador = document.getElementById('lblContador');
+    if (lblContador) {
+      lblContador.classList.toggle('hidden-overlay');
+    }
+
+    // 🆕 Alternar el botón de actualizar
+    const refreshBtn = document.getElementById("refreshBtn");
+    if (refreshBtn) {
+      refreshBtn.classList.toggle("hidden-overlay");
+    }
+
+    // 🆕 Ocultar/mostrar guardar y ver guardados
+    const saveBtn = document.getElementById("saveBtn");
+    const viewSavedBtn = document.getElementById("viewSavedBtn");
+    if (saveBtn) saveBtn.classList.toggle("hidden-overlay");
+    if (viewSavedBtn) viewSavedBtn.classList.toggle("hidden-overlay");
+
+    // 🆕 Alternar el encabezado DECOM y botones
+    const socialHeader = document.getElementById("socialHeader");
+    if (socialHeader) {
+      socialHeader.classList.toggle("hidden-overlay");
+    }
+
+    // 🆕 Botón eliminar anuncio — se agregan más selectores por compatibilidad
+    const deleteBtn = document.getElementById("deleteBtn") ||
+                      document.getElementById("deleteAnnouncementBtn") ||
+                      document.querySelector(".delete-announcement-btn") ||
+                      document.querySelector(".delete-btn");
+    if (deleteBtn) {
+      deleteBtn.classList.toggle("hidden-overlay");
+    }
+
+    // 🆕 NUEVO: cerrar el menú de usuario si está abierto
+    const userMenu = document.getElementById("userMenu");
+    if (userMenu && window.getComputedStyle(userMenu).display !== "none") {
+      userMenu.style.display = "none";
+      document.removeEventListener("click", cerrarMenuSiClickFuera);
+    }
+  }
+  lastTapTime = currentTime;
 });
+
 
 
 
@@ -4404,38 +4412,13 @@ function toggleUserMenu() {
 
   const isHidden = window.getComputedStyle(menu).display === "none";
   if (isHidden) {
-    // Sincronizar justo antes de mostrar
+    // sincronizar justo antes de mostrar
     syncUserMenuPhoto();
     menu.style.display = "block";
-
-    // 🆕 Agregar listener para cerrar si se hace clic afuera
-    document.addEventListener("click", cerrarMenuSiClickFuera);
   } else {
     menu.style.display = "none";
-    document.removeEventListener("click", cerrarMenuSiClickFuera);
   }
 }
-
-// --------------------------
-// 🧩 Función auxiliar: cerrar si se hace clic fuera
-// --------------------------
-function cerrarMenuSiClickFuera(e) {
-  const menu = document.getElementById("userMenu");
-  const userBtn = document.getElementById("userBtn");
-
-  // Si no existen, salimos
-  if (!menu || !userBtn) return;
-
-  // Si el clic fue dentro del menú o sobre el botón, no cerrar
-  if (menu.contains(e.target) || userBtn.contains(e.target)) return;
-
-  // Si fue fuera → cerrar menú
-  menu.style.display = "none";
-
-  // Remover listener para evitar duplicaciones
-  document.removeEventListener("click", cerrarMenuSiClickFuera);
-}
-
 
 // --------------------------
 // Observador: si cambia userBtn (ej: se inserta img), actualizar menú
@@ -4501,6 +4484,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
