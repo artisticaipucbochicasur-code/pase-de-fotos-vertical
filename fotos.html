@@ -2273,57 +2273,66 @@ setInterval(() => {
 }, 1000);
 
     
-// 🔹 Mostrar título, descripción, autor y foto circular
-// ==============================
-// ACTUALIZA EL TÍTULO Y AUTOR
-// ==============================
-function updateInfo(title, description, autor = "Anónimo", fotoPerfil = "") {
+
+  // 🔹 Toggle título y descripción (expandir/colapsar) con autor
+// 🔹 Toggle título y descripción (expandir/colapsar) con autor
+function updateInfo(title, description, autor = "Anónimo") {
+  // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
+  currentTitle.setAttribute("data-autor", autor);
 
-  const shortTitleText = title.length > 50 ? title.substring(0, 50) + "..." : title;
-  const shortDescriptionText = description.length > 80 ? description.substring(0, 80) + "..." : description;
+  // Crear versiones cortas
+  const shortTitleText = title.length > 50 
+    ? title.substring(0, 50) + "..."
+    : title;
 
-  const autorHTML = `
-    <span class="autor-anuncio" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#ccc;margin-left:8px;">
-      ${
-        fotoPerfil && fotoPerfil.startsWith("http")
-          ? `<img src="${fotoPerfil}" alt="foto de ${autor}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #888;">`
-          : `<img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #888;">`
-      }
-      <span>— ${autor}</span>
-    </span>
-  `;
+  const shortDescriptionText = description.length > 80 
+    ? description.substring(0, 80) + "..."
+    : description;
 
-  currentTitle.innerHTML = `${shortTitleText}${autorHTML}`;
+  // 🆕 Insertar autor junto al título
+  const autorHTML = `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`;
+
+  // Guardar HTML completo con autor
+  const shortTitle = `${shortTitleText}${autorHTML}`;
+  const fullTitle = `${title}${autorHTML}`;
+
+  currentTitle.setAttribute("data-short", shortTitle);
+  currentTitle.setAttribute("data-full-html", fullTitle);
+
+  currentDescription.setAttribute("data-short", shortDescriptionText);
+  currentDescription.setAttribute("data-full-html", description);
+
+  // Mostrar versión corta por defecto
+  currentTitle.innerHTML = shortTitle;
   currentDescription.innerHTML = shortDescriptionText;
+
+  // Quitar estado expandido
+  currentTitle.classList.remove("expanded");
+  currentDescription.classList.remove("expanded");
 }
 
-
-async function getFotoPerfilPorCorreo(correo) {
-  try {
-    const correoNormalizado = correo.trim().toLowerCase();
-    const url = `${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correoNormalizado)}&nocache=${Date.now()}`;
-    console.log("📡 Llamando:", url);
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    console.log("📩 Respuesta:", data);
-
-    if (data.status === "success" && data.fotoPerfil) {
-      // Validar que el enlace de Drive sea usable
-      const foto = data.fotoPerfil.replace("open?id=", "uc?export=view&id=");
-      return foto;
-    } else {
-      console.warn("⚠️ No se recibió una foto válida");
-      return "";
-    }
-  } catch (error) {
-    console.error("❌ Error al obtener foto de perfil:", error);
-    return "";
+// Eventos de click
+currentTitle.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.innerHTML = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
+    this.classList.add("expanded");
   }
-}
+});
 
+currentDescription.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.innerHTML = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
+    this.classList.add("expanded");
+  }
+});
 
 
 
@@ -2887,87 +2896,87 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
 
-   
+    
+ function updateContentOverlay(index) {
+    if (anunciosData.length > index) {
+        const anuncio = anunciosData[index];
 
-async function updateContentOverlay(index) { 
- // ==============================
-// MOSTRAR ANUNCIO CON FOTO DEL AUTOR
-async function updateContentOverlay(index) {
-  if (anunciosData.length <= index) return;
+        // 🔹 Usar updateInfo para manejar texto corto/largo + autor
+        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-  const anuncio = anunciosData[index];
-
-  // 🆕 Obtener la foto real del autor
-  const fotoPerfil = anuncio.correo
-    ? await getFotoPerfilPorCorreo(anuncio.correo)
-    : "";
-
-  console.log("📸 Foto recibida:", fotoPerfil);
-
-  // Actualizar el contenido principal
-  updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, fotoPerfil);
-
-  // Mostrar u ocultar el botón eliminar
-  if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-    deleteAnnouncementBtn.classList.add("visible");
-    deleteAnnouncementBtn.onclick = () => {
-      showConfirmationDialog(
-        "¿Estás seguro de que quieres eliminar este anuncio?",
-        () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-      );
-    };
-  } else {
-    deleteAnnouncementBtn.classList.remove("visible");
-  }
-
-  // Limpiar comentarios previos
-  commentsList.innerHTML = '';
-  commentsOverlay.classList.remove('expanded'); 
-
-  if (anuncio.comentarios?.length > 0) {
-    anuncio.comentarios.forEach(comentario => {
-      const li = document.createElement('li');
-      li.classList.add('deletable');
-
-      const commentContent = document.createElement('div');
-      commentContent.classList.add('comment-content');
-      commentContent.textContent = comentario.texto;
-      
-      const deleteBtnContainer = document.createElement('div');
-      deleteBtnContainer.className = 'delete-btn-container';
-      const deleteBtn = document.createElement('div');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.textContent = 'Borrar';
-      deleteBtnContainer.appendChild(deleteBtn);
-      
-      li.appendChild(deleteBtnContainer);
-      li.appendChild(commentContent);
-
-      li.dataset.id = comentario.id;
-      li.dataset.correo = comentario.autorCorreo;
-      li.dataset.texto = comentario.textoPuro;
-      
-      deleteBtn.addEventListener('click', (ev) => {
-        ev.stopPropagation(); 
-        const activeIndex = swiperInstance.realIndex;
-        const currentAnuncio = anunciosData[activeIndex];
-        if(currentAnuncio) {
-          eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+        // ✅ Mostrar/ocultar el botón fijo
+        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+            deleteAnnouncementBtn.classList.add("visible");
+            deleteAnnouncementBtn.onclick = () => {
+                showConfirmationDialog(
+                    "¿Estás seguro de que quieres eliminar este anuncio?",
+                    () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+                );
+            };
+        } else {
+            deleteAnnouncementBtn.classList.remove("visible");
         }
-      });
-      
-      commentsList.appendChild(li);
-    });
-    commentCountValue.textContent = anuncio.comentarios.length;
-  } else {
-    const li = document.createElement('li');
-    li.textContent = "No hay comentarios aún.";
-    commentsList.appendChild(li);
-    commentCountValue.textContent = 0;
-  }
+
+        commentsList.innerHTML = '';
+        commentsOverlay.classList.remove('expanded'); 
+
+        if (anuncio.comentarios && anuncio.comentarios.length > 0) {
+            anuncio.comentarios.forEach(comentario => {
+                const li = document.createElement('li');
+                li.classList.add('deletable');
+
+                const commentContent = document.createElement('div');
+                commentContent.classList.add('comment-content');
+                commentContent.textContent = comentario.texto;
+                
+                const deleteBtnContainer = document.createElement('div');
+                deleteBtnContainer.className = 'delete-btn-container';
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Borrar';
+                deleteBtnContainer.appendChild(deleteBtn);
+                
+                li.appendChild(deleteBtnContainer);
+                li.appendChild(commentContent);
+
+                li.dataset.id = comentario.id;
+                li.dataset.correo = comentario.autorCorreo;
+                li.dataset.texto = comentario.textoPuro;
+                
+                deleteBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation(); 
+                    const activeIndex = swiperInstance.realIndex;
+                    const currentAnuncio = anunciosData[activeIndex];
+                    if(currentAnuncio) {
+                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+                    }
+                });
+                
+                commentsList.appendChild(li);
+            });
+            commentCountValue.textContent = anuncio.comentarios.length;
+        } else {
+            const li = document.createElement('li');
+            li.textContent = "No hay comentarios aún.";
+            commentsList.appendChild(li);
+            commentCountValue.textContent = 0;
+        }
+
+        // 🆕 Mostrar el autor junto al título si existe
+        const autorElemento = document.querySelector(".autor-anuncio");
+        if (!autorElemento && anuncio.autor) {
+            const spanAutor = document.createElement("span");
+            spanAutor.className = "autor-anuncio";
+            spanAutor.textContent = ` — ${anuncio.autor}`;
+            spanAutor.style.fontSize = "13px";
+            spanAutor.style.color = "#ccc";
+            spanAutor.style.marginLeft = "8px";
+
+            // Asegurar que el autor aparezca al lado del título actual
+            currentTitle.appendChild(spanAutor);
+        }
+    }
 }
-
-
 
 
 
@@ -4594,16 +4603,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
 
 
