@@ -2273,40 +2273,64 @@ setInterval(() => {
 }, 1000);
 
     
-  // 🔹 Toggle título y descripción (expandir/colapsar)
-function updateInfo(title, description) {
+// 🔹 Actualiza título, descripción y muestra foto + autor junto al título
+function updateInfo(title, description, autor = "", fotoPerfil = "") {
   // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
+  currentTitle.setAttribute("data-autor", autor);
 
-  // Guardar versiones cortas con span estilizado
-  const shortTitle = title.length > 50 
-    ? title.substring(0, 50) + ` <span class="more-link">...más</span>` 
-    : title;
+  // Crear versiones cortas
+  const shortTitleText = title.length > 50 ? title.substring(0, 50) + "..." : title;
+  const shortDescriptionText = description.length > 80 ? description.substring(0, 80) + "..." : description;
 
-  const shortDescription = description.length > 80 
-    ? description.substring(0, 80) + ` <span class="more-link">...más</span>` 
-    : description;
+  // 🧩 Si el autor es válido, mostrar su foto y nombre
+  let autorHTML = "";
+  if (autor && autor.trim().toLowerCase() !== "anónimo") {
+    let fotoHTML = "";
+
+    if (fotoPerfil && fotoPerfil.trim() !== "") {
+      fotoHTML = `<img src="${fotoPerfil}" onerror="this.src='https://via.placeholder.com/40/cccccc/FFFFFF?text=US'" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #0077cc;margin-left:8px;vertical-align:middle;">`;
+    } else {
+      // Fallback con iniciales
+      const iniciales = autor
+        .split(" ")
+        .map((p) => p.charAt(0).toUpperCase())
+        .join("")
+        .substring(0, 2);
+      fotoHTML = `<img src="https://via.placeholder.com/40/0077cc/FFFFFF?text=${iniciales}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;margin-left:8px;vertical-align:middle;">`;
+    }
+
+    autorHTML = `${fotoHTML}<span class="autor-anuncio" style="font-size:13px;color:#ccc;margin-left:6px;vertical-align:middle;">${autor}</span>`;
+  }
+
+  // 🧠 Guardar HTMLs completos
+  const shortTitle = `${shortTitleText} ${autorHTML}`;
+  const fullTitle = `${title} ${autorHTML}`;
 
   currentTitle.setAttribute("data-short", shortTitle);
-  currentDescription.setAttribute("data-short", shortDescription);
+  currentTitle.setAttribute("data-full-html", fullTitle);
+  currentDescription.setAttribute("data-short", shortDescriptionText);
+  currentDescription.setAttribute("data-full-html", description);
 
   // Mostrar versión corta por defecto
   currentTitle.innerHTML = shortTitle;
-  currentDescription.innerHTML = shortDescription;
+  currentDescription.innerHTML = shortDescriptionText;
 
   // Quitar estado expandido
   currentTitle.classList.remove("expanded");
   currentDescription.classList.remove("expanded");
 }
 
-// Eventos de click
+// Eventos de click (mantienen expansión)
 currentTitle.addEventListener("click", function () {
   if (this.classList.contains("expanded")) {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
+    this.innerHTML =
+      this.getAttribute("data-full-html") +
+      ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -2316,7 +2340,9 @@ currentDescription.addEventListener("click", function () {
     this.innerHTML = this.getAttribute("data-short");
     this.classList.remove("expanded");
   } else {
-    this.innerHTML = this.getAttribute("data-full") + ` <span class="more-link">mostrar menos</span>`;
+    this.innerHTML =
+      this.getAttribute("data-full-html") +
+      ` <span class="more-link">mostrar menos</span>`;
     this.classList.add("expanded");
   }
 });
@@ -2884,7 +2910,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
     
- function updateContentOverlay(index) {
+function updateContentOverlay(index) {
   if (anunciosData.length > index) {
     const anuncio = anunciosData[index];
 
@@ -2953,31 +2979,31 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
       commentCountValue.textContent = 0;
     }
 
-    // 🆕 Mostrar foto del autor junto al título (sin duplicar)
-    const autorInfoAnterior = document.querySelector(".autor-info");
+    // 🆕 Mostrar foto y nombre del autor al lado del título (sin duplicar)
+    const autorInfoAnterior = currentTitle.querySelector(".autor-info");
     if (autorInfoAnterior) autorInfoAnterior.remove();
 
     if (anuncio.autor && anuncio.autor.toLowerCase() !== "anónimo") {
-      const autorContainer = document.createElement("div");
+      const autorContainer = document.createElement("span");
       autorContainer.className = "autor-info";
-      autorContainer.style.display = "flex";
+      autorContainer.style.display = "inline-flex";
       autorContainer.style.alignItems = "center";
-      autorContainer.style.gap = "8px";
-      autorContainer.style.marginTop = "6px";
+      autorContainer.style.gap = "6px";
+      autorContainer.style.marginLeft = "10px";
+      autorContainer.style.verticalAlign = "middle";
 
       const fotoAutor = document.createElement("img");
-      fotoAutor.style.width = "36px";
-      fotoAutor.style.height = "36px";
+      fotoAutor.style.width = "22px";
+      fotoAutor.style.height = "22px";
       fotoAutor.style.borderRadius = "50%";
       fotoAutor.style.objectFit = "cover";
-      fotoAutor.style.border = "2px solid #0077cc";
+      fotoAutor.style.border = "1px solid #0077cc";
       fotoAutor.style.backgroundColor = "#eee";
       fotoAutor.alt = "Foto del autor";
 
       if (anuncio.fotoPerfil && anuncio.fotoPerfil.trim() !== "") {
         fotoAutor.src = anuncio.fotoPerfil;
       } else {
-        // Fallback: iniciales
         const iniciales = (anuncio.autor || "U")
           .split(" ")
           .map((p) => p.charAt(0).toUpperCase())
@@ -2987,20 +3013,19 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
       }
 
       fotoAutor.onerror = () => {
-        fotoAutor.src =
-          "https://via.placeholder.com/80/cccccc/FFFFFF?text=US";
+        fotoAutor.src = "https://via.placeholder.com/80/cccccc/FFFFFF?text=US";
       };
 
       const nombreAutor = document.createElement("span");
       nombreAutor.textContent = anuncio.autor;
-      nombreAutor.style.fontSize = "14px";
+      nombreAutor.style.fontSize = "13px";
       nombreAutor.style.fontWeight = "500";
       nombreAutor.style.color = "#0077cc";
 
       autorContainer.appendChild(fotoAutor);
       autorContainer.appendChild(nombreAutor);
 
-      currentTitle.insertAdjacentElement("afterend", autorContainer);
+      currentTitle.appendChild(autorContainer);
     }
   }
 }
@@ -4632,6 +4657,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
