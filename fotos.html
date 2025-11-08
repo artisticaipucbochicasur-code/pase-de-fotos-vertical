@@ -2280,6 +2280,27 @@ function updateInfo(title, description, autor = "", fotoPerfil = "") {
   currentDescription.setAttribute("data-full", description);
   currentTitle.setAttribute("data-autor", autor);
 
+  // ✅ Helper: genera una URL válida para cualquier tipo de imagen
+  function buildFotoUrl(src) {
+    if (!src) return "https://via.placeholder.com/40/cccccc/FFFFFF?text=US";
+    const s = String(src).trim();
+
+    // base64
+    if (s.startsWith("data:image")) return s;
+
+    // ID de Google Drive
+    if (/^[A-Za-z0-9_-]{20,80}$/.test(s))
+      return `https://drive.google.com/uc?export=view&id=${s}`;
+
+    // URL de Drive con parámetro id=
+    const match = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+    if (match && match[1])
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+
+    // URL directa
+    return s;
+  }
+
   // Crear versiones cortas
   const shortTitleText = title.length > 50 ? title.substring(0, 50) + "..." : title;
   const shortDescriptionText = description.length > 80 ? description.substring(0, 80) + "..." : description;
@@ -2287,21 +2308,17 @@ function updateInfo(title, description, autor = "", fotoPerfil = "") {
   // 🧩 Si el autor es válido, mostrar su foto y nombre
   let autorHTML = "";
   if (autor && autor.trim().toLowerCase() !== "anónimo") {
-    let fotoHTML = "";
+    const fotoURL = buildFotoUrl(fotoPerfil);
 
-    if (fotoPerfil && fotoPerfil.trim() !== "") {
-      fotoHTML = `<img src="${fotoPerfil}" onerror="this.src='https://via.placeholder.com/40/cccccc/FFFFFF?text=US'" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #0077cc;margin-left:8px;vertical-align:middle;">`;
-    } else {
-      // Fallback con iniciales
-      const iniciales = autor
-        .split(" ")
-        .map((p) => p.charAt(0).toUpperCase())
-        .join("")
-        .substring(0, 2);
-      fotoHTML = `<img src="https://via.placeholder.com/40/0077cc/FFFFFF?text=${iniciales}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;margin-left:8px;vertical-align:middle;">`;
-    }
-
-    autorHTML = `${fotoHTML}<span class="autor-anuncio" style="font-size:13px;color:#ccc;margin-left:6px;vertical-align:middle;">${autor}</span>`;
+    autorHTML = `
+      <img src="${fotoURL}" 
+           onerror="this.src='https://via.placeholder.com/40/cccccc/FFFFFF?text=US'" 
+           style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid #0077cc;margin-left:8px;vertical-align:middle;">
+      <span class="autor-anuncio" 
+            style="font-size:13px;color:#ccc;margin-left:6px;vertical-align:middle;">
+        ${autor}
+      </span>
+    `;
   }
 
   // 🧠 Guardar HTMLs completos
@@ -2321,6 +2338,7 @@ function updateInfo(title, description, autor = "", fotoPerfil = "") {
   currentTitle.classList.remove("expanded");
   currentDescription.classList.remove("expanded");
 }
+
 
 // Eventos de click (mantienen expansión)
 currentTitle.addEventListener("click", function () {
@@ -4610,6 +4628,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
