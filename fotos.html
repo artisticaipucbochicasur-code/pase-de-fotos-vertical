@@ -769,16 +769,6 @@ body {
   }
 }
 
-    .toggle-pin {
-  transition: transform 0.2s ease, color 0.3s ease;
-}
-.toggle-pin:hover {
-  transform: scale(1.1);
-}
-.toggle-pin.active {
-  color: #00a2ff;
-  text-shadow: 0 0 6px rgba(0,162,255,0.6);
-}
     
   </style>
 </head>
@@ -1068,21 +1058,6 @@ body {
 </header>
 
 <!-- Modal de inicio de sesión / registro -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-<style>
-.toggle-pin {
-  transition: transform 0.2s ease, color 0.3s ease;
-}
-.toggle-pin:hover {
-  transform: scale(1.1);
-}
-.toggle-pin.active {
-  color: #00a2ff;
-  text-shadow: 0 0 6px rgba(0,162,255,0.6);
-}
-</style>
-
 <div id="loginModal"
      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
@@ -1098,14 +1073,7 @@ body {
     <div id="formLogin">
       <h3>🔐 Iniciar Sesión</h3>
       <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-      <div style="position:relative;">
-        <input id="loginPin" type="password" placeholder="PIN (Mínimo 4 caracteres)" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="loginPin"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-      </div>
-
+      <input id="loginPin" type="password" placeholder="PIN (4 dígitos)" maxlength="4" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
       <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
       <p style="margin-top:10px; font-size:13px; color:#666;">
         ¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a>
@@ -1120,20 +1088,8 @@ body {
       <h3>✨ Crear Cuenta</h3>
       <input id="regNombre" type="text" placeholder="Tu nombre completo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
       <input id="regCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-      
-      <div style="position:relative;">
-        <input id="regPin" type="password" placeholder="Crea un PIN (Mínimo 4 caracteres)" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="regPin"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-      </div>
-
-      <div style="position:relative;">
-        <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="regPinConfirm"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-      </div>
+      <input id="regPin" type="password" placeholder="Crea un PIN (4 dígitos)" maxlength="4" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" maxlength="4" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
       
       <div style="margin:15px 0; text-align:left; font-size:13px;">
         <label>Foto de perfil:</label>
@@ -1149,10 +1105,9 @@ body {
       </p>
     </div>
 
-    <!-- Recuperar PIN -->
+    <!-- 🔹 Recuperar PIN -->
     <div id="formRecuperarPin" style="display:none;">
       <h3 id="tituloRecuperar">🔁 Recuperar PIN</h3>
-
       <div id="pasoCorreo">
         <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal.</p>
         <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
@@ -1161,31 +1116,14 @@ body {
 
       <div id="pasoVerificar" style="display:none;">
         <p style="font-size:13px;">Revisa tu correo e ingresa el PIN temporal recibido:</p>
-        <div style="position:relative;">
-          <input id="recPinTemp" type="password" minlength="4" placeholder="PIN temporal"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="recPinTemp"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-        </div>
+        <input id="recPinTemp" type="password" maxlength="4" placeholder="PIN temporal" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
         <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar PIN</button>
       </div>
 
       <div id="pasoNuevoPin" style="display:none;">
         <p style="font-size:13px;">Crea tu nuevo PIN de acceso:</p>
-        <div style="position:relative;">
-          <input id="nuevoPin" type="password" minlength="4" placeholder="Nuevo PIN"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="nuevoPin"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-        </div>
-
-        <div style="position:relative;">
-          <input id="confirmarPin" type="password" minlength="4" placeholder="Confirmar nuevo PIN"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="confirmarPin"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-        </div>
-
+        <input id="nuevoPin" type="password" maxlength="4" placeholder="Nuevo PIN" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="confirmarPin" type="password" maxlength="4" placeholder="Confirmar nuevo PIN" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
         <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Guardar Nuevo PIN</button>
       </div>
 
@@ -1198,6 +1136,9 @@ body {
             style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
   </div>
 </div>
+
+
+
   
   
   <div class="swiper"><div class="swiper-wrapper"></div></div>
@@ -1358,19 +1299,6 @@ body {
 
 
 
-  document.querySelectorAll('.toggle-pin').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const input = document.getElementById(btn.dataset.target);
-    const isPassword = input.type === 'password';
-    
-    input.type = isPassword ? 'text' : 'password';
-    
-    // Alternar ícono FontAwesome
-    btn.classList.toggle('fa-eye', !isPassword);
-    btn.classList.toggle('fa-eye-slash', isPassword);
-    btn.classList.toggle('active', isPassword);
-  });
-});
 
 
 
@@ -1611,8 +1539,8 @@ btnUploadVideo.addEventListener("click", async () => {
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
 
-  if (!file) return  mostrarAviso("Selecciona un video para subir.");
-  if (!tituloUsuario) return  mostrarAviso("Escribe un título para el video.");
+  if (!file) return alert("Selecciona un video para subir.");
+  if (!tituloUsuario) return alert("Escribe un título para el video.");
 
   // 🔹 Deshabilitar botón mientras sube
   btnUploadVideo.disabled = true;
@@ -3218,11 +3146,7 @@ if (imagesBtn) {
         }
       }, 6000);
     }, 300);
- const imagesBtn = document.getElementById("imagesBtn");
-    if (imagesBtn) {
-      imagesBtn.classList.add("selected");
-    }
-  });
+
     // ======================================================================================
     // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
     // ======================================================================================
@@ -3457,11 +3381,10 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
     btnLogin.classList.remove("btn-loading");
     return mostrarAviso("Correo inválido", "error");
   }
-  // ✅ Nueva validación: mínimo 4 caracteres, sin límite ni restricción de tipo
-  if (pin.length < 4) {
+  if (!/^\d{4}$/.test(pin)) {
     btnLogin.disabled = false;
     btnLogin.classList.remove("btn-loading");
-    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres", "error");
+    return mostrarAviso("PIN debe ser 4 dígitos", "error");
   }
 
   // Mostrar spinner inmediatamente
@@ -3527,7 +3450,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 });
 
 // ======================================================================================
-// REGISTRO (spinner instantáneo al presionar botón, PIN libre de mínimo 4 caracteres)
+// REGISTRO (spinner instantáneo al presionar botón)
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
   e.preventDefault();
@@ -3560,11 +3483,10 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     return mostrarAviso("Los PIN no coinciden", "error");
   }
 
-  // ✅ Ahora acepta cualquier carácter, pero mínimo 4
-  if (pin.length < 4) {
+  if (!/^\d{4}$/.test(pin)) {
     btnRegistro.disabled = false;
     btnRegistro.classList.remove("btn-loading");
-    return mostrarAviso("El PIN debe tener al menos 4 caracteres", "error");
+    return mostrarAviso("PIN debe ser 4 dígitos", "error");
   }
 
   if (!window.fotoComprimida) {
@@ -3618,7 +3540,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
-
 
 // ======================================================================================
 // FUNCIONES DE SPINNER GLOBAL
@@ -3720,7 +3641,7 @@ document.getElementById("btnEnviarPinTemp").addEventListener("click", async () =
       document.getElementById("pasoVerificar").style.display = "block";
       document.getElementById("tituloRecuperar").innerText = "📩 Ingresa el PIN que recibiste";
     } else {
-      mostrarAviso("⚠️ Este correo no está registrado en DECOM.");
+      mostrarAviso("⚠️ No se encontró ese correo.");
     }
   } catch {
     mostrarAviso("Error al enviar el PIN temporal.");
@@ -3734,7 +3655,7 @@ document.getElementById("btnVerificarPinTemp").addEventListener("click", () => {
     mostrarAviso("✅ PIN temporal verificado.");
     document.getElementById("pasoVerificar").style.display = "none";
     document.getElementById("pasoNuevoPin").style.display = "block";
-    document.getElementById("tituloRecuperar").innerText = "🔒 Crear nuevo PIN o contraseña";
+    document.getElementById("tituloRecuperar").innerText = "🔒 Crear nuevo PIN";
   } else {
     mostrarAviso("❌ El PIN temporal no coincide.");
   }
@@ -3745,12 +3666,8 @@ document.getElementById("btnCambiarPin").addEventListener("click", async () => {
   const nuevoPin = document.getElementById("nuevoPin").value.trim();
   const confirmarPin = document.getElementById("confirmarPin").value.trim();
 
-  // ✅ Nuevo: acepta cualquier valor, mínimo 4 caracteres
-  if (!nuevoPin || nuevoPin.length < 4)
-    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres.");
-
-  if (nuevoPin !== confirmarPin)
-    return mostrarAviso("Los PIN no coinciden.");
+  if (!nuevoPin || nuevoPin.length !== 4) return mostrarAviso("El PIN debe tener 4 dígitos.");
+  if (nuevoPin !== confirmarPin) return mostrarAviso("Los PIN no coinciden.");
 
   const formData = new FormData();
   formData.append("accion", "cambiarPin");
@@ -3781,6 +3698,7 @@ function ocultarTodo() {
   ["formLogin","formRegistro","formRecuperarPin"].forEach(id => document.getElementById(id).style.display = "none");
   ["pasoCorreo","pasoVerificar","pasoNuevoPin"].forEach(id => document.getElementById(id).style.display = "none");
 }
+
 
 
 
@@ -4238,12 +4156,12 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         data = JSON.parse(text);
       } catch {
         console.error("Respuesta no válida:", text);
-         mostrarAviso("Respuesta no válida del servidor: " + text);
+        alert("Respuesta no válida del servidor: " + text);
         return;
       }
 
-      // --- Eliminamos el  mostrarAviso anterior ---
-      //  mostrarAviso("Respuesta del servidor:\n" + text);
+      // --- Eliminamos el alert anterior ---
+      // alert("Respuesta del servidor:\n" + text);
 
       if (data.status === "success" && data.foto) {
         // 🚀 Nuevo enlace Drive con parámetro único para evitar caché
@@ -4322,12 +4240,12 @@ document.getElementById("inputFotoPerfil").addEventListener("change", async (e) 
         preload.src = fotoNoCache; // inicia precarga
       } else {
         console.error("Error al actualizar foto:", data.message || data);
-         mostrarAviso("No se pudo actualizar la foto en Drive.");
+        alert("No se pudo actualizar la foto en Drive.");
       }
 
     } catch (err) {
       console.error("Error al comunicarse con backend:", err);
-       mostrarAviso("Error al actualizar foto de perfil. Revisa la conexión o el script.");
+      alert("Error al actualizar foto. Revisa la conexión o el script.");
     }
   };
 
@@ -4460,9 +4378,6 @@ function agregarEfectoRipple(boton) {
   if (btn) agregarEfectoRipple(btn);
 });
 
-
-
-    
     
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
@@ -4471,14 +4386,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
 
 
 
