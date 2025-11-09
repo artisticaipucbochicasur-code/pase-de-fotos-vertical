@@ -2962,7 +2962,7 @@ async function updateContentOverlay(index) {
     commentCountValue.textContent = 0;
   }
 
-  // 🔹 Autor + foto
+  // 🔹 Autor + foto o iniciales
   document.querySelector(".autor-anuncio-container")?.remove();
 
   if (anuncio.correo) {
@@ -2974,6 +2974,11 @@ async function updateContentOverlay(index) {
       gap: "8px",
       marginTop: "6px",
     });
+
+    const avatarWrapper = document.createElement("div");
+    avatarWrapper.style.position = "relative";
+    avatarWrapper.style.width = "38px";
+    avatarWrapper.style.height = "38px";
 
     const img = document.createElement("img");
     img.className = "foto-autor";
@@ -2988,6 +2993,29 @@ async function updateContentOverlay(index) {
       transition: "opacity 0.4s ease",
     });
     img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+    avatarWrapper.appendChild(img);
+
+    // 🔸 Span para iniciales (oculto por defecto)
+    const inicialesDiv = document.createElement("div");
+    Object.assign(inicialesDiv.style, {
+      position: "absolute",
+      top: "0",
+      left: "0",
+      width: "38px",
+      height: "38px",
+      borderRadius: "50%",
+      background: "#0077cc",
+      color: "white",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: "bold",
+      fontSize: "14px",
+      textTransform: "uppercase",
+      opacity: "0",
+      transition: "opacity 0.3s ease",
+    });
+    avatarWrapper.appendChild(inicialesDiv);
 
     const span = document.createElement("span");
     span.className = "autor-anuncio";
@@ -2998,13 +3026,29 @@ async function updateContentOverlay(index) {
       fontWeight: "500",
     });
 
-    container.appendChild(img);
+    container.appendChild(avatarWrapper);
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
+    // Función auxiliar para mostrar iniciales si no hay foto
+    const mostrarIniciales = (nombre) => {
+      if (!nombre) nombre = "Usuario";
+      const iniciales = nombre
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase();
+      inicialesDiv.textContent = iniciales;
+      inicialesDiv.style.opacity = "1";
+      img.style.display = "none";
+    };
+
     // 🔹 Buscar foto de perfil desde el backend
     try {
-      const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
+      const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(
+        anuncio.correo
+      )}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -3031,21 +3075,19 @@ async function updateContentOverlay(index) {
             img.src = foto;
             img.style.opacity = "1";
           };
-          preload.onerror = () => {
-            img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-            img.style.opacity = "1";
-          };
+          preload.onerror = () => mostrarIniciales(anuncio.autor);
           preload.src = foto;
         } else {
-          // URL no reconocida → fallback
-          img.style.opacity = "1";
+          // URL no reconocida → usar iniciales
+          mostrarIniciales(anuncio.autor);
         }
       } else {
-        img.style.opacity = "1";
+        // ❌ Sin foto → iniciales
+        mostrarIniciales(anuncio.autor);
       }
     } catch (err) {
       console.warn("❌ Error obteniendo foto de perfil:", err);
-      img.style.opacity = "1";
+      mostrarIniciales(anuncio.autor);
     }
   }
 }
@@ -4675,6 +4717,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
