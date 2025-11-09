@@ -2901,10 +2901,10 @@ async function updateContentOverlay(index) {
   if (anunciosData.length > index) {
     const anuncio = anunciosData[index];
 
-    // 🔹 Actualiza info básica
+    // Actualiza info básica
     updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-    // ✅ Mostrar/ocultar botón eliminar
+    // Mostrar/ocultar botón eliminar
     if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
       deleteAnnouncementBtn.classList.add("visible");
       deleteAnnouncementBtn.onclick = () => {
@@ -2917,7 +2917,7 @@ async function updateContentOverlay(index) {
       deleteAnnouncementBtn.classList.remove("visible");
     }
 
-    // 🧹 Limpiar comentarios
+    // Limpiar comentarios
     commentsList.innerHTML = '';
     commentsOverlay.classList.remove('expanded');
 
@@ -2932,6 +2932,7 @@ async function updateContentOverlay(index) {
 
         const deleteBtnContainer = document.createElement('div');
         deleteBtnContainer.className = 'delete-btn-container';
+
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'delete-btn';
         deleteBtn.textContent = 'Borrar';
@@ -2963,7 +2964,7 @@ async function updateContentOverlay(index) {
       commentCountValue.textContent = 0;
     }
 
-    // 🆕 Mostrar autor + foto (debajo del título)
+    // Mostrar autor + foto (debajo del título)
     const oldAutor = document.querySelector(".autor-anuncio-container");
     if (oldAutor) oldAutor.remove();
 
@@ -2982,8 +2983,10 @@ async function updateContentOverlay(index) {
       imgAutor.style.borderRadius = "50%";
       imgAutor.style.objectFit = "cover";
       imgAutor.style.border = "2px solid #555";
-      imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // placeholder temporal
-      //imgAutor.referrerPolicy = "no-referrer-when-downgrade"; // o quítalo completamente
+      imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // placeholder
+      imgAutor.style.transition = "opacity 0.4s ease";
+      imgAutor.style.opacity = "1";
+
       imgAutor.onerror = () => {
         imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
       };
@@ -2997,47 +3000,51 @@ async function updateContentOverlay(index) {
 
       autorContainer.appendChild(imgAutor);
       autorContainer.appendChild(spanAutor);
-
       currentTitle.insertAdjacentElement("afterend", autorContainer);
 
-      // 🔄 Obtener foto real desde tu Apps Script
+      // Obtener foto real desde Apps Script
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
         const res = await fetch(url);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
         const data = await res.json();
 
         if (data.status === "success" && data.fotoPerfil) {
           let fotoUrl = data.fotoPerfil.trim();
 
-          // 🪄 Ajustar formato Drive (por si acaso)
+          // Normalizar URL de Google Drive
           if (fotoUrl.includes("drive.google.com")) {
             fotoUrl = fotoUrl
               .replace("https://drive.google.com/open?id=", "https://drive.google.com/uc?export=view&id=")
               .replace("https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id=")
-              .replace("/view?usp=sharing", "");
+              .replace(/\/view.*$/g, "");
           }
 
-          // 🚀 Versión sin caché y con referrer neutro
+          // Evitar caché
           const fotoFinal = `${fotoUrl}${fotoUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
 
-          // Precarga para evitar parpadeos
+          // Precargar imagen
           const preload = new Image();
-         // preload.referrerPolicy = "no-referrer";
           preload.onload = () => {
-            imgAutor.style.transition = "opacity 0.4s ease";
             imgAutor.style.opacity = "0";
             setTimeout(() => {
               imgAutor.src = fotoFinal;
-              imgAutor.onload = () => (imgAutor.style.opacity = "1");
-            }, 200);
+              imgAutor.onload = () => {
+                imgAutor.style.opacity = "1";
+              };
+            }, 150);
           };
           preload.onerror = () => {
+            console.warn("No se pudo cargar la foto de perfil:", fotoFinal);
             imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
           };
           preload.src = fotoFinal;
         }
       } catch (err) {
         console.error("Error al obtener la foto de perfil:", err);
+        // Fallback silencioso: ya tiene placeholder
       }
     }
   }
@@ -4671,6 +4678,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
