@@ -3020,13 +3020,14 @@ async function updateContentOverlay(index) {
 
     // 🔹 Buscar foto de perfil
     try {
-      // 👉 Usa la misma URL base que el resto del sistema
       const url = `${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
       alert(`📡 Consultando foto de perfil:\n${url}`);
 
       const res = await fetch(url);
       const rawText = await res.text();
-      alert(`📩 Respuesta cruda del script:\n\n${rawText.substring(0, 400)}${rawText.length > 400 ? "..." : ""}`);
+
+      // 🚨 Nueva alerta agregada: muestra la respuesta cruda del script
+      alert(`💬 Respuesta cruda del script:\n\n${rawText}`);
 
       let data;
       try {
@@ -3072,7 +3073,6 @@ async function updateContentOverlay(index) {
         };
 
         img.src = `https://lh3.googleusercontent.com/d/${foto.match(/id=([A-Za-z0-9_-]+)/)?.[1]}=s200?nocache=${Date.now()}`;
-// evita caché
       } else {
         alert(`❌ No se encontró foto: ${data.message || "Sin mensaje"}`);
       }
@@ -4709,6 +4709,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
