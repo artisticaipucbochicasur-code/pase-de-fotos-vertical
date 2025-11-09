@@ -2274,7 +2274,8 @@ setInterval(() => {
 
     
 
-async function updateInfo(title, description, autor = "Anónimo", autorCorreo = "") {
+async function updateInfo(updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, anuncio);
+) {
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
   currentTitle.setAttribute("data-autor", autor);
@@ -2294,11 +2295,19 @@ async function updateInfo(title, description, autor = "Anónimo", autorCorreo = 
   }
 
   // 🧠 Crear HTML del autor con imagen
-  const autorHTML = `
-    <span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px; display: inline-flex; align-items: center; gap: 6px;">
-      <img src="${fotoPerfil}" alt="${autor}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
-      — ${autor}
-    </span>`;
+ // 🧠 Obtener foto del autor (por correo)
+let fotoAutor = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+if (anuncio.correo) {
+  const fotoObtenida = await getFotoPerfilPorCorreo(anuncio.correo);
+  if (fotoObtenida) fotoAutor = fotoObtenida;
+}
+
+const autorHTML = `
+  <span class="autor-anuncio" style="font-size:13px;color:#ccc;margin-left:8px;display:inline-flex;align-items:center;gap:6px;">
+    <img src="${fotoAutor}" alt="${autor}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+    — ${autor}
+  </span>`;
+
 
   const shortTitle = `${shortTitleText}${autorHTML}`;
   const fullTitle = `${title}${autorHTML}`;
@@ -2316,21 +2325,21 @@ async function updateInfo(title, description, autor = "Anónimo", autorCorreo = 
 
 
 
-    async function getFotoPerfilPorCorreo(correo) {
+async function getFotoPerfilPorCorreo(correo) {
   try {
-    const response = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
-    const data = await response.json();
+    const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
+    const data = await res.json();
     if (data.status === "success" && data.fotoPerfil) {
       return data.fotoPerfil;
     } else {
-      console.warn("No se encontró la foto del autor:", correo);
-      return "";
+      return "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // foto genérica
     }
-  } catch (err) {
-    console.error("Error al obtener la foto del autor:", err);
-    return "";
+  } catch (e) {
+    console.error("Error al obtener foto del autor:", e);
+    return "https://cdn-icons-png.flaticon.com/512/847/847969.png";
   }
 }
+
 
     
 
@@ -4606,6 +4615,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
