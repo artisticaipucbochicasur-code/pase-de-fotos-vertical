@@ -3019,22 +3019,32 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
 async function getFotoPerfil(correo) {
-  try {
-    const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`;
+  if (!correo) return "";
 
-    const res = await fetch(url);
+  try {
+    const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${correo}`);
     const data = await res.json();
 
-    if (data.status === "success" && data.fotoPerfil) {
-      return data.fotoPerfil;
+    let foto = data.foto || data.url || data.fotoPerfil || "";
+
+    if (!foto) return "";
+
+    // si es base64
+    if (String(foto).startsWith("data:")) return foto;
+
+    // intentar variantes de Drive igual que mostrarUsuario
+    const idMatch = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+    if (idMatch && idMatch[1]) {
+      const id = idMatch[1];
+      return `https://drive.google.com/uc?export=view&id=${id}`;
     }
 
-    return ""; // foto no encontrada
-  } catch (e) {
-    console.error("Error obteniendo foto:", e);
+    return foto;
+  } catch {
     return "";
   }
 }
+
 
 
    function initSwiper(initialIndex = 0) {
@@ -4660,6 +4670,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
