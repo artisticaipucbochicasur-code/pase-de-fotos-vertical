@@ -2975,7 +2975,7 @@ async function updateContentOverlay(index) {
       marginTop: "6px",
     });
 
-    // 🧩 Elemento base: círculo (imagen o iniciales)
+    // 🧩 Círculo base (imagen o iniciales)
     const avatar = document.createElement("div");
     avatar.className = "foto-autor";
     Object.assign(avatar.style, {
@@ -2997,7 +2997,6 @@ async function updateContentOverlay(index) {
       transition: "opacity 0.4s ease",
     });
 
-    // Mostrar iniciales mientras carga o si falla
     const iniciales = (anuncio.autor || "")
       .split(" ")
       .map((n) => n[0])
@@ -3019,14 +3018,13 @@ async function updateContentOverlay(index) {
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
-    // 🔹 Intentar obtener foto de perfil
+    // 🔹 Buscar foto de perfil
     try {
       const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
       alert(`📡 Consultando foto de perfil:\n${url}`);
 
       const res = await fetch(url);
       const rawText = await res.text();
-
       alert(`📩 Respuesta cruda del script:\n\n${rawText.substring(0, 400)}${rawText.length > 400 ? "..." : ""}`);
 
       let data;
@@ -3041,32 +3039,38 @@ async function updateContentOverlay(index) {
       if (data.status === "success" && data.fotoPerfil) {
         let foto = data.fotoPerfil.trim();
 
-        // Crear imagen para probar carga
+        // 🧠 Limpieza del enlace de Drive
+        if (foto.includes("drive.google.com")) {
+          if (foto.includes("uc?export=view&id=")) {
+            foto = foto.split("&")[0]; // eliminar parámetros antiguos
+          } else {
+            const match = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+            if (match && match[1]) {
+              foto = `https://drive.google.com/uc?export=view&id=${match[1]}`;
+            }
+          }
+        }
+
+        // 🧪 Probar carga de imagen
         const img = new Image();
         img.onload = () => {
           avatar.style.background = "none";
           avatar.textContent = "";
-          avatar.style.opacity = "0";
-          setTimeout(() => {
-            avatar.innerHTML = "";
-            avatar.appendChild(img);
-            Object.assign(img.style, {
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              borderRadius: "50%",
-            });
-            avatar.style.opacity = "1";
-            alert("🖼️ Imagen cargada correctamente.");
-          }, 100);
+          avatar.innerHTML = "";
+          avatar.appendChild(img);
+          Object.assign(img.style, {
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            borderRadius: "50%",
+          });
+          alert("🖼️ Imagen cargada correctamente.");
         };
         img.onerror = () => {
           alert("⚠️ Error: no se pudo cargar la imagen. Se mostrarán iniciales.");
         };
 
-        // Asignar URL definitiva
-        if (!foto.includes("?export=view")) foto += "&v=" + Date.now();
-        img.src = foto;
+        img.src = `${foto}?v=${Date.now()}`;
       } else {
         alert(`❌ No se encontró foto: ${data.message || "Sin mensaje"}`);
       }
@@ -4703,6 +4707,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
