@@ -3020,7 +3020,8 @@ async function updateContentOverlay(index) {
 
     // 🔹 Buscar foto de perfil
     try {
-      const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
+      // 👉 Usa la misma URL base que el resto del sistema
+      const url = `${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
       alert(`📡 Consultando foto de perfil:\n${url}`);
 
       const res = await fetch(url);
@@ -3039,10 +3040,10 @@ async function updateContentOverlay(index) {
       if (data.status === "success" && data.fotoPerfil) {
         let foto = data.fotoPerfil.trim();
 
-        // 🧠 Limpieza del enlace de Drive
+        // 🧠 Limpieza y normalización de enlaces de Drive
         if (foto.includes("drive.google.com")) {
           if (foto.includes("uc?export=view&id=")) {
-            foto = foto.split("&")[0]; // eliminar parámetros antiguos
+            foto = foto.split("&")[0]; // limpia parámetros antiguos
           } else {
             const match = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
             if (match && match[1]) {
@@ -3070,7 +3071,7 @@ async function updateContentOverlay(index) {
           alert("⚠️ Error: no se pudo cargar la imagen. Se mostrarán iniciales.");
         };
 
-        img.src = `${foto}?v=${Date.now()}`;
+        img.src = `${foto}?v=${Date.now()}`; // evita caché
       } else {
         alert(`❌ No se encontró foto: ${data.message || "Sin mensaje"}`);
       }
@@ -4707,6 +4708,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
