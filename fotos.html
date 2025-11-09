@@ -3002,14 +3002,49 @@ async function updateContentOverlay(index) {
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
-    // CARGAR FOTO REAL
+    // CARGAR FOTO REAL CON DEPURACIÓN
     try {
       const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
+      
+      // ALERT 1: URL que se está llamando
+      alert(`Llamando a:\n${url}`);
+
       const res = await fetch(url);
-      const data = await res.json();
+      
+      // ALERT 2: Respuesta cruda del servidor
+      const textData = await res.text();
+      alert(`Respuesta cruda del script:\n\n${textData}`);
+
+      let data;
+      try {
+        data = JSON.parse(textData);
+      } catch (e) {
+        alert(`Error parseando JSON:\n${e.message}\n\nTexto recibido:\n${textData}`);
+        return;
+      }
+
+      // ALERT 3: JSON parseado
+      alert(`JSON parseado:\n\nstatus: ${data.status}\nfotoPerfil: ${data.fotoPerfil || 'null'}`);
 
       if (data.status === "success" && data.fotoPerfil) {
-        const fotoFinal = `${data.fotoPerfil}?v=${Date.now()}`;
+        let fotoUrl = data.fotoPerfil.trim();
+
+        // ALERT 4: URL antes de normalizar
+        alert(`URL recibida del script:\n${fotoUrl}`);
+
+        // Normalizar URL
+        const idMatch = fotoUrl.match(/id=([a-zA-Z0-9-_]+)/) || fotoUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (idMatch) {
+          fotoUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        } else {
+          alert(`No se encontró ID en la URL:\n${fotoUrl}`);
+          return;
+        }
+
+        const fotoFinal = `${fotoUrl}?v=${Date.now()}`;
+
+        // ALERT 5: URL final
+        alert(`URL final para la imagen:\n${fotoFinal}`);
 
         const preload = new Image();
         preload.onload = () => {
@@ -3017,20 +3052,23 @@ async function updateContentOverlay(index) {
           setTimeout(() => {
             img.src = fotoFinal;
             img.onload = () => { img.style.opacity = "1"; };
+            // ALERT 6: Imagen cargada
+            setTimeout(() => alert(`IMAGEN CARGADA CORRECTAMENTE`), 300);
           }, 100);
         };
         preload.onerror = () => {
-          console.warn("Foto no disponible:", fotoFinal);
+          alert(`ERROR: La imagen NO se pudo cargar:\n${fotoFinal}`);
         };
         preload.src = fotoFinal;
+
+      } else {
+        alert(`Error del script:\nstatus: ${data.status}\nmessage: ${data.message || 'Sin mensaje'}`);
       }
     } catch (err) {
-      console.error("Error cargando foto:", err);
+      alert(`Error en fetch:\n${err.message}`);
     }
   }
 }
-
-
 
 
    function initSwiper(initialIndex = 0) {
@@ -4656,6 +4694,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
