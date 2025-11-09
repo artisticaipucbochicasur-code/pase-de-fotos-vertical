@@ -2983,6 +2983,7 @@ async function updateContentOverlay(index) {
       imgAutor.style.objectFit = "cover";
       imgAutor.style.border = "2px solid #555";
       imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // placeholder temporal
+      imgAutor.referrerPolicy = "no-referrer";
       imgAutor.onerror = () => {
         imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
       };
@@ -3005,7 +3006,7 @@ async function updateContentOverlay(index) {
         const res = await fetch(url);
         const textData = await res.text();
 
-        // 🧩 Mostrar respuesta del script para depurar
+        // 🧩 Mostrar respuesta del script (solo depuración)
         alert("📬 Respuesta bruta del script:\n\n" + textData);
 
         let data;
@@ -3016,25 +3017,36 @@ async function updateContentOverlay(index) {
           return;
         }
 
-        if (data.status === "success") {
-          if (data.fotoPerfil) {
-            let fotoUrl = data.fotoPerfil;
+        if (data.status === "success" && data.fotoPerfil) {
+          let fotoUrl = data.fotoPerfil.trim();
 
-            // 🪄 Si es un link de Drive, convertir al formato visible
-            if (fotoUrl.includes("drive.google.com")) {
-              fotoUrl = fotoUrl
-                .replace("https://drive.google.com/open?id=", "https://drive.google.com/uc?export=view&id=")
-                .replace("https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id=")
-                .replace("/view?usp=sharing", "")
-                .replace("https://drive.google.com/uc?", "https://lh3.googleusercontent.com/u/0/d/");
-            }
-
-            imgAutor.src = fotoUrl;
+          // 🚀 Asegurar formato correcto de Google Drive
+          if (fotoUrl.includes("drive.google.com")) {
+            fotoUrl = fotoUrl
+              .replace("https://drive.google.com/open?id=", "https://drive.google.com/uc?export=view&id=")
+              .replace("https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id=")
+              .replace("/view?usp=sharing", "");
           }
 
-          if (data.autor && !anuncio.autor) {
-            spanAutor.textContent = data.autor;
-          }
+          // 🧠 Evitar caché y fallos de carga
+          const fotoFinal = `${fotoUrl}${fotoUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+
+          // Precargar antes de asignar
+          const preload = new Image();
+          preload.referrerPolicy = "no-referrer";
+          preload.onload = () => {
+            imgAutor.style.transition = "opacity 0.4s ease";
+            imgAutor.style.opacity = "0";
+            setTimeout(() => {
+              imgAutor.src = fotoFinal;
+              imgAutor.onload = () => (imgAutor.style.opacity = "1");
+            }, 200);
+          };
+          preload.onerror = () => {
+            console.warn("⚠️ No se pudo precargar la foto, usando imagen por defecto.");
+            imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+          };
+          preload.src = fotoFinal;
         } else {
           alert("⚠️ El script devolvió un error:\n\n" + data.message);
         }
@@ -3044,6 +3056,7 @@ async function updateContentOverlay(index) {
     }
   }
 }
+
 
 
 
@@ -4671,6 +4684,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
