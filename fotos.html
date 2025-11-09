@@ -2984,6 +2984,7 @@ async function updateContentOverlay(index) {
       opacity: "1"
     });
     img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+
     img.onerror = () => {
       img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
     };
@@ -3001,42 +3002,33 @@ async function updateContentOverlay(index) {
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
-    // Cargar foto real
+    // CARGAR FOTO REAL
     try {
       const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (data.status === "success" && data.fotoPerfil) {
-        let photoUrl = data.fotoPerfil.trim();
+        const fotoFinal = `${data.fotoPerfil}?v=${Date.now()}`;
 
-        // Normalizar URL
-        const idMatch = photoUrl.match(/id=([a-zA-Z0-9-_]+)/) || photoUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if (idMatch) {
-          photoUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-        }
-
-        const finalUrl = `${photoUrl}?v=${Date.now()}`;
-
-        const preloader = new Image();
-        preloader.onload = () => {
+        const preload = new Image();
+        preload.onload = () => {
           img.style.opacity = "0";
           setTimeout(() => {
-            img.src = finalUrl;
+            img.src = fotoFinal;
             img.onload = () => { img.style.opacity = "1"; };
           }, 100);
         };
-        preloader.onerror = () => {
-          console.warn("Foto de perfil no disponible:", finalUrl);
+        preload.onerror = () => {
+          console.warn("Foto no disponible:", fotoFinal);
         };
-        preloader.src = finalUrl;
+        preload.src = fotoFinal;
       }
     } catch (err) {
-      console.error("Error cargando foto de perfil:", err);
+      console.error("Error cargando foto:", err);
     }
   }
 }
-
 
 
 
@@ -4664,6 +4656,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
