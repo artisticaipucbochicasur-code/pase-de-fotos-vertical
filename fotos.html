@@ -2999,34 +2999,39 @@ async function updateContentOverlay(index) {
       // 🔄 Obtener foto real desde tu Apps Script
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
-        console.log("📡 Solicitando foto de perfil desde:", url);
-
+        
         const res = await fetch(url);
-        console.log("📬 Respuesta HTTP:", res);
+        const textData = await res.text();
 
-        const data = await res.json();
-        console.log("🧩 Datos recibidos del Apps Script:", data);
+        // 🧩 Mostrar en pantalla lo que devuelve el script
+        alert("📬 Respuesta bruta del script:\n\n" + textData);
+
+        // Intentar parsear como JSON
+        let data;
+        try {
+          data = JSON.parse(textData);
+        } catch (e) {
+          alert("⚠️ Error parseando JSON:\n\n" + e.message);
+          return;
+        }
 
         if (data.status === "success") {
           if (data.fotoPerfil) {
-            console.log("✅ URL de foto detectada:", data.fotoPerfil);
             imgAutor.src = data.fotoPerfil;
-          } else {
-            console.warn("⚠️ No hay fotoPerfil en la respuesta");
           }
-
           if (data.autor && !anuncio.autor) {
             spanAutor.textContent = data.autor;
           }
         } else {
-          console.warn("⚠️ Respuesta de error del script:", data.message);
+          alert("⚠️ El script devolvió un error:\n\n" + data.message);
         }
       } catch (err) {
-        console.error("💥 Error obteniendo foto de perfil:", err);
+        alert("💥 Error al obtener la foto:\n\n" + err.message);
       }
     }
   }
 }
+
 
 
 
@@ -4653,6 +4658,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
