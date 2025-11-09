@@ -2981,11 +2981,15 @@ function updateContentOverlay(index) {
             commentCountValue.textContent = 0;
         }
 
-        // 🆕 Mostrar autor con foto
+               // 🆕 Mostrar autor con foto (reemplaza aquí)
         (async () => {
             const container = document.getElementById("autorContainer");
+            if (!container) {
+                console.warn("autorContainer no encontrado en el DOM");
+                return;
+            }
 
-            // limpiar siempre
+            // limpiar siempre antes de insertar (evita duplicados)
             container.innerHTML = "";
 
             if (anuncio.autor) {
@@ -2993,16 +2997,17 @@ function updateContentOverlay(index) {
                 div.className = "autor-anuncio-box autor-box";
                 div.style.display = "flex";
                 div.style.alignItems = "center";
-                div.style.gap = "6px";
+                div.style.gap = "8px";
                 div.style.marginTop = "6px";
 
-                const correoAutor = anuncio.correo || "";
-                let foto = await getFotoPerfil(correoAutor);
+                const correoAutor = (anuncio.correo || "").trim();
 
-                // si es drive con ID, convertir
-                const idMatch = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-                if (idMatch && idMatch[1]) {
-                    foto = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+                // resolver la mejor URL de la foto (prueba candidatos)
+                let fotoUrl = "";
+                try {
+                  fotoUrl = await resolveFotoPerfil(correoAutor);
+                } catch (e) {
+                  console.error("Error resolveFotoPerfil:", e);
                 }
 
                 const img = document.createElement("img");
@@ -3012,13 +3017,28 @@ function updateContentOverlay(index) {
                 img.style.objectFit = "cover";
                 img.style.borderRadius = "50%";
                 img.style.border = "2px solid #fff";
-                img.style.background = "#222";
+                img.style.background = "#eee";
+                img.alt = anuncio.autor || "autor";
 
-                if (foto && foto.length > 5) {
-                    img.src = foto + `&v=${Date.now()}`; // evitar caché
+                // Añadir atributo de precarga y referrerPolicy
+                img.referrerPolicy = "no-referrer";
+
+                // si vino una URL válida, usarla (agregar version param evitando doble ?)
+                if (fotoUrl && fotoUrl.length > 5) {
+                    // manejar si ya tiene query params
+                    const sep = fotoUrl.includes("?") ? "&" : "?";
+                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
                 } else {
-                    img.src = "img/default-user.png";
+                    // fallback a la imagen por defecto o iniciales
+                    img.src = "img/default-user.png"; // cámbialo por tu placeholder real
                 }
+
+                // si la imagen falla, reemplazar por placeholder
+                img.onerror = () => {
+                    console.warn("Autor image failed to load, usando placeholder:", img.src);
+                    img.onerror = null;
+                    img.src = "img/default-user.png";
+                };
 
                 div.appendChild(img);
 
@@ -3031,6 +3051,7 @@ function updateContentOverlay(index) {
                 container.appendChild(div);
             }
         })();
+
     }
 }
 
@@ -3062,6 +3083,86 @@ async function getFotoPerfil(correo) {
   }
 }
 
+// ------------------------
+// Resuelve la URL válida de la foto de perfil (prueba candidatos)
+// ------------------------
+async function resolveFotoPerfil(correo) {
+  if (!correo) return "";
+
+  try {
+    // Llamada al Apps Script que ya tienes (accion=getFotoPerfil)
+    const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
+    const data = await res.json();
+    let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
+
+    if (!foto) return "";
+
+    // Construir candidatos tipo mostrarUsuario
+    const candidates = [];
+    const s = String(foto).trim();
+    candidates.push(s);
+
+    // Si es solo un ID
+    const idOnly = s.match(/^[A-Za-z0-9_-]{20,80}$/);
+    if (idOnly) {
+      const id = idOnly[0];
+      candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+      candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+      candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+      candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
+    } else {
+      const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+      if (m && m[1]) {
+        const id = m[1];
+        candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+        candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+        candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+        candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
+      }
+    }
+
+    // Normalizar único set
+    const uniqueCandidates = Array.from(new Set(candidates)).filter(Boolean);
+
+    // Probar sequentialmente con Image() y timeout
+    for (let i = 0; i < uniqueCandidates.length; i++) {
+      const url = uniqueCandidates[i];
+      try {
+        const ok = await new Promise((resolve) => {
+          const testImg = new Image();
+          testImg.referrerPolicy = "no-referrer"; // igual que login
+          let finished = false;
+          const to = setTimeout(() => {
+            if (!finished) { finished = true; resolve(false); }
+          }, 3500);
+
+          testImg.onload = () => {
+            if (!finished) { finished = true; clearTimeout(to); resolve(true); }
+          };
+          testImg.onerror = () => {
+            if (!finished) { finished = true; clearTimeout(to); resolve(false); }
+          };
+
+          // asignar src (puede lanzar si URL inválida)
+          try { testImg.src = url; } catch (e) { clearTimeout(to); resolve(false); }
+        });
+
+        if (ok) {
+          return url; // primer candidato que funciona
+        }
+      } catch (e) {
+        // ignorar y seguir al siguiente
+        console.warn("resolveFotoPerfil - candidato falló:", url, e);
+      }
+    }
+
+    // ninguno funcionó
+    return "";
+  } catch (err) {
+    console.error("resolveFotoPerfil error:", err);
+    return "";
+  }
+}
 
 
    function initSwiper(initialIndex = 0) {
@@ -4687,6 +4788,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
