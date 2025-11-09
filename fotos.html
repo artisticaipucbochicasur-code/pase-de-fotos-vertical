@@ -2898,158 +2898,144 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
     
 async function updateContentOverlay(index) {
-  if (anunciosData.length > index) {
-    const anuncio = anunciosData[index];
+  if (anunciosData.length <= index) return;
 
-    // Actualiza info básica
-    updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
+  const anuncio = anunciosData[index];
+  updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-    // Mostrar/ocultar botón eliminar
-    if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-      deleteAnnouncementBtn.classList.add("visible");
-      deleteAnnouncementBtn.onclick = () => {
-        showConfirmationDialog(
-          "¿Estás seguro de que quieres eliminar este anuncio?",
-          () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-        );
-      };
-    } else {
-      deleteAnnouncementBtn.classList.remove("visible");
-    }
+  // Botón eliminar
+  if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+    deleteAnnouncementBtn.classList.add("visible");
+    deleteAnnouncementBtn.onclick = () => showConfirmationDialog(
+      "¿Estás seguro de que quieres eliminar este anuncio?",
+      () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+    );
+  } else {
+    deleteAnnouncementBtn.classList.remove("visible");
+  }
 
-    // Limpiar comentarios
-    commentsList.innerHTML = '';
-    commentsOverlay.classList.remove('expanded');
+  // Comentarios
+  commentsList.innerHTML = '';
+  commentsOverlay.classList.remove('expanded');
 
-    if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-      anuncio.comentarios.forEach(comentario => {
-        const li = document.createElement('li');
-        li.classList.add('deletable');
-
-        const commentContent = document.createElement('div');
-        commentContent.classList.add('comment-content');
-        commentContent.textContent = comentario.texto;
-
-        const deleteBtnContainer = document.createElement('div');
-        deleteBtnContainer.className = 'delete-btn-container';
-
-        const deleteBtn = document.createElement('div');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = 'Borrar';
-        deleteBtnContainer.appendChild(deleteBtn);
-
-        li.appendChild(deleteBtnContainer);
-        li.appendChild(commentContent);
-
-        li.dataset.id = comentario.id;
-        li.dataset.correo = comentario.autorCorreo;
-        li.dataset.texto = comentario.textoPuro;
-
-        deleteBtn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          const activeIndex = swiperInstance.realIndex;
-          const currentAnuncio = anunciosData[activeIndex];
-          if (currentAnuncio) {
-            eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
-          }
-        });
-
-        commentsList.appendChild(li);
-      });
-      commentCountValue.textContent = anuncio.comentarios.length;
-    } else {
+  if (anuncio.comentarios?.length > 0) {
+    anuncio.comentarios.forEach(comentario => {
       const li = document.createElement('li');
-      li.textContent = "No hay comentarios aún.";
-      commentsList.appendChild(li);
-      commentCountValue.textContent = 0;
-    }
+      li.classList.add('deletable');
 
-    // Mostrar autor + foto (debajo del título)
-    const oldAutor = document.querySelector(".autor-anuncio-container");
-    if (oldAutor) oldAutor.remove();
+      const content = document.createElement('div');
+      content.classList.add('comment-content');
+      content.textContent = comentario.texto;
 
-    if (anuncio.correo) {
-      const autorContainer = document.createElement("div");
-      autorContainer.className = "autor-anuncio-container";
-      autorContainer.style.display = "flex";
-      autorContainer.style.alignItems = "center";
-      autorContainer.style.gap = "8px";
-      autorContainer.style.marginTop = "6px";
+      const delContainer = document.createElement('div');
+      delContainer.className = 'delete-btn-container';
+      const delBtn = document.createElement('div');
+      delBtn.className = 'delete-btn';
+      delBtn.textContent = 'Borrar';
+      delContainer.appendChild(delBtn);
 
-      const imgAutor = document.createElement("img");
-      imgAutor.className = "foto-autor";
-      imgAutor.style.width = "38px";
-      imgAutor.style.height = "38px";
-      imgAutor.style.borderRadius = "50%";
-      imgAutor.style.objectFit = "cover";
-      imgAutor.style.border = "2px solid #555";
-      imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // placeholder
-      imgAutor.style.transition = "opacity 0.4s ease";
-      imgAutor.style.opacity = "1";
+      li.appendChild(delContainer);
+      li.appendChild(content);
+      li.dataset.id = comentario.id;
+      li.dataset.correo = comentario.autorCorreo;
+      li.dataset.texto = comentario.textoPuro;
 
-      imgAutor.onerror = () => {
-        imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        const activeIndex = swiperInstance.realIndex;
+        const currentAnuncio = anunciosData[activeIndex];
+        if (currentAnuncio) {
+          eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+        }
       };
 
-      const spanAutor = document.createElement("span");
-      spanAutor.className = "autor-anuncio";
-      spanAutor.textContent = anuncio.autor || "Autor desconocido";
-      spanAutor.style.fontSize = "15px";
-      spanAutor.style.color = "#ccc";
-      spanAutor.style.fontWeight = "500";
+      commentsList.appendChild(li);
+    });
+    commentCountValue.textContent = anuncio.comentarios.length;
+  } else {
+    const li = document.createElement('li');
+    li.textContent = "No hay comentarios aún.";
+    commentsList.appendChild(li);
+    commentCountValue.textContent = 0;
+  }
 
-      autorContainer.appendChild(imgAutor);
-      autorContainer.appendChild(spanAutor);
-      currentTitle.insertAdjacentElement("afterend", autorContainer);
+  // Autor + foto
+  document.querySelector(".autor-anuncio-container")?.remove();
 
-      // Obtener foto real desde Apps Script
-      try {
-        const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
-        const res = await fetch(url);
+  if (anuncio.correo) {
+    const container = document.createElement("div");
+    container.className = "autor-anuncio-container";
+    Object.assign(container.style, {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      marginTop: "6px"
+    });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const img = document.createElement("img");
+    img.className = "foto-autor";
+    Object.assign(img.style, {
+      width: "38px",
+      height: "38px",
+      borderRadius: "50%",
+      objectFit: "cover",
+      border: "2px solid #555",
+      transition: "opacity 0.3s ease",
+      opacity: "1"
+    });
+    img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+    img.onerror = () => {
+      img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+    };
 
-        const data = await res.json();
+    const span = document.createElement("span");
+    span.className = "autor-anuncio";
+    span.textContent = anuncio.autor || "Autor desconocido";
+    Object.assign(span.style, {
+      fontSize: "15px",
+      color: "#ccc",
+      fontWeight: "500"
+    });
 
-        if (data.status === "success" && data.fotoPerfil) {
-          let fotoUrl = data.fotoPerfil.trim();
+    container.appendChild(img);
+    container.appendChild(span);
+    currentTitle.insertAdjacentElement("afterend", container);
 
-          // Normalizar URL de Google Drive
-          if (fotoUrl.includes("drive.google.com")) {
-            fotoUrl = fotoUrl
-              .replace("https://drive.google.com/open?id=", "https://drive.google.com/uc?export=view&id=")
-              .replace("https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id=")
-              .replace(/\/view.*$/g, "");
-          }
+    // Cargar foto real
+    try {
+      const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
+      const res = await fetch(url);
+      const data = await res.json();
 
-          // Evitar caché
-          const fotoFinal = `${fotoUrl}${fotoUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+      if (data.status === "success" && data.fotoPerfil) {
+        let photoUrl = data.fotoPerfil.trim();
 
-          // Precargar imagen
-          const preload = new Image();
-          preload.onload = () => {
-            imgAutor.style.opacity = "0";
-            setTimeout(() => {
-              imgAutor.src = fotoFinal;
-              imgAutor.onload = () => {
-                imgAutor.style.opacity = "1";
-              };
-            }, 150);
-          };
-          preload.onerror = () => {
-            console.warn("No se pudo cargar la foto de perfil:", fotoFinal);
-            imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-          };
-          preload.src = fotoFinal;
+        // Normalizar URL
+        const idMatch = photoUrl.match(/id=([a-zA-Z0-9-_]+)/) || photoUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (idMatch) {
+          photoUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
         }
-      } catch (err) {
-        console.error("Error al obtener la foto de perfil:", err);
-        // Fallback silencioso: ya tiene placeholder
+
+        const finalUrl = `${photoUrl}?v=${Date.now()}`;
+
+        const preloader = new Image();
+        preloader.onload = () => {
+          img.style.opacity = "0";
+          setTimeout(() => {
+            img.src = finalUrl;
+            img.onload = () => { img.style.opacity = "1"; };
+          }, 100);
+        };
+        preloader.onerror = () => {
+          console.warn("Foto de perfil no disponible:", finalUrl);
+        };
+        preloader.src = finalUrl;
       }
+    } catch (err) {
+      console.error("Error cargando foto de perfil:", err);
     }
   }
 }
-
 
 
 
@@ -4678,6 +4664,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
