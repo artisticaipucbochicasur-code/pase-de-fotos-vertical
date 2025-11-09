@@ -2274,74 +2274,67 @@ setInterval(() => {
 
     
 
-async function updateInfo(updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, anuncio);
-) {
+  // 🔹 Toggle título y descripción (expandir/colapsar) con autor
+// 🔹 Toggle título y descripción (expandir/colapsar) con autor
+function updateInfo(title, description, autor = "Anónimo") {
+  // Guardar valores completos
   currentTitle.setAttribute("data-full", title);
   currentDescription.setAttribute("data-full", description);
   currentTitle.setAttribute("data-autor", autor);
-  currentTitle.setAttribute("data-correo", autorCorreo);
 
+  // Crear versiones cortas
   const shortTitleText = title.length > 50 
     ? title.substring(0, 50) + "..."
     : title;
+
   const shortDescriptionText = description.length > 80 
     ? description.substring(0, 80) + "..."
     : description;
 
-  // 🆕 Obtener foto del autor por correo
-  let fotoPerfil = autorCorreo ? await getFotoPerfilPorCorreo(autorCorreo) : "";
-  if (!fotoPerfil) {
-    fotoPerfil = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // Imagen por defecto
-  }
+  // 🆕 Insertar autor junto al título
+  const autorHTML = `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`;
 
-  // 🧠 Crear HTML del autor con imagen
- // 🧠 Obtener foto del autor (por correo)
-let fotoAutor = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-if (anuncio.correo) {
-  const fotoObtenida = await getFotoPerfilPorCorreo(anuncio.correo);
-  if (fotoObtenida) fotoAutor = fotoObtenida;
-}
-
-const autorHTML = `
-  <span class="autor-anuncio" style="font-size:13px;color:#ccc;margin-left:8px;display:inline-flex;align-items:center;gap:6px;">
-    <img src="${fotoAutor}" alt="${autor}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
-    — ${autor}
-  </span>`;
-
-
+  // Guardar HTML completo con autor
   const shortTitle = `${shortTitleText}${autorHTML}`;
   const fullTitle = `${title}${autorHTML}`;
 
   currentTitle.setAttribute("data-short", shortTitle);
   currentTitle.setAttribute("data-full-html", fullTitle);
+
   currentDescription.setAttribute("data-short", shortDescriptionText);
   currentDescription.setAttribute("data-full-html", description);
 
+  // Mostrar versión corta por defecto
   currentTitle.innerHTML = shortTitle;
   currentDescription.innerHTML = shortDescriptionText;
+
+  // Quitar estado expandido
   currentTitle.classList.remove("expanded");
   currentDescription.classList.remove("expanded");
 }
 
-
-
-async function getFotoPerfilPorCorreo(correo) {
-  try {
-    const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
-    const data = await res.json();
-    if (data.status === "success" && data.fotoPerfil) {
-      return data.fotoPerfil;
-    } else {
-      return "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // foto genérica
-    }
-  } catch (e) {
-    console.error("Error al obtener foto del autor:", e);
-    return "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+// Eventos de click
+currentTitle.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.innerHTML = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
+    this.classList.add("expanded");
   }
-}
+});
+
+currentDescription.addEventListener("click", function () {
+  if (this.classList.contains("expanded")) {
+    this.innerHTML = this.getAttribute("data-short");
+    this.classList.remove("expanded");
+  } else {
+    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
+    this.classList.add("expanded");
+  }
+});
 
 
-    
 
 
 
@@ -2909,8 +2902,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
         const anuncio = anunciosData[index];
 
         // 🔹 Usar updateInfo para manejar texto corto/largo + autor
-       updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, anuncio.correo);
-
+        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
         // ✅ Mostrar/ocultar el botón fijo
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
@@ -2987,10 +2979,6 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 }
 
 
-
-
-
-    
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
@@ -4615,8 +4603,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
 
 
 
