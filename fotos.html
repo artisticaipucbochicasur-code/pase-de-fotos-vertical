@@ -2981,13 +2981,9 @@ async function updateContentOverlay(index) {
       objectFit: "cover",
       border: "2px solid #555",
       transition: "opacity 0.3s ease",
-      opacity: "1"
+      opacity: "0"
     });
     img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-
-    img.onerror = () => {
-      img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-    };
 
     const span = document.createElement("span");
     span.className = "autor-anuncio";
@@ -3002,64 +2998,42 @@ async function updateContentOverlay(index) {
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
-   // === PEGA ESTO DENTRO DEL TRY ===
-try {
-  const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
-  
-  alert(`1. Llamando a:\n${url}`);
+    // 🔹 Llamar al script de Apps Script
+    try {
+      const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
+      const res = await fetch(url);
+      const data = await res.json();
 
-  const res = await fetch(url);
-  
-  if (!res.ok) {
-    alert(`2. ERROR HTTP: ${res.status} ${res.statusText}`);
-    return;
-  }
+      if (data.status === "success" && data.fotoPerfil) {
+        let fotoUrl = data.fotoPerfil.trim();
 
-  const textData = await res.text();
-  alert(`2. Respuesta cruda (primeros 500 chars):\n\n${textData.substring(0, 500)}${textData.length > 500 ? '...' : ''}`);
+        // 🔹 Si es un enlace de Drive, convertirlo
+        const idMatch = fotoUrl.match(/id=([a-zA-Z0-9-_]+)/) || fotoUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (idMatch) {
+          fotoUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        }
 
-  let data;
-  try {
-    data = JSON.parse(textData);
-    alert(`3. JSON parseado correctamente:\n\nstatus: ${data.status}\nfotoPerfil: ${data.fotoPerfil || 'null'}`);
-  } catch (e) {
-    alert(`3. ERROR al parsear JSON:\n${e.message}\n\nTexto recibido:\n${textData.substring(0, 300)}...`);
-    return;
-  }
-
-  if (data.status !== "success" || !data.fotoPerfil) {
-    alert(`4. Script falló:\nstatus: ${data.status}\nmessage: ${data.message || 'Sin mensaje'}`);
-    return;
-  }
-
-  let fotoUrl = data.fotoPerfil.trim();
-  alert(`4. URL recibida del script:\n${fotoUrl}`);
-
-  const idMatch = fotoUrl.match(/id=([a-zA-Z0-9-_]+)/) || fotoUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!idMatch) {
-    alert(`5. NO se encontró ID en la URL:\n${fotoUrl}`);
-    return;
-  }
-
-  const fotoFinal = `https://drive.google.com/uc?export=view&id=${idMatch[1]}?v=${Date.now()}`;
-  alert(`5. URL FINAL para <img>:\n${fotoFinal}`);
-
-  const preload = new Image();
-  preload.onload = () => {
-    img.src = fotoFinal;
-    img.style.opacity = "1";
-    setTimeout(() => alert(`6. IMAGEN CARGADA CORRECTAMENTE`), 300);
-  };
-  preload.onerror = () => {
-    alert(`6. ERROR: La imagen NO se cargó:\n${fotoFinal}\nPrueba abriéndola en una pestaña nueva.`);
-  };
-  preload.src = fotoFinal;
-
-} catch (err) {
-  alert(`ERROR GENERAL:\n${err.message}`);
-}
+        // 🔹 Cargar imagen
+        const preload = new Image();
+        preload.onload = () => {
+          img.src = fotoUrl + `?v=${Date.now()}`;
+          img.style.opacity = "1";
+        };
+        preload.onerror = () => {
+          console.warn("⚠️ No se pudo cargar la imagen del perfil:", fotoUrl);
+          img.style.opacity = "1";
+        };
+        preload.src = fotoUrl;
+      } else {
+        img.style.opacity = "1";
+      }
+    } catch (err) {
+      console.error("❌ Error al obtener la foto de perfil:", err);
+      img.style.opacity = "1";
+    }
   }
 }
+
 
 
    function initSwiper(initialIndex = 0) {
@@ -4685,6 +4659,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
