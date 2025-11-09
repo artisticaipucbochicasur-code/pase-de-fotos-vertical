@@ -2916,7 +2916,7 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 
 
     
- function updateContentOverlay(index) {
+function updateContentOverlay(index) {
     if (anunciosData.length > index) {
         const anuncio = anunciosData[index];
 
@@ -2981,42 +2981,59 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
             commentCountValue.textContent = 0;
         }
 
-// 🆕 Mostrar autor con foto
-(async () => {
-    const container = document.getElementById("autorContainer");
+        // 🆕 Mostrar autor con foto
+        (async () => {
+            const container = document.getElementById("autorContainer");
 
-    // limpiar siempre
-    container.innerHTML = "";
+            // limpiar siempre
+            container.innerHTML = "";
 
-    if (anuncio.autor) {
-        const div = document.createElement("div");
-        div.className = "autor-anuncio-box autor-box";
+            if (anuncio.autor) {
+                const div = document.createElement("div");
+                div.className = "autor-anuncio-box autor-box";
+                div.style.display = "flex";
+                div.style.alignItems = "center";
+                div.style.gap = "6px";
+                div.style.marginTop = "6px";
 
-        const correoAutor = anuncio.correo || "";
-        const foto = await getFotoPerfil(correoAutor);
+                const correoAutor = anuncio.correo || "";
+                let foto = await getFotoPerfil(correoAutor);
 
-        if (foto && foto.startsWith("http")) {
-            const img = document.createElement("img");
-            img.className = "autor-foto";
-            img.src = foto;
-            div.appendChild(img);
-        }
+                // si es drive con ID, convertir
+                const idMatch = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+                if (idMatch && idMatch[1]) {
+                    foto = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+                }
 
-        const span = document.createElement("span");
-        span.style.fontSize = "13px";
-        span.style.color = "#ccc";
-        span.textContent = anuncio.autor;
-        div.appendChild(span);
+                const img = document.createElement("img");
+                img.className = "autor-foto";
+                img.style.width = "30px";
+                img.style.height = "30px";
+                img.style.objectFit = "cover";
+                img.style.borderRadius = "50%";
+                img.style.border = "2px solid #fff";
+                img.style.background = "#222";
 
-        container.appendChild(div);
-    }
+                if (foto && foto.length > 5) {
+                    img.src = foto + `&v=${Date.now()}`; // evitar caché
+                } else {
+                    img.src = "img/default-user.png";
+                }
 
-})();
+                div.appendChild(img);
 
+                const span = document.createElement("span");
+                span.style.fontSize = "13px";
+                span.style.color = "#ccc";
+                span.textContent = anuncio.autor;
+                div.appendChild(span);
 
-
+                container.appendChild(div);
+            }
+        })();
     }
 }
+
 
 async function getFotoPerfil(correo) {
   if (!correo) return "";
@@ -4670,6 +4687,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
