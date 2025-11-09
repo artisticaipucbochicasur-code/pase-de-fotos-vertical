@@ -779,6 +779,22 @@ body {
   color: #00a2ff;
   text-shadow: 0 0 6px rgba(0,162,255,0.6);
 }
+
+.autor-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.autor-foto {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+
     
   </style>
 </head>
@@ -2962,22 +2978,54 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
             commentCountValue.textContent = 0;
         }
 
-        // 🆕 Mostrar el autor junto al título si existe
-        const autorElemento = document.querySelector(".autor-anuncio");
-        if (!autorElemento && anuncio.autor) {
-            const spanAutor = document.createElement("span");
-            spanAutor.className = "autor-anuncio";
-            spanAutor.textContent = ` — ${anuncio.autor}`;
-            spanAutor.style.fontSize = "13px";
-            spanAutor.style.color = "#ccc";
-            spanAutor.style.marginLeft = "8px";
+    // 🆕 Mostrar autor con foto
+(async () => {
+    const autorElemento = document.querySelector(".autor-anuncio-box");
+    if (!autorElemento && anuncio.autor) {
 
-            // Asegurar que el autor aparezca al lado del título actual
-            currentTitle.appendChild(spanAutor);
+        const div = document.createElement("div");
+        div.className = "autor-anuncio-box autor-box";
+
+        const correoAutor = anuncio.correo || "";
+        const foto = await getFotoPerfil(correoAutor);
+
+        if (foto) {
+            const img = document.createElement("img");
+            img.className = "autor-foto";
+            img.src = foto;
+            div.appendChild(img);
         }
+
+        const spanAutor = document.createElement("span");
+        spanAutor.style.fontSize = "13px";
+        spanAutor.style.color = "#ccc";
+        spanAutor.textContent = anuncio.autor;
+        div.appendChild(spanAutor);
+
+        currentTitle.appendChild(div);
+    }
+})();
+
     }
 }
 
+async function getFotoPerfil(correo) {
+  try {
+    const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status === "success" && data.fotoPerfil) {
+      return data.fotoPerfil;
+    }
+
+    return ""; // foto no encontrada
+  } catch (e) {
+    console.error("Error obteniendo foto:", e);
+    return "";
+  }
+}
 
 
    function initSwiper(initialIndex = 0) {
@@ -4603,6 +4651,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
