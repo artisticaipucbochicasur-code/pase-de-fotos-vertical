@@ -2983,6 +2983,9 @@ async function updateContentOverlay(index) {
       imgAutor.style.objectFit = "cover";
       imgAutor.style.border = "2px solid #555";
       imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // placeholder temporal
+      imgAutor.onerror = () => {
+        imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+      };
 
       const spanAutor = document.createElement("span");
       spanAutor.className = "autor-anuncio";
@@ -2999,14 +3002,12 @@ async function updateContentOverlay(index) {
       // 🔄 Obtener foto real desde tu Apps Script
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
-        
         const res = await fetch(url);
         const textData = await res.text();
 
-        // 🧩 Mostrar en pantalla lo que devuelve el script
+        // 🧩 Mostrar respuesta del script para depurar
         alert("📬 Respuesta bruta del script:\n\n" + textData);
 
-        // Intentar parsear como JSON
         let data;
         try {
           data = JSON.parse(textData);
@@ -3017,8 +3018,20 @@ async function updateContentOverlay(index) {
 
         if (data.status === "success") {
           if (data.fotoPerfil) {
-            imgAutor.src = data.fotoPerfil;
+            let fotoUrl = data.fotoPerfil;
+
+            // 🪄 Si es un link de Drive, convertir al formato visible
+            if (fotoUrl.includes("drive.google.com")) {
+              fotoUrl = fotoUrl
+                .replace("https://drive.google.com/open?id=", "https://drive.google.com/uc?export=view&id=")
+                .replace("https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id=")
+                .replace("/view?usp=sharing", "")
+                .replace("https://drive.google.com/uc?", "https://lh3.googleusercontent.com/u/0/d/");
+            }
+
+            imgAutor.src = fotoUrl;
           }
+
           if (data.autor && !anuncio.autor) {
             spanAutor.textContent = data.autor;
           }
@@ -4658,6 +4671,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
