@@ -2903,35 +2903,36 @@ async function updateContentOverlay(index) {
   const anuncio = anunciosData[index];
   updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-  // Botón eliminar
+  // 🔹 Mostrar/ocultar botón eliminar
   if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
     deleteAnnouncementBtn.classList.add("visible");
-    deleteAnnouncementBtn.onclick = () => showConfirmationDialog(
-      "¿Estás seguro de que quieres eliminar este anuncio?",
-      () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-    );
+    deleteAnnouncementBtn.onclick = () =>
+      showConfirmationDialog(
+        "¿Estás seguro de que quieres eliminar este anuncio?",
+        () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+      );
   } else {
     deleteAnnouncementBtn.classList.remove("visible");
   }
 
-  // Comentarios
-  commentsList.innerHTML = '';
-  commentsOverlay.classList.remove('expanded');
+  // 🔹 Limpiar comentarios
+  commentsList.innerHTML = "";
+  commentsOverlay.classList.remove("expanded");
 
   if (anuncio.comentarios?.length > 0) {
-    anuncio.comentarios.forEach(comentario => {
-      const li = document.createElement('li');
-      li.classList.add('deletable');
+    anuncio.comentarios.forEach((comentario) => {
+      const li = document.createElement("li");
+      li.classList.add("deletable");
 
-      const content = document.createElement('div');
-      content.classList.add('comment-content');
+      const content = document.createElement("div");
+      content.classList.add("comment-content");
       content.textContent = comentario.texto;
 
-      const delContainer = document.createElement('div');
-      delContainer.className = 'delete-btn-container';
-      const delBtn = document.createElement('div');
-      delBtn.className = 'delete-btn';
-      delBtn.textContent = 'Borrar';
+      const delContainer = document.createElement("div");
+      delContainer.className = "delete-btn-container";
+      const delBtn = document.createElement("div");
+      delBtn.className = "delete-btn";
+      delBtn.textContent = "Borrar";
       delContainer.appendChild(delBtn);
 
       li.appendChild(delContainer);
@@ -2945,7 +2946,11 @@ async function updateContentOverlay(index) {
         const activeIndex = swiperInstance.realIndex;
         const currentAnuncio = anunciosData[activeIndex];
         if (currentAnuncio) {
-          eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
+          eliminarComentario(
+            currentAnuncio.id,
+            comentario.textoPuro,
+            comentario.autorCorreo
+          );
         }
       };
 
@@ -2953,13 +2958,13 @@ async function updateContentOverlay(index) {
     });
     commentCountValue.textContent = anuncio.comentarios.length;
   } else {
-    const li = document.createElement('li');
+    const li = document.createElement("li");
     li.textContent = "No hay comentarios aún.";
     commentsList.appendChild(li);
     commentCountValue.textContent = 0;
   }
 
-  // Autor + foto
+  // 🔹 Autor + foto
   document.querySelector(".autor-anuncio-container")?.remove();
 
   if (anuncio.correo) {
@@ -2969,7 +2974,7 @@ async function updateContentOverlay(index) {
       display: "flex",
       alignItems: "center",
       gap: "8px",
-      marginTop: "6px"
+      marginTop: "6px",
     });
 
     const img = document.createElement("img");
@@ -2980,8 +2985,8 @@ async function updateContentOverlay(index) {
       borderRadius: "50%",
       objectFit: "cover",
       border: "2px solid #555",
-      transition: "opacity 0.3s ease",
-      opacity: "0"
+      opacity: "0",
+      transition: "opacity 0.4s ease",
     });
     img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
 
@@ -2991,39 +2996,38 @@ async function updateContentOverlay(index) {
     Object.assign(span.style, {
       fontSize: "15px",
       color: "#ccc",
-      fontWeight: "500"
+      fontWeight: "500",
     });
 
     container.appendChild(img);
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
-    // 🔹 Llamar al script de Apps Script
+    // ✅ Buscar foto en Google Apps Script
     try {
       const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (data.status === "success" && data.fotoPerfil) {
-        let fotoUrl = data.fotoPerfil.trim();
+        const fotoUrl = data.fotoPerfil.trim();
 
-        // 🔹 Si es un enlace de Drive, convertirlo
-        const idMatch = fotoUrl.match(/id=([a-zA-Z0-9-_]+)/) || fotoUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if (idMatch) {
-          fotoUrl = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        // 🔸 Si ya es un link completo de Drive (uc?export=view), úsalo directo
+        if (fotoUrl.startsWith("https://drive.google.com/uc?export=view&id=")) {
+          const preload = new Image();
+          preload.onload = () => {
+            img.src = fotoUrl + `&v=${Date.now()}`;
+            img.style.opacity = "1";
+          };
+          preload.onerror = () => {
+            img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+            img.style.opacity = "1";
+          };
+          preload.src = fotoUrl;
+        } else {
+          // Si no tiene formato válido, usa el ícono por defecto
+          img.style.opacity = "1";
         }
-
-        // 🔹 Cargar imagen
-        const preload = new Image();
-        preload.onload = () => {
-          img.src = fotoUrl + `?v=${Date.now()}`;
-          img.style.opacity = "1";
-        };
-        preload.onerror = () => {
-          console.warn("⚠️ No se pudo cargar la imagen del perfil:", fotoUrl);
-          img.style.opacity = "1";
-        };
-        preload.src = fotoUrl;
       } else {
         img.style.opacity = "1";
       }
@@ -3033,7 +3037,6 @@ async function updateContentOverlay(index) {
     }
   }
 }
-
 
 
    function initSwiper(initialIndex = 0) {
@@ -4659,6 +4662,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
