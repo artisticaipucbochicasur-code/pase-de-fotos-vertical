@@ -3004,23 +3004,12 @@ async function updateContentOverlay(index) {
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
         const res = await fetch(url);
-        const textData = await res.text();
-
-        // 🧩 Mostrar respuesta del script (solo depuración)
-        alert("📬 Respuesta bruta del script:\n\n" + textData);
-
-        let data;
-        try {
-          data = JSON.parse(textData);
-        } catch (e) {
-          alert("⚠️ Error parseando JSON:\n\n" + e.message);
-          return;
-        }
+        const data = await res.json();
 
         if (data.status === "success" && data.fotoPerfil) {
           let fotoUrl = data.fotoPerfil.trim();
 
-          // 🚀 Asegurar formato correcto de Google Drive
+          // 🪄 Ajustar formato Drive (por si acaso)
           if (fotoUrl.includes("drive.google.com")) {
             fotoUrl = fotoUrl
               .replace("https://drive.google.com/open?id=", "https://drive.google.com/uc?export=view&id=")
@@ -3028,10 +3017,10 @@ async function updateContentOverlay(index) {
               .replace("/view?usp=sharing", "");
           }
 
-          // 🧠 Evitar caché y fallos de carga
+          // 🚀 Versión sin caché y con referrer neutro
           const fotoFinal = `${fotoUrl}${fotoUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
 
-          // Precargar antes de asignar
+          // Precarga para evitar parpadeos
           const preload = new Image();
           preload.referrerPolicy = "no-referrer";
           preload.onload = () => {
@@ -3043,19 +3032,17 @@ async function updateContentOverlay(index) {
             }, 200);
           };
           preload.onerror = () => {
-            console.warn("⚠️ No se pudo precargar la foto, usando imagen por defecto.");
             imgAutor.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
           };
           preload.src = fotoFinal;
-        } else {
-          alert("⚠️ El script devolvió un error:\n\n" + data.message);
         }
       } catch (err) {
-        alert("💥 Error al obtener la foto:\n\n" + err.message);
+        console.error("Error al obtener la foto de perfil:", err);
       }
     }
   }
 }
+
 
 
 
@@ -4684,6 +4671,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
