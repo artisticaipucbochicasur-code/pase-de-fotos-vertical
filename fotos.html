@@ -2903,19 +2903,18 @@ async function updateContentOverlay(index) {
   const anuncio = anunciosData[index];
   updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-  // 🔹 Mostrar/ocultar botón eliminar
+  // 🔹 Botón eliminar
   if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
     deleteAnnouncementBtn.classList.add("visible");
     deleteAnnouncementBtn.onclick = () =>
-      showConfirmationDialog(
-        "¿Estás seguro de que quieres eliminar este anuncio?",
-        () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+      showConfirmationDialog("¿Eliminar este anuncio?", () =>
+        eliminarAnuncio(anuncio.id, anuncio.deleteurl)
       );
   } else {
     deleteAnnouncementBtn.classList.remove("visible");
   }
 
-  // 🔹 Limpiar comentarios
+  // 🔹 Comentarios
   commentsList.innerHTML = "";
   commentsOverlay.classList.remove("expanded");
 
@@ -2943,8 +2942,7 @@ async function updateContentOverlay(index) {
 
       delBtn.onclick = (e) => {
         e.stopPropagation();
-        const activeIndex = swiperInstance.realIndex;
-        const currentAnuncio = anunciosData[activeIndex];
+        const currentAnuncio = anunciosData[swiperInstance.realIndex];
         if (currentAnuncio) {
           eliminarComentario(
             currentAnuncio.id,
@@ -2984,7 +2982,8 @@ async function updateContentOverlay(index) {
       height: "38px",
       borderRadius: "50%",
       objectFit: "cover",
-      border: "2px solid #555",
+      border: "2px solid #0077cc",
+      boxShadow: "0 0 4px rgba(0,0,0,0.3)",
       opacity: "0",
       transition: "opacity 0.4s ease",
     });
@@ -3003,40 +3002,54 @@ async function updateContentOverlay(index) {
     container.appendChild(span);
     currentTitle.insertAdjacentElement("afterend", container);
 
-    // ✅ Buscar foto en Google Apps Script
+    // 🔹 Buscar foto de perfil desde el backend
     try {
       const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (data.status === "success" && data.fotoPerfil) {
-        const fotoUrl = data.fotoPerfil.trim();
+        let foto = data.fotoPerfil.trim();
 
-        // 🔸 Si ya es un link completo de Drive (uc?export=view), úsalo directo
-        if (fotoUrl.startsWith("https://drive.google.com/uc?export=view&id=")) {
+        // ✅ Detectar base64 o enlace Drive
+        if (foto.startsWith("data:")) {
+          img.src = foto;
+          img.style.opacity = "1";
+        } else if (foto.includes("drive.google.com")) {
+          // Si ya es enlace completo tipo uc?export=view
+          if (foto.includes("uc?export=view&id=")) {
+            foto = foto + `&v=${Date.now()}`;
+          } else {
+            const match = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+            if (match && match[1]) {
+              foto = `https://drive.google.com/uc?export=view&id=${match[1]}&v=${Date.now()}`;
+            }
+          }
+
           const preload = new Image();
           preload.onload = () => {
-            img.src = fotoUrl + `&v=${Date.now()}`;
+            img.src = foto;
             img.style.opacity = "1";
           };
           preload.onerror = () => {
             img.src = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
             img.style.opacity = "1";
           };
-          preload.src = fotoUrl;
+          preload.src = foto;
         } else {
-          // Si no tiene formato válido, usa el ícono por defecto
+          // URL no reconocida → fallback
           img.style.opacity = "1";
         }
       } else {
         img.style.opacity = "1";
       }
     } catch (err) {
-      console.error("❌ Error al obtener la foto de perfil:", err);
+      console.warn("❌ Error obteniendo foto de perfil:", err);
       img.style.opacity = "1";
     }
   }
 }
+
 
 
    function initSwiper(initialIndex = 0) {
@@ -4662,6 +4675,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
