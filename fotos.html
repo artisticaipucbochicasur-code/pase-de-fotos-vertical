@@ -2999,15 +2999,30 @@ async function updateContentOverlay(index) {
       // 🔄 Obtener foto real desde tu Apps Script
       try {
         const url = `https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=getFotoPerfil&correo=${encodeURIComponent(anuncio.correo)}`;
+        console.log("📡 Solicitando foto de perfil desde:", url);
+
         const res = await fetch(url);
+        console.log("📬 Respuesta HTTP:", res);
+
         const data = await res.json();
+        console.log("🧩 Datos recibidos del Apps Script:", data);
 
         if (data.status === "success") {
-          if (data.fotoPerfil) imgAutor.src = data.fotoPerfil;
-          if (data.autor && !anuncio.autor) spanAutor.textContent = data.autor;
+          if (data.fotoPerfil) {
+            console.log("✅ URL de foto detectada:", data.fotoPerfil);
+            imgAutor.src = data.fotoPerfil;
+          } else {
+            console.warn("⚠️ No hay fotoPerfil en la respuesta");
+          }
+
+          if (data.autor && !anuncio.autor) {
+            spanAutor.textContent = data.autor;
+          }
+        } else {
+          console.warn("⚠️ Respuesta de error del script:", data.message);
         }
       } catch (err) {
-        console.error("Error obteniendo foto de perfil:", err);
+        console.error("💥 Error obteniendo foto de perfil:", err);
       }
     }
   }
@@ -4638,6 +4653,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
