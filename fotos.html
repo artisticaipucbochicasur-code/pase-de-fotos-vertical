@@ -796,6 +796,27 @@ body {
   border: 2px solid #fff;
 }
 
+.overlay-photo {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+    transition: opacity .25s ease;
+}
+
+.overlay-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: #5468ff;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    font-size: 18px;
+    transition: opacity .25s ease;
+}
 
     
   </style>
@@ -2799,6 +2820,20 @@ async function cargarImagenes() {
         }
 
         newAnunciosData.reverse();
+{
+    const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const vecinos = [
+        newAnunciosData[activeIndex - 1],
+        newAnunciosData[activeIndex],
+        newAnunciosData[activeIndex + 1],
+        newAnunciosData[activeIndex + 2],
+        newAnunciosData[activeIndex + 3]
+    ].filter(Boolean);
+
+    const unique = [...new Set(vecinos.map(a => normalizeText(a.correo)))];
+    unique.forEach(c => resolveFotoPerfil(c)); // cachea silenciosamente
+}
+
 
         const oldAnunciosIds = anunciosData.map(a => a.id);
         const newAnunciosIds = newAnunciosData.map(a => a.id);
@@ -2914,16 +2949,33 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
     }
 }
 
+// ===============================
+// ⚡ CACHES + FALLBACK INICIALES
+// ===============================
+const fotoCache = {};
+const fotoLocal = JSON.parse(localStorage.getItem("fotoLocal") || "{}");
 
-    
+function saveLocalPhoto(correo, url){
+    fotoLocal[correo] = url;
+    localStorage.setItem("fotoLocal", JSON.stringify(fotoLocal));
+}
+
+// Inicial estilo WhatsApp
+function fallbackName(nombre="") {
+    const inicial = nombre.trim()[0]?.toUpperCase() || "?";
+    return `avatar://${inicial}`;
+}
+
+
+// ===============================
+// 🎨 CONTENIDO PRINCIPAL
+// ===============================
 function updateContentOverlay(index) {
     if (anunciosData.length > index) {
         const anuncio = anunciosData[index];
 
-        // 🔹 Usar updateInfo para manejar texto corto/largo + autor
         updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-        // ✅ Mostrar/ocultar el botón fijo
         if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
             deleteAnnouncementBtn.classList.add("visible");
             deleteAnnouncementBtn.onclick = () => {
@@ -2937,7 +2989,7 @@ function updateContentOverlay(index) {
         }
 
         commentsList.innerHTML = '';
-        commentsOverlay.classList.remove('expanded'); 
+        commentsOverlay.classList.remove('expanded');
 
         if (anuncio.comentarios && anuncio.comentarios.length > 0) {
             anuncio.comentarios.forEach(comentario => {
@@ -2947,30 +2999,30 @@ function updateContentOverlay(index) {
                 const commentContent = document.createElement('div');
                 commentContent.classList.add('comment-content');
                 commentContent.textContent = comentario.texto;
-                
+
                 const deleteBtnContainer = document.createElement('div');
                 deleteBtnContainer.className = 'delete-btn-container';
                 const deleteBtn = document.createElement('div');
                 deleteBtn.className = 'delete-btn';
                 deleteBtn.textContent = 'Borrar';
                 deleteBtnContainer.appendChild(deleteBtn);
-                
+
                 li.appendChild(deleteBtnContainer);
                 li.appendChild(commentContent);
 
                 li.dataset.id = comentario.id;
                 li.dataset.correo = comentario.autorCorreo;
                 li.dataset.texto = comentario.textoPuro;
-                
+
                 deleteBtn.addEventListener('click', (ev) => {
-                    ev.stopPropagation(); 
+                    ev.stopPropagation();
                     const activeIndex = swiperInstance.realIndex;
                     const currentAnuncio = anunciosData[activeIndex];
                     if(currentAnuncio) {
                         eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
                     }
                 });
-                
+
                 commentsList.appendChild(li);
             });
             commentCountValue.textContent = anuncio.comentarios.length;
@@ -2981,170 +3033,174 @@ function updateContentOverlay(index) {
             commentCountValue.textContent = 0;
         }
 
-           // 🆕 Mostrar autor con foto (anti-duplicados fuerte)
-(async () => {
-    const container = document.getElementById("autorContainer");
-    if (!container) return;
+        // ===============================
+        // ✅ AUTOR CON FOTO ANTIDUPLICADO
+        // ===============================
+        (async () => {
+            const container = document.getElementById("autorContainer");
+            if (!container) return;
 
-    // Guardar ID esperado y una marca única por llamada
-    const expectedId = anuncio.id;
-    const token = Date.now() + "-" + Math.random();
-    container.dataset.renderToken = token;
+            const expectedId = anuncio.id;
+            const token = Date.now() + "-" + Math.random();
+            container.dataset.renderToken = token;
 
-    // limpiar SIEMPRE antes de dibujar
-    container.innerHTML = "";
+            container.innerHTML = "";
 
-    if (anuncio.autor) {
-        const div = document.createElement("div");
-        div.className = "autor-anuncio-box autor-box";
-        div.style.display = "flex";
-        div.style.alignItems = "center";
-        div.style.gap = "8px";
-        div.style.marginTop = "6px";
+            if (anuncio.autor) {
+                const div = document.createElement("div");
+                div.className = "autor-anuncio-box autor-box";
+                div.style.display = "flex";
+                div.style.alignItems = "center";
+                div.style.gap = "8px";
+                div.style.marginTop = "6px";
 
-        const correoAutor = (anuncio.correo || "").trim();
+                const correoAutor = (anuncio.correo || "").trim();
+                let fotoUrl = "";
 
-        let fotoUrl = "";
-        try {
-            fotoUrl = await resolveFotoPerfil(correoAutor);
-        } catch (e) {
-            console.error("resolveFotoPerfil error:", e);
-        }
+                try {
+                    fotoUrl = await resolveFotoPerfil(correoAutor, anuncio.autor);
+                } catch (e) {
+                    console.error("resolveFotoPerfil error:", e);
+                }
 
-        // 🔥 Validar que este render sigue siendo válido
-        const stillActiveToken = container.dataset.renderToken;
-        const activeIndex = swiperInstance.realIndex;
-        const currentId = anunciosData[activeIndex]?.id;
+                const stillActiveToken = container.dataset.renderToken;
+                const activeIndex = swiperInstance.realIndex;
+                const currentId = anunciosData[activeIndex]?.id;
 
-        if (stillActiveToken !== token || currentId !== expectedId) {
-            return; // << DESCARTA renders atrasados
-        }
+                if (stillActiveToken !== token || currentId !== expectedId) return;
 
-        const img = document.createElement("img");
-        img.className = "autor-foto";
-        img.style.width = "30px";
-        img.style.height = "30px";
-        img.style.objectFit = "cover";
-        img.style.borderRadius = "50%";
-        img.style.border = "2px solid #fff";
-        img.style.background = "#eee";
-        img.alt = anuncio.autor || "autor";
-        img.referrerPolicy = "no-referrer";
+                // Fallback con inicial
+                if (fotoUrl.startsWith("avatar://")) {
+                    const inicial = fotoUrl.split("://")[1];
+                    const avatar = document.createElement("div");
+                    avatar.style.width = "30px";
+                    avatar.style.height = "30px";
+                    avatar.style.borderRadius = "50%";
+                    avatar.style.background = "#5468ff";
+                    avatar.style.display = "flex";
+                    avatar.style.alignItems = "center";
+                    avatar.style.justifyContent = "center";
+                    avatar.style.fontSize = "14px";
+                    avatar.style.color = "#fff";
+                    avatar.textContent = inicial;
+                    div.appendChild(avatar);
+                } else {
+                    const img = document.createElement("img");
+                    img.className = "autor-foto";
+                    img.style.width = "30px";
+                    img.style.height = "30px";
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "50%";
+                    img.style.border = "2px solid #fff";
+                    img.style.background = "#eee";
+                    img.alt = anuncio.autor || "autor";
+                    img.referrerPolicy = "no-referrer";
 
-        if (fotoUrl && fotoUrl.length > 5) {
-            const sep = fotoUrl.includes("?") ? "&" : "?";
-            img.src = fotoUrl + `${sep}v=${Date.now()}`;
+                    const sep = fotoUrl.includes("?") ? "&" : "?";
+                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
+
+                    img.onerror = () => {
+                        img.onerror = null;
+                        img.src = "img/default-user.png";
+                    };
+
+                    div.appendChild(img);
+                }
+
+                const span = document.createElement("span");
+                span.style.fontSize = "13px";
+                span.style.color = "#ccc";
+                span.textContent = anuncio.autor;
+                div.appendChild(span);
+
+                container.innerHTML = "";
+                container.appendChild(div);
+            }
+        })();
+    }
+}
+
+
+// =====================================
+// 🔍 Resolver foto con caché + fallback
+// =====================================
+async function resolveFotoPerfil(correo, nombre="") {
+    if (!correo) return fallbackName(nombre);
+
+    // RAM
+    if (fotoCache[correo]) return fotoCache[correo];
+
+    // LocalStorage
+    if (fotoLocal[correo]) {
+        fotoCache[correo] = fotoLocal[correo];
+        return fotoLocal[correo];
+    }
+
+    try {
+        const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
+        const data = await res.json();
+        let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
+
+        if (!foto) return fallbackName(nombre);
+
+        const candidates = [];
+        const s = String(foto).trim();
+        candidates.push(s);
+
+        const idOnly = s.match(/^[A-Za-z0-9_-]{20,80}$/);
+        if (idOnly) {
+            const id = idOnly[0];
+            candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+            candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+            candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
         } else {
-            img.src = "img/default-user.png";
+            const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+            if (m && m[1]) {
+                const id = m[1];
+                candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+                candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+                candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+            }
         }
 
-        img.onerror = () => {
-            img.onerror = null;
-            img.src = "img/default-user.png";
-        };
+        const uniqueCandidates = Array.from(new Set(candidates)).filter(Boolean);
 
-        div.appendChild(img);
+        for (let i = 0; i < uniqueCandidates.length; i++) {
+            const url = uniqueCandidates[i];
+            try {
+                const ok = await new Promise((resolve) => {
+                    const testImg = new Image();
+                    testImg.referrerPolicy = "no-referrer";
+                    let finished = false;
+                    const to = setTimeout(() => {
+                        if (!finished) { finished = true; resolve(false); }
+                    }, 3000);
 
-        const span = document.createElement("span");
-        span.style.fontSize = "13px";
-        span.style.color = "#ccc";
-        span.textContent = anuncio.autor;
-        div.appendChild(span);
+                    testImg.onload = () => {
+                        if (!finished) { finished = true; clearTimeout(to); resolve(true); }
+                    };
+                    testImg.onerror = () => {
+                        if (!finished) { finished = true; clearTimeout(to); resolve(false); }
+                    };
 
-        // ✅ limpiar de nuevo por seguridad
-        container.innerHTML = "";
-        container.appendChild(div);
-    }
-})();
+                    try { testImg.src = url; } catch { clearTimeout(to); resolve(false); }
+                });
 
+                if (ok) {
+                    fotoCache[correo] = url;
+                    saveLocalPhoto(correo, url);
+                    return url;
+                }
+            } catch {}
+        }
 
+        return fallbackName(nombre);
 
+    } catch (err) {
+        return fallbackName(nombre);
     }
 }
 
-
-
-
-// ------------------------
-// Resuelve la URL válida de la foto de perfil (prueba candidatos)
-// ------------------------
-async function resolveFotoPerfil(correo) {
-  if (!correo) return "";
-
-  try {
-    // Llamada al Apps Script que ya tienes (accion=getFotoPerfil)
-    const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
-    const data = await res.json();
-    let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
-
-    if (!foto) return "";
-
-    // Construir candidatos tipo mostrarUsuario
-    const candidates = [];
-    const s = String(foto).trim();
-    candidates.push(s);
-
-    // Si es solo un ID
-    const idOnly = s.match(/^[A-Za-z0-9_-]{20,80}$/);
-    if (idOnly) {
-      const id = idOnly[0];
-      candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
-      candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
-      candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
-      candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
-    } else {
-      const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-      if (m && m[1]) {
-        const id = m[1];
-        candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
-        candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
-        candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
-        candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
-      }
-    }
-
-    // Normalizar único set
-    const uniqueCandidates = Array.from(new Set(candidates)).filter(Boolean);
-
-    // Probar sequentialmente con Image() y timeout
-    for (let i = 0; i < uniqueCandidates.length; i++) {
-      const url = uniqueCandidates[i];
-      try {
-        const ok = await new Promise((resolve) => {
-          const testImg = new Image();
-          testImg.referrerPolicy = "no-referrer"; // igual que login
-          let finished = false;
-          const to = setTimeout(() => {
-            if (!finished) { finished = true; resolve(false); }
-          }, 3500);
-
-          testImg.onload = () => {
-            if (!finished) { finished = true; clearTimeout(to); resolve(true); }
-          };
-          testImg.onerror = () => {
-            if (!finished) { finished = true; clearTimeout(to); resolve(false); }
-          };
-
-          // asignar src (puede lanzar si URL inválida)
-          try { testImg.src = url; } catch (e) { clearTimeout(to); resolve(false); }
-        });
-
-        if (ok) {
-          return url; // primer candidato que funciona
-        }
-      } catch (e) {
-        // ignorar y seguir al siguiente
-        console.warn("resolveFotoPerfil - candidato falló:", url, e);
-      }
-    }
-
-    // ninguno funcionó
-    return "";
-  } catch (err) {
-    console.error("resolveFotoPerfil error:", err);
-    return "";
-  }
-}
 
 
    function initSwiper(initialIndex = 0) {
@@ -4770,6 +4826,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
