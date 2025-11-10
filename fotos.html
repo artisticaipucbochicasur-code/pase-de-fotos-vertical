@@ -2961,10 +2961,11 @@ function saveLocalPhoto(correo, url){
 }
 
 // Inicial estilo WhatsApp
-function fallbackName(nombre="") {
-    const inicial = nombre.trim()[0]?.toUpperCase() || "?";
-    return `avatar://${inicial}`;
+function saveLocalPhoto(correo, url, modified){
+    fotoLocal[correo] = { url, modified };
+    localStorage.setItem("fotoLocal", JSON.stringify(fotoLocal));
 }
+
 
 
 // ===============================
@@ -3097,7 +3098,8 @@ function updateContentOverlay(index) {
                     img.referrerPolicy = "no-referrer";
 
                     const sep = fotoUrl.includes("?") ? "&" : "?";
-                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
+                    img.src = fotoUrl; // ya viene con ?v=modified
+
 
                     img.onerror = () => {
                         img.onerror = null;
@@ -3131,15 +3133,23 @@ async function resolveFotoPerfil(correo, nombre="") {
     if (fotoCache[correo]) return fotoCache[correo];
 
     // LocalStorage
-    if (fotoLocal[correo]) {
-        fotoCache[correo] = fotoLocal[correo];
-        return fotoLocal[correo];
-    }
+  const saved = fotoLocal[correo];
+if (saved) {
+    fotoCache[correo] = saved;
+    return `${saved.url}?v=${saved.modified}`;
+}
+
 
     try {
         const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
-        const data = await res.json();
-        let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
+      const data = await res.json();
+
+let foto = (data && (data.fotoPerfil || data.foto || data.url)) 
+    ? (data.fotoPerfil || data.foto || data.url) 
+    : "";
+
+const modified = data.modified || Date.now();
+
 
         if (!foto) return fallbackName(nombre);
 
@@ -3187,9 +3197,10 @@ async function resolveFotoPerfil(correo, nombre="") {
                 });
 
                 if (ok) {
-                    fotoCache[correo] = url;
-                    saveLocalPhoto(correo, url);
-                    return url;
+                   fotoCache[correo] = { url, modified };
+saveLocalPhoto(correo, url, modified);
+return `${url}?v=${modified}`;
+
                 }
             } catch {}
         }
@@ -4826,3 +4837,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
