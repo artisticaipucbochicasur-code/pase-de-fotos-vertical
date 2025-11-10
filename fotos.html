@@ -2820,25 +2820,19 @@ async function cargarImagenes() {
         }
 
         newAnunciosData.reverse();
-
- // ======================================================
-// ⚡ Precargar fotos vecinas (hasta 15 vecinos)
-// ======================================================
 {
     const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-    const vecinos = [];
-
-    for (let i = -5; i <= 10; i++) {
-        if (newAnunciosData[activeIndex + i]) {
-            vecinos.push(newAnunciosData[activeIndex + i]);
-        }
-    }
+    const vecinos = [
+        newAnunciosData[activeIndex - 1],
+        newAnunciosData[activeIndex],
+        newAnunciosData[activeIndex + 1],
+        newAnunciosData[activeIndex + 2],
+        newAnunciosData[activeIndex + 3]
+    ].filter(Boolean);
 
     const unique = [...new Set(vecinos.map(a => normalizeText(a.correo)))];
-    unique.forEach(c => resolveFotoPerfil(c)); // cache silencioso
+    unique.forEach(c => resolveFotoPerfil(c)); // cachea silenciosamente
 }
-
-
 
 
         const oldAnunciosIds = anunciosData.map(a => a.id);
@@ -2959,17 +2953,12 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 // ⚡ CACHES + FALLBACK INICIALES
 // ===============================
 const fotoCache = {};
-const fotoMeta = JSON.parse(localStorage.getItem("fotoMeta") || "{}");
 const fotoLocal = JSON.parse(localStorage.getItem("fotoLocal") || "{}");
 
-function saveLocalPhoto(correo, url, modified = 0){
+function saveLocalPhoto(correo, url){
     fotoLocal[correo] = url;
-    fotoLocalMeta[correo] = { url, modified };
-
     localStorage.setItem("fotoLocal", JSON.stringify(fotoLocal));
-    localStorage.setItem("fotoLocalMeta", JSON.stringify(fotoLocalMeta));
 }
-
 
 // Inicial estilo WhatsApp
 function fallbackName(nombre="") {
@@ -3106,7 +3095,9 @@ function updateContentOverlay(index) {
                     img.style.background = "#eee";
                     img.alt = anuncio.autor || "autor";
                     img.referrerPolicy = "no-referrer";
-                    img.src = fotoUrl + `?v=${fotoMeta[correoAutor] || 0}`;
+
+                    const sep = fotoUrl.includes("?") ? "&" : "?";
+                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
 
                     img.onerror = () => {
                         img.onerror = null;
@@ -3126,15 +3117,12 @@ function updateContentOverlay(index) {
                 container.appendChild(div);
             }
         })();
-
-        // ✅ Disparar precarga expandida
-        precargarVecinos();
     }
 }
 
 
 // =====================================
-// 🔍 Resolver foto con caché + modified
+// 🔍 Resolver foto con caché + fallback
 // =====================================
 async function resolveFotoPerfil(correo, nombre="") {
     if (!correo) return fallbackName(nombre);
@@ -3143,31 +3131,17 @@ async function resolveFotoPerfil(correo, nombre="") {
     if (fotoCache[correo]) return fotoCache[correo];
 
     // LocalStorage
-    if (fotoLocalMeta[correo] && fotoLocalMeta[correo].url) {
-        fotoCache[correo] = fotoLocalMeta[correo].url;
+    if (fotoLocal[correo]) {
+        fotoCache[correo] = fotoLocal[correo];
+        return fotoLocal[correo];
     }
 
     try {
         const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
         const data = await res.json();
-
         let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
-        let modified = data.modified || 0;
 
         if (!foto) return fallbackName(nombre);
-
-        // DETECCIÓN DE FOTO CAMBIADA
-        if (fotoLocalMeta[correo] && fotoLocalMeta[correo].modified) {
-            if (modified > fotoLocalMeta[correo].modified) {
-                // se detectó update → borrar cache
-                delete fotoCache[correo];
-                delete fotoLocal[correo];
-                delete fotoLocalMeta[correo];
-
-                localStorage.setItem("fotoLocal", JSON.stringify(fotoLocal));
-                localStorage.setItem("fotoLocalMeta", JSON.stringify(fotoLocalMeta));
-            }
-        }
 
         const candidates = [];
         const s = String(foto).trim();
@@ -3193,7 +3167,6 @@ async function resolveFotoPerfil(correo, nombre="") {
 
         for (let i = 0; i < uniqueCandidates.length; i++) {
             const url = uniqueCandidates[i];
-
             try {
                 const ok = await new Promise((resolve) => {
                     const testImg = new Image();
@@ -3215,7 +3188,7 @@ async function resolveFotoPerfil(correo, nombre="") {
 
                 if (ok) {
                     fotoCache[correo] = url;
-                    saveLocalPhoto(correo, url, modified);
+                    saveLocalPhoto(correo, url);
                     return url;
                 }
             } catch {}
@@ -3223,23 +3196,8 @@ async function resolveFotoPerfil(correo, nombre="") {
 
         return fallbackName(nombre);
 
-    } catch {
+    } catch (err) {
         return fallbackName(nombre);
-    }
-}
-
-
-// =================================================
-// 🧠 Precarga inteligente (15 vecinos alrededor)
-// =================================================
-function precargarVecinos(){
-    const idx = swiperInstance.realIndex;
-    const vecinos = 15;
-
-    for(let i = idx - vecinos; i <= idx + vecinos; i++){
-        const real = ((i % anunciosData.length) + anunciosData.length) % anunciosData.length;
-        const correo = anunciosData[real]?.correo;
-        if (correo) resolveFotoPerfil(correo);
     }
 }
 
@@ -4868,25 +4826,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
