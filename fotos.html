@@ -2832,17 +2832,32 @@ async function cargarImagenes() {
         newAnunciosData.reverse();
 {
     const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-    const vecinos = [
-        newAnunciosData[activeIndex - 1],
-        newAnunciosData[activeIndex],
-        newAnunciosData[activeIndex + 1],
-        newAnunciosData[activeIndex + 2],
-        newAnunciosData[activeIndex + 3]
-    ].filter(Boolean);
+    const vecinos = [];
 
-    const unique = [...new Set(vecinos.map(a => normalizeText(a.correo)))];
-    unique.forEach(c => resolveFotoPerfil(c)); // cachea silenciosamente
+    // precargar 7 anteriores y 7 posteriores + el actual = 15
+    for (let i = activeIndex - 7; i <= activeIndex + 7; i++) {
+        if (i >= 0 && i < newAnunciosData.length) {
+            vecinos.push(newAnunciosData[i]);
+        }
+    }
+
+    // Filtrar correos únicos que aún no están en caché
+    const uniqueToCache = [];
+    const seen = new Set();
+
+    vecinos.forEach(a => {
+        if (!a) return;
+        const correoNorm = normalizeText(a.correo);
+        if (!seen.has(correoNorm) && !fotoCache[correoNorm]) {
+            seen.add(correoNorm);
+            uniqueToCache.push(correoNorm);
+        }
+    });
+
+    // Cachea solo los que no están en RAM
+    uniqueToCache.forEach(c => resolveFotoPerfil(c));
 }
+
 
 
         const oldAnunciosIds = anunciosData.map(a => a.id);
@@ -4845,6 +4860,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
