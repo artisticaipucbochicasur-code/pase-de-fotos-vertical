@@ -2981,18 +2981,17 @@ function updateContentOverlay(index) {
             commentCountValue.textContent = 0;
         }
 
-            // 🆕 Mostrar autor con foto (con validación anti-acumulación)
+           // 🆕 Mostrar autor con foto (anti-duplicados fuerte)
 (async () => {
     const container = document.getElementById("autorContainer");
-    if (!container) {
-        console.warn("autorContainer no encontrado en el DOM");
-        return;
-    }
+    if (!container) return;
 
-    // Capturar ID actual para evitar race conditions
+    // Guardar ID esperado y una marca única por llamada
     const expectedId = anuncio.id;
+    const token = Date.now() + "-" + Math.random();
+    container.dataset.renderToken = token;
 
-    // limpiar siempre
+    // limpiar SIEMPRE antes de dibujar
     container.innerHTML = "";
 
     if (anuncio.autor) {
@@ -3009,13 +3008,17 @@ function updateContentOverlay(index) {
         try {
             fotoUrl = await resolveFotoPerfil(correoAutor);
         } catch (e) {
-            console.error("Error resolveFotoPerfil:", e);
+            console.error("resolveFotoPerfil error:", e);
         }
 
-        // ❌ Antes de renderizar, verificar que el slide es aún el mismo
+        // 🔥 Validar que este render sigue siendo válido
+        const stillActiveToken = container.dataset.renderToken;
         const activeIndex = swiperInstance.realIndex;
         const currentId = anunciosData[activeIndex]?.id;
-        if (currentId !== expectedId) return; // <<--- evita duplicados atrasados
+
+        if (stillActiveToken !== token || currentId !== expectedId) {
+            return; // << DESCARTA renders atrasados
+        }
 
         const img = document.createElement("img");
         img.className = "autor-foto";
@@ -3048,9 +3051,12 @@ function updateContentOverlay(index) {
         span.textContent = anuncio.autor;
         div.appendChild(span);
 
+        // ✅ limpiar de nuevo por seguridad
+        container.innerHTML = "";
         container.appendChild(div);
     }
 })();
+
 
 
     }
@@ -4764,6 +4770,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
