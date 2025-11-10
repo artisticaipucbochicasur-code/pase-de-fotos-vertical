@@ -2821,18 +2821,29 @@ async function cargarImagenes() {
 
         newAnunciosData.reverse();
 {
+ // ======================================================
+// ⚡ Precargar fotos vecinas (hasta 15 vecinos)
+// ======================================================
+{
     const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-    const vecinos = [
-        newAnunciosData[activeIndex - 1],
-        newAnunciosData[activeIndex],
-        newAnunciosData[activeIndex + 1],
-        newAnunciosData[activeIndex + 2],
-        newAnunciosData[activeIndex + 3]
-    ].filter(Boolean);
 
+    // Tomamos 15 vecinos hacia adelante
+    const vecinos = [];
+    for (let i = -2; i <= 15; i++) {
+        if (newAnunciosData[activeIndex + i]) {
+            vecinos.push(newAnunciosData[activeIndex + i]);
+        }
+    }
+
+    // Solo correos únicos
     const unique = [...new Set(vecinos.map(a => normalizeText(a.correo)))];
-    unique.forEach(c => resolveFotoPerfil(c)); // cachea silenciosamente
+
+    // Caché silencioso
+    unique.forEach(correo => {
+        resolveFotoPerfil(correo, true /* prefetch */);
+    });
 }
+
 
 
         const oldAnunciosIds = anunciosData.map(a => a.id);
@@ -2953,11 +2964,14 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 // ⚡ CACHES + FALLBACK INICIALES
 // ===============================
 const fotoCache = {};
+const fotoMeta = JSON.parse(localStorage.getItem("fotoMeta") || "{}");
 const fotoLocal = JSON.parse(localStorage.getItem("fotoLocal") || "{}");
 
-function saveLocalPhoto(correo, url){
+function saveLocalPhoto(correo, url, modified=0){
     fotoLocal[correo] = url;
+    fotoMeta[correo] = modified;
     localStorage.setItem("fotoLocal", JSON.stringify(fotoLocal));
+    localStorage.setItem("fotoMeta", JSON.stringify(fotoMeta));
 }
 
 // Inicial estilo WhatsApp
@@ -3095,9 +3109,7 @@ function updateContentOverlay(index) {
                     img.style.background = "#eee";
                     img.alt = anuncio.autor || "autor";
                     img.referrerPolicy = "no-referrer";
-
-                    const sep = fotoUrl.includes("?") ? "&" : "?";
-                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
+                    img.src = fotoUrl + `?v=${fotoMeta[correoAutor] || 0}`;
 
                     img.onerror = () => {
                         img.onerror = null;
@@ -3117,87 +3129,58 @@ function updateContentOverlay(index) {
                 container.appendChild(div);
             }
         })();
+
+        // ✅ Disparar precarga expandida
+        precargarVecinos();
     }
 }
 
 
 // =====================================
-// 🔍 Resolver foto con caché + fallback
+// 🔍 Resolver foto con caché + modified
 // =====================================
 async function resolveFotoPerfil(correo, nombre="") {
     if (!correo) return fallbackName(nombre);
 
-    // RAM
+    // 1) RAM
     if (fotoCache[correo]) return fotoCache[correo];
-
-    // LocalStorage
-    if (fotoLocal[correo]) {
-        fotoCache[correo] = fotoLocal[correo];
-        return fotoLocal[correo];
-    }
 
     try {
         const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
         const data = await res.json();
-        let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
+
+        const foto = data?.fotoPerfil || data?.url || "";
+        const mod = data?.modified || 0;
 
         if (!foto) return fallbackName(nombre);
 
-        const candidates = [];
-        const s = String(foto).trim();
-        candidates.push(s);
-
-        const idOnly = s.match(/^[A-Za-z0-9_-]{20,80}$/);
-        if (idOnly) {
-            const id = idOnly[0];
-            candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
-            candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
-            candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
-        } else {
-            const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-            if (m && m[1]) {
-                const id = m[1];
-                candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
-                candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
-                candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
-            }
+        // ¿cambió en Drive?
+        if (fotoMeta[correo] && fotoMeta[correo] !== mod) {
+            delete fotoLocal[correo];
+            delete fotoCache[correo];
         }
 
-        const uniqueCandidates = Array.from(new Set(candidates)).filter(Boolean);
+        fotoCache[correo] = foto;
+        saveLocalPhoto(correo, foto, mod);
 
-        for (let i = 0; i < uniqueCandidates.length; i++) {
-            const url = uniqueCandidates[i];
-            try {
-                const ok = await new Promise((resolve) => {
-                    const testImg = new Image();
-                    testImg.referrerPolicy = "no-referrer";
-                    let finished = false;
-                    const to = setTimeout(() => {
-                        if (!finished) { finished = true; resolve(false); }
-                    }, 3000);
-
-                    testImg.onload = () => {
-                        if (!finished) { finished = true; clearTimeout(to); resolve(true); }
-                    };
-                    testImg.onerror = () => {
-                        if (!finished) { finished = true; clearTimeout(to); resolve(false); }
-                    };
-
-                    try { testImg.src = url; } catch { clearTimeout(to); resolve(false); }
-                });
-
-                if (ok) {
-                    fotoCache[correo] = url;
-                    saveLocalPhoto(correo, url);
-                    return url;
-                }
-            } catch {}
-        }
-
+        return foto;
+    } catch {
         return fallbackName(nombre);
+    }
+}
 
-    } catch (err) {
-        return fallbackName(nombre);
+
+// =================================================
+// 🧠 Precarga inteligente (15 vecinos alrededor)
+// =================================================
+function precargarVecinos(){
+    const idx = swiperInstance.realIndex;
+    const vecinos = 15;
+
+    for(let i = idx - vecinos; i <= idx + vecinos; i++){
+        const real = ((i % anunciosData.length) + anunciosData.length) % anunciosData.length;
+        const correo = anunciosData[real]?.correo;
+        if (correo) resolveFotoPerfil(correo);
     }
 }
 
@@ -4826,6 +4809,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
