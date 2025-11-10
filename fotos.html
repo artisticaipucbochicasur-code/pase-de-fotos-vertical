@@ -2981,107 +2981,83 @@ function updateContentOverlay(index) {
             commentCountValue.textContent = 0;
         }
 
-               // 🆕 Mostrar autor con foto (reemplaza aquí)
-        (async () => {
-            const container = document.getElementById("autorContainer");
-            if (!container) {
-                console.warn("autorContainer no encontrado en el DOM");
-                return;
-            }
+            // 🆕 Mostrar autor con foto (con validación anti-acumulación)
+(async () => {
+    const container = document.getElementById("autorContainer");
+    if (!container) {
+        console.warn("autorContainer no encontrado en el DOM");
+        return;
+    }
 
-            // limpiar siempre antes de insertar (evita duplicados)
-            container.innerHTML = "";
+    // Capturar ID actual para evitar race conditions
+    const expectedId = anuncio.id;
 
-            if (anuncio.autor) {
-                const div = document.createElement("div");
-                div.className = "autor-anuncio-box autor-box";
-                div.style.display = "flex";
-                div.style.alignItems = "center";
-                div.style.gap = "8px";
-                div.style.marginTop = "6px";
+    // limpiar siempre
+    container.innerHTML = "";
 
-                const correoAutor = (anuncio.correo || "").trim();
+    if (anuncio.autor) {
+        const div = document.createElement("div");
+        div.className = "autor-anuncio-box autor-box";
+        div.style.display = "flex";
+        div.style.alignItems = "center";
+        div.style.gap = "8px";
+        div.style.marginTop = "6px";
 
-                // resolver la mejor URL de la foto (prueba candidatos)
-                let fotoUrl = "";
-                try {
-                  fotoUrl = await resolveFotoPerfil(correoAutor);
-                } catch (e) {
-                  console.error("Error resolveFotoPerfil:", e);
-                }
+        const correoAutor = (anuncio.correo || "").trim();
 
-                const img = document.createElement("img");
-                img.className = "autor-foto";
-                img.style.width = "30px";
-                img.style.height = "30px";
-                img.style.objectFit = "cover";
-                img.style.borderRadius = "50%";
-                img.style.border = "2px solid #fff";
-                img.style.background = "#eee";
-                img.alt = anuncio.autor || "autor";
+        let fotoUrl = "";
+        try {
+            fotoUrl = await resolveFotoPerfil(correoAutor);
+        } catch (e) {
+            console.error("Error resolveFotoPerfil:", e);
+        }
 
-                // Añadir atributo de precarga y referrerPolicy
-                img.referrerPolicy = "no-referrer";
+        // ❌ Antes de renderizar, verificar que el slide es aún el mismo
+        const activeIndex = swiperInstance.realIndex;
+        const currentId = anunciosData[activeIndex]?.id;
+        if (currentId !== expectedId) return; // <<--- evita duplicados atrasados
 
-                // si vino una URL válida, usarla (agregar version param evitando doble ?)
-                if (fotoUrl && fotoUrl.length > 5) {
-                    // manejar si ya tiene query params
-                    const sep = fotoUrl.includes("?") ? "&" : "?";
-                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
-                } else {
-                    // fallback a la imagen por defecto o iniciales
-                    img.src = "img/default-user.png"; // cámbialo por tu placeholder real
-                }
+        const img = document.createElement("img");
+        img.className = "autor-foto";
+        img.style.width = "30px";
+        img.style.height = "30px";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "50%";
+        img.style.border = "2px solid #fff";
+        img.style.background = "#eee";
+        img.alt = anuncio.autor || "autor";
+        img.referrerPolicy = "no-referrer";
 
-                // si la imagen falla, reemplazar por placeholder
-                img.onerror = () => {
-                    console.warn("Autor image failed to load, usando placeholder:", img.src);
-                    img.onerror = null;
-                    img.src = "img/default-user.png";
-                };
+        if (fotoUrl && fotoUrl.length > 5) {
+            const sep = fotoUrl.includes("?") ? "&" : "?";
+            img.src = fotoUrl + `${sep}v=${Date.now()}`;
+        } else {
+            img.src = "img/default-user.png";
+        }
 
-                div.appendChild(img);
+        img.onerror = () => {
+            img.onerror = null;
+            img.src = "img/default-user.png";
+        };
 
-                const span = document.createElement("span");
-                span.style.fontSize = "13px";
-                span.style.color = "#ccc";
-                span.textContent = anuncio.autor;
-                div.appendChild(span);
+        div.appendChild(img);
 
-                container.appendChild(div);
-            }
-        })();
+        const span = document.createElement("span");
+        span.style.fontSize = "13px";
+        span.style.color = "#ccc";
+        span.textContent = anuncio.autor;
+        div.appendChild(span);
+
+        container.appendChild(div);
+    }
+})();
+
 
     }
 }
 
 
-async function getFotoPerfil(correo) {
-  if (!correo) return "";
 
-  try {
-    const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${correo}`);
-    const data = await res.json();
-
-    let foto = data.foto || data.url || data.fotoPerfil || "";
-
-    if (!foto) return "";
-
-    // si es base64
-    if (String(foto).startsWith("data:")) return foto;
-
-    // intentar variantes de Drive igual que mostrarUsuario
-    const idMatch = foto.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-    if (idMatch && idMatch[1]) {
-      const id = idMatch[1];
-      return `https://drive.google.com/uc?export=view&id=${id}`;
-    }
-
-    return foto;
-  } catch {
-    return "";
-  }
-}
 
 // ------------------------
 // Resuelve la URL válida de la foto de perfil (prueba candidatos)
@@ -4788,6 +4764,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
