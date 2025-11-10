@@ -2955,12 +2955,16 @@ async function eliminarAnuncio(anuncioId, deleteUrl) {
 const fotoCache = {};
 const fotoLocal = JSON.parse(localStorage.getItem("fotoLocal") || "{}");
 
-// ✅ Guardar foto local con modified
-function saveLocalPhoto(correo, url, modified){
-    fotoLocal[correo] = { url, modified };
+function saveLocalPhoto(correo, url){
+    fotoLocal[correo] = url;
     localStorage.setItem("fotoLocal", JSON.stringify(fotoLocal));
 }
 
+// Inicial estilo WhatsApp
+function fallbackName(nombre="") {
+    const inicial = nombre.trim()[0]?.toUpperCase() || "?";
+    return `avatar://${inicial}`;
+}
 
 
 // ===============================
@@ -3091,7 +3095,9 @@ function updateContentOverlay(index) {
                     img.style.background = "#eee";
                     img.alt = anuncio.autor || "autor";
                     img.referrerPolicy = "no-referrer";
-                    img.src = fotoUrl;
+
+                    const sep = fotoUrl.includes("?") ? "&" : "?";
+                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
 
                     img.onerror = () => {
                         img.onerror = null;
@@ -3121,27 +3127,19 @@ function updateContentOverlay(index) {
 async function resolveFotoPerfil(correo, nombre="") {
     if (!correo) return fallbackName(nombre);
 
-    // ⚡ RAM
-    if (fotoCache[correo]) {
-        return `${fotoCache[correo].url}?v=${fotoCache[correo].modified}`;
-    }
+    // RAM
+    if (fotoCache[correo]) return fotoCache[correo];
 
-    // 💾 LocalStorage
-    const saved = fotoLocal[correo];
-    if (saved) {
-        fotoCache[correo] = saved;
-        return `${saved.url}?v=${saved.modified}`;
+    // LocalStorage
+    if (fotoLocal[correo]) {
+        fotoCache[correo] = fotoLocal[correo];
+        return fotoLocal[correo];
     }
 
     try {
         const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
         const data = await res.json();
-
-        let foto = (data && (data.fotoPerfil || data.foto || data.url)) 
-            ? (data.fotoPerfil || data.foto || data.url) 
-            : "";
-
-        const modified = data.modified || Date.now();
+        let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
 
         if (!foto) return fallbackName(nombre);
 
@@ -3189,9 +3187,9 @@ async function resolveFotoPerfil(correo, nombre="") {
                 });
 
                 if (ok) {
-                    fotoCache[correo] = { url, modified };
-                    saveLocalPhoto(correo, url, modified);
-                    return `${url}?v=${modified}`;
+                    fotoCache[correo] = url;
+                    saveLocalPhoto(correo, url);
+                    return url;
                 }
             } catch {}
         }
@@ -3202,6 +3200,8 @@ async function resolveFotoPerfil(correo, nombre="") {
         return fallbackName(nombre);
     }
 }
+
+
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
@@ -4826,5 +4826,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
