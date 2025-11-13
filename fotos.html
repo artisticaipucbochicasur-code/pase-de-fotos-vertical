@@ -824,7 +824,15 @@ body {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-    
+
+
+    /* 🔥 Desenfoque global cuando un modal esté abierto */
+.body-blur {
+  filter: blur(8px);
+  pointer-events: none; /* evita clics sobre el fondo */
+  transition: filter 0.3s ease;
+}
+
   </style>
 </head>
 
@@ -2471,12 +2479,18 @@ document.querySelector('.swiper').addEventListener('click', () => {
       deleteBtn.classList.toggle("hidden-overlay");
     }
 
-    // 🆕 NUEVO: cerrar el menú de usuario si está abierto
-    const userMenu = document.getElementById("userMenu");
-    if (userMenu && window.getComputedStyle(userMenu).display !== "none") {
-      userMenu.style.display = "none";
-      document.removeEventListener("click", cerrarMenuSiClickFuera);
-    }
+   // 🆕 NUEVO: cerrar el menú de usuario si está abierto
+const userMenu = document.getElementById("userMenu");
+if (userMenu && window.getComputedStyle(userMenu).display !== "none") {
+  userMenu.style.display = "none";
+
+  // 🔹 Quitar blur del fondo
+  document.body.classList.remove("body-blur");
+
+  // 🔹 Quitar listener de cierre externo
+  document.removeEventListener("click", cerrarMenuSiClickFuera);
+}
+
   }
   lastTapTime = currentTime;
 });
@@ -4470,10 +4484,17 @@ function mostrarIniciales(u) {
 
 if (userBtn && userMenu) {
   userBtn.addEventListener("click", () => {
-    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+    const isOpen = userMenu.style.display === "block";
+
+    if (isOpen) {
+      userMenu.style.display = "none";
+      document.body.classList.remove("body-blur");
+    } else {
+      userMenu.style.display = "block";
+      document.body.classList.add("body-blur");
+    }
   });
 }
-
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("usuario");
@@ -4887,6 +4908,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
