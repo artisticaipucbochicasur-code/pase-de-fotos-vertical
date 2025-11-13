@@ -1075,92 +1075,57 @@ body {
         <i class="fas fa-search"></i>
       </button>
 
-      <!-- 🔹 Botón de usuario -->
-      <div id="userMenuContainer" style="position:relative;">
-        <div id="userBtn" 
-             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;
-                    font-weight:bold;cursor:pointer;">
+    <!-- 🔹 Botón de usuario -->
+<div id="userMenuContainer" style="position:relative;">
+
+    <div id="userBtn" 
+         style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                font-weight:bold;cursor:pointer;">
+    </div>
+
+    <!-- 🔹 Overlay oscuro -->
+    <div id="menuOverlay"
+         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+                background:rgba(0,0,0,0.4);z-index:998;">
+    </div>
+
+    <!-- 🔹 TU MISMO MENÚ PERO CORREGIDO -->
+    <div id="userMenu" 
+         style="display:none;position:absolute;top:50px;right:0;background:white;
+                border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.25);
+                padding:12px;min-width:200px;text-align:left;z-index:999;">
+        
+        <!-- FOTO -->
+        <div id="userMenuPhoto" 
+             style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
+                    background:#ddd;display:flex;align-items:center;justify-content:center;
+                    font-size:26px;font-weight:bold;color:white;">
         </div>
 
-    <div id="userMenu" 
-     style="display:none;position:absolute;top:50px;right:0;background:white;
-            border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
-            padding:10px;min-width:180px;text-align:left;z-index:999;">
-  <!-- FOTO GRANDE EN EL MENÚ DE USUARIO -->
-  <div id="userMenuPhoto" 
-       style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
-              background:#ddd;display:flex;align-items:center;justify-content:center;
-              font-size:26px;font-weight:bold;color:white;">
-  </div>
+        <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
+        <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
 
-  <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
-  <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
+        <!-- BOTÓN WHATSAPP -->
+        <button id="whatsappBtn"
+                style="margin-top:8px;width:100%;padding:8px;border:none;
+                       background:#25D366;color:white;border-radius:6px;
+                       display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i class="fab fa-whatsapp"></i> Soporte
+        </button>
 
-  <!-- 🆕 Nuevo botón WhatsApp -->
-  <button id="whatsappBtn"
-          style="margin-top:8px;width:100%;padding:8px;border:none;
-                 background:#25D366;color:white;border-radius:6px;
-                 display:flex;align-items:center;justify-content:center;gap:6px;">
-    <i class="fab fa-whatsapp"></i> Soporte
-  </button>
+        <button id="logoutBtn" 
+                style="margin-top:8px;width:100%;padding:8px;border:none;
+                       background:#e74c3c;color:white;border-radius:6px;">
+          🚪 Cerrar sesión
+        </button>
+    </div>
 
-  <button id="logoutBtn" 
-          style="margin-top:8px;width:100%;padding:8px;border:none;
-                 background:#e74c3c;color:white;border-radius:6px;">
-    🚪 Cerrar sesión
-  </button>
 </div>
 
-      </div>
     </div>
   </div>
 </header>
-
-
-<!-- PANEL LATERAL TIPO WHATSAPP / FACEBOOK -->
-<div id="perfilPanel" style="
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 85%;
-  max-width: 400px;
-  height: 100%;
-  background: white;
-  box-shadow: -2px 0 6px rgba(0,0,0,0.25);
-  transition: right 0.30s ease;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-">
-
-  <button onclick="cerrarPanelPerfil()" 
-    style="align-self:flex-end;font-size:22px;background:none;border:none;cursor:pointer">
-    ✖
-  </button>
-
-  <img id="fotoPerfilPanel" 
-       style="width:110px;height:110px;border-radius:50%;object-fit:cover;
-              margin:0 auto;border:3px solid #0077cc;">
-
-  <h2 id="nombrePerfilPanel" style="text-align:center;margin-top:15px"></h2>
-  <p id="correoPerfilPanel" style="text-align:center;color:#555"></p>
-
-</div>
-
-<!-- FONDO OSCURO -->
-<div id="perfilOverlay" style="
-  display:none;
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:rgba(0,0,0,0.4);
-  z-index:9998;
-" onclick="cerrarPanelPerfil()"></div>
-
-
-  
 <!-- Modal de inicio de sesión / registro -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -4528,9 +4493,9 @@ function abrirPerfil() {
   const userMenu = document.getElementById("userMenu");
   if (userMenu) userMenu.style.display = "none";
 
-  // === NUEVO: abrir panel lateral tipo WhatsApp/Facebook ===
-  const panel = document.getElementById("perfilPanel");
-  const overlay = document.getElementById("perfilOverlay");
+  // Mostrar modal
+  const modal = document.getElementById("modalPerfil");
+  modal.style.display = "flex";
 
   // Elementos relevantes
   const userBtn = document.getElementById("userBtn");
@@ -4538,53 +4503,66 @@ function abrirPerfil() {
   const fotoModal = document.getElementById("fotoPerfilModal");
   const menuPhoto = document.getElementById("userMenuPhoto");
 
-  // Determinar la fuente de la foto
+  // Determinar la fuente de la foto (prioridad)
   let fotoSrc = "";
 
   // 1) imagen en el botón
   if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
 
-  // 2) la que tenga el modal
-  if (!fotoSrc && fotoModal?.src?.trim() !== "") {
+  // 2) si no, la que ya tenga el modal
+  if (!fotoSrc && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") {
     fotoSrc = fotoModal.src;
   }
 
-  // 3) la del menú
+  // 3) si no, la que tenga userMenuPhoto
   const menuImg = menuPhoto ? menuPhoto.querySelector("img") : null;
   if (!fotoSrc && menuImg && menuImg.src) fotoSrc = menuImg.src;
 
-  // 4) localStorage
+  // 4) si no, intentar desde localStorage (si guardaste la foto)
   if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
     fotoSrc = localStorage.getItem("fotoPerfil");
   }
 
-  // === APLICAR FOTO AL PANEL ===
+  // Aplicar la foto donde corresponda
   if (fotoSrc) {
-    document.getElementById("fotoPerfilPanel").src = fotoSrc;
+    // al modal
+    if (fotoModal) fotoModal.src = fotoSrc;
+
+    // al menú desplegable (foto grande)
+    if (menuPhoto) {
+      menuPhoto.innerHTML = `
+        <img src="${fotoSrc}" style="
+          width:80px;
+          height:80px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid #0077cc;
+        ">
+      `;
+      menuPhoto.style.cursor = "pointer";
+      menuPhoto.onclick = abrirPerfil;
+    }
+
+    // al botón pequeño (si por alguna razón no tiene imagen)
+    if (userBtn && !userBtnImg) {
+      userBtn.innerHTML = `<img src="${fotoSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+    }
   }
 
-  // Nombre y correo desde tu menú original
+  // Nombre y correo
   const uiName = document.getElementById("userName");
   const uiEmail = document.getElementById("userEmail");
 
-  if (uiName) document.getElementById("nombrePerfilPanel").innerText = uiName.innerText;
-  if (uiEmail) document.getElementById("correoPerfilPanel").innerText = uiEmail.innerText;
-
-  // === MOSTRAR PANEL ===
-  panel.style.right = "0";
-  overlay.style.display = "block";
-}
-
-
-function cerrarPanelPerfil() {
-  document.getElementById("perfilPanel").style.right = "-100%";
-  document.getElementById("perfilOverlay").style.display = "none";
+  if (uiName) document.getElementById("nombrePerfil").innerText = uiName.innerText;
+  if (uiEmail) document.getElementById("correoPerfil").innerText = uiEmail.innerText;
 }
 
 
 
+function cerrarModalPerfil() {
+  document.getElementById("modalPerfil").style.display = "none";
+}
 
-    
 // ==============================
 // CERRAR AL HACER CLICK AFUERA
 // ==============================
