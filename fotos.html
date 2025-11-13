@@ -4461,9 +4461,38 @@ function mostrarIniciales(u) {
 
 if (userBtn && userMenu) {
   userBtn.addEventListener("click", () => {
+    const overlay = document.getElementById("menuOverlay");
+
+    // SI ES SIDEBAR
+    if (userMenu.classList.contains("sidebar-menu")) {
+      if (userMenu.style.right === "0px") {
+        userMenu.style.right = "-320px";
+        if (overlay) overlay.style.display = "none";
+      } else {
+        userMenu.style.right = "0px";
+        if (overlay) overlay.style.display = "block";
+      }
+      return;
+    }
+
+    // SI ES BOTTOM-SHEET
+    if (userMenu.classList.contains("bottom-sheet")) {
+      if (userMenu.style.bottom === "0px") {
+        userMenu.style.bottom = "-100%";
+        if (overlay) overlay.style.display = "none";
+      } else {
+        userMenu.style.bottom = "0px";
+        if (overlay) overlay.style.display = "block";
+      }
+      return;
+    }
+
+    // FALLBACK (por si no usa animaciones)
     userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+    if (overlay) overlay.style.display = userMenu.style.display === "block" ? "block" : "none";
   });
 }
+
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
@@ -4921,6 +4950,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
