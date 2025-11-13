@@ -4451,28 +4451,76 @@ function mostrarIniciales(u) {
   userBtn.style.fontSize = "14px";
 }
 
+// ================================
+// 📌 MENÚ ESTILO WHATSAPP / FACEBOOK
+// ================================
+const userBtn = document.getElementById("userBtn");
+const userMenu = document.getElementById("userMenu");
+const userMenuPhoto = document.getElementById("userMenuPhoto");
+const menuOverlay = document.getElementById("menuOverlay");
+
+// 👉 ANIMACIÓN + overlay + apertura tipo app moderna
 if (userBtn && userMenu) {
   userBtn.addEventListener("click", () => {
+    const open = userMenu.style.display !== "block";
 
-    // 👉 Lógica tuya intacta:
-    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+    userMenu.style.display = open ? "block" : "none";
+    menuOverlay.style.display = open ? "block" : "none";
 
-    // 👉 Agregado: mostrar/ocultar overlay según el estado del menú
-    if (userMenu.style.display === "block") {
-      menuOverlay.style.display = "block";
-    } else {
-      menuOverlay.style.display = "none";
+    if (open) {
+      // Animación tipo WhatsApp
+      userMenu.style.opacity = "0";
+      userMenu.style.transform = "scale(0.95)";
+      setTimeout(() => {
+        userMenu.style.opacity = "1";
+        userMenu.style.transform = "scale(1)";
+      }, 10);
     }
   });
 }
 
-// 👉 Agregado: cerrar menú al tocar el overlay (sin afectar tu código)
-if (menuOverlay) {
-  menuOverlay.addEventListener("click", () => {
-    userMenu.style.display = "none";
-    menuOverlay.style.display = "none";
-  });
+// 👉 Click afuera cierra (WhatsApp style)
+menuOverlay.addEventListener("click", () => {
+  userMenu.style.display = "none";
+  menuOverlay.style.display = "none";
+});
+
+// ===============================
+// 📌 FOTO DE PERFIL (tipo WhatsApp)
+// ===============================
+function aplicarFotoPerfil(fotoSrc) {
+  // Foto en el menú flotante
+  if (userMenuPhoto) {
+    userMenuPhoto.innerHTML = `
+      <img src="${fotoSrc}" style="
+        width:80px;height:80px;border-radius:50%;
+        object-fit:cover;border:2px solid #0077cc;
+      ">
+    `;
+    userMenuPhoto.style.cursor = "pointer";
+    userMenuPhoto.onclick = abrirPerfil; // abrir modal
+  }
+
+  // Foto en el boton redondo pequeño
+  if (userBtn) {
+    userBtn.innerHTML = `
+      <img src="${fotoSrc}" 
+           style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+    `;
+  }
 }
+
+// 👉 Obtener foto desde cualquier fuente
+function cargarFotoPerfil() {
+  let foto = localStorage.getItem("fotoPerfil");
+
+  if (!foto) return; // si no hay, muestra iniciales como siempre
+
+  aplicarFotoPerfil(foto);
+}
+
+cargarFotoPerfil(); // se ejecuta al cargar la página
+
 
 
 if (logoutBtn) {
@@ -4888,4 +4936,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
