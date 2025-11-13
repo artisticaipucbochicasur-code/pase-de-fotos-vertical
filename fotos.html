@@ -1083,34 +1083,45 @@ body {
                     font-weight:bold;cursor:pointer;">
         </div>
 
-    <div id="userMenu" 
-     style="display:none;position:absolute;top:50px;right:0;background:white;
-            border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
-            padding:10px;min-width:180px;text-align:left;z-index:999;">
-  <!-- FOTO GRANDE EN EL MENÚ DE USUARIO -->
-  <div id="userMenuPhoto" 
-       style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
-              background:#ddd;display:flex;align-items:center;justify-content:center;
-              font-size:26px;font-weight:bold;color:white;">
+  <!-- Overlay -->
+<div id="menuOverlay" 
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.4); z-index:998;">
+</div>
+
+<!-- Bottom sheet -->
+<div id="userMenu"
+     style="position:fixed; bottom:-100%; left:0; width:100%; 
+            background:white; border-radius:20px 20px 0 0;
+            box-shadow:0 -2px 10px rgba(0,0,0,0.3);
+            z-index:999; padding:20px; text-align:center;
+            transition: bottom 0.35s ease;">
+  
+  <div id="userMenuPhoto"
+       style="width:100px;height:100px;border-radius:50%;margin:0 auto 15px;
+              background:#ddd;display:flex;align-items:center;
+              justify-content:center;font-size:40px;font-weight:bold;color:white;">
   </div>
 
-  <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
+  <p id="userName" style="margin:5px 0;font-weight:bold;font-size:18px;"></p>
   <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
 
-  <!-- 🆕 Nuevo botón WhatsApp -->
   <button id="whatsappBtn"
-          style="margin-top:8px;width:100%;padding:8px;border:none;
-                 background:#25D366;color:white;border-radius:6px;
-                 display:flex;align-items:center;justify-content:center;gap:6px;">
+          style="margin-top:20px;width:100%;padding:12px;border:none;
+                 background:#25D366;color:white;border-radius:8px;
+                 font-size:16px;display:flex;align-items:center;
+                 justify-content:center;gap:8px;">
     <i class="fab fa-whatsapp"></i> Soporte
   </button>
 
-  <button id="logoutBtn" 
-          style="margin-top:8px;width:100%;padding:8px;border:none;
-                 background:#e74c3c;color:white;border-radius:6px;">
+  <button id="logoutBtn"
+          style="margin-top:12px;width:100%;padding:12px;border:none;
+                 background:#e74c3c;color:white;border-radius:8px;
+                 font-size:16px;">
     🚪 Cerrar sesión
   </button>
 </div>
+
 
       </div>
     </div>
@@ -4479,46 +4490,69 @@ if (logoutBtn) {
 
 
 function abrirPerfil() {
-  // Cerrar userMenu si está abierto
+  // Cerrar menú animado si está abierto (sidebar o bottom-sheet)
   const userMenu = document.getElementById("userMenu");
-  if (userMenu) userMenu.style.display = "none";
+  const menuOverlay = document.getElementById("menuOverlay");
 
-  // Mostrar modal
+  if (userMenu) {
+    // Si es sidebar tipo Facebook
+    if (userMenu.style.right === "0px") {
+      userMenu.style.right = "-320px";
+      if (menuOverlay) menuOverlay.style.display = "none";
+    }
+
+    // Si es bottom sheet tipo WhatsApp
+    if (userMenu.style.bottom === "0px") {
+      userMenu.style.bottom = "-100%";
+      if (menuOverlay) menuOverlay.style.display = "none";
+    }
+  }
+
+  // Mostrar MODAL
   const modal = document.getElementById("modalPerfil");
-  modal.style.display = "flex";
+  if (modal) modal.style.display = "flex";
 
-  // Elementos relevantes
+  // Elementos
   const userBtn = document.getElementById("userBtn");
   const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
+
   const fotoModal = document.getElementById("fotoPerfilModal");
   const menuPhoto = document.getElementById("userMenuPhoto");
 
-  // Determinar la fuente de la foto (prioridad)
+  // Determinar foto prioritaria
   let fotoSrc = "";
 
-  // 1) imagen en el botón
-  if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
+  // 1) Imagen del botón superior
+  if (userBtnImg && userBtnImg.src) {
+    fotoSrc = userBtnImg.src;
+  }
 
-  // 2) si no, la que ya tenga el modal
+  // 2) Imagen que ya tenga el modal
   if (!fotoSrc && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") {
     fotoSrc = fotoModal.src;
   }
 
-  // 3) si no, la que tenga userMenuPhoto
+  // 3) Imagen del menú (foto grande)
   const menuImg = menuPhoto ? menuPhoto.querySelector("img") : null;
-  if (!fotoSrc && menuImg && menuImg.src) fotoSrc = menuImg.src;
-
-  // 4) si no, intentar desde localStorage (si guardaste la foto)
-  if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
-    fotoSrc = localStorage.getItem("fotoPerfil");
+  if (!fotoSrc && menuImg && menuImg.src) {
+    fotoSrc = menuImg.src;
   }
 
-  // Aplicar la foto donde corresponda
-  if (fotoSrc) {
-    // al modal
-    if (fotoModal) fotoModal.src = fotoSrc;
+  // 4) localStorage (si guardas foto allí)
+  const lsFoto = localStorage.getItem("fotoPerfil");
+  if (!fotoSrc && lsFoto) {
+    fotoSrc = lsFoto;
+  }
 
-    // al menú desplegable (foto grande)
+  // Aplicar foto si existe
+  if (fotoSrc) {
+
+    // Modal
+    if (fotoModal) {
+      fotoModal.src = fotoSrc;
+    }
+
+    // Foto en el menú lateral/bottom-sheet
     if (menuPhoto) {
       menuPhoto.innerHTML = `
         <img src="${fotoSrc}" style="
@@ -4529,13 +4563,21 @@ function abrirPerfil() {
           border:2px solid #0077cc;
         ">
       `;
+      // Permitir abrir el modal tocando la foto del menú
       menuPhoto.style.cursor = "pointer";
       menuPhoto.onclick = abrirPerfil;
     }
 
-    // al botón pequeño (si por alguna razón no tiene imagen)
+    // Si el botón superior no tiene foto (raro pero posible)
     if (userBtn && !userBtnImg) {
-      userBtn.innerHTML = `<img src="${fotoSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
+      userBtn.innerHTML = `
+        <img src="${fotoSrc}" style="
+          width:32px;
+          height:32px;
+          border-radius:50%;
+          object-fit:cover;
+        ">
+      `;
     }
   }
 
@@ -4543,10 +4585,16 @@ function abrirPerfil() {
   const uiName = document.getElementById("userName");
   const uiEmail = document.getElementById("userEmail");
 
-  if (uiName) document.getElementById("nombrePerfil").innerText = uiName.innerText;
-  if (uiEmail) document.getElementById("correoPerfil").innerText = uiEmail.innerText;
-}
+  if (uiName) {
+    const nombrePerfil = document.getElementById("nombrePerfil");
+    if (nombrePerfil) nombrePerfil.innerText = uiName.innerText;
+  }
 
+  if (uiEmail) {
+    const correoPerfil = document.getElementById("correoPerfil");
+    if (correoPerfil) correoPerfil.innerText = uiEmail.innerText;
+  }
+}
 
 
 function cerrarModalPerfil() {
@@ -4860,6 +4908,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
