@@ -1075,52 +1075,43 @@ body {
         <i class="fas fa-search"></i>
       </button>
 
-    <!-- 🔹 Botón de usuario -->
-<div id="userMenuContainer" style="position:relative;">
+    <!-- 🔹 Botón de usuario (icono circular arriba a la derecha) -->
+<div id="userBtn" 
+     style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:bold;cursor:pointer;position:fixed;top:20px;right:20px;z-index:1000;">
+</div>
 
-    <div id="userBtn" 
-         style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-                display:flex;align-items:center;justify-content:center;
-                font-weight:bold;cursor:pointer;">
+<!-- 🔹 Panel tipo WhatsApp/Facebook -->
+<div id="userMenu"
+     style="display:none;position:fixed;top:0;right:0;height:100vh;width:320px;
+            background:white;box-shadow:-2px 0 10px rgba(0,0,0,0.2);
+            padding:20px;z-index:999;overflow-y:auto;">
+    
+  <div style="text-align:center;">
+    <div id="userMenuPhoto"
+         style="width:100px;height:100px;border-radius:50%;margin:0 auto 12px;
+                background:#ddd;display:flex;align-items:center;justify-content:center;
+                font-size:34px;font-weight:bold;color:white;">
     </div>
 
-    <!-- 🔹 Overlay oscuro -->
-    <div id="menuOverlay"
-         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-                background:rgba(0,0,0,0.4);z-index:998;">
-    </div>
+    <p id="userName" style="margin:5px 0;font-weight:bold;font-size:18px;"></p>
+    <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
+  </div>
 
-    <!-- 🔹 TU MISMO MENÚ PERO CORREGIDO -->
-    <div id="userMenu" 
-         style="display:none;position:absolute;top:50px;right:0;background:white;
-                border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.25);
-                padding:12px;min-width:200px;text-align:left;z-index:999;">
-        
-        <!-- FOTO -->
-        <div id="userMenuPhoto" 
-             style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
-                    background:#ddd;display:flex;align-items:center;justify-content:center;
-                    font-size:26px;font-weight:bold;color:white;">
-        </div>
+  <button id="whatsappBtn"
+          style="margin-top:12px;width:100%;padding:10px;border:none;
+                 background:#25D366;color:white;border-radius:8px;
+                 font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;">
+    <i class="fab fa-whatsapp"></i> Soporte
+  </button>
 
-        <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
-        <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
-
-        <!-- BOTÓN WHATSAPP -->
-        <button id="whatsappBtn"
-                style="margin-top:8px;width:100%;padding:8px;border:none;
-                       background:#25D366;color:white;border-radius:6px;
-                       display:flex;align-items:center;justify-content:center;gap:6px;">
-          <i class="fab fa-whatsapp"></i> Soporte
-        </button>
-
-        <button id="logoutBtn" 
-                style="margin-top:8px;width:100%;padding:8px;border:none;
-                       background:#e74c3c;color:white;border-radius:6px;">
-          🚪 Cerrar sesión
-        </button>
-    </div>
-
+  <button id="logoutBtn"
+          style="margin-top:12px;width:100%;padding:10px;border:none;
+                 background:#e74c3c;color:white;border-radius:8px;
+                 font-size:16px;">
+    🚪 Cerrar sesión
+  </button>
 </div>
 
     </div>
@@ -4186,7 +4177,7 @@ if (whatsappBtn) {
     const phone = "+573202897214"; // 🇦🇷 Ejemplo: +54 9 11 2233-4455 → "5491122334455"
 
     // Mensaje opcional personalizado
-    const message = encodeURIComponent("¡Hola! Quisiera hacer una consulta desde la app DECOM.");
+    const message = encodeURIComponent("¡Hola! Quisiera hacer una consulta desde la app.");
 
     // Enlace oficial de WhatsApp
     const url = `https://wa.me/${phone}?text=${message}`;
@@ -4451,72 +4442,11 @@ function mostrarIniciales(u) {
   userBtn.style.fontSize = "14px";
 }
 
-// ================================
-// 📌 MENÚ ESTILO WHATSAPP / FACEBOOK
-
-// 👉 ANIMACIÓN + overlay + apertura tipo app moderna
 if (userBtn && userMenu) {
   userBtn.addEventListener("click", () => {
-    const open = userMenu.style.display !== "block";
-
-    userMenu.style.display = open ? "block" : "none";
-    menuOverlay.style.display = open ? "block" : "none";
-
-    if (open) {
-      // Animación tipo WhatsApp
-      userMenu.style.opacity = "0";
-      userMenu.style.transform = "scale(0.95)";
-      setTimeout(() => {
-        userMenu.style.opacity = "1";
-        userMenu.style.transform = "scale(1)";
-      }, 10);
-    }
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
   });
 }
-
-// 👉 Click afuera cierra (WhatsApp style)
-menuOverlay.addEventListener("click", () => {
-  userMenu.style.display = "none";
-  menuOverlay.style.display = "none";
-});
-
-// ===============================
-// 📌 FOTO DE PERFIL (tipo WhatsApp)
-// ===============================
-function aplicarFotoPerfil(fotoSrc) {
-  // Foto en el menú flotante
-  if (userMenuPhoto) {
-    userMenuPhoto.innerHTML = `
-      <img src="${fotoSrc}" style="
-        width:80px;height:80px;border-radius:50%;
-        object-fit:cover;border:2px solid #0077cc;
-      ">
-    `;
-    userMenuPhoto.style.cursor = "pointer";
-    userMenuPhoto.onclick = abrirPerfil; // abrir modal
-  }
-
-  // Foto en el boton redondo pequeño
-  if (userBtn) {
-    userBtn.innerHTML = `
-      <img src="${fotoSrc}" 
-           style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-    `;
-  }
-}
-
-// 👉 Obtener foto desde cualquier fuente
-function cargarFotoPerfil() {
-  let foto = localStorage.getItem("fotoPerfil");
-
-  if (!foto) return; // si no hay, muestra iniciales como siempre
-
-  aplicarFotoPerfil(foto);
-}
-
-cargarFotoPerfil(); // se ejecuta al cargar la página
-
-
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
@@ -4931,6 +4861,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
