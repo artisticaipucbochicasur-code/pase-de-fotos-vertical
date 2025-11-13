@@ -826,12 +826,11 @@ body {
 }
 
 
-    /* 🔥 Desenfoque global cuando un modal esté abierto */
-.body-blur {
-  filter: blur(8px);
-  pointer-events: none; /* evita clics sobre el fondo */
-  transition: filter 0.3s ease;
+.blur-fondo {
+  filter: blur(6px);
+  transition: filter 0.25s ease;
 }
+
 
   </style>
 </head>
@@ -2485,7 +2484,7 @@ if (userMenu && window.getComputedStyle(userMenu).display !== "none") {
   userMenu.style.display = "none";
 
   // 🔹 Quitar blur del fondo
-  document.body.classList.remove("body-blur");
+  document.body.classList.remove("blur-fondo");
 
   // 🔹 Quitar listener de cierre externo
   document.removeEventListener("click", cerrarMenuSiClickFuera);
@@ -4483,18 +4482,22 @@ function mostrarIniciales(u) {
 }
 
 if (userBtn && userMenu) {
-  userBtn.addEventListener("click", () => {
-    const isOpen = userMenu.style.display === "block";
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation(); // evita cierre inmediato
 
-    if (isOpen) {
-      userMenu.style.display = "none";
-      document.body.classList.remove("body-blur");
+    const visible = userMenu.style.display === "block";
+    userMenu.style.display = visible ? "none" : "block";
+
+    // Aplicar o quitar blur
+    const main = document.getElementById("mainContent");
+    if (!visible) {
+      main.classList.add("blur-fondo");
     } else {
-      userMenu.style.display = "block";
-      document.body.classList.add("body-blur");
+      main.classList.remove("blur-fondo");
     }
   });
 }
+
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("usuario");
@@ -4908,6 +4911,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
