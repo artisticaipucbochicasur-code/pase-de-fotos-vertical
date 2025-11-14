@@ -4483,20 +4483,26 @@ function mostrarIniciales(u) {
 
 if (userBtn && userMenu) {
   userBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); // evita cierre inmediato
+    e.stopPropagation();
 
-    const visible = userMenu.style.display === "block";
-    userMenu.style.display = visible ? "none" : "block";
+    // Toggle del menú
+    const abierto = userMenu.style.display === "block";
+    userMenu.style.display = abierto ? "none" : "block";
 
-    // Aplicar o quitar blur
-    const main = document.getElementById("mainContent");
-    if (!visible) {
-      main.classList.add("blur-fondo");
+    // 🔥 Aplicar o quitar desenfoque igual que tu modal
+    if (abierto) {
+      document.body.classList.remove("blur-fondo");
     } else {
-      main.classList.remove("blur-fondo");
+      document.body.classList.add("blur-fondo");
+    }
+
+    // Activar listener para cerrar al hacer clic fuera
+    if (!abierto) {
+      document.addEventListener("click", cerrarMenuSiClickFuera);
     }
   });
 }
+
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
@@ -4911,6 +4917,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
