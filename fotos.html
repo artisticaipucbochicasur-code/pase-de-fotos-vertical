@@ -1090,9 +1090,19 @@ body {
 
 <!-- 🔹 Fondo oscuro (WhatsApp/Facebook) -->
 <div id="userOverlay"
-     style="display:none;position:fixed;top:0;left:0;width:100%;height:100vh;
-            background:rgba(0,0,0,0.45);z-index:2000;">
+     style="
+        display:none;
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100vh;
+        background:rgba(0,0,0,0.30);
+        backdrop-filter: blur(4px);   /* 🔥 Desenfoque SOLO del fondo */
+        z-index:2000;
+     ">
 </div>
+
 
 <!-- 🔹 Panel lateral -->
 <div id="userMenu" 
@@ -4478,25 +4488,21 @@ if (userBtn && userMenu && userOverlay) {
     const isOpen = userMenu.style.display === "block";
 
     if (isOpen) {
-      // 🔹 Cerrar
       userMenu.style.display = "none";
       userOverlay.style.display = "none";
-      document.body.style.filter = "none"; // quitar desenfoque
     } else {
-      // 🔹 Abrir
       userMenu.style.display = "block";
       userOverlay.style.display = "block";
-      document.body.style.filter = "blur(3px)"; // 🔥 desenfocar fondo
     }
   });
 
-  // 🔹 Cerrar si el usuario toca fuera del menú
+  // Cerrar al tocar fuera
   userOverlay.addEventListener("click", () => {
     userMenu.style.display = "none";
     userOverlay.style.display = "none";
-    document.body.style.filter = "none";
   });
 }
+
 
 
 if (logoutBtn) {
@@ -4912,5 +4918,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
