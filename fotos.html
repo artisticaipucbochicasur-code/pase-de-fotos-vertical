@@ -824,12 +824,6 @@ body {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.blur-fondo *:not(#userMenu):not(#userMenu *) {
-  filter: blur(6px) !important;
-}
-
-
     
   </style>
 </head>
@@ -4474,27 +4468,36 @@ function mostrarIniciales(u) {
   userBtn.style.fontSize = "14px";
 }
 
-if (userBtn && userMenu) {
-  userBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
+// ===============================
+// ABRIR / CERRAR USER MENU CON BLUR
+// ===============================
+const userOverlay = document.getElementById("userOverlay");
 
-    const abierto = userMenu.style.display === "block";
+if (userBtn && userMenu && userOverlay) {
+  userBtn.addEventListener("click", () => {
+    const isOpen = userMenu.style.display === "block";
 
-    if (abierto) {
-      // Cerrar menú
+    if (isOpen) {
+      // 🔹 Cerrar
       userMenu.style.display = "none";
-      document.body.classList.remove("blur-fondo");
-      document.removeEventListener("click", cerrarMenuSiClickFuera);
+      userOverlay.style.display = "none";
+      document.body.style.filter = "none"; // quitar desenfoque
     } else {
-      // Abrir menú
+      // 🔹 Abrir
       userMenu.style.display = "block";
-      document.body.classList.add("blur-fondo");
-
-      // Activar listener para cerrar al hacer clic fuera
-      document.addEventListener("click", cerrarMenuSiClickFuera);
+      userOverlay.style.display = "block";
+      document.body.style.filter = "blur(3px)"; // 🔥 desenfocar fondo
     }
   });
+
+  // 🔹 Cerrar si el usuario toca fuera del menú
+  userOverlay.addEventListener("click", () => {
+    userMenu.style.display = "none";
+    userOverlay.style.display = "none";
+    document.body.style.filter = "none";
+  });
 }
+
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
