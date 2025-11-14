@@ -4508,7 +4508,31 @@ if (logoutBtn) {
 
 function abrirPerfil() {
   // Cerrar userMenu si está abierto
-  const userMenu = document.getElementById("userMenu");
+  const userMenu = document.getElementById("if (userBtn && userMenu) {
+  function cerrarMenuSiClickFuera(e) {
+    if (!userMenu.contains(e.target) && e.target !== userBtn) {
+      userMenu.style.display = "none";
+      document.body.classList.remove("blur-fondo");
+      document.removeEventListener("click", cerrarMenuSiClickFuera);
+    }
+  }
+
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation(); // evita que el clic se propague y cierre inmediatamente
+    const abierto = userMenu.style.display === "block";
+
+    if (abierto) {
+      userMenu.style.display = "none";
+      document.body.classList.remove("blur-fondo");
+      document.removeEventListener("click", cerrarMenuSiClickFuera);
+    } else {
+      userMenu.style.display = "block";
+      document.body.classList.add("blur-fondo");
+      document.addEventListener("click", cerrarMenuSiClickFuera);
+    }
+  });
+}
+");
   if (userMenu) userMenu.style.display = "none";
 
   // Mostrar modal
@@ -4888,6 +4912,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
