@@ -872,6 +872,48 @@ body {
     color:white !important;
   }
 
+    /* 🌑 Tema oscuro global suave y moderno */
+.dark-mode {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Ajustes específicos para el menú lateral en dark mode */
+.dark-mode #userMenu > div {
+  background: rgba(15, 23, 42, 0.98) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.dark-mode .menu-btn {
+  background: rgba(30, 41, 59, 0.7) !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .menu-btn:hover {
+  background: rgba(51, 65, 85, 0.9) !important;
+  transform: translateY(-2px);
+}
+
+.dark-mode #userName { color: #f1f5f9; }
+.dark-mode #userEmail { color: #94a3b8; }
+
+/* Botón WhatsApp mantiene su color verde incluso en dark mode */
+.dark-mode .menu-btn.whatsapp {
+  background: #25D366 !important;
+  color: white !important;
+}
+
+/* Logout en rojo oscuro */
+.dark-mode .menu-btn.logout {
+  background: rgba(254, 226, 226, 0.2) !important;
+  color: #fca5a5 !important;
+}
+.dark-mode .menu-btn.logout:hover {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
     
   </style>
 </head>
@@ -1211,11 +1253,11 @@ body {
         <span>Notificaciones</span>
       </button>
 
-      <!-- Tema oscuro/claro (ejemplo) -->
-      <button class="menu-btn" style="background:#f8fafc; color:#475569;">
-        <i class="fas fa-moon"></i>
-        <span>Tema oscuro</span>
-      </button>
+    <!-- Botón de tema (lo cambiamos dinámicamente) -->
+<button id="themeToggle" class="menu-btn" style="background:#f8fafc; color:#475569;">
+  <i class="fas fa-moon" id="themeIcon"></i>
+  <span id="themeText">Tema oscuro</span>
+</button>
 
       <!-- WhatsApp -->
       <button id="whatsappBtn" class="menu-btn whatsapp">
@@ -1536,7 +1578,59 @@ body {
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+// 🌙 Función completa de tema oscuro (2025 style)
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeText = document.getElementById('themeText');
+  const body = document.body;
 
+  // Detectar tema guardado o preferencia del sistema
+  if (localStorage.getItem('theme') === 'dark' || 
+      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    enableDarkMode();
+  } else {
+    enableLightMode();
+  }
+
+  // Evento clic
+  themeToggle.addEventListener('click', () => {
+    if (body.classList.contains('dark-mode')) {
+      enableLightMode();
+      localStorage.setItem('theme', 'light');
+    } else {
+      enableDarkMode();
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+
+  // 🎨 Activar modo oscuro
+  function enableDarkMode() {
+    body.classList.add('dark-mode');
+    themeIcon.className = 'fas fa-sun';
+    themeText.textContent = 'Tema claro';
+    
+    // Cambiar fondo del panel lateral cuando esté abierto
+    const panel = document.querySelector('#userMenu > div');
+    if (panel) {
+      panel.style.background = 'rgba(15, 23, 42, 0.98)';
+      panel.style.color = '#e2e8f0';
+    }
+  }
+
+  // ☀️ Activar modo claro
+  function enableLightMode() {
+    body.classList.remove('dark-mode');
+    themeIcon.className = 'fas fa-moon';
+    themeText.textContent = 'Tema oscuro';
+    
+    const panel = document.querySelector('#userMenu > div');
+    if (panel) {
+      panel.style.background = 'rgba(255, 255, 255, 0.95)';
+      panel.style.color = '#1e293b';
+    }
+  }
+
+    
 
   document.querySelectorAll('.toggle-pin').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -4988,5 +5082,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
