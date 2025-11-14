@@ -1090,39 +1090,27 @@ body {
 
 <!-- 🔹 Fondo oscuro (WhatsApp/Facebook) -->
 <div id="userOverlay"
-     style="
-        display:none;
-        position:fixed;
-        top:0;
-        left:0;
-        width:100%;
-        height:100vh;
-        background:rgba(0,0,0,0.25);
-        backdrop-filter: blur(6px);   /* 🔥 Desenfoque REAL de TODO el fondo */
-        z-index:5000;                 /* 🔥 MÁS ALTO QUE TODO EL LAYOUT */
-     ">
+     style="display:none;position:fixed;top:0;left:0;width:100%;height:100vh;
+            background:rgba(0,0,0,0.45);z-index:2000;">
 </div>
-
-
 
 <!-- 🔹 Panel lateral -->
 <div id="userMenu" 
      style="
         display:none;
-        position:fixed;      /* 🔥 IMPORTANTE: NO ABSOLUTE */
-        top:0;
+        position:absolute;
+        top:100%;            /* ✔ aparece debajo del header */
         right:0;
-        width:70vw;
-        height:100vh;
+        width:70vw;          /* ✔ ocupa 70% de derecha → izquierda */
+        height:calc(100vh - 60px);  /* ✔ ocupa toda la pantalla menos el header */
         background:white;
-        border-radius:0 0 0 12px;
-        box-shadow:-4px 0 14px rgba(0,0,0,0.25);
+        border-radius:0 0 12px 12px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.25);
         padding:20px;
-        z-index:6000;        /* 🔥 MÁS ALTO QUE EL OVERLAY */
-        overflow-y:auto;
+        z-index:999;
+        overflow-y:auto;     /* ✔ scroll si es necesario */
         animation: fadeIn 0.15s ease-out;
      ">
-
 
 
     
@@ -4480,33 +4468,11 @@ function mostrarIniciales(u) {
   userBtn.style.fontSize = "14px";
 }
 
-// ===============================
-// ABRIR / CERRAR USER MENU CON BLUR
-// ===============================
-const userOverlay = document.getElementById("userOverlay");
-
-if (userBtn && userMenu && userOverlay) {
+if (userBtn && userMenu) {
   userBtn.addEventListener("click", () => {
-    const isOpen = userMenu.style.display === "block";
-
-    if (isOpen) {
-      userMenu.style.display = "none";
-      userOverlay.style.display = "none";
-    } else {
-      userMenu.style.display = "block";
-      userOverlay.style.display = "block";
-    }
-  });
-
-  // 🔹 Cerrar si el usuario toca fuera del menú
-  userOverlay.addEventListener("click", () => {
-    userMenu.style.display = "none";
-    userOverlay.style.display = "none";
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
   });
 }
-
-
-
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
@@ -4921,8 +4887,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
 
 
