@@ -4476,8 +4476,24 @@ function mostrarIniciales(u) {
 }
 
 if (userBtn && userMenu) {
-  userBtn.addEventListener("click", () => {
-    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+
+    const abierto = userMenu.style.display === "block";
+
+    if (abierto) {
+      // Cerrar menú
+      userMenu.style.display = "none";
+      document.body.classList.remove("blur-fondo");
+      document.removeEventListener("click", cerrarMenuSiClickFuera);
+    } else {
+      // Abrir menú
+      userMenu.style.display = "block";
+      document.body.classList.add("blur-fondo");
+
+      // Activar listener para cerrar al hacer clic fuera
+      document.addEventListener("click", cerrarMenuSiClickFuera);
+    }
   });
 }
 
@@ -4918,6 +4934,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
