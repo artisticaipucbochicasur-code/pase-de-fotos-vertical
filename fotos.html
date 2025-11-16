@@ -4894,12 +4894,12 @@ if (logoutBtn) {
 
 function abrirPerfil() {
 
-    // Obtener datos del usuario desde localStorage
+  // Obtener datos del usuario desde localStorage
   let u = JSON.parse(localStorage.getItem("usuario")) || {};
 
   // Asegurar valores vacíos si faltan
   u.nombre = u.nombre || u.name || "Usuario";
-  u.correo = u.correo || u.email || "";
+  u.correo = u.correo || "";
   u.telefono = u.telefono || "";
   u.congregacion = u.congregacion || "";
   u.cargo = u.cargo || "";
@@ -4943,7 +4943,7 @@ function abrirPerfil() {
   if (fotoSrc) {
     // al modal
     if (fotoModal) fotoModal.src = fotoSrc;
-document.getElementById("fotoFondoDifuminado").src = fotoSrc;
+    document.getElementById("fotoFondoDifuminado").src = fotoSrc;
 
     // al menú desplegable (foto grande)
     if (menuPhoto) {
@@ -4956,35 +4956,30 @@ document.getElementById("fotoFondoDifuminado").src = fotoSrc;
           border:2px solid #0077cc;
         ">
       `;
-      /*menuPhoto.style.cursor = "pointer";
-      menuPhoto.onclick = abrirPerfil;*/
     }
 
-    // al botón pequeño (si por alguna razón no tiene imagen)
+    // al botón pequeño
     if (userBtn && !userBtnImg) {
       userBtn.innerHTML = `<img src="${fotoSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
     }
   }
 
   // Nombre y correo
-  const uiName = document.getElementById("userName");
-  const uiEmail = document.getElementById("userEmail");
+  document.getElementById("nombrePerfil").textContent = u.nombre || "";
+  document.getElementById("correoPerfil").textContent = u.correo || "";
 
-  if (uiName) document.getElementById("nombrePerfil").innerText = uiName.innerText;
-  if (uiEmail) document.getElementById("correoPerfil").innerText = uiEmail.innerText;
-  // Mostrar campos adicionales
-document.getElementById("telefonoPerfil").innerText =
-  u.telefono ? "📞 Teléfono: " + u.telefono : "";
+  // Datos adicionales
+  document.getElementById("telefonoPerfil").textContent =
+    u.telefono ? `📞 Teléfono: ${u.telefono}` : "";
 
-document.getElementById("congregacionPerfil").innerText =
-  u.congregacion ? "⛪ Congregación: " + u.congregacion : "";
+  document.getElementById("congregacionPerfil").textContent =
+    u.congregacion ? `⛪ Congregación: ${u.congregacion}` : "";
 
-document.getElementById("cargoPerfil").innerText =
-  u.cargo ? "🧑‍💼 Cargo: " + u.cargo : "";
+  document.getElementById("cargoPerfil").textContent =
+    u.cargo ? `🧑‍💼 Cargo: ${u.cargo}` : "";
 
-document.getElementById("ciudadPerfil").innerText =
-  u.ciudad ? "📍 Ciudad: " + u.ciudad : "";
-
+  document.getElementById("ciudadPerfil").textContent =
+    u.ciudad ? `📍 Ciudad: ${u.ciudad}` : "";
 }
 
 
@@ -5316,6 +5311,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
