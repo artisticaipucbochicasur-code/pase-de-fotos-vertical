@@ -912,6 +912,18 @@ body {
   background: #ef4444 !important;
   color: white !important;
 }
+
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
     
   </style>
 </head>
@@ -1486,94 +1498,99 @@ body {
 </button>
 
 
-<!-- MODAL PERFIL (FULLSCREEN MÓVIL 9:16) -->
+<!-- MODAL PERFIL -->
 <div id="modalPerfil" style="
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.65);
-  backdrop-filter: blur(4px);
-  display: none; /* oculto por defecto */
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  display: none;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 40px;
   z-index: 9999;
   animation: fadeIn 0.25s ease;
 ">
 
-  <!-- Contenedor ocupa toda la pantalla -->
+  <!-- ❌ Botón cerrar -->
+  <span onclick="cerrarModalPerfil()" style="
+    position:absolute;
+    top:18px;
+    right:18px;
+    font-size:32px;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+    z-index:10000;
+    text-shadow:0 2px 4px rgba(0,0,0,0.6);
+  ">✖</span>
+
+
+  <!-- CONTENEDOR PRINCIPAL -->
   <div id="contenidoModalPerfil" style="
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: white;
-    padding: 20px;
-    overflow-y: auto;     /* permite scroll si es necesario */
-    box-sizing: border-box;
-    animation: slideUp 0.28s ease;
+    width:100%;
+    max-width:430px;
+    margin-top:20px;
+    padding:25px 20px;
+    border-radius:20px;
+    background:white;
+    text-align:center;
+    animation: slideUp 0.25s ease;
   ">
-    
-    <!-- Botón cerrar -->
-    <span onclick="cerrarModalPerfil()" style="
-      position:absolute;
-      right:14px;
-      top:14px;
-      font-size:28px;
-      cursor:pointer;
-      color:#222;
-      font-weight:bold;
-      z-index:10;
-    ">✖</span>
 
-    <!-- Contenido centrado -->
-    <div style="margin-top:55px; text-align:center;">
+    <!-- FOTO ESTILO FACEBOOK / WHATSAPP -->
+    <div style="position:relative; width:150px; height:150px; margin:0 auto;">
+      <img id="fotoPerfilModal" src="" style="
+        width:150px;
+        height:150px;
+        border-radius:50%;
+        object-fit:cover;
+        border:4px solid #0077cc;
+        box-shadow:0 4px 8px rgba(0,0,0,0.25);
+      ">
 
-      <div style="position:relative; display:inline-block;">
-        <img id="fotoPerfilModal" src="" style="
-          width: 230px;
-          height: 230px;
-          border-radius: 14px;
-          object-fit: cover;
-          border: 3px solid #0077cc;
-          box-shadow:0 2px 6px rgba(0,0,0,0.3);
-        ">
-
-        <!-- ✏️ Icono editar -->
-        <span id="editarFotoBtn" style="
-          position:absolute;
-          right:6px;
-          bottom:6px;
-          background:#0077cc;
-          color:white;
-          border-radius:50%;
-          width:42px;
-          height:42px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          cursor:pointer;
-          font-size:20px;
-          box-shadow:0 2px 6px rgba(0,0,0,0.3);
-        ">✏️</span>
-      </div>
-
-      <p id="nombrePerfil" style="
-        margin-top:14px;
-        font-weight:bold;
-        color:#222;
-        font-size:22px;
-      "></p>
-
-      <p id="correoPerfil" style="
-        color:#444;
-        font-size:16px;
-        margin-top:4px;
-      "></p>
-
-      <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
-
+      <!-- ✏️ BOTÓN EDITAR -->
+      <span id="editarFotoBtn" style="
+        position:absolute;
+        bottom:6px;
+        right:6px;
+        width:42px;
+        height:42px;
+        background:#0077cc;
+        color:white;
+        border-radius:50%;
+        font-size:20px;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        cursor:pointer;
+        box-shadow:0 2px 6px rgba(0,0,0,0.35);
+      ">✏️</span>
     </div>
 
+    <!-- NOMBRE -->
+    <p id="nombrePerfil" style="
+      margin-top:18px;
+      font-size:22px;
+      font-weight:bold;
+      color:#222;
+    "></p>
+
+    <!-- CORREO -->
+    <p id="correoPerfil" style="
+      font-size:15px;
+      color:#555;
+    "></p>
+
+    <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
+
   </div>
+
 </div>
+
 
 
 
@@ -5099,6 +5116,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
