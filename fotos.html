@@ -1614,6 +1614,31 @@ ontouchend="this.style.background='rgba(255,255,255,0.15)'">
 </div>
 
 
+  <!-- MODAL FOTO GRANDE -->
+<div id="modalFotoGrande" style="
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.8);
+  backdrop-filter:blur(6px);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999999;
+">
+  <img id="fotoGrandeVista" src="" style="
+    max-width:90%;
+    max-height:90%;
+    border-radius:20px;
+    box-shadow:0 0 25px rgba(0,0,0,0.4);
+    object-fit:contain;
+  ">
+
+  <!-- cerrar al hacer clic en fondo -->
+  <div onclick="document.getElementById('modalFotoGrande').style.display='none'"
+    style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
+</div>
+
 
 
   
@@ -4691,8 +4716,8 @@ if (menuPhoto) {
   }
 
   // 🔗 Abrir modal perfil al tocar la foto grande
- /* menuPhoto.style.cursor = "pointer";
- menuPhoto.onclick = abrirPerfil;*/
+ menuPhoto.style.cursor = "pointer";
+ menuPhoto.onclick = abrirFotoGrande;
 }
 
 }
@@ -4839,6 +4864,21 @@ function cerrarModalPerfil() {
   document.getElementById("modalPerfil").style.display = "none";
 }
 
+
+
+function abrirFotoGrande() {
+  const modal = document.getElementById("modalFotoGrande");
+  const img = document.getElementById("fotoGrandeVista");
+  const fotoSrc = document.getElementById("fotoPerfilModal")?.src;
+
+  if (fotoSrc) img.src = fotoSrc;
+
+  modal.style.display = "flex";
+}
+
+
+
+    
 // ==============================
 // CERRAR AL HACER CLICK AFUERA
 // ==============================
@@ -5060,8 +5100,8 @@ function syncUserMenuPhoto() {
   }
 
   // comportamiento extra
-  menuPhoto.style.cursor = "pointer";
-  menuPhoto.onclick = abrirPerfil;
+  /*menuPhoto.style.cursor = "pointer";
+  menuPhoto.onclick = abrirPerfil;*/
 }
 
 // --------------------------
@@ -5146,6 +5186,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
