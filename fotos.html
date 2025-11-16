@@ -1260,7 +1260,7 @@ body {
       <!-- WhatsApp -->
       <button id="whatsappBtn" class="menu-btn whatsapp">
         <i class="fab fa-whatsapp"></i>
-        <span>Soporte WhatsApp</span>
+        <span>Soporte</span>
       </button>
 
       <!-- Cerrar sesión -->
@@ -1577,42 +1577,43 @@ body {
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 // 🌙 Función completa de tema oscuro (2025 style)
-  const themeToggle = document.getElementById('themeToggle');
-  const themeIcon = document.getElementById('themeIcon');
-  const themeText = document.getElementById('themeText');
-  const body = document.body;
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const themeText = document.getElementById('themeText');
+const body = document.body;
 
-  // Detectar tema guardado o preferencia del sistema
-  if (localStorage.getItem('theme') === 'dark' || 
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    enableDarkMode();
-  } else {
+// ================================
+//  MODO CLARO POR DEFECTO SIEMPRE
+// ================================
+if (localStorage.getItem('theme') === 'dark') {
+  enableDarkMode();
+} else {
+  enableLightMode(); // SIEMPRE inicia claro si no hay tema guardado
+}
+
+// Evento clic
+themeToggle.addEventListener('click', () => {
+  if (body.classList.contains('dark-mode')) {
     enableLightMode();
+    localStorage.setItem('theme', 'light');
+  } else {
+    enableDarkMode();
+    localStorage.setItem('theme', 'dark');
   }
+});
 
-  // Evento clic
-  themeToggle.addEventListener('click', () => {
-    if (body.classList.contains('dark-mode')) {
-      enableLightMode();
-      localStorage.setItem('theme', 'light');
-    } else {
-      enableDarkMode();
-      localStorage.setItem('theme', 'dark');
-    }
-  });
-
- // 🎨 Activar modo oscuro
+// 🎨 Activar modo oscuro
 function enableDarkMode() {
   body.classList.add('dark-mode');
   themeIcon.className = 'fas fa-sun';
   themeText.textContent = 'Tema claro';
-  
+
   const panel = document.querySelector('#userMenu > div');
   if (panel) {
     panel.style.background = 'rgba(15, 23, 42, 0.98)';
-    panel.style.color = '#f1f5f9'; // texto más claro
+    panel.style.color = '#f1f5f9';
 
-    // Refuerzo: todos los textos internos más visibles
+    // Refuerzo: textos internos más visibles
     panel.querySelectorAll('*').forEach(el => {
       el.style.color = '#f1f5f9';
     });
@@ -1624,7 +1625,7 @@ function enableLightMode() {
   body.classList.remove('dark-mode');
   themeIcon.className = 'fas fa-moon';
   themeText.textContent = 'Tema oscuro';
-  
+
   const panel = document.querySelector('#userMenu > div');
   if (panel) {
     panel.style.background = 'rgba(255, 255, 255, 0.95)';
@@ -1636,6 +1637,7 @@ function enableLightMode() {
     });
   }
 }
+
 
     
 
@@ -5089,6 +5091,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
