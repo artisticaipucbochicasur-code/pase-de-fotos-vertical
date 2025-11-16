@@ -1636,6 +1636,15 @@ ontouchend="this.style.background='rgba(255,255,255,0.15)'">
     <div style="padding: 22px; text-align: center; flex-grow: 1;">
       <p id="nombrePerfil" style="font-size: 22px; font-weight: bold; color: #222; margin-bottom: 6px;"></p>
       <p id="correoPerfil" style="font-size: 15px; color: #666;"></p>
+      <div style="margin-top: 15px; text-align:left; padding: 0 20px; color:#333; font-size:15px;">
+
+  <p id="telefonoPerfil" style="margin:4px 0;"></p>
+  <p id="congregacionPerfil" style="margin:4px 0;"></p>
+  <p id="cargoPerfil" style="margin:4px 0;"></p>
+  <p id="ciudadPerfil" style="margin:4px 0;"></p>
+
+</div>
+
     </div>
 
     <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
@@ -4884,6 +4893,18 @@ if (logoutBtn) {
 
 
 function abrirPerfil() {
+
+    // Obtener datos del usuario desde localStorage
+  let u = JSON.parse(localStorage.getItem("usuario")) || {};
+
+  // Asegurar valores vacíos si faltan
+  u.nombre = u.nombre || u.name || "Usuario";
+  u.correo = u.correo || u.email || "";
+  u.telefono = u.telefono || "";
+  u.congregacion = u.congregacion || "";
+  u.cargo = u.cargo || "";
+  u.ciudad = u.ciudad || "";
+
   // Cerrar userMenu si está abierto
   const userMenu = document.getElementById("userMenu");
   if (userMenu) userMenu.style.display = "none";
@@ -4951,6 +4972,19 @@ document.getElementById("fotoFondoDifuminado").src = fotoSrc;
 
   if (uiName) document.getElementById("nombrePerfil").innerText = uiName.innerText;
   if (uiEmail) document.getElementById("correoPerfil").innerText = uiEmail.innerText;
+  // Mostrar campos adicionales
+document.getElementById("telefonoPerfil").innerText =
+  u.telefono ? "📞 Teléfono: " + u.telefono : "";
+
+document.getElementById("congregacionPerfil").innerText =
+  u.congregacion ? "⛪ Congregación: " + u.congregacion : "";
+
+document.getElementById("cargoPerfil").innerText =
+  u.cargo ? "🧑‍💼 Cargo: " + u.cargo : "";
+
+document.getElementById("ciudadPerfil").innerText =
+  u.ciudad ? "📍 Ciudad: " + u.ciudad : "";
+
 }
 
 
@@ -5282,6 +5316,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
