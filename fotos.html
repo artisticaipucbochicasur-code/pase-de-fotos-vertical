@@ -1185,7 +1185,7 @@ body {
 <div id="userBtn" 
      style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
             display:flex;align-items:center;justify-content:center;
-            font-weight:bold;cursor:pointer;z-index:2001;">
+            font-weight:bold;cursor:pointer;z-index:1000;">
 </div>
 
 <!-- 🔹 Fondo oscuro (WhatsApp/Facebook) -->
@@ -1498,7 +1498,7 @@ body {
 </button>
 
 
-<!-- MODAL PERFIL (FULLSCREEN) -->
+<!-- MODAL PERFIL (FULLSCREEN) - AHORA SIEMPRE ENCIMA -->
 <div id="modalPerfil" style="
   position: fixed;
   top: 0; left: 0;
@@ -1506,23 +1506,23 @@ body {
   background: rgba(0,0,0,0.75);
   backdrop-filter: blur(4px);
   display: none;
-  align-items: center;        /* ← CENTRA VERTICALMENTE */
-  justify-content: center;    /* ← CENTRA HORIZONTALMENTE */
-  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999 !important;     /* ← MÁS ALTO QUE TODO */
   animation: fadeIn 0.25s ease;
 ">
   <div id="contenidoModalPerfil" style="
     width: 100%;
-    max-width: 500px;         /* ← LÍMITE EN ESCRITORIO */
+    max-width: 500px;
     height: 100%;
     background: white;
     position: relative;
     overflow-y: auto;
     animation: slideUp 0.25s ease;
-    display: flex;            /* ← MEJORA DISTRIBUCIÓN */
+    display: flex;
     flex-direction: column;
   ">
-    <!-- ❌ BOTÓN CERRAR (AHORA VISIBLE EN MÓVIL) -->
+    <!-- ❌ BOTÓN CERRAR (AHORA 100% VISIBLE) -->
     <span onclick="cerrarModalPerfil()" style="
       position: absolute;
       top: 14px;
@@ -1532,13 +1532,14 @@ body {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.8);
       color: white;
       border-radius: 50%;
       font-size: 22px;
       cursor: pointer;
-      z-index: 999999;
+      z-index: 999999 !important;   /* ← SIEMPRE ENCIMA */
       backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     ">✖</span>
 
     <!-- CONTENEDOR FOTO -->
@@ -1554,9 +1555,8 @@ body {
       justify-content: center;
       background: black;
       z-index: 1;
-      flex-shrink: 0; /* ← Evita que se comprima */
+      flex-shrink: 0;
     ">
-      <!-- Fondo difuminado -->
       <img id="fotoFondoDifuminado" src="" style="
         position: absolute;
         top: 0; left: 0;
@@ -1567,16 +1567,14 @@ body {
         transform: scale(1.1);
         z-index: 1;
       ">
-      <!-- Foto principal (COMPLETA, SIN CORTAR) -->
       <img id="fotoPerfilModal" src="" style="
         position: relative;
         max-width: 100%;
         max-height: 100%;
-        object-fit: contain;     /* ← CLAVE: MUESTRA FOTO COMPLETA */
+        object-fit: contain;
         z-index: 2;
         display: block;
       ">
-      <!-- ✏️ Editar foto -->
       <span id="editarFotoBtn" style="
         position: absolute;
         right: 14px;
@@ -1598,23 +1596,13 @@ body {
 
     <!-- INFO DEL USUARIO -->
     <div style="padding: 22px; text-align: center; flex-grow: 1;">
-      <p id="nombrePerfil" style="
-        font-size: 22px;
-        font-weight: bold;
-        color: #222;
-        margin-bottom: 6px;
-      "></p>
-      <p id="correoPerfil" style="
-        font-size: 15px;
-        color: #666;
-      "></p>
+      <p id="nombrePerfil" style="font-size: 22px; font-weight: bold; color: #222; margin-bottom: 6px;"></p>
+      <p id="correoPerfil" style="font-size: 15px; color: #666;"></p>
     </div>
 
     <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
   </div>
 </div>
-
-
 
 
 
@@ -5142,6 +5130,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
