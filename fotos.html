@@ -4608,8 +4608,283 @@ function buildDriveUrlIfNeeded(urlOrId) {
 }
 
 // --- Mostrar usuario con preloader y logs de depuración ---
-     
+// --- Mostrar usuario con preloader y logs de depuración ---
+function mostrarUsuario(u) {
+  if (!userBtn) return;
+  console.log("mostrarUsuario - objeto recibido:", u);
+
+  // ✅ Detectar si ya hay imagen en el botón (pero NO salir de la función)
+  let yaTieneImagen = !!userBtn.querySelector("img");
+
+  // ✅ Limpiar cualquier nodo previo si no tiene imagen aun
+  if (!yaTieneImagen) {
+    while (userBtn.firstChild) {
+      userBtn.removeChild(userBtn.firstChild);
+    }
+  }
+
+  u = u || {};
+  u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
+  u.correo = u.correo || u.email || localStorage.getItem("correo") || "";
+
+  let foto = u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "";
+  if (Array.isArray(foto) && foto.length) foto = foto[0];
+
+  const isDataUrl = typeof foto === "string" && foto.startsWith("data:");
+
+  function buildDriveCandidates(src) {
+    const s = String(src || "").trim();
+    const candidates = [];
+    if (!s) return candidates;
+
+    candidates.push(s);
+
+    const idOnlyMatch = s.match(/^[A-Za-z0-9_-]{20,80}$/);
+    if (idOnlyMatch) {
+      const id = idOnlyMatch[0];
+      candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+      candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+      candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+      candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
+      return candidates;
+    }
+
+    const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
+    if (m && m[1]) {
+      const id = m[1];
+      candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
+      candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
+      candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
+      candidates.push(`https://docs.google.com/uc?export=download&id=${id}`);
+    }
+
+    return Array.from(new Set(candidates));
+  }
+
+  function fallback() {
+    mostrarIniciales(u);
+  }
+
+  if (!foto) {
+    console.warn("mostrarUsuario - no hay foto para mostrar, usando iniciales");
+    fallback();
+  } else if (isDataUrl) {
+    const img = document.createElement("img");
+    img.src = foto;
+    img.alt = u.nombre || "avatar";
+
+    Object.assign(img.style, {
+      width: "36px",
+      height: "36px",
+      borderRadius: "50%",
+      objectFit: "cover",
+      border: "2px solid #0077cc",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+    });
+
+    img.onerror = () => {
+      console.error("Imagen base64 falló al cargar");
+      fallback();
+    };
+
+    if (!yaTieneImagen) userBtn.appendChild(img);
+
+  } else {
+    const candidates = buildDriveCandidates(foto);
+    console.log("mostrarUsuario - candidatos de imagen:", candidates);
+
+    let idx = 0;
+    let finished = false;
+
+    const tryNext = () => {
+      if (finished) return;
+      if (idx >= candidates.length) {
+        console.warn("mostrarUsuario - ningún candidato funcionó, fallback");
+        finished = true;
+        fallback();
+        return;
+      }
+
+      const url = candidates[idx++];
+      if (!url) return tryNext();
+
+      const testImg = new Image();
+      testImg.referrerPolicy = "no-referrer";
+
+      let loaded = false;
+
+      const cleanupAndAppend = (finalUrl) => {
+        if (finished) return;
+        finished = true;
+        const img = document.createElement("img");
+        img.src = finalUrl;
+        img.alt = u.nombre || "avatar";
+
+        Object.assign(img.style, {
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          objectFit: "cover",
+          border: "2px solid #0077cc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+        });
+
+        if (!yaTieneImagen) userBtn.appendChild(img);
+      };
+
+      testImg.onload = () => {
+        loaded = true;
+        console.log("mostrarUsuario - carga OK:", url);
+        cleanupAndAppend(url);
+      };
+
+      testImg.onerror = (e) => {
+        console.warn("mostrarUsuario - fallo carga candidato:", url, e);
+        setTimeout(() => tryNext(), 150);
+      };
+
+      const to = setTimeout(() => {
+        if (!loaded && !finished) {
+          console.warn("mostrarUsuario - timeout candidato:", url);
+          tryNext();
+        }
+      }, 3500);
+
+      try {
+        testImg.src = url;
+      } catch (err) {
+        console.warn("mostrarUsuario - error al asignar src:", err);
+        clearTimeout(to);
+        tryNext();
+      }
+    };
+
+    tryNext();
+  }
+
+  if (userName) userName.textContent = u.nombre;
+  if (userEmail) userEmail.textContent = u.correo;
+  if (userName) userName.style.color = "#333";
+  if (userEmail) userEmail.style.color = "#333";
+
+  currentAuthorName = u.nombre;
+  currentAuthorEmail = u.correo;
+
+  // === Sincronizar también la foto en el menú desplegable ===
+const menuPhoto = document.getElementById("userMenuPhoto");
+if (menuPhoto) {
+  menuPhoto.innerHTML = ""; // limpiar
+
+  const imgBtn = userBtn.querySelector("img");
+  
+  if (imgBtn && imgBtn.src) {
+    // ✅ Mostrar exactamente la misma foto
+    menuPhoto.innerHTML = `
+      <img src="${imgBtn.src}" style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        object-fit:cover;
+        border:2px solid #0077cc;
+      ">
+    `;
+  } else {
+    // ✅ Iniciales elegantes
+    const iniciales = (u.nombre || "US")
+      .trim()
+      .split(" ")
+      .map(p => p.charAt(0).toUpperCase())
+      .join("")
+      .substring(0,2);
+
+    menuPhoto.innerHTML = `
+      <div style="
+        width:80px;
+        height:80px;
+        border-radius:50%;
+        background:#0077cc;
+        color:white;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:28px;
+        font-weight:bold;
+      ">
+        ${iniciales}
+      </div>
+    `;
+  }
+
+  // 🔗 Abrir modal perfil al tocar la foto grande
+ menuPhoto.style.cursor = "pointer";
+ menuPhoto.onclick = abrirFotoGrande;
+}
+
+}
+
+
+function mostrarIniciales(u) {
+  if (!userBtn) return;
+
+  userBtn.innerHTML = "";
+  const iniciales = (u && u.nombre)
+    ? u.nombre.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+    : "US";
+
+  userBtn.textContent = iniciales;
+  userBtn.style.background = "#0077cc";
+  userBtn.style.color = "white";
+  userBtn.style.width = "40px";
+  userBtn.style.height = "40px";
+  userBtn.style.borderRadius = "50%";
+  userBtn.style.display = "flex";
+  userBtn.style.alignItems = "center";
+  userBtn.style.justifyContent = "center";
+  userBtn.style.fontWeight = "bold";
+  userBtn.style.fontSize = "14px";
+}
+
+if (userBtn && userMenu) {
+  userBtn.addEventListener("click", () => {
+    userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
   });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("autor");
+    localStorage.removeItem("correo");
+
+    // 🧹 Limpiar caché RAM de fotos
+    for (const key in fotoCache) {
+      delete fotoCache[key];
+    }
+
+    // 🧹 Limpiar caché localStorage de fotos
+    localStorage.removeItem("fotoLocal");
+
+    currentAuthorName = "";
+    currentAuthorEmail = "";
+
+    if (userMenu) userMenu.style.display = "none";
+    mostrarAviso("Sesión cerrada", "info");
+
+    setTimeout(() => location.reload(), 1200);
+  });
+}
+
+
+  const btnMiPerfil = document.querySelector("#userMenu .menu-btn");
+
+  if (btnMiPerfil) {
+    btnMiPerfil.addEventListener("click", () => {
+      abrirPerfil();
+    });
+  }
+
+  });
+
 
 
 
@@ -4618,13 +4893,13 @@ function abrirPerfil() {
   // Obtener datos del usuario desde localStorage
   let u = JSON.parse(localStorage.getItem("usuario")) || {};
 
-  // Asegurar valores vacíos si faltan
-  u.nombre = u.nombre || u.name || "Usuario";
-  u.correo = u.correo || "";
-  u.telefono = u.telefono || "";
-  u.congregacion = u.congregacion || "";
-  u.cargo = u.cargo || "";
-  u.ciudad = u.ciudad || "";
+  // Garantizar datos correctos desde localStorage si faltan
+  u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
+  u.correo = u.correo || localStorage.getItem("correo") || "";
+  u.telefono = u.telefono || localStorage.getItem("telefono") || "";
+  u.congregacion = u.congregacion || localStorage.getItem("congregacion") || "";
+  u.cargo = u.cargo || localStorage.getItem("cargo") || "";
+  u.ciudad = u.ciudad || localStorage.getItem("ciudad") || "";
 
   // Cerrar userMenu si está abierto
   const userMenu = document.getElementById("userMenu");
@@ -4643,30 +4918,22 @@ function abrirPerfil() {
   // Determinar la fuente de la foto (prioridad)
   let fotoSrc = "";
 
-  // 1) imagen en el botón
   if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
-
-  // 2) si no, la que ya tenga el modal
-  if (!fotoSrc && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") {
-    fotoSrc = fotoModal.src;
+  else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
+  else {
+    const menuImg = menuPhoto?.querySelector("img");
+    if (menuImg?.src) fotoSrc = menuImg.src;
   }
 
-  // 3) si no, la que tenga userMenuPhoto
-  const menuImg = menuPhoto ? menuPhoto.querySelector("img") : null;
-  if (!fotoSrc && menuImg && menuImg.src) fotoSrc = menuImg.src;
-
-  // 4) si no, intentar desde localStorage (si guardaste la foto)
   if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
     fotoSrc = localStorage.getItem("fotoPerfil");
   }
 
-  // Aplicar la foto donde corresponda
+  // Aplicar foto
   if (fotoSrc) {
-    // al modal
     if (fotoModal) fotoModal.src = fotoSrc;
     document.getElementById("fotoFondoDifuminado").src = fotoSrc;
 
-    // al menú desplegable (foto grande)
     if (menuPhoto) {
       menuPhoto.innerHTML = `
         <img src="${fotoSrc}" style="
@@ -4679,22 +4946,17 @@ function abrirPerfil() {
       `;
     }
 
-    // al botón pequeño
     if (userBtn && !userBtnImg) {
       userBtn.innerHTML = `
-        <img src="${fotoSrc}" style="
-          width:32px;
-          height:32px;
-          border-radius:50%;
-          object-fit:cover;
-        ">
+        <img src="${fotoSrc}" 
+        style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
       `;
     }
   }
 
-  // Nombre y correo
-  document.getElementById("nombrePerfil").textContent = u.nombre || "";
-  document.getElementById("correoPerfil").textContent = u.correo || "";
+  // Nombre + correo
+  document.getElementById("nombrePerfil").textContent = u.nombre;
+  document.getElementById("correoPerfil").textContent = u.correo;
 
   // Datos adicionales
   document.getElementById("telefonoPerfil").textContent =
@@ -4709,6 +4971,7 @@ function abrirPerfil() {
   document.getElementById("ciudadPerfil").textContent =
     u.ciudad ? `📍 Ciudad: ${u.ciudad}` : "";
 }
+
 
 
 
@@ -5039,6 +5302,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
