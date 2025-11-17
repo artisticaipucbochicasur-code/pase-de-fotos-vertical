@@ -1871,24 +1871,52 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
 
 async function abrirPerfilPorCorreo(correo) {
-  if (!correo || correo.trim() === "") return;
+  if (!correo || correo.trim() === "") {
+    console.warn("abrirPerfilPorCorreo → correo vacío");
+    return;
+  }
+
+  const correoLimpio = correo.trim();
+  console.log("Intentando cargar perfil del correo:", correoLimpio);
 
   const formData = new URLSearchParams();
   formData.append("accion", "getUserByEmail");
-  formData.append("correo", correo.trim());
+  formData.append("correo", correoLimpio);
+
+  // MOSTRAMOS EXACTAMENTE qué estamos enviando
+  console.log("Datos enviados al servidor:");
+  for (let pair of formData.entries()) {
+    console.log("  →", pair[0], "=", pair[1]);
+  }
 
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/x-www-form-urlencoded" 
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
       },
       body: formData
     });
 
-    const data = await res.json();
+    console.log("Respuesta del servidor → Status:", res.status, res.statusText);
+
+    const textoCrudo = await res.text();  // <-- importante: leer como texto primero
+    console.log("Respuesta CRUDA del servidor:");
+    console.log(textoCrudo);
+
+    // Si el texto es HTML o vacío, lo detectamos
+    if (!textoCrudo || textoCrudo.trim() === "" || textoCrudo.includes("<html") || textoCrudo.includes("did not return anything")) {
+      console.error("El script no devolvió JSON válido");
+      alert("Error del servidor: no devolvió datos");
+      return;
+    }
+
+    const data = JSON.parse(textoCrudo);
+    console.log("JSON parseado correctamente:", data);
 
     if (data.status === "success") {
+      console.log("Perfil cargado con éxito:", data);
+
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
       document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("perfilCorreo").textContent = data.correo;
@@ -1897,13 +1925,16 @@ async function abrirPerfilPorCorreo(correo) {
       document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
       document.getElementById("perfilCargo").textContent = data.cargo || "-";
       document.getElementById("modalAutor").classList.remove("hidden");
+
+      console.log("Modal abierto correctamente");
     } else {
-      console.log("Usuario no encontrado:", data.message);
+      console.warn("Usuario no encontrado:", data.message);
       // opcional: alert("Usuario no encontrado");
     }
+
   } catch (err) {
-    console.error("Error al cargar perfil:", err);
-    // opcional: alert("Error de conexión");
+    console.error("Error completo en fetch:", err);
+    alert("Error de conexión: " + err.message);
   }
 }
 
@@ -5669,5 +5700,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
