@@ -1785,23 +1785,38 @@ function enableLightMode() {
 
 
 
-    function aplicarDarkModeModalPerfil() {
+ function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
+  // Fondo oscuro con transparencia
   modal.style.background = "rgba(15, 23, 42, 0.98)";
   modal.style.color = "#f1f5f9";
 
-  // Textos internos más claros
-  modal.querySelectorAll("p, span, label, h1, h2, h3").forEach(el => {
-    el.style.color = "#f1f5f9";
+  // FUERZA COLOR EN TODOS LOS TEXTOS (incluso con inline)
+  const textos = modal.querySelectorAll("p, span, h1, h2, h3, h4, h5, h6, div");
+  textos.forEach(el => {
+    el.style.color = "#f1f5f9 !important";
+    el.style.textShadow = "none";
   });
 
-  // Botón cerrar más visible
+  // Iconos SVG → blanco
+  modal.querySelectorAll("svg").forEach(svg => {
+    svg.style.fill = "#e2e8f0 !important";
+  });
+
+  // Botón cerrar
   const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btnCerrar) {
-    btnCerrar.style.background = "rgba(255,255,255,0.2)";
+    btnCerrar.style.background = "rgba(255,255,255,0.25)";
     btnCerrar.style.color = "white";
+    btnCerrar.style.backdropFilter = "blur(8px)";
+  }
+
+  // Fondo de foto (oscuro)
+  const fotoContainer = modal.querySelector("#fotoBlurContainer");
+  if (fotoContainer) {
+    fotoContainer.style.background = "#0f172a";
   }
 }
 
@@ -1812,16 +1827,29 @@ function aplicarLightModeModalPerfil() {
   modal.style.background = "white";
   modal.style.color = "#1e293b";
 
-  // Textos internos restaurados
-  modal.querySelectorAll("p, span, label, h1, h2, h3").forEach(el => {
-    el.style.color = "#1e293b";
+  // Restaurar colores originales
+  const textos = modal.querySelectorAll("p, span, h1, h2, h3, h4, h5, h6, div");
+  textos.forEach(el => {
+    el.style.color = ""; // Deja que el inline original funcione
+    el.style.textShadow = "";
   });
 
-  // Botón cerrar vuelve a estilo claro
+  // Iconos SVG → gris Facebook
+  modal.querySelectorAll("svg").forEach(svg => {
+    svg.style.fill = "#606770";
+  });
+
+  // Botón cerrar
   const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btnCerrar) {
     btnCerrar.style.background = "rgba(255,255,255,0.15)";
     btnCerrar.style.color = "white";
+  }
+
+  // Fondo de foto
+  const fotoContainer = modal.querySelector("#fotoBlurContainer");
+  if (fotoContainer) {
+    fotoContainer.style.background = "black";
   }
 }
 
@@ -5316,6 +5344,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
