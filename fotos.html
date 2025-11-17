@@ -4329,17 +4329,18 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 // ======================================================================================
 document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
   e.preventDefault();
-
   const btnRegistro = e.target;
-  btnRegistro.disabled = true; // 🔒 evita múltiples clics
-  btnRegistro.classList.add("btn-loading"); // animación visual
+  btnRegistro.disabled = true;
+  btnRegistro.classList.add("btn-loading");
 
   const nombre = document.getElementById("regNombre").value.trim();
   const correo = document.getElementById("regCorreo").value.trim().toLowerCase();
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
+  const telefono = document.getElementById("regTelefono").value.trim();
   const preview = document.getElementById("previewFoto");
 
+  // === VALIDACIONES BÁSICAS ===
   if (!nombre || !correo || !pin || !pinConfirm) {
     btnRegistro.disabled = false;
     btnRegistro.classList.remove("btn-loading");
@@ -4358,7 +4359,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     return mostrarAviso("Los PIN no coinciden", "error");
   }
 
-  // ✅ Ahora acepta cualquier carácter, pero mínimo 4
   if (pin.length < 4) {
     btnRegistro.disabled = false;
     btnRegistro.classList.remove("btn-loading");
@@ -4371,37 +4371,56 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     return mostrarAviso("Selecciona una foto antes de registrarte", "error");
   }
 
-  // Mostrar spinner de inmediato
+  // === VALIDACIÓN DE TELÉFONO ===
+  if (telefono) {
+    // Eliminar espacios, guiones, paréntesis → solo +, dígitos
+    const soloNumeros = telefono.replace(/[\s\-\(\)]/g, "");
+    
+    // Debe empezar con + o ser solo dígitos
+    if (!/^(\+\d{1,3})?\d{7,15}$/.test(soloNumeros)) {
+      btnRegistro.disabled = false;
+      btnRegistro.classList.remove("btn-loading");
+      return mostrarAviso("Teléfono inválido. Usa formato internacional: +573201234567", "error");
+    }
+
+    // Opcional: longitud mínima realista (7-15 dígitos)
+    const digitos = soloNumeros.replace(/^\+/, "").length;
+    if (digitos < 7 || digitos > 15) {
+      btnRegistro.disabled = false;
+      btnRegistro.classList.remove("btn-loading");
+      return mostrarAviso("El número debe tener entre 7 y 15 dígitos", "error");
+    }
+  }
+
+  // === ENVÍO ===
   const loader = mostrarLoader("Registrando usuario...");
   await new Promise(requestAnimationFrame);
 
   try {
     if (preview) {
-      preview.innerHTML = `<img src="${window.fotoComprimida}" alt="Previsualización" 
+      preview.innerHTML = `<img src="${window.fotoComprimida}" alt="Previsualización"
         style="max-width:120px;border-radius:10px;display:block;margin:auto;">`;
     }
 
     const formData = new URLSearchParams();
     formData.append("accion", "registro");
-formData.append("nombre", nombre);
-formData.append("correo", correo);
-formData.append("pin", pin);
-formData.append("foto", window.fotoComprimida.split(",")[1]);
-
-formData.append("telefono", document.getElementById("regTelefono").value.trim());
-formData.append("congregacion", document.getElementById("regCongregacion").value.trim());
-formData.append("cargo", document.getElementById("regCargo").value.trim());
-formData.append("ciudad", document.getElementById("regCiudad").value.trim());
-
+    formData.append("nombre", nombre);
+    formData.append("correo", correo);
+    formData.append("pin", pin);
+    formData.append("foto", window.fotoComprimida.split(",")[1]);
+    formData.append("telefono", telefono); // ← ya validado
+    formData.append("congregacion", document.getElementById("regCongregacion").value.trim());
+    formData.append("cargo", document.getElementById("regCargo").value.trim());
+    formData.append("ciudad", document.getElementById("regCiudad").value.trim());
 
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData
     });
-
     const texto = await res.text();
     console.log("Registro:", texto);
+
     cerrarLoader(loader);
     btnRegistro.disabled = false;
     btnRegistro.classList.remove("btn-loading");
@@ -5371,6 +5390,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
