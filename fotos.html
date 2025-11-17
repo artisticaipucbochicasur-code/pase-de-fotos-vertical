@@ -331,58 +331,69 @@
     }
 
 .comments-overlay-container {
-  position: fixed;
-  bottom: 45px; /* 🔹 sube el contenedor más arriba */
-  left: 10px;
-  width: calc(80% - 20px);
-  background: rgba(0, 0, 0, 0.2);
-  color: #eee;
-  padding: 12px 8px; /* 🔹 más alto, aumenta espacio arriba y abajo */
-  border-radius: 5px;
-  box-sizing: border-box;
-  z-index: 998;
-  overflow-y: auto;
-  transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-  max-height: 8em; /* 🔹 altura inicial mayor */
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+    position: fixed;
+    bottom: 45px;
+    left: 10px;
+    width: calc(80% - 20px);
+    background: rgba(0, 0, 0, 0.2);
+    color: #eee;
+    padding: 12px 8px;
+    border-radius: 5px;
+    box-sizing: border-box;
+    z-index: 998;
+    overflow-y: auto;
+    transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
+    max-height: 8em;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
-
-
-  /* expandido */
 .comments-overlay-container.expanded {
-  max-height: 70vh;
+    max-height: 70vh;
 }
-    /* Estilos para la lista de comentarios */
-    .comments-overlay-container ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
 
-    /* Estilos para cada comentario individual */
-    .comments-overlay-container li {
-        font-size: 0.8rem;
-        line-height: 1.2;
-        margin-bottom: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 8px;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-    }
+/* Estilos para la lista de comentarios */
+.comments-overlay-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
 
-    .comments-overlay-container li:last-child {
-      border-bottom: none;
-    }
-    
-    /* Estilo para los comentarios que se pueden borrar */
-    .comments-overlay-container li.deletable {
-        cursor: pointer;
-    }
+/* Estilos para cada comentario individual */
+.comments-overlay-container li {
+    font-size: 0.8rem;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.comments-overlay-container li:last-child {
+    border-bottom: none;
+}
+
+/* Estilo para los comentarios que se pueden borrar */
+.comments-overlay-container li.deletable {
+    cursor: pointer;
+}
+
+/* Mejoras visuales para el botón del autor */
+#autorContainer {
+    transition: background-color 0.2s;
+}
+
+#autorContainer:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+#autorContainer:active {
+    background: rgba(255, 255, 255, 0.2);
+}
     
     /* Contenedor del botón de borrado */
     .delete-btn-container {
@@ -1027,18 +1038,7 @@ body {
   overflow-wrap: break-word;
 }
 
-.comments-overlay-container.expanded {
-  max-height: 70vh;
-}
 
-/* Mejoras visuales para el botón del autor */
-#autorContainer:hover {
-    background: rgba(255, 255, 255, 0.12);
-}
-
-#autorContainer:active {
-    background: rgba(255, 255, 255, 0.2);
-} 
     
   </style>
 </head>
@@ -1851,25 +1851,22 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
 const overlay = document.getElementById('commentsOverlay');
 
-// Clic en el autor → tu acción personalizada (NO expande el overlay)
+// Clic en el autor → acción personalizada (NO expande el overlay)
 document.getElementById('autorContainer').addEventListener('click', function(e) {
-    e.stopPropagation(); // ← Esto evita que el clic llegue al contenedor
-    
-    // ← AQUÍ PONES LO QUE QUIERES QUE HAGA AL CLICAR EL AUTOR
-    // Ejemplos:
-    // window.open('https://x.com/' + this.textContent.trim().split(' ')[0], '_blank');
-    // navigator.clipboard.writeText(this.textContent.trim());
+    e.stopPropagation(); // ← Impide que el clic llegue al contenedor
+    // Tu acción personalizada aquí:
     console.log('Clic en autor');
-    alert('Vas al perfil del autor');
+    alert('Ir al perfil de @nombreusuario');
+    // Ejemplo: window.open('https://x.com/nombreusuario', '_blank');
 });
 
-// Clic en cualquier otra parte del overlay → expandir/contraer
+// Clic en cualquier parte del overlay (incluidos comentarios) → expande/contrae
 overlay.addEventListener('click', function(e) {
+    // Si el clic NO fue en el autor, toggle la clase .expanded
     if (!e.target.closest('#autorContainer')) {
         overlay.classList.toggle('expanded');
     }
 });
-
 
 
     
@@ -5579,3 +5576,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
