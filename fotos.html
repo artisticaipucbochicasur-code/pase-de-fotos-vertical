@@ -330,60 +330,25 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-/* Autor: alineado a la izquierda y siempre sube correctamente */
-#autorContainer {
-  position: fixed !important;
-  bottom: 74px !important;           /* posición normal (comentarios contraídos) */
-  left: 18px !important;             /* 👈 alineado a la izquierda, igual que los comentarios */
-  z-index: 999 !important;
-  background: transparent !important;
-  padding: 8px 12px !important;      /* zona clickeable cómoda */
-  margin: 0 !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  color: #e8eaed !important;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s !important;
-  user-select: none;
-  transform: translateY(0) !important;
-}
-
-/* CUANDO LOS COMENTARIOS ESTÁN EXPANDIDOS → el autor sube MUCHO más arriba */
-body:has(.comments-overlay-container.expanded) #autorContainer,
-.comments-overlay-container.expanded ~ #autorContainer {
-  bottom: 88px !important;   /* 👈 ahora sí sube bien alto (ajusta si necesitas más: 92px, 98px, etc.) */
-}
-
-/* Hover elegante (opcional pero queda brutal) */
-#autorContainer:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.09) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-    
- /* Contenedor de comentarios */
 .comments-overlay-container {
   position: fixed;
-  bottom: 47px; /* 👈 ahora justo arriba de la barra de escribir */
+  bottom: 45px; /* 🔹 sube el contenedor más arriba */
   left: 10px;
   width: calc(80% - 20px);
-  background: rgba(0, 0, 0, 0.2); /* más transparente */
+  background: rgba(0, 0, 0, 0.2);
   color: #eee;
-  padding: 8px;
+  padding: 12px 8px; /* 🔹 más alto, aumenta espacio arriba y abajo */
   border-radius: 5px;
   box-sizing: border-box;
   z-index: 998;
   overflow-y: auto;
   transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-  max-height: 4em;
+  max-height: 8em; /* 🔹 altura inicial mayor */
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
+
 
 
   /* expandido */
@@ -1637,19 +1602,16 @@ body {
 </div>
 
 
- <div class="content-overlay" id="contentOverlay">
+<div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
- <div class="comments-overlay-container" id="commentsOverlay">
-  <ul id="commentsList"></ul>
+
+<div class="comments-overlay-container" id="commentsOverlay">
+    <div id="autorContainer" style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #444;"></div>
+    <ul id="commentsList"></ul>
 </div>
 
-
-     <!-- Déjalo limpio así -->
-<div id="autorContainer">
-  <!-- tu contenido del autor -->
-</div>
 
 <div class="comments-counter" id="commentsCounter">
   <span class="icon">
@@ -1671,7 +1633,6 @@ body {
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
 </button>
-
 
 
 <!-- MODAL PERFIL (FULLSCREEN) - AHORA SIEMPRE ENCIMA -->
@@ -5549,9 +5510,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
