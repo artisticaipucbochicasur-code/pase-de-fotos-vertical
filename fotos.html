@@ -1892,31 +1892,37 @@ function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
-  modal.style.background = "rgba(15, 23, 42, 0.98)";
-  modal.style.color = "#f1f5f9";
+  // Fondo EXACTO del modo oscuro de Google
+  modal.style.background = "#121212";
+  modal.style.color = "#e0e0e0"; // Texto principal (como Google)
 
-  // Textos internos
-  modal.querySelectorAll("p, span, label, h1, h2, h3").forEach(el => {
-    el.style.color = "#f1f5f9";
+  // Forzar TODOS los textos internos al color perfecto de Google
+  modal.querySelectorAll("p, span, label, h1, h2, h3, div, a, button, input, textarea").forEach(el => {
+    el.style.setProperty("color", "#e0e0e0", "important");
   });
 
-  // Botón cerrar
+  // Texto secundario más suave (como los subtítulos en Google)
+  modal.querySelectorAll("small, .text-muted, .subtitle, .hint").forEach(el => {
+    el.style.setProperty("color", "#9aa0a6", "important");
+  });
+
+  // Botón cerrar (X) - estilo Google
   const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btnCerrar) {
-    btnCerrar.style.background = "rgba(255,255,255,0.2)";
-    btnCerrar.style.color = "white";
+    btnCerrar.style.background = "rgba(255, 255, 255, 0.12)";
+    btnCerrar.style.color = "#e0e0e0";
+    btnCerrar.style.border = "1px solid rgba(255, 255, 255, 0.15)";
   }
 
-  /* ----------- CORRECCIÓN DEFINITIVA ----------- */
-  // Forzar textos de botones del menú a blanco (el !important del CSS los bloquea)
+  /* — Forzar menú lateral también con estilo Google (por si acaso) — */
   document.querySelectorAll("#userMenu .menu-btn, #userMenu .menu-btn span, #userMenu .menu-btn i")
     .forEach(el => {
-      el.style.setProperty("color", "#f1f5f9", "important");
+      el.style.setProperty("color", "#e8eaed", "important"); // Blanco suave Google
     });
 
-  // Versión (abajo)
+  // Versión abajo del menú
   const version = document.querySelector("#userMenu div[style*='font-size:12px']");
-  if (version) version.style.color = "#cbd5e1";
+  if (version) version.style.color = "#9aa0a6"; // Gris suave Google
 }
 
 function aplicarLightModeModalPerfil() {
@@ -5535,6 +5541,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
