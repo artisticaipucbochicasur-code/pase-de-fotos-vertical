@@ -1278,7 +1278,8 @@ body {
      style="display:none;position:fixed;top:0;left:0;width:100%;height:100vh;
             background:rgba(0,0,0,0.45);z-index:2000;">
 </div>
-<!-- Panel lateral moderno 2025 - COMPATIBLE CON TEMA CLARO Y OSCURO -->
+
+<!-- Panel lateral moderno 2025 - VERSIÓN FINAL MINIMALISTA -->
 <div id="userMenu" style="
     display:none;
     position:fixed;
@@ -1289,7 +1290,7 @@ body {
     z-index:9999;
     animation: fadeIn 0.25s ease-out;
 ">
-  <div id="panelMenu" style="
+  <div style="
     position:absolute;
     top:70px; right:0;
     width:340px; max-width:90vw;
@@ -1305,14 +1306,12 @@ body {
   ">
     <!-- Botón cerrar (X) -->
     <button onclick="document.getElementById('userMenu').style.display='none'"
-            class="btn-cerrar-menu"
-            style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; padding:8px; border-radius:50%;">
+            style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#64748b; padding:8px; border-radius:50%;">
       <i class="fas fa-xmark"></i>
     </button>
 
     <!-- Cerrar sesión arriba a la izquierda -->
-    <button id="logoutBtn" class="btn-cerrar-sesion"
-            style="position:absolute; top:16px; left:16px; background:none !important; border:none !important; color:#ef4444; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer;">
+    <button id="logoutBtn" style="position:absolute; top:16px; left:16px; background:none !important; border:none !important; color:#ef4444; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer;">
       <i class="fas fa-arrow-right-from-bracket"></i>
       <span>Cerrar sesión</span>
     </button>
@@ -1322,69 +1321,58 @@ body {
       <div id="userMenuPhoto" style="width:96px; height:96px; border-radius:50%; margin:0 auto 16px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; color:white; box-shadow:0 8px 25px rgba(102,126,234,0.4); overflow:hidden; border:4px solid rgba(255,255,255,0.3);">
         <img src="ruta-de-tu-foto.jpg" style="width:100%; height:100%; object-fit:cover;" alt="Foto">
       </div>
-      <p id="userName" class="texto-dinamico" style="margin:0; font-weight:700; font-size:20px;"></p>
-      <p id="userEmail" class="texto-dinamico" style="margin:6px 0 0; font-size:14px;"></p>
+      <p id="userName" style="margin:0; font-weight:700; font-size:20px; color:#1e293b;"></p>
+      <p id="userEmail" style="margin:6px 0 0; font-size:14px; color:#64748b;"></p>
     </div>
 
-    <!-- ESTILOS DINÁMICOS SEGÚN TEMA -->
-    <style id="estilosMenu">
-      /* COLORES POR DEFECTO (modo claro) */
-      #panelMenu { background: rgba(255, 255, 255, 0.95); }
-      .texto-dinamico { color: #1e293b !important; }
-      .btn-cerrar-menu { color: #64748b !important; }
-      .menu-btn, .menu-btn span, .menu-btn i { color: #475569 !important; }
-
-      /* MODO OSCURO */
-      body.dark-mode #panelMenu,
-      .dark-mode #panelMenu {
-        background: rgba(15, 23, 42, 0.95) !important;
-      }
-      body.dark-mode .texto-dinamico,
-      .dark-mode .texto-dinamico {
-        color: #ffffff !important;
-      }
-      body.dark-mode .btn-cerrar-menu,
-      .dark-mode .btn-cerrar-menu {
-        color: #cbd5e1 !important;
-      }
-      body.dark-mode .menu-btn,
-      body.dark-mode .menu-btn span,
-      body.dark-mode .menu-btn i,
-      .dark-mode .menu-btn,
-      .dark-mode .menu-btn span,
-      .dark-mode .menu-btn i {
-        color: #e2e8f0 !important;
-      }
-      body.dark-mode .version-menu,
-      .dark-mode .version-menu {
-        color: #94a3b8 !important;
-        border-top-color: #334155 !important;
-      }
-
-      /* BOTONES SIN FONDO */
-      .menu-btn {
+    <!-- ESTILOS FUERTES PARA SOBREESCRIBIR CUALQUIER TEMA -->
+    <style>
+      /* FORZAR QUE NO HAYA FONDO NI BORDE EN NINGÚN BOTÓN */
+      #userMenu button.menu-btn,
+      #userMenu button:not(#logoutBtn):not([onclick*="display='none'"]) {
         background: transparent !important;
+        background-color: transparent !important;
         border: none !important;
         outline: none !important;
         box-shadow: none !important;
         border-radius: 0 !important;
         padding: 10px 0 !important;
-        margin: 0 0 16px 0 !important;
+        margin: 0 !important;
+        margin-bottom: 16px !important;
         display: flex !important;
         align-items: center !important;
         gap: 14px !important;
         font-size: 15px !important;
         font-weight: 500 !important;
+        color: #475569 !important;
         cursor: pointer !important;
         width: 100% !important;
         text-align: left !important;
         transition: none !important;
       }
-      .menu-btn:last-of-type { margin-bottom: 40px !important; }
-      .menu-btn i { width: 20px !important; text-align: center !important; font-size: 18px !important; }
+      #userMenu button.menu-btn:last-of-type { margin-bottom: 40px !important; }
+
+      #userMenu button.menu-btn i {
+        width: 20px !important;
+        text-align: center !important;
+        font-size: 18px !important;
+        color: #64748b !important;
+      }
+      #userMenu button.menu-btn span {
+        color: #475569 !important;
+      }
+
+      /* Quitar cualquier hover o foco */
+      #userMenu button:hover,
+      #userMenu button:focus,
+      #userMenu button:active {
+        background: transparent !important;
+        color: inherit !important;
+        transform: none !important;
+      }
     </style>
 
-    <!-- BOTONES -->
+    <!-- BOTONES SIN NADA - SOLO ICONO + TEXTO -->
     <button class="menu-btn">
       <i class="fas fa-user-circle"></i>
       <span>Mi perfil</span>
@@ -1405,12 +1393,13 @@ body {
       <span>Soporte</span>
     </button>
 
-    <!-- Versión -->
-    <div class="version-menu" style="text-align:center; font-size:12px; margin-top:10px; padding-top:20px; border-top:1px solid #e2e8f0;">
+    <!-- Versión abajo -->
+    <div style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px; padding-top:20px; border-top:1px solid #e2e8f0;">
       v2.4.1 • © 2025 DECOM
     </div>
   </div>
 </div>
+
 
     </div>
   </div>
@@ -1815,25 +1804,6 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
-
-function aplicarTemaMenu(isDark) {
-  const panel = document.getElementById("panelMenu");
-  const body = document.body;
-
-  if (isDark) {
-    body.classList.add("dark-mode");
-  } else {
-    body.classList.remove("dark-mode");
-  }
-}
-
-// Ejemplo: al cambiar tema
-document.getElementById("themeToggle").addEventListener("click", function() {
-  const isDark = document.body.classList.contains("dark-mode");
-  aplicarTemaMenu(!isDark);
-});
-
-    
 // 🌙 Función completa de tema oscuro (2025 style)
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
@@ -5540,22 +5510,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
