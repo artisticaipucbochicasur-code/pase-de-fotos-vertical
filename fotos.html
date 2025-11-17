@@ -1980,20 +1980,16 @@ async function abrirPerfilPorCorreo(correo) {
     console.warn("abrirPerfilPorCorreo → correo vacío");
     return;
   }
-
   const correoLimpio = correo.trim();
   const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
-
   try {
     const res = await fetch(url, { method: "GET", cache: "no-cache" });
-
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Error HTTP:", res.status, errorText);
       mostrarAviso(`Error del servidor (${res.status})`);
       return;
     }
-
     const textoCrudo = await res.text();
     let data;
     try {
@@ -2003,7 +1999,6 @@ async function abrirPerfilPorCorreo(correo) {
       mostrarAviso("Error al cargar el perfil. Inténtalo más tarde.");
       return;
     }
-
     if (data.status === "success") {
       // Rellenar datos
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
@@ -2014,10 +2009,10 @@ async function abrirPerfilPorCorreo(correo) {
       document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
       document.getElementById("perfilCargo").textContent = data.cargo || "-";
 
-      // NUEVA FORMA DE ABRIR: con animación suave
+      // ABRIR MODAL CON ANIMACIÓN
       document.getElementById("modalAutor").classList.add("show");
 
-      // También duplicamos la foto en el fondo difuminado (opcional pero hermoso)
+      // Fondo difuminado con la foto del usuario
       const fondo = document.getElementById("perfilFotoFondo");
       if (fondo && data.fotoPerfil) {
         fondo.src = data.fotoPerfil + "?v=" + Date.now();
@@ -2032,13 +2027,12 @@ async function abrirPerfilPorCorreo(correo) {
 }
 
 // ====================================================================
-// CERRAR MODAL - Botón × y clic fuera (elegante y completo)
+// CERRAR MODAL - Botón × y clic fuera
 // ====================================================================
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
   document.getElementById("modalAutor").classList.remove("show");
 });
 
-// Cerrar al hacer clic fuera del contenido
 document.getElementById("modalAutor").addEventListener("click", (e) => {
   if (e.target === document.getElementById("modalAutor")) {
     document.getElementById("modalAutor").classList.remove("show");
@@ -2046,19 +2040,35 @@ document.getElementById("modalAutor").addEventListener("click", (e) => {
 });
 
 // ====================================================================
-// CLICK EN EL AUTOR - sin cambios, solo actualiza el modal
+// CLIC EN EL AUTOR - SOLUCIÓN DEFINITIVA (funciona siempre)
 // ====================================================================
-const autorContainer = document.getElementById("autorContainer");
-autorContainer.addEventListener("click", (e) => {
-  e.stopPropagation();
-  const correo = autorContainer.dataset.correo;
+// Esta función se llama CADA VEZ que renderizas un anuncio
+function activarClicAutor() {
+  const autorContainer = document.getElementById("autorContainer");
+  if (!autorContainer) return;
 
-  if (!correo) {
-    mostrarAviso("No se pudo identificar al autor");
-    return;
-  }
-  abrirPerfilPorCorreo(correo);
-});
+  // Eliminar cualquier listener anterior
+  autorContainer.onclick = null;
+
+  // Asignar nuevo clic (siempre actualizado)
+  autorContainer.onclick = (e) => {
+    e.stopPropagation();
+    const correo = autorContainer.dataset.correo?.trim();
+
+    if (!correo) {
+      console.warn("No hay correo en data-correo");
+      return;
+    }
+
+    abrirPerfilPorCorreo(correo);
+  };
+
+  autorContainer.style.cursor = "pointer";
+}
+
+// Llama a esta función DENTRO de tu renderizado, justo después de:
+// container.dataset.correo = correoAutor;
+// → activarClicAutor();
 
 
 
@@ -5798,6 +5808,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
