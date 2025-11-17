@@ -917,7 +917,7 @@ body {
   background: #128C7E !important;
 }
 
-/* Cerrar sesión - rojo estilo Google 
+Cerrar sesión - rojo estilo Google 
 .dark-mode .menu-btn.logout,
 .dark-mode #logoutBtn {
   background: rgba(254, 226, 226, 0.15) !important;
@@ -929,11 +929,11 @@ body {
   color: white !important;
 }
 
-/* Línea separadora y versión 
+ Línea separadora y versión 
 .dark-mode .version-menu {
   color: #9aa0a6 !important;
   border-top: 1px solid #303030 !important;
-}*/
+}
 
 @keyframes slideUp {
   from { transform: translateY(40px); opacity: 0; }
@@ -1863,12 +1863,18 @@ function enableDarkMode() {
 
   aplicarDarkModeModalPerfil();
 
-  // RECUPERAR COLORES CORRECTOS AL VOLVER A OSCURO
+  // RECUPERAR COLORES CORRECTOS AL VOLVER A MODO OSCURO
   const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) logoutBtn.style.color = "#fca5a5";  // rojo perfecto como al inicio
+  if (logoutBtn) {
+    logoutBtn.style.color = "#fca5a5";                    // Todo el botón (fuerza el color)
+    logoutBtn.querySelector("span")?.style.setProperty("color", "#fca5a5", "important"); // Solo el texto
+    logoutBtn.querySelector("i")?.style.setProperty("color", "#fca5a5", "important");    // Solo el icono (por si acaso)
+  }
 
   const version = document.querySelector("#userMenu div[style*='font-size:12px'], #userMenu .version-menu");
-  if (version) version.style.color = "#e8eaed";      // blanco suave como los demás
+  if (version) {
+    version.style.setProperty("color", "#e8eaed", "important");
+  }
 }
 
 // ☀️ Activar modo claro
@@ -5551,6 +5557,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
