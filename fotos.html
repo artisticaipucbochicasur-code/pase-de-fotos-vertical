@@ -1912,23 +1912,21 @@ document.getElementById("cerrarModalAutor").addEventListener("click", () => {
 
 const autorContainer = document.getElementById("autorContainer");
 
-if (autorContainer) {
-    autorContainer.addEventListener("click", (e) => {
-        e.stopPropagation(); // NO afectar abrir/cerrar comentarios
+autorContainer.addEventListener("click", (e) => {
+    e.stopPropagation();
 
-        const correoAutor = autorContainer.dataset.correo;
+    const correo = autorContainer.dataset.correo;
 
-        if (!correoAutor) {
-            console.warn("No se encontró el correo del autor en autorContainer");
-            return;
-        }
+    alert("Click container: correo detectado = " + correo);
 
-        // Para probar si funciona
-        // alert("Click autor: " + correoAutor);
+    if (!correo) {
+        alert("ERROR: el contenedor no tiene data-correo");
+        return;
+    }
 
-        abrirPerfilPorCorreo(correoAutor);
-    });
-}
+    abrirPerfilPorCorreo(correo);
+});
+
 
 
 
@@ -3801,7 +3799,9 @@ function updateContentOverlay(index) {
                 container.innerHTML = "";
                 container.appendChild(div);
               // Guardar el correo en el contenedor
-                 container.dataset.correo = anuncio.correo || "";
+                 // GUARDAR CORREO EN EL CONTAINER
+                container.dataset.correo = correoAutor;
+
 
             }
         })();
@@ -5667,6 +5667,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
