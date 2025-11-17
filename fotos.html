@@ -330,30 +330,42 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-/* Texto del autor flotando limpio y mucho más arriba del overlay de comentarios */
+/* Texto del autor: siempre arriba del contenedor de comentarios y clickeable */
 #autorContainer {
   position: fixed !important;
-  bottom: 92px !important;    /* mucho más arriba → ~47px por encima del overlay que está en 45px */
+  bottom: 74px !important;           /* posición normal cuando comentarios está contraído */
   left: 50% !important;
-  transform: translateX(-50%) !important;  /* centrado perfecto */
-  z-index: 999 !important;     /* por encima del overlay (998) */
-  
-  /* Quitamos TODO el contenedor visual */
+  transform: translateX(-50%) !important;
+  z-index: 999 !important;           /* siempre encima del overlay (998) */
   background: transparent !important;
-  padding: 0 !important;
+  padding: 8px 12px !important;      /* pequeño padding solo para área clickeable */
   margin: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  
-  /* Solo el texto, limpio y legible */
+  border-radius: 8px !important;     /* opcional: redondeado sutil al hacer hover */
+  cursor: pointer !important;
+  pointer-events: auto !important;   /* ¡IMPORTANT: ahora SÍ es clickeable! */
   color: #e8eaed !important;
   font-size: 14px;
   font-weight: 500;
   text-align: center;
   white-space: nowrap;
-  pointer-events: none;        /* opcional: para que no interfiera con toques debajo */
+  transition: all 0.28s ease !important;
+  user-select: none;
+}
+
+/* Cuando los comentarios están expandidos → el autor sube automáticamente */
+.comments-overlay-container.expanded ~ #autorContainer,
+.comments-overlay-container.expanded + * ~ #autorContainer,
+body:has(.comments-overlay-container.expanded) #autorContainer {
+  bottom: 82px !important;   /* sube más cuando está expandido */
+  transform: translateX(-50%) translateY(-8px) !important;
+}
+
+/* Hover bonito y moderno (opcional pero queda pro) */
+#autorContainer:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
     
@@ -5539,6 +5551,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
