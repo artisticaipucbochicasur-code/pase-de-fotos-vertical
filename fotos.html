@@ -4182,7 +4182,6 @@ document.head.appendChild(spinStyle);
     // ======================================================================================
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
-// ====================================================================================== 
 // LOGIN (spinner instantáneo al presionar botón)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
@@ -4225,10 +4224,11 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
     console.log("Login:", texto);
     try {
       const data = JSON.parse(texto);
+      // ALERTA NUEVA: Mostrar lo que devuelve el servidor
+      alert("Datos del servidor:\n" + JSON.stringify(data, null, 2));
       if (data.status && data.status.includes("success")) {
         // CORREGIDO: usar fotoPerfil directamente (ya viene del servidor)
         const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "") || "";
-
         const usuario = {
           nombre: data.nombre || "Usuario",
           correo: data.correo || "",
@@ -4238,7 +4238,6 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
           cargo: data.cargo || "",
           ciudad: data.ciudad || ""
         };
-
         localStorage.setItem("usuario", JSON.stringify(usuario));
         localStorage.setItem("autor", data.nombre);
         localStorage.setItem("correo", data.correo);
@@ -4246,7 +4245,6 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
         localStorage.setItem("congregacion", usuario.congregacion);
         localStorage.setItem("cargo", usuario.cargo);
         localStorage.setItem("ciudad", usuario.ciudad);
-
         currentAuthorName = data.nombre;
         currentAuthorEmail = data.correo;
         cerrarLoader(loader);
@@ -5293,6 +5291,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
