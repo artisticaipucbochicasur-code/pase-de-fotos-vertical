@@ -5091,11 +5091,40 @@ function cerrarModalPerfil() {
 function abrirFotoGrande() {
   const modal = document.getElementById("modalFotoGrande");
   const img = document.getElementById("fotoGrandeVista");
-  const fotoSrc = document.getElementById("fotoPerfilModal")?.src;
 
-  if (fotoSrc) img.src = fotoSrc;
+  // === MISMA LÓGICA DE PRIORIDAD QUE EN abrirPerfil() ===
+  let fotoSrc = "";
 
-  modal.style.display = "flex";
+  // 1. Botón del usuario
+  const userBtn = document.getElementById("userBtn");
+  const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
+  if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
+
+  // 2. Foto del modal perfil
+  const fotoModal = document.getElementById("fotoPerfilModal");
+  if (!fotoSrc && fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
+
+  // 3. Menú del usuario
+  const menuPhoto = document.getElementById("userMenuPhoto");
+  if (!fotoSrc && menuPhoto) {
+    const menuImg = menuPhoto.querySelector("img");
+    if (menuImg?.src) fotoSrc = menuImg.src;
+  }
+
+  // 4. localStorage (foto guardada)
+  if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
+    fotoSrc = localStorage.getItem("fotoPerfil");
+  }
+
+  // === APLICAR FOTO ===
+  if (fotoSrc && fotoSrc !== "undefined" && fotoSrc !== "null") {
+    img.src = fotoSrc;
+    modal.style.display = "flex";
+  } else {
+    console.warn("No se encontró foto para mostrar en modal grande");
+    // Opcional: mostrar mensaje o cerrar
+    modal.style.display = "none";
+  }
 }
 
 
@@ -5408,6 +5437,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
