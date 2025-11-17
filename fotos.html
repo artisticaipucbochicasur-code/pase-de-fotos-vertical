@@ -4618,13 +4618,13 @@ function abrirPerfil() {
   // Obtener datos del usuario desde localStorage
   let u = JSON.parse(localStorage.getItem("usuario")) || {};
 
-  // Garantizar datos correctos desde localStorage si faltan
-  u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
-  u.correo = u.correo || localStorage.getItem("correo") || "";
-  u.telefono = u.telefono || localStorage.getItem("telefono") || "";
-  u.congregacion = u.congregacion || localStorage.getItem("congregacion") || "";
-  u.cargo = u.cargo || localStorage.getItem("cargo") || "";
-  u.ciudad = u.ciudad || localStorage.getItem("ciudad") || "";
+  // Asegurar valores vacíos si faltan
+  u.nombre = u.nombre || u.name || "Usuario";
+  u.correo = u.correo || "";
+  u.telefono = u.telefono || "";
+  u.congregacion = u.congregacion || "";
+  u.cargo = u.cargo || "";
+  u.ciudad = u.ciudad || "";
 
   // Cerrar userMenu si está abierto
   const userMenu = document.getElementById("userMenu");
@@ -4643,22 +4643,30 @@ function abrirPerfil() {
   // Determinar la fuente de la foto (prioridad)
   let fotoSrc = "";
 
+  // 1) imagen en el botón
   if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
-  else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
-  else {
-    const menuImg = menuPhoto?.querySelector("img");
-    if (menuImg?.src) fotoSrc = menuImg.src;
+
+  // 2) si no, la que ya tenga el modal
+  if (!fotoSrc && fotoModal && fotoModal.src && fotoModal.src.trim() !== "") {
+    fotoSrc = fotoModal.src;
   }
 
+  // 3) si no, la que tenga userMenuPhoto
+  const menuImg = menuPhoto ? menuPhoto.querySelector("img") : null;
+  if (!fotoSrc && menuImg && menuImg.src) fotoSrc = menuImg.src;
+
+  // 4) si no, intentar desde localStorage (si guardaste la foto)
   if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
     fotoSrc = localStorage.getItem("fotoPerfil");
   }
 
-  // Aplicar foto
+  // Aplicar la foto donde corresponda
   if (fotoSrc) {
+    // al modal
     if (fotoModal) fotoModal.src = fotoSrc;
     document.getElementById("fotoFondoDifuminado").src = fotoSrc;
 
+    // al menú desplegable (foto grande)
     if (menuPhoto) {
       menuPhoto.innerHTML = `
         <img src="${fotoSrc}" style="
@@ -4671,17 +4679,22 @@ function abrirPerfil() {
       `;
     }
 
+    // al botón pequeño
     if (userBtn && !userBtnImg) {
       userBtn.innerHTML = `
-        <img src="${fotoSrc}" 
-        style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        <img src="${fotoSrc}" style="
+          width:32px;
+          height:32px;
+          border-radius:50%;
+          object-fit:cover;
+        ">
       `;
     }
   }
 
-  // Nombre + correo
-  document.getElementById("nombrePerfil").textContent = u.nombre;
-  document.getElementById("correoPerfil").textContent = u.correo;
+  // Nombre y correo
+  document.getElementById("nombrePerfil").textContent = u.nombre || "";
+  document.getElementById("correoPerfil").textContent = u.correo || "";
 
   // Datos adicionales
   document.getElementById("telefonoPerfil").textContent =
@@ -4696,7 +4709,6 @@ function abrirPerfil() {
   document.getElementById("ciudadPerfil").textContent =
     u.ciudad ? `📍 Ciudad: ${u.ciudad}` : "";
 }
-
 
 
 
@@ -5027,6 +5039,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
