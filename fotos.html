@@ -1972,35 +1972,43 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
-// ====================================================================
-// FUNCIÓN PRINCIPAL - ABRIR PERFIL DEL AUTOR (actualizada)
-// ====================================================================
 async function abrirPerfilPorCorreo(correo) {
   if (!correo || correo.trim() === "") {
     console.warn("abrirPerfilPorCorreo → correo vacío");
     return;
   }
+
   const correoLimpio = correo.trim();
+
   const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
+
   try {
-    const res = await fetch(url, { method: "GET", cache: "no-cache" });
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-cache"
+    });
+
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Error HTTP:", res.status, errorText);
-      mostrarAviso(`Error del servidor (${res.status})`);
+
+      mostrarAviso(`Error del servidor (${res.status})\n\n${errorText.substring(0, 400)}`);
       return;
     }
+
     const textoCrudo = await res.text();
     let data;
+
     try {
       data = JSON.parse(textoCrudo);
     } catch (parseErr) {
       console.error("JSON inválido recibido:", textoCrudo);
-      mostrarAviso("Error al cargar el perfil. Inténtalo más tarde.");
+      mostrarAviso("Error: el servidor no devolvió datos válidos.\nRevisa la consola para más detalles.");
       return;
     }
+
     if (data.status === "success") {
-      // Rellenar datos
+      // Rellenar modal
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
       document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("perfilCorreo").textContent = data.correo;
@@ -2009,67 +2017,40 @@ async function abrirPerfilPorCorreo(correo) {
       document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
       document.getElementById("perfilCargo").textContent = data.cargo || "-";
 
-      // ABRIR MODAL CON ANIMACIÓN
-      document.getElementById("modalAutor").classList.add("show");
+      document.getElementById("modalAutor").classList.remove("hidden");
 
-      // Fondo difuminado con la foto del usuario
-      const fondo = document.getElementById("perfilFotoFondo");
-      if (fondo && data.fotoPerfil) {
-        fondo.src = data.fotoPerfil + "?v=" + Date.now();
-      }
     } else {
       mostrarAviso("Perfil no encontrado");
     }
+
   } catch (err) {
     console.error("Error crítico en abrirPerfilPorCorreo:", err);
-    mostrarAviso("Error de conexión. Revisa tu internet.");
+    mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
   }
 }
 
-// ====================================================================
-// CERRAR MODAL - Botón × y clic fuera
-// ====================================================================
+
+// Cerrar modal
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
-  document.getElementById("modalAutor").classList.remove("show");
+  document.getElementById("modalAutor").classList.add("hidden");
 });
 
-document.getElementById("modalAutor").addEventListener("click", (e) => {
-  if (e.target === document.getElementById("modalAutor")) {
-    document.getElementById("modalAutor").classList.remove("show");
+
+// Click en el contenedor del autor
+const autorContainer = document.getElementById("autorContainer");
+
+autorContainer.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  const correo = autorContainer.dataset.correo;
+
+  if (!correo) {
+    mostrarAviso("ERROR: el contenedor no tiene data-correo");
+    return;
   }
+
+  abrirPerfilPorCorreo(correo);
 });
-
-// ====================================================================
-// CLIC EN EL AUTOR - SOLUCIÓN DEFINITIVA (funciona siempre)
-// ====================================================================
-// Esta función se llama CADA VEZ que renderizas un anuncio
-function activarClicAutor() {
-  const autorContainer = document.getElementById("autorContainer");
-  if (!autorContainer) return;
-
-  // Eliminar cualquier listener anterior
-  autorContainer.onclick = null;
-
-  // Asignar nuevo clic (siempre actualizado)
-  autorContainer.onclick = (e) => {
-    e.stopPropagation();
-    const correo = autorContainer.dataset.correo?.trim();
-
-    if (!correo) {
-      console.warn("No hay correo en data-correo");
-      return;
-    }
-
-    abrirPerfilPorCorreo(correo);
-  };
-
-  autorContainer.style.cursor = "pointer";
-}
-
-// Llama a esta función DENTRO de tu renderizado, justo después de:
-// container.dataset.correo = correoAutor;
-// → activarClicAutor();
-
 
 
 // CLICK EN LA FOTO (si existe)
@@ -5808,6 +5789,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
