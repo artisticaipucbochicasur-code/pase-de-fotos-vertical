@@ -1008,7 +1008,53 @@ body {
   font-weight: 500;
 }
 
-    
+    .modal-autor {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.modal-autor.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  width: 90%;
+  max-width: 380px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.close {
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.perfil-foto {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 12px;
+}
+
+.perfil h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.info-extra {
+  margin-top: 10px;
+  text-align: left;
+}
+
     
   </style>
 </head>
@@ -1795,6 +1841,25 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
 </div>
 
+  <!-- modal perfil autor -->
+<div id="modalAutor" class="modal-autor hidden">
+  <div class="modal-content">
+    <span id="cerrarModalAutor" class="close">&times;</span>
+
+    <div class="perfil">
+      <img id="perfilFoto" class="perfil-foto">
+      <h2 id="perfilNombre"></h2>
+      <p id="perfilCorreo"></p>
+    </div>
+
+    <div class="info-extra">
+      <p><strong>Teléfono:</strong> <span id="perfilTelefono"></span></p>
+      <p><strong>Ciudad:</strong> <span id="perfilCiudad"></span></p>
+      <p><strong>Congregación:</strong> <span id="perfilCongregacion"></span></p>
+      <p><strong>Cargo:</strong> <span id="perfilCargo"></span></p>
+    </div>
+  </div>
+</div>
 
 
   
@@ -1804,6 +1869,60 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+
+async function abrirPerfilPorCorreo(correo) {
+  try {
+    const url = `${scriptURL}?accion=getUserByEmail&correo=${encodeURIComponent(correo)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status !== "success") {
+      alert("Usuario no encontrado");
+      return;
+    }
+
+    // Insertar información
+    document.getElementById("perfilFoto").src = data.fotoPerfil;
+    document.getElementById("perfilNombre").textContent = data.nombre;
+    document.getElementById("perfilCorreo").textContent = data.correo;
+    document.getElementById("perfilTelefono").textContent = data.telefono;
+    document.getElementById("perfilCiudad").textContent = data.ciudad;
+    document.getElementById("perfilCongregacion").textContent = data.congregacion;
+    document.getElementById("perfilCargo").textContent = data.cargo;
+
+    // Mostrar modal
+    document.getElementById("modalAutor").classList.remove("hidden");
+
+  } catch (err) {
+    console.error(err);
+    alert("Error cargando perfil");
+  }
+}
+
+document.getElementById("cerrarModalAutor").addEventListener("click", () => {
+  document.getElementById("modalAutor").classList.add("hidden");
+});
+
+const autorContainer = document.getElementById("autorContainer");
+
+if (autorContainer) {
+    autorContainer.addEventListener("click", (e) => {
+        e.stopPropagation(); // No expande/colapsa el overlay
+
+        const correoAutor = autorContainer.dataset.correo; // <-- correo del autor
+
+        if (correoAutor) {
+            abrirPerfilPorCorreo(correoAutor);
+        } else {
+            console.warn("autorContainer no tiene data-correo");
+        }
+    });
+}
+
+
+
+
+    
 // 🌙 Función completa de tema oscuro (2025 style)
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
@@ -2973,24 +3092,6 @@ document.querySelector('.swiper').addEventListener('click', () => {
     });
 
 
-const autorContainer = document.getElementById("autorContainer");
-
-// Click en todo el autorContainer
-autorContainer.addEventListener("click", (e) => {
-    e.stopPropagation();
-    alert("Se presionó el autorContainer");
-});
-
-// Si el círculo de la foto tiene una clase o ID, úsalo.
-// Supondré que la foto es <img id="autorFoto"> (ajústalo al tuyo)
-const autorFoto = document.querySelector("#autorContainer img, #autorContainer .foto");
-
-if (autorFoto) {
-    autorFoto.addEventListener("click", (e) => {
-        e.stopPropagation();
-        alert("Has presionado la foto del autor");
-    });
-}
 
 
 
@@ -5533,5 +5634,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
