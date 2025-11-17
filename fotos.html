@@ -1870,37 +1870,37 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
+// CAMBIA ESTO (de POST a GET)
 async function abrirPerfilPorCorreo(correo) {
+  if (!correo || correo.trim() === "") return;
+
+  const correoLimpio = correo.trim();
+  console.log("Cargando perfil:", correoLimpio);
+
   try {
-    const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correo)}`;
+    const res = await fetch(
+      `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`
+    );
 
-    alert("URL llamada:\n" + url);
-
-    const res = await fetch(url);
-    alert("HTTP Status: " + res.status);
-
-    const raw = await res.text();
-    alert("Respuesta cruda:\n" + raw);
-
-    let data = JSON.parse(raw);
-
-    if (data.status !== "success") {
-      alert("⛔ Usuario no encontrado");
+    if (!res.ok) {
+      console.error("Error HTTP:", res.status);
       return;
     }
 
-    document.getElementById("perfilFoto").src = data.fotoPerfil;
-    document.getElementById("perfilNombre").textContent = data.nombre;
-    document.getElementById("perfilCorreo").textContent = data.correo;
-    document.getElementById("perfilTelefono").textContent = data.telefono;
-    document.getElementById("perfilCiudad").textContent = data.ciudad;
-    document.getElementById("perfilCongregacion").textContent = data.congregacion;
-    document.getElementById("perfilCargo").textContent = data.cargo;
+    const data = await res.json();
 
-    document.getElementById("modalAutor").classList.remove("hidden");
-
+    if (data.status === "success") {
+      document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
+      document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
+      document.getElementById("perfilCorreo").textContent = data.correo;
+      document.getElementById("perfilTelefono").textContent = data.telefono || "-";
+      document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
+      document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
+      document.getElementById("perfilCargo").textContent = data.cargo || "-";
+      document.getElementById("modalAutor").classList.remove("hidden");
+    }
   } catch (err) {
-    alert("Catch Error:\n" + err);
+    console.error("Error:", err);
   }
 }
 
@@ -5667,3 +5667,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
