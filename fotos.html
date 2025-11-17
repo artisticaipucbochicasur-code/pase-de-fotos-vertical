@@ -1842,19 +1842,19 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
 </div>
 
-<!-- MODAL AUTOR - APARIENCIA IGUAL AL MODAL PERFIL -->
+<!-- MODAL AUTOR - AHORA IGUAL AL MODAL PERFIL -->
 <div id="modalAutor" class="modal-autor hidden" style="
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
   background: rgba(0,0,0,0.75);
   backdrop-filter: blur(4px);
+  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99999;
   animation: fadeIn 0.25s ease;
 ">
-
 
   <div class="modal-content" style="
     width: 100%;
@@ -1868,7 +1868,7 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     flex-direction: column;
   ">
 
-    <!-- BOTÓN CERRAR SUTIL Y ELEGANTE AL ESTILO DEL MODAL 1 -->
+    <!-- BOTÓN CERRAR -->
     <span id="cerrarModalAutor" class="close" style="
       position: absolute;
       top: 16px;
@@ -1887,7 +1887,7 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       z-index: 9999;
-      transition: all 0.25s ease;
+      transition: 0.25s ease;
       user-select: none;
     "
     onmouseover="this.style.background='rgba(255,255,255,0.35)'"
@@ -1895,7 +1895,7 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
       ×
     </span>
 
-    <!-- CONTENEDOR FOTO AL IGUAL QUE EL MODAL 1 -->
+    <!-- FOTO -->
     <div style="
       width: 100%;
       height: 45vh;
@@ -1908,8 +1908,7 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
       align-items: center;
       justify-content: center;
     ">
-      <!-- Foto difuminada de fondo -->
-      <img id="perfilFotoFondo" src="" style="
+      <img id="autorFotoFondo" style="
         position: absolute;
         top: 0; left: 0;
         width: 100%;
@@ -1918,9 +1917,7 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
         filter: blur(18px) brightness(0.6);
         transform: scale(1.1);
       ">
-
-      <!-- Foto principal -->
-      <img id="perfilFoto" class="perfil-foto" style="
+      <img id="autorFoto" style="
         position: relative;
         max-width: 100%;
         max-height: 100%;
@@ -1929,40 +1926,35 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
       ">
     </div>
 
-    <!-- Información del autor -->
-    <div style="padding: 22px; text-align: center; flex-grow: 1;">
+    <!-- INFORMACIÓN -->
+    <div style="padding: 25px; text-align: center; flex-grow: 1;">
 
-      <h2 id="perfilNombre" style="
+      <h2 id="autorNombre" style="
         font-size: 22px;
         font-weight: bold;
         color: #222;
         margin-bottom: 6px;
       "></h2>
 
-      <p id="perfilCorreo" style="
+      <p id="autorCorreo" style="
         font-size: 15px;
         color: #666;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
       "></p>
 
-      <!-- DATOS COMPLEMENTARIOS (convertidos a estilo tipo red social moderno) -->
-      <div class="info-extra" style="
-        display: grid;
-        gap: 12px;
-        padding: 0 25px;
-        text-align: left;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      ">
-        <p><strong>Teléfono:</strong> <span id="perfilTelefono"></span></p>
-        <p><strong>Ciudad:</strong> <span id="perfilCiudad"></span></p>
-        <p><strong>Congregación:</strong> <span id="perfilCongregacion"></span></p>
-        <p><strong>Cargo:</strong> <span id="perfilCargo"></span></p>
-      </div>
+      <!-- DATOS RED SOCIAL IGUALES AL MODAL PERFIL -->
+      <div id="autorDatosContainer" style="
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding-top: 10px;
+      "></div>
 
     </div>
 
   </div>
 </div>
+
 
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -2006,26 +1998,33 @@ async function abrirPerfilPorCorreo(correo) {
       return;
     }
 
-    if (data.status === "success") {
-      // Rellenar modal
-      document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
-      document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
-      document.getElementById("perfilCorreo").textContent = data.correo;
-      document.getElementById("perfilTelefono").textContent = data.telefono || "-";
-      document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
-      document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
-      document.getElementById("perfilCargo").textContent = data.cargo || "-";
+   if (data.status === "success") {
 
-      document.getElementById("modalAutor").classList.remove("hidden");
+  // Foto principal
+  document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
 
-    } else {
-      mostrarAviso("Perfil no encontrado");
-    }
+  // Foto difuminada
+  document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
 
-  } catch (err) {
-    console.error("Error crítico en abrirPerfilPorCorreo:", err);
-    mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
-  }
+  // Nombre y correo
+  document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
+  document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
+
+  // INSERTAR DATOS AL ESTILO PERFIL
+  mostrarDatosAutor({
+    telefono: data.telefono,
+    ciudad: data.ciudad,
+    congregacion: data.congregacion,
+    cargo: data.cargo
+  });
+
+  // Mostrar modal
+  document.getElementById("modalAutor").classList.remove("hidden");
+
+} else {
+  mostrarAviso("Perfil no encontrado");
+}
+
 }
 
 // Cerrar modal
@@ -2072,6 +2071,54 @@ if (autorFoto) {
     });
 }
 
+function mostrarDatosAutor(u) {
+  const cont = document.getElementById("autorDatosContainer");
+  if (!cont) return;
+
+  const datosHTML = `
+    ${u.telefono ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-phone-alt"></i>
+        <div>
+          <div class="dato-label">Teléfono</div>
+          <div class="dato-valor">${u.telefono}</div>
+        </div>
+      </div>
+    ` : ''}
+
+    ${u.congregacion ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-church"></i>
+        <div>
+          <div class="dato-label">Congregación</div>
+          <div class="dato-valor">${u.congregacion}</div>
+        </div>
+      </div>
+    ` : ''}
+
+    ${u.cargo ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-user-tie"></i>
+        <div>
+          <div class="dato-label">Cargo</div>
+          <div class="dato-valor">${u.cargo}</div>
+        </div>
+      </div>
+    ` : ''}
+
+    ${u.ciudad ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-map-marker-alt"></i>
+        <div>
+          <div class="dato-label">Ciudad</div>
+          <div class="dato-valor">${u.ciudad}</div>
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  cont.innerHTML = datosHTML;
+}
 
 
 
@@ -5793,6 +5840,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
