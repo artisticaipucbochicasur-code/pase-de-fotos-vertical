@@ -1870,20 +1870,20 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
+// URL normal (la sigues usando para todo lo demás)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
+
+// URL con CORS (esta es la que usamos SOLO para el perfil)
+const SCRIPT_URL_CORS = "https://script.googleusercontent.com/macros/echo?user_content_key=AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2&lib=M1ignTjFFXuVbnYZ7SpVOF993LrDm8KBC9SKnXkNLqNGT44ZfDcREzfn0b";
+
 async function abrirPerfilPorCorreo(correo) {
-  if (!correo || correo.trim() === "") return;
-
-  // Esta URL es la mágica que Google da en cada despliegue y que SÍ permite CORS
-  const CORS_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=TuClaveMuyLarga&lib=MLibreriaLarga";
-
-  // SI NO TIENES ESA URL TODAVÍA → haz esto AHORA MISMO (2 minutos):
-  // 1. Abre tu Apps Script
-  // 2. Desplegar → Nueva implementación → Aplicación web
-  // 3. Ejecutar como: Yo / Acceso: Cualquier persona
-  // 4. Implementar → te sale una URL que empieza con script.googleusercontent.com → ¡esa es!
+  if (!correo || correo.trim() === "") {
+    alert("Falta el correo del usuario");
+    return;
+  }
 
   try {
-    const respuesta = await fetch(CORS_URL, {
+    const res = await fetch(SCRIPT_URL_CORS, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1894,7 +1894,7 @@ async function abrirPerfilPorCorreo(correo) {
       })
     });
 
-    const data = await respuesta.json();
+    const data = await res.json();
 
     if (data.status === "success") {
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
@@ -1910,8 +1910,8 @@ async function abrirPerfilPorCorreo(correo) {
     }
 
   } catch (err) {
-    console.error("Error real:", err);
-    alert("Error de conexión. Usa la URL de desarrollo con CORS (ver instrucciones)");
+    console.error("Error al cargar perfil:", err);
+    alert("Error de conexión. Revisa la consola.");
   }
 }
 
@@ -5676,4 +5676,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
