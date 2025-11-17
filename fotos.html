@@ -924,6 +924,48 @@ body {
   to { opacity: 1; }
 }
 
+/* ESTILOS MODERNOS TIPO RED SOCIAL - PERFIL */
+.perfil-dato-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  border-radius: 14px;
+  border: 1px solid #e4e6eb;
+  transition: all 0.2s ease;
+}
+
+.perfil-dato-item:hover {
+  background: #eef0f5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.perfil-dato-item i {
+  color: #0077cc;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.dato-label {
+  font-size: 0.75rem;
+  color: #65676b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dato-valor {
+  font-weight: 500;
+  color: #1c1e21;
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+
+    
     
   </style>
 </head>
@@ -1537,7 +1579,7 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 99999 !important;     /* ← MÁS ALTO QUE TODO */
+  z-index: 99999 !important;
   animation: fadeIn 0.25s ease;
 ">
   <div id="contenidoModalPerfil" style="
@@ -1551,34 +1593,34 @@ body {
     display: flex;
     flex-direction: column;
   ">
-  <!-- ❌ BOTÓN CERRAR SUTIL Y ELEGANTE -->
-<span onclick="cerrarModalPerfil()" style="
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.15);     /* ← Fondo blanco muy tenue */
-  color: white;
-  border-radius: 50%;
-  font-size: 18px;
-  font-weight: 300;
-  cursor: pointer;
-  z-index: 999999 !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
-  user-select: none;
-"
-onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-onmouseout="this.style.background='rgba(255,255,255,0.15)'"
-ontouchstart="this.style.background='rgba(255,255,255,0.3)'"
-ontouchend="this.style.background='rgba(255,255,255,0.15)'">
-  ×
-</span>
+    <!-- BOTÓN CERRAR SUTIL Y ELEGANTE -->
+    <span onclick="cerrarModalPerfil()" style="
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: 300;
+      cursor: pointer;
+      z-index: 999999 !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      user-select: none;
+    "
+    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+    onmouseout="this.style.background='rgba(255,255,255,0.15)'"
+    ontouchstart="this.style.background='rgba(255,255,255,0.3)'"
+    ontouchend="this.style.background='rgba(255,255,255,0.15)'">
+      ×
+    </span>
 
     <!-- CONTENEDOR FOTO -->
     <div id="fotoBlurContainer" style="
@@ -1629,22 +1671,24 @@ ontouchend="this.style.background='rgba(255,255,255,0.15)'">
         font-size: 20px;
         z-index: 3;
         box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-      ">✏️</span>
+      ">Edit</span>
     </div>
 
     <!-- INFO DEL USUARIO -->
     <div style="padding: 22px; text-align: center; flex-grow: 1;">
       <p id="nombrePerfil" style="font-size: 22px; font-weight: bold; color: #222; margin-bottom: 6px;"></p>
-      <p id="correoPerfil" style="font-size: 15px; color: #666;"></p>
-      <div style="margin-top: 15px; text-align:left; padding: 0 20px; color:#333; font-size:15px;">
+      <p id="correoPerfil" style="font-size: 15px; color: #666; margin-bottom: 16px;"></p>
 
-  <p id="telefonoPerfil" style="margin:4px 0;"></p>
-  <p id="congregacionPerfil" style="margin:4px 0;"></p>
-  <p id="cargoPerfil" style="margin:4px 0;"></p>
-  <p id="ciudadPerfil" style="margin:4px 0;"></p>
-
-</div>
-
+      <!-- DATOS ADICIONALES: ESTILO RED SOCIAL -->
+      <div id="perfilDatosContainer" style="
+        margin-top: 8px;
+        padding: 0 20px;
+        display: grid;
+        gap: 12px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">
+        <!-- Los datos se insertan aquí con JS -->
+      </div>
     </div>
 
     <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
@@ -4878,11 +4922,8 @@ if (logoutBtn) {
 
 
 function abrirPerfil() {
-
   // Obtener datos del usuario desde localStorage
   let u = JSON.parse(localStorage.getItem("usuario")) || {};
-
-  // Garantizar datos correctos desde localStorage si faltan
   u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
   u.correo = u.correo || localStorage.getItem("correo") || "";
   u.telefono = u.telefono || localStorage.getItem("telefono") || "";
@@ -4906,14 +4947,12 @@ function abrirPerfil() {
 
   // Determinar la fuente de la foto (prioridad)
   let fotoSrc = "";
-
   if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
   else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
   else {
     const menuImg = menuPhoto?.querySelector("img");
     if (menuImg?.src) fotoSrc = menuImg.src;
   }
-
   if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
     fotoSrc = localStorage.getItem("fotoPerfil");
   }
@@ -4934,10 +4973,9 @@ function abrirPerfil() {
         ">
       `;
     }
-
     if (userBtn && !userBtnImg) {
       userBtn.innerHTML = `
-        <img src="${fotoSrc}" 
+        <img src="${fotoSrc}"
         style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
       `;
     }
@@ -4945,23 +4983,56 @@ function abrirPerfil() {
 
   // Nombre + correo
   document.getElementById("nombrePerfil").textContent = u.nombre;
-  document.getElementById("correoPerfil").textContent = u.correo;
+  document.getElementById("correoPerfil").textContent = u.correo || "Sin correo registrado";
 
-  // Datos adicionales estilo profesional
-  document.getElementById("telefonoPerfil").textContent =
-    u.telefono ? `Teléfono: ${u.telefono}` : "";
+  // --- DATOS ADICIONALES CON ESTILO RED SOCIAL ---
+  const datosHTML = `
+    ${u.telefono ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-phone-alt"></i>
+        <div>
+          <div class="dato-label">Teléfono</div>
+          <div class="dato-valor">${u.telefono}</div>
+        </div>
+      </div>
+    ` : ''}
 
-  document.getElementById("congregacionPerfil").textContent =
-    u.congregacion ? `Congregación: ${u.congregacion}` : "";
+    ${u.congregacion ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-church"></i>
+        <div>
+          <div class="dato-label">Congregación</div>
+          <div class="dato-valor">${u.congregacion}</div>
+        </div>
+      </div>
+    ` : ''}
 
-  document.getElementById("cargoPerfil").textContent =
-    u.cargo ? `Cargo: ${u.cargo}` : "";
+    ${u.cargo ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-user-tie"></i>
+        <div>
+          <div class="dato-label">Cargo</div>
+          <div class="dato-valor">${u.cargo}</div>
+        </div>
+      </div>
+    ` : ''}
 
-  document.getElementById("ciudadPerfil").textContent =
-    u.ciudad ? `Ciudad: ${u.ciudad}` : "";
+    ${u.ciudad ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-map-marker-alt"></i>
+        <div>
+          <div class="dato-label">Ciudad</div>
+          <div class="dato-valor">${u.ciudad}</div>
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  const contenedor = document.getElementById("perfilDatosContainer");
+  if (contenedor) {
+    contenedor.innerHTML = datosHTML;
+  }
 }
-
-
 
 
 
@@ -5291,4 +5362,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
