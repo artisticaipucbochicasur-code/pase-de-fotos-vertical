@@ -1877,30 +1877,18 @@ async function abrirPerfilPorCorreo(correo) {
     alert("URL llamada:\n" + url);
 
     const res = await fetch(url);
+    alert("HTTP Status: " + res.status);
 
-    // Mostrar estatus HTTP
-    alert("HTTP status: " + res.status);
+    const raw = await res.text();
+    alert("Respuesta cruda:\n" + raw);
 
-    // Texto crudo de la respuesta
-    const rawText = await res.text();
-    alert("Respuesta cruda del servidor:\n" + rawText);
-
-    // Intentar parsear JSON
-    let data;
-    try {
-      data = JSON.parse(rawText);
-    } catch (parseError) {
-      alert("Error al convertir respuesta a JSON.\nRespuesta cruda:\n" + rawText);
-      console.error("Parse error:", parseError);
-      return;
-    }
+    let data = JSON.parse(raw);
 
     if (data.status !== "success") {
-      alert("Usuario no encontrado o error:\n" + JSON.stringify(data, null, 2));
+      alert("⛔ Usuario no encontrado");
       return;
     }
 
-    // Insertar información en modal
     document.getElementById("perfilFoto").src = data.fotoPerfil;
     document.getElementById("perfilNombre").textContent = data.nombre;
     document.getElementById("perfilCorreo").textContent = data.correo;
@@ -1909,12 +1897,10 @@ async function abrirPerfilPorCorreo(correo) {
     document.getElementById("perfilCongregacion").textContent = data.congregacion;
     document.getElementById("perfilCargo").textContent = data.cargo;
 
-    // Mostrar modal
     document.getElementById("modalAutor").classList.remove("hidden");
 
   } catch (err) {
     alert("Catch Error:\n" + err);
-    console.error(err);
   }
 }
 
@@ -5681,6 +5667,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
