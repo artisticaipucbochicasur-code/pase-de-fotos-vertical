@@ -1779,45 +1779,36 @@ themeToggle.addEventListener('click', () => {
   }
 });
 
-// 🎨 Activar modo oscuro
 function enableDarkMode() {
   body.classList.add('dark-mode');
-  themeIcon.className = 'fas fa-sun';
-  themeText.textContent = 'Tema claro';
+  if (themeIcon) themeIcon.className = 'fas fa-sun';
+  if (themeText) themeText.textContent = 'Tema claro';
 
   const panel = document.querySelector('#userMenu > div');
   if (panel) {
     panel.style.background = 'rgba(15, 23, 42, 0.98)';
     panel.style.color = '#f1f5f9';
-
-    // Refuerzo: textos internos más visibles
-    panel.querySelectorAll('*').forEach(el => {
-      el.style.color = '#f1f5f9';
-    });
+    panel.querySelectorAll('*').forEach(el => el.style.color = '#f1f5f9');
   }
-  aplicarDarkModeModalPerfil();
 
+  // Actualizar modal si está abierto
+  actualizarTemaModalPerfil();
 }
 
-// ☀️ Activar modo claro
 function enableLightMode() {
   body.classList.remove('dark-mode');
-  themeIcon.className = 'fas fa-moon';
-  themeText.textContent = 'Tema oscuro';
+  if (themeIcon) themeIcon.className = 'fas fa-moon';
+  if (themeText) themeText.textContent = 'Tema oscuro';
 
   const panel = document.querySelector('#userMenu > div');
   if (panel) {
     panel.style.background = 'rgba(255, 255, 255, 0.95)';
     panel.style.color = '#1e293b';
-
-    // Restaurar colores internos
-    panel.querySelectorAll('*').forEach(el => {
-      el.style.color = '#1e293b';
-    });
+    panel.querySelectorAll('*').forEach(el => el.style.color = '#1e293b');
   }
- aplicarLightModeModalPerfil();
 
-
+  // Actualizar modal si está abierto
+  actualizarTemaModalPerfil();
 }
 
 
@@ -1826,20 +1817,18 @@ function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
-  // Fondo del modal
   modal.style.background = "rgba(15, 23, 42, 0.98)";
 
-  // Textos principales
-  const textos = modal.querySelectorAll("h2, p, span, div");
-  textos.forEach(el => {
-    if (!el.closest('svg') && !el.id.includes('editarFotoBtn')) {
-      el.style.setProperty("color", "#f1f5f9", "important");
-    }
+  // Textos
+  modal.querySelectorAll("h2, p").forEach(el => {
+    el.style.color = "#f1f5f9";
   });
+  modal.querySelectorAll("#telefonoPerfil span, #congregacionPerfil span, #cargoPerfil span, #ciudadPerfil span")
+    .forEach(el => el.style.color = "#f1f5f9");
 
   // SVGs
   modal.querySelectorAll("svg").forEach(svg => {
-    svg.style.setProperty("fill", "#e2e8f0", "important");
+    svg.style.fill = "#e2e8f0";
   });
 
   // Botón cerrar
@@ -1849,7 +1838,7 @@ function aplicarDarkModeModalPerfil() {
     btn.style.color = "white";
   }
 
-  // Fondo de foto
+  // Fondo foto
   const foto = modal.querySelector("#fotoBlurContainer");
   if (foto) foto.style.background = "#0f172a";
 }
@@ -1860,31 +1849,25 @@ function aplicarLightModeModalPerfil() {
 
   modal.style.background = "white";
 
-  // Nombre
   const nombre = modal.querySelector("#nombrePerfil");
   if (nombre) nombre.style.color = "#1c1e21";
 
-  // Correo
   const correo = modal.querySelector("#correoPerfil");
   if (correo) correo.style.color = "#606770";
 
-  // Otros textos
   modal.querySelectorAll("#telefonoPerfil span, #congregacionPerfil span, #cargoPerfil span, #ciudadPerfil span")
     .forEach(el => el.style.color = "#1c1e21");
 
-  // SVGs
   modal.querySelectorAll("svg").forEach(svg => {
     svg.style.fill = "#606770";
   });
 
-  // Botón cerrar
   const btn = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btn) {
     btn.style.background = "rgba(255,255,255,0.15)";
     btn.style.color = "white";
   }
 
-  // Fondo de foto
   const foto = modal.querySelector("#fotoBlurContainer");
   if (foto) foto.style.background = "black";
 }
@@ -4983,11 +4966,7 @@ if (logoutBtn) {
 
 
 function abrirPerfil() {
-
-  // Obtener datos del usuario desde localStorage
   let u = JSON.parse(localStorage.getItem("usuario")) || {};
-
-  // Garantizar datos correctos desde localStorage si faltan
   u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
   u.correo = u.correo || localStorage.getItem("correo") || "";
   u.telefono = u.telefono || localStorage.getItem("telefono") || "";
@@ -4995,80 +4974,62 @@ function abrirPerfil() {
   u.cargo = u.cargo || localStorage.getItem("cargo") || "";
   u.ciudad = u.ciudad || localStorage.getItem("ciudad") || "";
 
-  // Cerrar userMenu si está abierto
   const userMenu = document.getElementById("userMenu");
   if (userMenu) userMenu.style.display = "none";
 
-  // Mostrar modal
   const modal = document.getElementById("modalPerfil");
   modal.style.display = "flex";
 
-  // Elementos relevantes
   const userBtn = document.getElementById("userBtn");
   const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
   const fotoModal = document.getElementById("fotoPerfilModal");
   const menuPhoto = document.getElementById("userMenuPhoto");
 
-  // Determinar la fuente de la foto (prioridad)
   let fotoSrc = "";
-
-  if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
+  if (userBtnImg && userBtnImg.src && userBtnImg.src !== location.href) fotoSrc = userBtnImg.src;
   else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
   else {
     const menuImg = menuPhoto?.querySelector("img");
     if (menuImg?.src) fotoSrc = menuImg.src;
   }
+  if (!fotoSrc) fotoSrc = localStorage.getItem("fotoPerfil") || "";
 
-  if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
-    fotoSrc = localStorage.getItem("fotoPerfil");
-  }
-
-  // Aplicar foto
   if (fotoSrc) {
     if (fotoModal) fotoModal.src = fotoSrc;
     document.getElementById("fotoFondoDifuminado").src = fotoSrc;
 
-   if (menuPhoto) {
-  menuPhoto.innerHTML = `
-    <img src="${fotoSrc}" style="
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #0077cc;
-    ">
-  `;
-}
-
- if (userBtn && !userBtnImg) {
-  userBtn.innerHTML = `
-    <img src="${fotoSrc}" style="
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-    ">
-  `;
-}
+    if (menuPhoto) {
+      menuPhoto.innerHTML = `
+        <img src="${fotoSrc}" style="
+          width: 80px; height: 80px; border-radius: 50%;
+          object-fit: cover; border: 2px solid #0077cc;
+        ">
+      `;
+    }
+    if (userBtn && !userBtnImg) {
+      userBtn.innerHTML = `
+        <img src="${fotoSrc}" style="
+          width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+        ">
+      `;
+    }
   }
 
-  // Nombre + correo
   document.getElementById("nombrePerfil").textContent = u.nombre;
   document.getElementById("correoPerfil").textContent = u.correo;
 
- // Datos adicionales (TIPO FACEBOOK)
-const telSpan = document.getElementById("telefonoPerfil")?.querySelector("span");
-const congSpan = document.getElementById("congregacionPerfil")?.querySelector("span");
-const cargoSpan = document.getElementById("cargoPerfil")?.querySelector("span");
-const ciudadSpan = document.getElementById("ciudadPerfil")?.querySelector("span");
+  const telSpan = document.getElementById("telefonoPerfil")?.querySelector("span");
+  const congSpan = document.getElementById("congregacionPerfil")?.querySelector("span");
+  const cargoSpan = document.getElementById("cargoPerfil")?.querySelector("span");
+  const ciudadSpan = document.getElementById("ciudadPerfil")?.querySelector("span");
 
-if (telSpan) telSpan.textContent = u.telefono || "";
-if (congSpan) congSpan.textContent = u.congregacion || "";
-if (cargoSpan) cargoSpan.textContent = u.cargo || "";
-if (ciudadSpan) ciudadSpan.textContent = u.ciudad || "";
+  if (telSpan) telSpan.textContent = u.telefono || "";
+  if (congSpan) congSpan.textContent = u.congregacion || "";
+  if (cargoSpan) cargoSpan.textContent = u.cargo || "";
+  if (ciudadSpan) ciudadSpan.textContent = u.ciudad || "";
 
-    // === APLICAR TEMA AL MODAL ===
-actualizarTemaModalPerfil();
+  // APLICAR TEMA
+  actualizarTemaModalPerfil();
 }
 
 
@@ -5082,16 +5043,18 @@ function cerrarModalPerfil() {
 
 
 function actualizarTemaModalPerfil() {
-  const modal = document.getElementById("contenidoModalPerfil");
-  if (!modal || modal.closest('#modalPerfil').style.display !== 'flex') return;
+  const modalPerfil = document.getElementById("modalPerfil");
+  if (!modalPerfil || modalPerfil.style.display !== "flex") return;
 
-  if (document.body.classList.contains("dark-mode")) {
+  if (body.classList.contains("dark-mode")) {
     aplicarDarkModeModalPerfil();
   } else {
     aplicarLightModeModalPerfil();
   }
 }
-    
+    const body = document.body;
+const themeIcon = document.getElementById("themeIcon"); // Asegúrate de tener este ID
+const themeText = document.getElementById("themeText");   // Asegúrate de tener este ID
 
 function abrirFotoGrande() {
   const modal = document.getElementById("modalFotoGrande");
@@ -5413,6 +5376,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
