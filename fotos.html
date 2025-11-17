@@ -1779,70 +1779,52 @@ themeToggle.addEventListener('click', () => {
   }
 });
 
-function enableDarkMode() {
-  body.classList.add('dark-mode');
-  if (themeIcon) themeIcon.className = 'fas fa-sun';
-  if (themeText) themeText.textContent = 'Tema claro';
+// === 1. VARIABLES GLOBALES (AL INICIO) ===
+const body = document.body;
+const themeIcon = document.getElementById("themeIcon");
+const themeText = document.getElementById("themeText");
 
-  const panel = document.querySelector('#userMenu > div');
-  if (panel) {
-    panel.style.background = 'rgba(15, 23, 42, 0.98)';
-    panel.style.color = '#f1f5f9';
-    panel.querySelectorAll('*').forEach(el => el.style.color = '#f1f5f9');
+// === 2. FUNCIÓN CENTRAL PARA ACTUALIZAR TEMA DEL MODAL ===
+function actualizarTemaModalPerfil() {
+  const modalPerfil = document.getElementById("modalPerfil");
+  if (!modalPerfil || modalPerfil.style.display !== "flex") return;
+
+  if (body.classList.contains("dark-mode")) {
+    aplicarDarkModeModalPerfil();
+  } else {
+    aplicarLightModeModalPerfil();
   }
-
-  // Actualizar modal si está abierto
-  actualizarTemaModalPerfil();
 }
 
-function enableLightMode() {
-  body.classList.remove('dark-mode');
-  if (themeIcon) themeIcon.className = 'fas fa-moon';
-  if (themeText) themeText.textContent = 'Tema oscuro';
-
-  const panel = document.querySelector('#userMenu > div');
-  if (panel) {
-    panel.style.background = 'rgba(255, 255, 255, 0.95)';
-    panel.style.color = '#1e293b';
-    panel.querySelectorAll('*').forEach(el => el.style.color = '#1e293b');
-  }
-
-  // Actualizar modal si está abierto
-  actualizarTemaModalPerfil();
-}
-
-
-
+// === 3. APLICAR MODO OSCURO AL MODAL ===
 function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
   modal.style.background = "rgba(15, 23, 42, 0.98)";
 
-  // Textos
   modal.querySelectorAll("h2, p").forEach(el => {
     el.style.color = "#f1f5f9";
   });
+
   modal.querySelectorAll("#telefonoPerfil span, #congregacionPerfil span, #cargoPerfil span, #ciudadPerfil span")
     .forEach(el => el.style.color = "#f1f5f9");
 
-  // SVGs
   modal.querySelectorAll("svg").forEach(svg => {
     svg.style.fill = "#e2e8f0";
   });
 
-  // Botón cerrar
   const btn = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btn) {
     btn.style.background = "rgba(255,255,255,0.25)";
     btn.style.color = "white";
   }
 
-  // Fondo foto
   const foto = modal.querySelector("#fotoBlurContainer");
   if (foto) foto.style.background = "#0f172a";
 }
 
+// === 4. APLICAR MODO CLARO AL MODAL ===
 function aplicarLightModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
@@ -1872,6 +1854,36 @@ function aplicarLightModeModalPerfil() {
   if (foto) foto.style.background = "black";
 }
 
+// === 5. CAMBIAR TEMA GLOBAL ===
+function enableDarkMode() {
+  body.classList.add('dark-mode');
+  if (themeIcon) themeIcon.className = 'fas fa-sun';
+  if (themeText) themeText.textContent = 'Tema claro';
+
+  const panel = document.querySelector('#userMenu > div');
+  if (panel) {
+    panel.style.background = 'rgba(15, 23, 42, 0.98)';
+    panel.style.color = '#f1f5f9';
+    panel.querySelectorAll('*').forEach(el => el.style.color = '#f1f5f9');
+  }
+
+  actualizarTemaModalPerfil(); // ← Actualiza modal si está abierto
+}
+
+function enableLightMode() {
+  body.classList.remove('dark-mode');
+  if (themeIcon) themeIcon.className = 'fas fa-moon';
+  if (themeText) themeText.textContent = 'Tema oscuro';
+
+  const panel = document.querySelector('#userMenu > div');
+  if (panel) {
+    panel.style.background = 'rgba(255, 255, 255, 0.95)';
+    panel.style.color = '#1e293b';
+    panel.querySelectorAll('*').forEach(el => el.style.color = '#1e293b');
+  }
+
+  actualizarTemaModalPerfil(); // ← Actualiza modal si está abierto
+}
 
 
     
@@ -4986,9 +4998,11 @@ function abrirPerfil() {
   const menuPhoto = document.getElementById("userMenuPhoto");
 
   let fotoSrc = "";
-  if (userBtnImg && userBtnImg.src && userBtnImg.src !== location.href) fotoSrc = userBtnImg.src;
-  else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
-  else {
+  if (userBtnImg && userBtnImg.src && userBtnImg.src !== location.href) {
+    fotoSrc = userBtnImg.src;
+  } else if (fotoModal?.src?.trim()) {
+    fotoSrc = fotoModal.src;
+  } else {
     const menuImg = menuPhoto?.querySelector("img");
     if (menuImg?.src) fotoSrc = menuImg.src;
   }
@@ -5032,6 +5046,17 @@ function abrirPerfil() {
   actualizarTemaModalPerfil();
 }
 
+// === 7. (OPCIONAL) OBSERVADOR AUTOMÁTICO ===
+const themeObserver = new MutationObserver(() => {
+  actualizarTemaModalPerfil();
+});
+themeObserver.observe(body, { attributes: true, attributeFilter: ['class'] });
+
+// === 8. CERRAR MODAL ===
+function cerrarModalPerfil() {
+  document.getElementById("modalPerfil").style.display = "none";
+}
+
 
 
 
@@ -5042,19 +5067,7 @@ function cerrarModalPerfil() {
 }
 
 
-function actualizarTemaModalPerfil() {
-  const modalPerfil = document.getElementById("modalPerfil");
-  if (!modalPerfil || modalPerfil.style.display !== "flex") return;
 
-  if (body.classList.contains("dark-mode")) {
-    aplicarDarkModeModalPerfil();
-  } else {
-    aplicarLightModeModalPerfil();
-  }
-}
-    const body = document.body;
-const themeIcon = document.getElementById("themeIcon"); // Asegúrate de tener este ID
-const themeText = document.getElementById("themeText");   // Asegúrate de tener este ID
 
 function abrirFotoGrande() {
   const modal = document.getElementById("modalFotoGrande");
@@ -5376,6 +5389,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
