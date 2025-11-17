@@ -330,6 +330,23 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
+#autorContainer {
+    transition: background-color 0.2s;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin: -6px -8px 8px -8px; /* compensa el padding del contenedor */
+    user-select: none;
+}
+
+#autorContainer:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#autorContainer:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+    
 .comments-overlay-container {
   position: fixed;
   bottom: 45px; /* 🔹 sube el contenedor más arriba */
@@ -1608,8 +1625,16 @@ body {
   </div>
 
 <div class="comments-overlay-container" id="commentsOverlay">
-    <div id="autorContainer" style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #444;"></div>
-    <ul id="commentsList"></ul>
+    <!-- Botón del autor – clic NO propaga al contenedor -->
+    <div id="autorContainer" 
+         style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #444; cursor: pointer;"
+         onclick="handleAuthorClick(event)">
+        <strong>@nombreusuario</strong> · Hace 3h
+    </div>
+
+    <ul id="commentsList">
+        <!-- tus comentarios -->
+    </ul>
 </div>
 
 
@@ -1804,6 +1829,31 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+
+
+// Esta función se ejecuta al hacer clic en el autor
+function handleAuthorClick(event) {
+    event.stopPropagation();  // ← ¡¡ESTO ES LO IMPORTANTE!!
+    
+    // Aquí pones lo que quieras que haga al hacer clic en el autor
+    alert("¡Has hecho clic en el autor!"); // ← cambia esto por tu acción real
+    
+    // Ejemplos de acciones reales que podrías querer:
+    // window.open("https://x.com/nombreusuario", "_blank");
+    // navigator.clipboard.writeText("@nombreusuario");
+    // showUserModal("nombreusuario");
+}
+
+// Opcional: si también expandes/contraes haciendo clic en cualquier parte del overlay
+document.getElementById('commentsOverlay').addEventListener('click', function(e) {
+    // Solo togglear si NO se hizo clic dentro del autor
+    if (!e.target.closest('#autorContainer')) {
+        this.classList.toggle('expanded');
+    }
+});
+
+
+    
 // 🌙 Función completa de tema oscuro (2025 style)
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
@@ -5510,3 +5560,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
