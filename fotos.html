@@ -1785,24 +1785,23 @@ function enableLightMode() {
 
 
 
- function aplicarDarkModeModalPerfil() {
+function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
-  // Fondo oscuro con transparencia
   modal.style.background = "rgba(15, 23, 42, 0.98)";
   modal.style.color = "#f1f5f9";
 
-  // FUERZA COLOR EN TODOS LOS TEXTOS (incluso con inline)
+  // Forzar COLOR oscuro
   const textos = modal.querySelectorAll("p, span, h1, h2, h3, h4, h5, h6, div");
   textos.forEach(el => {
-    el.style.color = "#f1f5f9 !important";
+    el.style.setProperty("color", "#f1f5f9", "important");
     el.style.textShadow = "none";
   });
 
-  // Iconos SVG → blanco
+  // Iconos SVG
   modal.querySelectorAll("svg").forEach(svg => {
-    svg.style.fill = "#e2e8f0 !important";
+    svg.style.setProperty("fill", "#e2e8f0", "important");
   });
 
   // Botón cerrar
@@ -1813,12 +1812,12 @@ function enableLightMode() {
     btnCerrar.style.backdropFilter = "blur(8px)";
   }
 
-  // Fondo de foto (oscuro)
   const fotoContainer = modal.querySelector("#fotoBlurContainer");
   if (fotoContainer) {
     fotoContainer.style.background = "#0f172a";
   }
 }
+
 
 function aplicarLightModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
@@ -1827,31 +1826,28 @@ function aplicarLightModeModalPerfil() {
   modal.style.background = "white";
   modal.style.color = "#1e293b";
 
-  // Restaurar colores originales
   const textos = modal.querySelectorAll("p, span, h1, h2, h3, h4, h5, h6, div");
   textos.forEach(el => {
-    el.style.color = ""; // Deja que el inline original funcione
+    el.style.color = "";
     el.style.textShadow = "";
   });
 
-  // Iconos SVG → gris Facebook
   modal.querySelectorAll("svg").forEach(svg => {
-    svg.style.fill = "#606770";
+    svg.style.setProperty("fill", "#606770");
   });
 
-  // Botón cerrar
   const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btnCerrar) {
     btnCerrar.style.background = "rgba(255,255,255,0.15)";
     btnCerrar.style.color = "white";
   }
 
-  // Fondo de foto
   const fotoContainer = modal.querySelector("#fotoBlurContainer");
   if (fotoContainer) {
     fotoContainer.style.background = "black";
   }
 }
+
 
     
 
@@ -4896,24 +4892,36 @@ if (userBtn && userMenu) {
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
+    // Borrar objeto completo del usuario
     localStorage.removeItem("usuario");
+
+    // Borrar datos individuales
     localStorage.removeItem("autor");
     localStorage.removeItem("correo");
+    localStorage.removeItem("telefono");
+    localStorage.removeItem("congregacion");
+    localStorage.removeItem("cargo");
+    localStorage.removeItem("ciudad");
 
-    // 🧹 Limpiar caché RAM de fotos
+    // Limpiar caché RAM de fotos
     for (const key in fotoCache) {
       delete fotoCache[key];
     }
 
-    // 🧹 Limpiar caché localStorage de fotos
+    // Limpiar caché localStorage de fotos
     localStorage.removeItem("fotoLocal");
 
+    // Limpiar variables globales
     currentAuthorName = "";
     currentAuthorEmail = "";
 
+    // Cerrar menú si está abierto
     if (userMenu) userMenu.style.display = "none";
+
+    // Mostrar aviso
     mostrarAviso("Sesión cerrada", "info");
 
+    // Recargar después de 1.2 segundos
     setTimeout(() => location.reload(), 1200);
   });
 }
@@ -5344,6 +5352,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
