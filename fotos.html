@@ -924,6 +924,45 @@ body {
   to { opacity: 1; }
 }
 
+
+    /* ————————————————————————————————
+   MODO OSCURO PARA EL MODAL DE PERFIL
+——————————————————————————————— */
+
+#contenidoModalPerfil.dark-modal {
+  background: #0f172a !important;   /* fondo oscuro real */
+  color: #f1f5f9 !important;        /* texto claro */
+}
+
+/* Textos */
+#contenidoModalPerfil.dark-modal p,
+#contenidoModalPerfil.dark-modal span,
+#contenidoModalPerfil.dark-modal h1,
+#contenidoModalPerfil.dark-modal h2,
+#contenidoModalPerfil.dark-modal h3,
+#contenidoModalPerfil.dark-modal h4,
+#contenidoModalPerfil.dark-modal h5,
+#contenidoModalPerfil.dark-modal h6,
+#contenidoModalPerfil.dark-modal div {
+  color: #f1f5f9 !important;
+}
+
+/* Iconos SVG → blanco */
+#contenidoModalPerfil.dark-modal svg {
+  fill: #e2e8f0 !important;
+}
+
+/* Fondo del contenedor de foto */
+#contenidoModalPerfil.dark-modal #fotoBlurContainer {
+  background: #0f172a !important;
+}
+
+/* Botón cerrar */
+#modalPerfil .dark-modal ~ span[onclick="cerrarModalPerfil()"] {
+  background: rgba(255,255,255,0.25) !important;
+  color: white !important;
+}
+
     
   </style>
 </head>
@@ -1784,27 +1823,26 @@ function enableLightMode() {
 
 
 
-
 function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
+  // 🟢 Agregar clase para que el CSS domine al inline
+  modal.classList.add("dark-modal");
+
   modal.style.background = "rgba(15, 23, 42, 0.98)";
   modal.style.color = "#f1f5f9";
 
-  // Forzar COLOR oscuro
   const textos = modal.querySelectorAll("p, span, h1, h2, h3, h4, h5, h6, div");
   textos.forEach(el => {
     el.style.setProperty("color", "#f1f5f9", "important");
     el.style.textShadow = "none";
   });
 
-  // Iconos SVG
   modal.querySelectorAll("svg").forEach(svg => {
     svg.style.setProperty("fill", "#e2e8f0", "important");
   });
 
-  // Botón cerrar
   const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btnCerrar) {
     btnCerrar.style.background = "rgba(255,255,255,0.25)";
@@ -1822,6 +1860,9 @@ function aplicarDarkModeModalPerfil() {
 function aplicarLightModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
+
+  // 🟢 Quitar la clase del modo oscuro
+  modal.classList.remove("dark-modal");
 
   modal.style.background = "white";
   modal.style.color = "#1e293b";
@@ -1847,6 +1888,7 @@ function aplicarLightModeModalPerfil() {
     fotoContainer.style.background = "black";
   }
 }
+
 
 
     
@@ -5352,6 +5394,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
