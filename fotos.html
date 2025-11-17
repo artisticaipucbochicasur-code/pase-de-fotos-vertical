@@ -4238,35 +4238,40 @@ document.head.appendChild(spinStyle);
 // LOGIN (spinner instantáneo al presionar botón)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
-  e.preventDefault(); // evita dobles envíos
+  e.preventDefault();
   const btnLogin = e.target;
-  btnLogin.disabled = true; // evita múltiples clics
-  btnLogin.classList.add("btn-loading"); // animación visual
+  btnLogin.disabled = true;
+  btnLogin.classList.add("btn-loading");
+
   const correo = document.getElementById("loginCorreo").value.trim();
   const pin = document.getElementById("loginPin").value.trim();
+
   if (!correo || !pin) {
     btnLogin.disabled = false;
     btnLogin.classList.remove("btn-loading");
     return mostrarAviso("Completa todos los campos", "error");
   }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
     btnLogin.disabled = false;
     btnLogin.classList.remove("btn-loading");
     return mostrarAviso("Correo inválido", "error");
   }
-  // Nueva validación: mínimo 4 caracteres, sin límite ni restricción de tipo
+
   if (pin.length < 4) {
     btnLogin.disabled = false;
     btnLogin.classList.remove("btn-loading");
     return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres", "error");
   }
-  // Mostrar spinner inmediatamente
+
   const loader = mostrarLoader("Iniciando sesión...");
-  await new Promise(requestAnimationFrame); // fuerza a renderizar el loader antes del fetch
+  await new Promise(requestAnimationFrame);
+
   const formData = new URLSearchParams();
   formData.append("accion", "login");
   formData.append("correo", correo);
   formData.append("pin", pin);
+
   try {
     const res = await fetch(SCRIPT_URL, {
       method: "POST",
@@ -4275,12 +4280,13 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
     });
     const texto = await res.text();
     console.log("Login:", texto);
+
     try {
       const data = JSON.parse(texto);
-      // ALERTA NUEVA: Mostrar lo que devuelve el servidor
-      alert("Datos del servidor:\n" + JSON.stringify(data, null, 2));
+
+      // ALERTA ELIMINADA (ya no se muestra)
+
       if (data.status && data.status.includes("success")) {
-        // CORREGIDO: usar fotoPerfil directamente (ya viene del servidor)
         const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "") || "";
         const usuario = {
           nombre: data.nombre || "Usuario",
@@ -4291,6 +4297,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
           cargo: data.cargo || "",
           ciudad: data.ciudad || ""
         };
+
         localStorage.setItem("usuario", JSON.stringify(usuario));
         localStorage.setItem("autor", data.nombre);
         localStorage.setItem("correo", data.correo);
@@ -4298,8 +4305,10 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
         localStorage.setItem("congregacion", usuario.congregacion);
         localStorage.setItem("cargo", usuario.cargo);
         localStorage.setItem("ciudad", usuario.ciudad);
+
         currentAuthorName = data.nombre;
         currentAuthorEmail = data.correo;
+
         cerrarLoader(loader);
         btnLogin.disabled = false;
         btnLogin.classList.remove("btn-loading");
@@ -4373,17 +4382,12 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
 
   // === VALIDACIÓN DE TELÉFONO ===
   if (telefono) {
-    // Eliminar espacios, guiones, paréntesis → solo +, dígitos
     const soloNumeros = telefono.replace(/[\s\-\(\)]/g, "");
-    
-    // Debe empezar con + o ser solo dígitos
     if (!/^(\+\d{1,3})?\d{7,15}$/.test(soloNumeros)) {
       btnRegistro.disabled = false;
       btnRegistro.classList.remove("btn-loading");
       return mostrarAviso("Teléfono inválido. Usa formato internacional: +573201234567", "error");
     }
-
-    // Opcional: longitud mínima realista (7-15 dígitos)
     const digitos = soloNumeros.replace(/^\+/, "").length;
     if (digitos < 7 || digitos > 15) {
       btnRegistro.disabled = false;
@@ -4408,7 +4412,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     formData.append("correo", correo);
     formData.append("pin", pin);
     formData.append("foto", window.fotoComprimida.split(",")[1]);
-    formData.append("telefono", telefono); // ← ya validado
+    formData.append("telefono", telefono);
     formData.append("congregacion", document.getElementById("regCongregacion").value.trim());
     formData.append("cargo", document.getElementById("regCargo").value.trim());
     formData.append("ciudad", document.getElementById("regCiudad").value.trim());
@@ -4426,6 +4430,18 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     btnRegistro.classList.remove("btn-loading");
 
     if (texto.includes("registrado con foto") || texto.includes("Usuario registrado")) {
+      // LIMPIAR TODOS LOS CAMPOS AL REGISTRARSE CON ÉXITO
+      document.getElementById("regNombre").value = "";
+      document.getElementById("regCorreo").value = "";
+      document.getElementById("regPin").value = "";
+      document.getElementById("regPinConfirm").value = "";
+      document.getElementById("regTelefono").value = "";
+      document.getElementById("regCongregacion").value = "";
+      document.getElementById("regCargo").value = "";
+      document.getElementById("regCiudad").value = "";
+      if (preview) preview.innerHTML = "";
+      window.fotoComprimida = null; // Limpiar foto seleccionada
+
       mostrarAviso("Cuenta creada! Inicia sesión", "success");
       mostrarForm("login");
       document.getElementById("loginCorreo").value = correo;
@@ -4441,7 +4457,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
-
 
 // ======================================================================================
 // FUNCIONES DE SPINNER GLOBAL
@@ -5390,6 +5405,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
