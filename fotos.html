@@ -1870,21 +1870,15 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
-// URL normal (la sigues usando para todo lo demás)
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-
-// URL con CORS (esta es la que usamos SOLO para el perfil)
-const SCRIPT_URL_CORS = "https://script.googleusercontent.com/macros/echo?user_content_key=AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2&lib=M1ignTjFFXuVbnYZ7SpVOF993LrDm8KBC9SKnXkNLqNGT44ZfDcREzfn0b";
-
 async function abrirPerfilPorCorreo(correo) {
   if (!correo || correo.trim() === "") {
-    alert("Falta el correo del usuario");
+    alert("No se pudo obtener el correo del autor");
     return;
   }
 
   try {
-    const res = await fetch(SCRIPT_URL_CORS, {
-      method: "POST",
+    const respuesta = await fetch(SCRIPT_URL, {
+      method: "POST",  // ← CLAVE: POST en vez de GET
       headers: {
         "Content-Type": "application/json"
       },
@@ -1894,11 +1888,11 @@ async function abrirPerfilPorCorreo(correo) {
       })
     });
 
-    const data = await res.json();
+    const data = await respuesta.json();
 
     if (data.status === "success") {
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
-      document.getElementById("perfilNombre").textContent = data.nombre || "Sin nombre";
+      document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("perfilCorreo").textContent = data.correo;
       document.getElementById("perfilTelefono").textContent = data.telefono || "-";
       document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
@@ -1906,14 +1900,16 @@ async function abrirPerfilPorCorreo(correo) {
       document.getElementById("perfilCargo").textContent = data.cargo || "-";
       document.getElementById("modalAutor").classList.remove("hidden");
     } else {
-      alert("Usuario no encontrado");
+      alert("Usuario no encontrado en la base de datos");
     }
 
   } catch (err) {
     console.error("Error al cargar perfil:", err);
-    alert("Error de conexión. Revisa la consola.");
+    alert("Error de conexión. Intenta de nuevo.");
   }
 }
+
+
 
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
   document.getElementById("modalAutor").classList.add("hidden");
@@ -5676,5 +5672,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
 
