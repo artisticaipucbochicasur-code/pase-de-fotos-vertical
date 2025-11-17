@@ -1871,72 +1871,39 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
 
 async function abrirPerfilPorCorreo(correo) {
-  if (!correo || correo.trim() === "") {
-    console.warn("abrirPerfilPorCorreo → correo vacío");
-    return;
-  }
-
-  const correoLimpio = correo.trim();
-  console.log("Intentando cargar perfil del correo:", correoLimpio);
-
-  const formData = new URLSearchParams();
-  formData.append("accion", "getUserByEmail");
-  formData.append("correo", correoLimpio);
-
-  // MOSTRAMOS EXACTAMENTE qué estamos enviando
-  console.log("Datos enviados al servidor:");
-  for (let pair of formData.entries()) {
-    console.log("  →", pair[0], "=", pair[1]);
-  }
-
   try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: formData
-    });
+    const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correo)}`;
 
-    console.log("Respuesta del servidor → Status:", res.status, res.statusText);
+    alert("URL llamada:\n" + url);
 
-    const textoCrudo = await res.text();  // <-- importante: leer como texto primero
-    console.log("Respuesta CRUDA del servidor:");
-    console.log(textoCrudo);
+    const res = await fetch(url);
+    alert("HTTP Status: " + res.status);
 
-    // Si el texto es HTML o vacío, lo detectamos
-    if (!textoCrudo || textoCrudo.trim() === "" || textoCrudo.includes("<html") || textoCrudo.includes("did not return anything")) {
-      console.error("El script no devolvió JSON válido");
-      alert("Error del servidor: no devolvió datos");
+    const raw = await res.text();
+    alert("Respuesta cruda:\n" + raw);
+
+    let data = JSON.parse(raw);
+
+    if (data.status !== "success") {
+      alert("⛔ Usuario no encontrado");
       return;
     }
 
-    const data = JSON.parse(textoCrudo);
-    console.log("JSON parseado correctamente:", data);
+    document.getElementById("perfilFoto").src = data.fotoPerfil;
+    document.getElementById("perfilNombre").textContent = data.nombre;
+    document.getElementById("perfilCorreo").textContent = data.correo;
+    document.getElementById("perfilTelefono").textContent = data.telefono;
+    document.getElementById("perfilCiudad").textContent = data.ciudad;
+    document.getElementById("perfilCongregacion").textContent = data.congregacion;
+    document.getElementById("perfilCargo").textContent = data.cargo;
 
-    if (data.status === "success") {
-      console.log("Perfil cargado con éxito:", data);
-
-      document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
-      document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
-      document.getElementById("perfilCorreo").textContent = data.correo;
-      document.getElementById("perfilTelefono").textContent = data.telefono || "-";
-      document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
-      document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
-      document.getElementById("perfilCargo").textContent = data.cargo || "-";
-      document.getElementById("modalAutor").classList.remove("hidden");
-
-      console.log("Modal abierto correctamente");
-    } else {
-      console.warn("Usuario no encontrado:", data.message);
-      // opcional: alert("Usuario no encontrado");
-    }
+    document.getElementById("modalAutor").classList.remove("hidden");
 
   } catch (err) {
-    console.error("Error completo en fetch:", err);
-    alert("Error de conexión: " + err.message);
+    alert("Catch Error:\n" + err);
   }
 }
+
 
 
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
@@ -5700,6 +5667,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
