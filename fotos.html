@@ -1826,14 +1826,18 @@ function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
 
+  // Fondo del modal
   modal.style.background = "rgba(15, 23, 42, 0.98)";
 
-  // TEXTOS: Blanco con !important
-  modal.querySelectorAll("h2, p, div, span").forEach(el => {
-    el.style.setProperty("color", "#f1f5f9", "important");
+  // Textos principales
+  const textos = modal.querySelectorAll("h2, p, span, div");
+  textos.forEach(el => {
+    if (!el.closest('svg') && !el.id.includes('editarFotoBtn')) {
+      el.style.setProperty("color", "#f1f5f9", "important");
+    }
   });
 
-  // SVG: Blanco
+  // SVGs
   modal.querySelectorAll("svg").forEach(svg => {
     svg.style.setProperty("fill", "#e2e8f0", "important");
   });
@@ -1845,7 +1849,7 @@ function aplicarDarkModeModalPerfil() {
     btn.style.color = "white";
   }
 
-  // Fondo foto
+  // Fondo de foto
   const foto = modal.querySelector("#fotoBlurContainer");
   if (foto) foto.style.background = "#0f172a";
 }
@@ -1856,16 +1860,19 @@ function aplicarLightModeModalPerfil() {
 
   modal.style.background = "white";
 
-  // NOMBRE: Negro
-  modal.querySelector("#nombrePerfil").style.color = "#1c1e21";
-  // CORREO: Gris
-  modal.querySelector("#correoPerfil").style.color = "#606770";
-  // DETALLES: Negro
-  modal.querySelectorAll("#telefonoPerfil, #congregacionPerfil, #cargoPerfil, #ciudadPerfil").forEach(el => {
-    el.style.color = "#1c1e21";
-  });
+  // Nombre
+  const nombre = modal.querySelector("#nombrePerfil");
+  if (nombre) nombre.style.color = "#1c1e21";
 
-  // SVG: Gris original
+  // Correo
+  const correo = modal.querySelector("#correoPerfil");
+  if (correo) correo.style.color = "#606770";
+
+  // Otros textos
+  modal.querySelectorAll("#telefonoPerfil span, #congregacionPerfil span, #cargoPerfil span, #ciudadPerfil span")
+    .forEach(el => el.style.color = "#1c1e21");
+
+  // SVGs
   modal.querySelectorAll("svg").forEach(svg => {
     svg.style.fill = "#606770";
   });
@@ -1877,7 +1884,7 @@ function aplicarLightModeModalPerfil() {
     btn.style.color = "white";
   }
 
-  // Fondo foto
+  // Fondo de foto
   const foto = modal.querySelector("#fotoBlurContainer");
   if (foto) foto.style.background = "black";
 }
@@ -5021,24 +5028,28 @@ function abrirPerfil() {
     if (fotoModal) fotoModal.src = fotoSrc;
     document.getElementById("fotoFondoDifuminado").src = fotoSrc;
 
-    if (menuPhoto) {
-      menuPhoto.innerHTML = `
-        <img src="${fotoSrc}" style="
-          width:80px;
-          height:80px;
-          border-radius:50%;
-          object-fit:cover;
-          border:2px solid #0077cc;
-        ">
-      `;
-    }
+   if (menuPhoto) {
+  menuPhoto.innerHTML = `
+    <img src="${fotoSrc}" style="
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #0077cc;
+    ">
+  `;
+}
 
-    if (userBtn && !userBtnImg) {
-      userBtn.innerHTML = `
-        <img src="${fotoSrc}" 
-        style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
-      `;
-    }
+ if (userBtn && !userBtnImg) {
+  userBtn.innerHTML = `
+    <img src="${fotoSrc}" style="
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    ">
+  `;
+}
   }
 
   // Nombre + correo
@@ -5057,11 +5068,7 @@ if (cargoSpan) cargoSpan.textContent = u.cargo || "";
 if (ciudadSpan) ciudadSpan.textContent = u.ciudad || "";
 
     // === APLICAR TEMA AL MODAL ===
-  if (document.body.classList.contains("dark-mode")) {
-    aplicarDarkModeModalPerfil();
-  } else {
-    aplicarLightModeModalPerfil();
-  }
+actualizarTemaModalPerfil();
 }
 
 
@@ -5074,6 +5081,17 @@ function cerrarModalPerfil() {
 }
 
 
+function actualizarTemaModalPerfil() {
+  const modal = document.getElementById("contenidoModalPerfil");
+  if (!modal || modal.closest('#modalPerfil').style.display !== 'flex') return;
+
+  if (document.body.classList.contains("dark-mode")) {
+    aplicarDarkModeModalPerfil();
+  } else {
+    aplicarLightModeModalPerfil();
+  }
+}
+    
 
 function abrirFotoGrande() {
   const modal = document.getElementById("modalFotoGrande");
@@ -5395,6 +5413,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
