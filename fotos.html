@@ -1881,7 +1881,7 @@ async function abrirPerfilPorCorreo(correo) {
       return;
     }
 
-    // Insertar información
+    // Insertar información en el modal
     document.getElementById("perfilFoto").src = data.fotoPerfil;
     document.getElementById("perfilNombre").textContent = data.nombre;
     document.getElementById("perfilCorreo").textContent = data.correo;
@@ -1892,7 +1892,6 @@ async function abrirPerfilPorCorreo(correo) {
 
     // Mostrar modal
     document.getElementById("modalAutor").classList.remove("hidden");
-
   } catch (err) {
     console.error(err);
     alert("Error cargando perfil");
@@ -1905,19 +1904,25 @@ document.getElementById("cerrarModalAutor").addEventListener("click", () => {
 
 const autorContainer = document.getElementById("autorContainer");
 
-// CLICK EN EL CONTENEDOR COMPLETO
-autorContainer.addEventListener("click", (e) => {
-    e.stopPropagation();
-    alert("Se presionó el autorContainer");
+if (autorContainer) {
+    autorContainer.addEventListener("click", (e) => {
+        e.stopPropagation(); // NO afectar abrir/cerrar comentarios
 
-    // Obtener correo del autor desde el data-correo
-    const correoAutor = autorContainer.dataset.correo;
-    if (correoAutor) {
+        const correoAutor = autorContainer.dataset.correo;
+
+        if (!correoAutor) {
+            console.warn("No se encontró el correo del autor en autorContainer");
+            return;
+        }
+
+        // Para probar si funciona
+        // alert("Click autor: " + correoAutor);
+
         abrirPerfilPorCorreo(correoAutor);
-    } else {
-        console.warn("autorContainer no tiene data-correo");
-    }
-});
+    });
+}
+
+
 
 
 // CLICK EN LA FOTO (si existe)
@@ -3787,6 +3792,9 @@ function updateContentOverlay(index) {
 
                 container.innerHTML = "";
                 container.appendChild(div);
+              // Guardar el correo en el contenedor
+                 container.dataset.correo = anuncio.correo || "";
+
             }
         })();
     }
@@ -5651,6 +5659,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
