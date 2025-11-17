@@ -87,7 +87,7 @@
 
 
 
-    #customAlertOverlay {
+    #custommostrarAvisoOverlay {
         display: none;
         position: fixed;
         top: 0;
@@ -141,7 +141,7 @@
 }
 
     /* La tarjeta interior puede tener un ancho máximo razonable */
-#searchOverlay .custom-alert {
+#searchOverlay .custom-mostrarAviso {
   width: 90%;
   max-width: 700px;
 }
@@ -213,7 +213,7 @@
 }
 
     
-    .custom-alert {
+    .custom-mostrarAviso {
     background-color: #1e1e1e !important; /* Fondo oscuro */
     color: #fff !important; /* Texto blanco */
     padding: 25px;
@@ -226,31 +226,31 @@
     flex-direction: column;
 }
     
-    .custom-alert.confirm-delete {
+    .custom-mostrarAviso.confirm-delete {
       width: 300px;
       text-align: center;
     }
     
-    .custom-alert.confirm-delete .btn-group {
+    .custom-mostrarAviso.confirm-delete .btn-group {
       display: flex;
       gap: 10px;
       justify-content: center;
       margin-top: 15px;
     }
 
-    .custom-alert h2 {
+    .custom-mostrarAviso h2 {
     color: #fff !important; /* Blanco para títulos */
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.5rem;
 }
 
-    .custom-alert p {
+    .custom-mostrarAviso p {
         margin: 0 0 20px;
         white-space: pre-wrap;
     }
 
-   .custom-alert button {
+   .custom-mostrarAviso button {
     background-color: #2a2a2a !important; /* Gris oscuro */
     color: #fff !important;
     border: 1px solid #444;
@@ -261,7 +261,7 @@
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
     
-    .custom-alert button:hover {
+    .custom-mostrarAviso button:hover {
     background-color: #444 !important; /* Gris un poco más claro */
     transform: scale(1.05);
 }
@@ -1055,6 +1055,15 @@ body {
   text-align: left;
 }
 
+    @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); visibility: visible; }
+  }
+  #modalAutor.show {
+    display: flex !important;
+    opacity: 1;
+    visibility: visible;
+  }
     
   </style>
 </head>
@@ -1623,10 +1632,10 @@ body {
   <span id="notificationCount"></span>
 </div>
 
-  <div id="customAlertOverlay">
-      <div class="custom-alert">
-          <h2 id="alertTitle"></h2>
-          <div class="titles-list" id="alertMessage"></div>
+  <div id="custommostrarAvisoOverlay">
+      <div class="custom-mostrarAviso">
+          <h2 id="mostrarAvisoTitle"></h2>
+          <div class="titles-list" id="mostrarAvisoMessage"></div>
       </div>
   </div>
 
@@ -1638,8 +1647,8 @@ body {
 
   
 <!-- 🔍 Overlay de búsqueda -->
-<div id="searchOverlay" class="custom-alert-overlay" style="display:none;">
-  <div class="custom-alert">
+<div id="searchOverlay" class="custom-mostrarAviso-overlay" style="display:none;">
+  <div class="custom-mostrarAviso">
     <h2>Buscar anuncio</h2>
     <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
     <div id="searchResults" class="titles-list"></div>
@@ -1841,22 +1850,116 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
 </div>
 
-  <!-- modal perfil autor -->
-<div id="modalAutor" class="modal-autor hidden">
-  <div class="modal-content">
-    <span id="cerrarModalAutor" class="close">&times;</span>
+  <!-- MODAL PERFIL AUTOR - ESTILO MODERNO FULLSCREEN (como el principal) -->
+<div id="modalAutor" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999 !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.28s ease;
+">
+  <div style="
+    width: 92%;
+    max-width: 460px;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    position: relative;
+    animation: modalPop 0.35s ease forwards;
+  ">
+    <!-- BOTÓN CERRAR ELEGANTE -->
+    <span id="cerrarModalAutor" style="
+      position: absolute;
+      top: 14px; right: 14px;
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 300;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.2s ease;
+    "
+    onmouseover="this.style.background='#f0f0f0'; this.style.transform='scale(1.1)'"
+    onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.transform='scale(1)'">
+      ×
+    </span>
 
-    <div class="perfil">
-      <img id="perfilFoto" class="perfil-foto">
-      <h2 id="perfilNombre"></h2>
-      <p id="perfilCorreo"></p>
+    <!-- FOTO DE FONDO DIFUMINADA + FOTO PRINCIPAL -->
+    <div style="
+      height: 220px;
+      position: relative;
+      overflow: hidden;
+      background: #333;
+    ">
+      <img id="perfilFotoFondo" src="" style="
+        width: 100%; height: 100%;
+        object-fit: cover;
+        filter: blur(16px) brightness(0.65);
+        transform: scale(1.15);
+      ">
+      <div style="
+        position: absolute;
+        bottom: -60px; left: 50%;
+        transform: translateX(-50%);
+        width: 130px; height: 130px;
+        border-radius: 50%;
+        padding: 6px;
+        background: white;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      ">
+        <img id="perfilFoto" class="perfil-foto" src="img/default-user.png" style="
+          width: 100%; height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+          border: 4px solid white;
+        ">
+      </div>
     </div>
 
-    <div class="info-extra">
-      <p><strong>Teléfono:</strong> <span id="perfilTelefono"></span></p>
-      <p><strong>Ciudad:</strong> <span id="perfilCiudad"></span></p>
-      <p><strong>Congregación:</strong> <span id="perfilCongregacion"></span></p>
-      <p><strong>Cargo:</strong> <span id="perfilCargo"></span></p>
+    <!-- INFO DEL USUARIO -->
+    <div style="padding: 70px 24px 28px; text-align: center;">
+      <h2 id="perfilNombre" style="
+        font-size: 24px;
+        font-weight: 700;
+        color: #222;
+        margin: 0 0 6px 0;
+      "></h2>
+      <p id="perfilCorreo" style="
+        font-size: 15px;
+        color: #666;
+        margin: 0 0 20px 0;
+        font-weight: 500;
+      "></p>
+
+      <div style="
+        display: grid;
+        gap: 14px;
+        text-align: left;
+        max-width: 340px;
+        margin: 0 auto;
+        font-size: 15px;
+        color: #444;
+      ">
+        <p><strong>Teléfono:</strong> <span id="perfilTelefono">-</span></p>
+        <p><strong>Ciudad:</strong> <span id="perfilCiudad">-</span></p>
+        <p><strong>Congregación:</strong> <span id="perfilCongregacion">-</span></p>
+        <p><strong>Cargo:</strong> <span id="perfilCargo">-</span></p>
+      </div>
     </div>
   </div>
 </div>
@@ -1869,58 +1972,40 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
-
+// ====================================================================
+// FUNCIÓN PRINCIPAL - ABRIR PERFIL DEL AUTOR (actualizada)
+// ====================================================================
 async function abrirPerfilPorCorreo(correo) {
   if (!correo || correo.trim() === "") {
-    alert("Error: correo vacío o no válido");
+    console.warn("abrirPerfilPorCorreo → correo vacío");
     return;
   }
 
   const correoLimpio = correo.trim();
-  const urlLlamada = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
-
-  // MOSTRAR EN ALERTA QUÉ ESTAMOS ENVIANDO
-  alert(`Intentando cargar perfil...\n\nURL completa:\n${urlLlamada}`);
-
-  console.log("abrirPerfilPorCorreo → Enviando GET a:", urlLlamada);
+  const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
 
   try {
-    const res = await fetch(urlLlamada, {
-      method: "GET",
-      cache: "no-cache" // evita caché raro
-    });
-
-    // MOSTRAR STATUS DE LA RESPUESTA
-    console.log("Status HTTP:", res.status, res.statusText);
-    alert(`Respuesta del servidor:\nStatus: ${res.status} ${res.statusText}`);
+    const res = await fetch(url, { method: "GET", cache: "no-cache" });
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error("Error del servidor (texto crudo):", errorText);
-      alert(`Error HTTP ${res.status}\n\nRespuesta cruda:\n${errorText.substring(0, 500)}`);
+      console.error("Error HTTP:", res.status, errorText);
+      mostrarAviso(`Error del servidor (${res.status})`);
       return;
     }
 
     const textoCrudo = await res.text();
-    console.log("Respuesta cruda del script:", textoCrudo);
-
-    // MOSTRAR EXACTAMENTE LO QUE RECIBIMOS
-    alert(`Respuesta recibida del Apps Script:\n\n${textoCrudo.substring(0, 800)}`);
-
-    // Intentar parsear JSON
     let data;
     try {
       data = JSON.parse(textoCrudo);
     } catch (parseErr) {
-      console.error("No se pudo parsear JSON:", parseErr);
-      alert(`Error: el servidor no devolvió JSON válido\n\nRecibido:\n${textoCrudo.substring(0, 600)}`);
+      console.error("JSON inválido recibido:", textoCrudo);
+      mostrarAviso("Error al cargar el perfil. Inténtalo más tarde.");
       return;
     }
 
-    console.log("JSON parseado:", data);
-
     if (data.status === "success") {
-      // ÉXITO → rellenar modal
+      // Rellenar datos
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
       document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("perfilCorreo").textContent = data.correo;
@@ -1929,42 +2014,51 @@ async function abrirPerfilPorCorreo(correo) {
       document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
       document.getElementById("perfilCargo").textContent = data.cargo || "-";
 
-      document.getElementById("modalAutor").classList.remove("hidden");
-      alert("Perfil cargado con éxito!");
-    } else {
-      alert("Usuario no encontrado o error:\n" + (data.message || "Sin mensaje"));
-    }
+      // NUEVA FORMA DE ABRIR: con animación suave
+      document.getElementById("modalAutor").classList.add("show");
 
+      // También duplicamos la foto en el fondo difuminado (opcional pero hermoso)
+      const fondo = document.getElementById("perfilFotoFondo");
+      if (fondo && data.fotoPerfil) {
+        fondo.src = data.fotoPerfil + "?v=" + Date.now();
+      }
+    } else {
+      mostrarAviso("Perfil no encontrado");
+    }
   } catch (err) {
-    console.error("Error completo en fetch:", err);
-    alert("Error de conexión o JavaScript:\n" + err.message);
+    console.error("Error crítico en abrirPerfilPorCorreo:", err);
+    mostrarAviso("Error de conexión. Revisa tu internet.");
   }
 }
 
-
-
+// ====================================================================
+// CERRAR MODAL - Botón × y clic fuera (elegante y completo)
+// ====================================================================
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
-  document.getElementById("modalAutor").classList.add("hidden");
+  document.getElementById("modalAutor").classList.remove("show");
 });
 
+// Cerrar al hacer clic fuera del contenido
+document.getElementById("modalAutor").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("modalAutor")) {
+    document.getElementById("modalAutor").classList.remove("show");
+  }
+});
+
+// ====================================================================
+// CLICK EN EL AUTOR - sin cambios, solo actualiza el modal
+// ====================================================================
 const autorContainer = document.getElementById("autorContainer");
-
 autorContainer.addEventListener("click", (e) => {
-    e.stopPropagation();
+  e.stopPropagation();
+  const correo = autorContainer.dataset.correo;
 
-    const correo = autorContainer.dataset.correo;
-
-    alert("Click container: correo detectado = " + correo);
-
-    if (!correo) {
-        alert("ERROR: el contenedor no tiene data-correo");
-        return;
-    }
-
-    abrirPerfilPorCorreo(correo);
+  if (!correo) {
+    mostrarAviso("No se pudo identificar al autor");
+    return;
+  }
+  abrirPerfilPorCorreo(correo);
 });
-
-
 
 
 
@@ -1974,7 +2068,7 @@ const autorFoto = document.querySelector("#autorContainer img, #autorContainer .
 if (autorFoto) {
     autorFoto.addEventListener("click", (e) => {
         e.stopPropagation();
-        alert("Has presionado la foto del autor");
+        mostrarAviso("Has presionado la foto del autor");
 
         const correoAutor = autorContainer.dataset.correo;
         if (correoAutor) {
@@ -2508,14 +2602,14 @@ const closeSavedBtn = document.getElementById("closeSavedBtn");
 
 // === 💬 Aviso elegante, centrado y adaptable a móviles ===
 function mostrarAviso(mensaje, tipo = "info") {
-  let alertBox = document.getElementById("alertBox");
+  let mostrarAvisoBox = document.getElementById("mostrarAvisoBox");
 
-  if (!alertBox) {
-    alertBox = document.createElement("div");
-    alertBox.id = "alertBox";
-    document.body.appendChild(alertBox);
+  if (!mostrarAvisoBox) {
+    mostrarAvisoBox = document.createElement("div");
+    mostrarAvisoBox.id = "mostrarAvisoBox";
+    document.body.appendChild(mostrarAvisoBox);
 
-    Object.assign(alertBox.style, {
+    Object.assign(mostrarAvisoBox.style, {
       display: "none",
       position: "fixed",
       top: "50%",
@@ -2550,22 +2644,22 @@ function mostrarAviso(mensaje, tipo = "info") {
   if (tipo === "warning") bgColor = "rgba(70, 70, 70, 0.95)";
   if (tipo === "info") bgColor = "rgba(35, 35, 35, 0.9)";
 
-  alertBox.style.background = bgColor;
-  alertBox.textContent = mensaje;
-  alertBox.style.display = "block";
+  mostrarAvisoBox.style.background = bgColor;
+  mostrarAvisoBox.textContent = mensaje;
+  mostrarAvisoBox.style.display = "block";
 
   // ✨ Animación elegante
   setTimeout(() => {
-    alertBox.style.opacity = "1";
-    alertBox.style.transform = "translate(-50%, -50%) scale(1)";
+    mostrarAvisoBox.style.opacity = "1";
+    mostrarAvisoBox.style.transform = "translate(-50%, -50%) scale(1)";
   }, 50);
 
   // ⏳ Desaparición automática
   setTimeout(() => {
-    alertBox.style.opacity = "0";
-    alertBox.style.transform = "translate(-50%, -50%) scale(0.95)";
+    mostrarAvisoBox.style.opacity = "0";
+    mostrarAvisoBox.style.transform = "translate(-50%, -50%) scale(0.95)";
     setTimeout(() => {
-      alertBox.style.display = "none";
+      mostrarAvisoBox.style.display = "none";
     }, 400);
   }, 3000);
 }
@@ -3369,9 +3463,9 @@ document.querySelector('.swiper').addEventListener('click', () => {
    // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón
 lblContador.addEventListener("click", () => {
     if (nuevosTitulos.length === 0) {
-        showCustomAlert("Nuevos anuncios", []);
+        showCustommostrarAviso("Nuevos anuncios", []);
     } else {
-        showCustomAlert("Nuevos anuncios", nuevosTitulos);
+        showCustommostrarAviso("Nuevos anuncios", nuevosTitulos);
     }
 });
 
@@ -4009,17 +4103,17 @@ function aplicarTruncado(element, maxLength = 80) {
 
 
     
-function showCustomAlert(title, titlesList) {
-    const overlay = document.getElementById('customAlertOverlay');
-    const alertDiv = overlay.querySelector('.custom-alert');
-    const alertTitle = document.getElementById('alertTitle');
-    const alertMessage = document.getElementById('alertMessage');
+function showCustommostrarAviso(title, titlesList) {
+    const overlay = document.getElementById('custommostrarAvisoOverlay');
+    const mostrarAvisoDiv = overlay.querySelector('.custom-mostrarAviso');
+    const mostrarAvisoTitle = document.getElementById('mostrarAvisoTitle');
+    const mostrarAvisoMessage = document.getElementById('mostrarAvisoMessage');
     const notificationCount = document.getElementById('notificationCount'); // span del contador
 
-    alertDiv.className = 'custom-alert';
-    alertMessage.innerHTML = '';
+    mostrarAvisoDiv.className = 'custom-mostrarAviso';
+    mostrarAvisoMessage.innerHTML = '';
 
-    alertTitle.textContent = title;
+    mostrarAvisoTitle.textContent = title;
 
     if (titlesList.length > 0) {
         const list = document.createElement('ul');
@@ -4061,35 +4155,35 @@ function showCustomAlert(title, titlesList) {
                         notificationCount.style.display = "none";
                     }
 
-                    document.getElementById('customAlertOverlay').style.display = 'none';
+                    document.getElementById('custommostrarAvisoOverlay').style.display = 'none';
                 }
             });
             list.appendChild(li);
         });
-        alertMessage.appendChild(list);
+        mostrarAvisoMessage.appendChild(list);
     } else {
         const p = document.createElement('p');
         p.textContent = "No hay anuncios nuevos.";
-        alertMessage.appendChild(p);
+        mostrarAvisoMessage.appendChild(p);
     }
 
     const closeBtn = document.createElement('button');
     closeBtn.textContent = "Cerrar";
-    closeBtn.id = "closeAlertButton";
+    closeBtn.id = "closemostrarAvisoButton";
     closeBtn.onclick = () => overlay.style.display = 'none';
-    alertMessage.appendChild(closeBtn);
+    mostrarAvisoMessage.appendChild(closeBtn);
     overlay.style.display = 'flex';
 }
 
     function showConfirmationDialog(message, onConfirm) {
-        const overlay = document.getElementById('customAlertOverlay');
-        const alertDiv = overlay.querySelector('.custom-alert');
-        const alertTitle = document.getElementById('alertTitle');
-        const alertMessage = document.getElementById('alertMessage');
+        const overlay = document.getElementById('custommostrarAvisoOverlay');
+        const mostrarAvisoDiv = overlay.querySelector('.custom-mostrarAviso');
+        const mostrarAvisoTitle = document.getElementById('mostrarAvisoTitle');
+        const mostrarAvisoMessage = document.getElementById('mostrarAvisoMessage');
         
-        alertDiv.className = 'custom-alert confirm-delete';
-        alertTitle.textContent = "Confirmar eliminación";
-        alertMessage.innerHTML = `<p>${message}</p>`;
+        mostrarAvisoDiv.className = 'custom-mostrarAviso confirm-delete';
+        mostrarAvisoTitle.textContent = "Confirmar eliminación";
+        mostrarAvisoMessage.innerHTML = `<p>${message}</p>`;
 
         const buttonGroup = document.createElement('div');
         buttonGroup.className = 'btn-group';
@@ -4110,25 +4204,25 @@ function showCustomAlert(title, titlesList) {
 
         buttonGroup.appendChild(confirmBtn);
         buttonGroup.appendChild(cancelBtn);
-        alertMessage.appendChild(buttonGroup);
+        mostrarAvisoMessage.appendChild(buttonGroup);
 
         overlay.style.display = 'flex';
     }
     
     function showInfoDialog(title, message) {
-        const overlay = document.getElementById('customAlertOverlay');
-        const alertDiv = overlay.querySelector('.custom-alert');
-        const alertTitle = document.getElementById('alertTitle');
-        const alertMessage = document.getElementById('alertMessage');
+        const overlay = document.getElementById('custommostrarAvisoOverlay');
+        const mostrarAvisoDiv = overlay.querySelector('.custom-mostrarAviso');
+        const mostrarAvisoTitle = document.getElementById('mostrarAvisoTitle');
+        const mostrarAvisoMessage = document.getElementById('mostrarAvisoMessage');
         
-        alertDiv.className = 'custom-alert';
-        alertTitle.textContent = title;
-        alertMessage.innerHTML = `<p>${message}</p>`;
+        mostrarAvisoDiv.className = 'custom-mostrarAviso';
+        mostrarAvisoTitle.textContent = title;
+        mostrarAvisoMessage.innerHTML = `<p>${message}</p>`;
         
         const closeBtn = document.createElement('button');
         closeBtn.textContent = 'Aceptar';
         closeBtn.onclick = () => overlay.style.display = 'none';
-        alertMessage.appendChild(closeBtn);
+        mostrarAvisoMessage.appendChild(closeBtn);
         
         overlay.style.display = 'flex';
     }
@@ -4142,7 +4236,7 @@ function showCustomAlert(title, titlesList) {
 
     if (lblContador) {
         lblContador.addEventListener('click', () => {
-            showCustomAlert("DECOM BOCHICA SUR", nuevosTitulos);
+            showCustommostrarAviso("DECOM BOCHICA SUR", nuevosTitulos);
         });
     }
 
@@ -4152,7 +4246,7 @@ function showCustomAlert(title, titlesList) {
 const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
 if (imagesNotificationBtn) {
     imagesNotificationBtn.addEventListener("click", () => {
-        showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+        showCustommostrarAviso("Nuevos anuncios en imágenes", nuevosTitulos);
     });
 }
 
@@ -4164,7 +4258,7 @@ if (imagesBtn) {
         e.preventDefault();
 
         if (contadorAcumulado > 0) {
-            showCustomAlert("Nuevos anuncios en imágenes", nuevosTitulos);
+            showCustommostrarAviso("Nuevos anuncios en imágenes", nuevosTitulos);
         } else {
             cargarVistaInterna("fotos/fotos.html", imagesBtn);
             // Marcar como vista activa
@@ -4543,7 +4637,7 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
     try {
       const data = JSON.parse(texto);
 
-      // ALERTA ELIMINADA (ya no se muestra)
+      // mostrarAvisoA ELIMINADA (ya no se muestra)
 
       if (data.status && data.status.includes("success")) {
         const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "") || "";
@@ -5704,5 +5798,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
