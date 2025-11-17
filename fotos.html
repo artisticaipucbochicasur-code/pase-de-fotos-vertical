@@ -967,6 +967,47 @@ body {
   text-align: left;
 }
 
+
+
+/* ESTILO WHATSAPP - MENÚ LATERAL */
+.whatsapp-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #111b21;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.whatsapp-menu-btn:hover {
+  background: #e9edef;
+}
+
+.whatsapp-menu-btn i {
+  font-size: 20px;
+  width: 24px;
+  color: #54656f;
+}
+
+.whatsapp-menu-btn.whatsapp i {
+  color: #25d366;
+}
+
+.whatsapp-menu-btn.logout i {
+  color: #e1306c;
+}
+
+.whatsapp-menu-btn span {
+  font-weight: 500;
+}
+
     
     
   </style>
@@ -1238,37 +1279,45 @@ body {
             background:rgba(0,0,0,0.45);z-index:2000;">
 </div>
 
-<!-- 🔹 Panel lateral moderno 2025 -->
+<!-- Panel lateral estilo WhatsApp 2025 -->
 <div id="userMenu" style="
-    display:none;
-    position:fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(15, 23, 42, 0.70); /* fondo oscuro semi-transparente */
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    z-index:9999;
-    animation: fadeIn 0.25s ease-out;
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index:9999;
+  animation: fadeIn 0.25s ease-out;
 ">
   <div style="
     position:absolute;
-    top:70px; right:0;
+    top:0; left:0;
     width:340px; max-width:90vw;
-    height:calc(100vh - 90px);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 20px 0 0 20px;
-    box-shadow: -10px 0 40px rgba(0,0,0,0.3);
-    padding:30px 24px;
+    height:100vh;
+    background: #f0f2f5;
+    padding:16px;
     overflow-y:auto;
-    animation: slideInRight 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    animation: slideInLeft 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
   ">
-    <!-- Botón cerrar (opcional) -->
-    <button onclick="document.getElementById('userMenu').style.display='none'" 
+    <!-- CERRAR SESIÓN ARRIBA IZQUIERDA -->
+    <button id="logoutBtn" class="whatsapp-menu-btn logout" style="
+      position:absolute; top:16px; left:16px;
+      background:none; border:none; font-size:20px; cursor:pointer;
+      color:#54656f; padding:8px; border-radius:50%;
+      transition:all 0.2s;
+    "
+    onmouseover="this.style.background='rgba(0,0,0,0.1)'"
+    onmouseout="this.style.background='none'">
+      <i class="fas fa-arrow-right-from-bracket"></i>
+    </button>
+
+    <!-- BOTÓN CERRAR (X) ARRIBA DERECHA -->
+    <button onclick="document.getElementById('userMenu').style.display='none'"
             style="
               position:absolute; top:16px; right:16px;
-              background:none; border:none; font-size:24px; cursor:pointer;
-              color:#64748b; padding:8px; border-radius:50%;
+              background:none; border:none; font-size:22px; cursor:pointer;
+              color:#54656f; padding:8px; border-radius:50%;
               transition:all 0.2s;
             "
             onmouseover="this.style.background='rgba(0,0,0,0.1)'"
@@ -1276,60 +1325,49 @@ body {
       <i class="fas fa-xmark"></i>
     </button>
 
-    <!-- Foto y datos -->
-    <div style="text-align:center; margin-bottom:30px;">
+    <!-- FOTO Y DATOS -->
+    <div style="text-align:center; margin:70px 0 30px;">
       <div id="userMenuPhoto" style="
         width:96px; height:96px; border-radius:50%; margin:0 auto 16px;
-        background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display:flex; align-items:center; justify-content:center;
-        font-size:36px; font-weight:bold; color:white;
-        box-shadow:0 8px 25px rgba(102,126,234,0.4);
-        overflow:hidden; border:4px solid rgba(255,255,255,0.3);
+        background:#d9d9d9; overflow:hidden;
+        border:3px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.1);
       ">
-        <!-- Puedes poner una imagen aquí o iniciales -->
+        <!-- Foto o iniciales -->
       </div>
-      <p id="userName" style="margin:0; font-weight:700; font-size:20px; color:#1e293b;"></p>
-      <p id="userEmail" style="margin:6px 0 0; font-size:14px; color:#64748b;"></p>
+      <p id="userName" style="margin:0; font-weight:600; font-size:18px; color:#111;"></p>
+      <p id="userEmail" style="margin:6px 0 0; font-size:14px; color:#667781;"></p>
     </div>
 
-    <!-- Botones modernos solo con icono + texto sutil -->
-    <div style="display:flex; flex-direction:column; gap:12px;">
-
+    <!-- OPCIONES (solo icono + texto) -->
+    <div style="display:flex; flex-direction:column; gap:2px;">
       <!-- Perfil -->
-      <button class="menu-btn" style="background:#f8fafc; color:#475569;">
+      <button class="whatsapp-menu-btn" onclick="abrirPerfil()">
         <i class="fas fa-user-circle"></i>
         <span>Mi perfil</span>
       </button>
 
       <!-- Notificaciones -->
-      <button class="menu-btn" style="background:#f8fafc; color:#475569;">
+      <button class="whatsapp-menu-btn">
         <i class="fas fa-bell"></i>
         <span>Notificaciones</span>
       </button>
 
-    <!-- Botón de tema (lo cambiamos dinámicamente) -->
-<button id="themeToggle" class="menu-btn" style="background:#f8fafc; color:#475569;">
-  <i class="fas fa-moon" id="themeIcon"></i>
-  <span id="themeText">Tema oscuro</span>
-</button>
+      <!-- Tema -->
+      <button id="themeToggle" class="whatsapp-menu-btn">
+        <i class="fas fa-moon" id="themeIcon"></i>
+        <span id="themeText">Tema oscuro</span>
+      </button>
 
-      <!-- WhatsApp -->
-      <button id="whatsappBtn" class="menu-btn whatsapp">
+      <!-- Soporte WhatsApp -->
+      <button id="whatsappBtn" class="whatsapp-menu-btn whatsapp">
         <i class="fab fa-whatsapp"></i>
         <span>Soporte</span>
       </button>
-
-      <!-- Cerrar sesión -->
-      <button id="logoutBtn" class="menu-btn logout">
-        <i class="fas fa-arrow-right-from-bracket"></i>
-        <span>Cerrar sesión</span>
-      </button>
     </div>
 
-    <!-- Versión sutil abajo -->
+    <!-- Versión abajo -->
     <div style="
-      margin-top:40px; padding-top:20px; border-top:1px solid #e2e8f0;
-      text-align:center; color:#94a3b8; font-size:12px;
+      margin-top:40px; text-align:center; color:#8696a0; font-size:12px;
     ">
       v2.4.1 • © 2025 DECOM
     </div>
@@ -5446,6 +5484,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
