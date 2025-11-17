@@ -330,47 +330,52 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-/* Esto hace que el autorContainer flote por encima del overlay de comentarios */
+/* Texto del autor flotando limpio y mucho más arriba del overlay de comentarios */
 #autorContainer {
   position: fixed !important;
-  bottom: 68px;                  /* lo sube por encima del overlay que está en 45px */
-  left: 10px;
-  right: 10px;
-  margin: 0 auto;
-  max-width: 80%;
-  background: rgba(31, 31, 31, 0.95);   /* mismo tono que el dark mode de Google */
-  padding: 10px 14px;
-  border-radius: 12px;
-  border-bottom: none !important;      /* quitamos el borde inferior que lo hacía parecer "pegado" */
-  z-index: 999 !important;             /* más alto que el overlay (998) */
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
-  text-align: center;
+  bottom: 92px !important;    /* mucho más arriba → ~47px por encima del overlay que está en 45px */
+  left: 50% !important;
+  transform: translateX(-50%) !important;  /* centrado perfecto */
+  z-index: 999 !important;     /* por encima del overlay (998) */
+  
+  /* Quitamos TODO el contenedor visual */
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  
+  /* Solo el texto, limpio y legible */
+  color: #e8eaed !important;
   font-size: 14px;
-  color: #e8eaed;
-  transition: all 0.3s ease;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;        /* opcional: para que no interfiera con toques debajo */
 }
 
     
+ /* Contenedor de comentarios */
 .comments-overlay-container {
   position: fixed;
-  bottom: 45px; /* 🔹 sube el contenedor más arriba */
+  bottom: 47px; /* 👈 ahora justo arriba de la barra de escribir */
   left: 10px;
   width: calc(80% - 20px);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.2); /* más transparente */
   color: #eee;
-  padding: 12px 8px; /* 🔹 más alto, aumenta espacio arriba y abajo */
+  padding: 8px;
   border-radius: 5px;
   box-sizing: border-box;
   z-index: 998;
   overflow-y: auto;
   transition: opacity 0.3s ease, visibility 0.3s ease, max-height 0.3s ease;
-  max-height: 8em; /* 🔹 altura inicial mayor */
+  max-height: 4em;
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
-
 
 
   /* expandido */
@@ -1624,14 +1629,12 @@ body {
 </div>
 
 
-<div class="content-overlay" id="contentOverlay">
+ <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
-
-<div class="comments-overlay-container" id="commentsOverlay">
-   
-    <ul id="commentsList"></ul>
+ <div class="comments-overlay-container" id="commentsOverlay">
+  <ul id="commentsList"></ul>
 </div>
 
 
@@ -5536,6 +5539,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
