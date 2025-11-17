@@ -1871,40 +1871,62 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
 
 async function abrirPerfilPorCorreo(correo) {
+  if (!correo || correo.trim() === "") {
+    alert("No hay correo para buscar");
+    return;
+  }
+
+  // FORZAMOS que la URL tenga siempre el parámetro "accion" al inicio
+  const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correo.trim())}`;
+
   try {
-    const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correo)}`;
+    console.log("Llamando a:", url);
+    const res = await fetch(url, {
+      method: "GET",
+      mode: "no-cors",           // ← CLAVE 1: evita el error CORS del navegador
+      cache: "no-cache",          // ← CLAVE 2: evita caché loca de Google
+      redirect: "follow"
+    });
 
-    alert("URL llamada:\n" + url);
+    // IMPORTANTE: con "no-cors" no podemos leer el cuerpo, pero SÍ sabemos si llegó o no
+    // Si la petición llegó al script, aunque no devuelva JSON válido, Google responde 200
+    if (res.type === "opaque" || res.ok || res.status === 0) {
+      // Forzamos una segunda llamada con POST (esta SÍ nos da el JSON)
+      const res2 = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accion: "getUserByEmail",
+          correo: correo.trim()
+        })
+      });
 
-    const res = await fetch(url);
-    alert("HTTP Status: " + res.status);
+      const text = await res2.text();
+      // Si el script devuelve HTML vacío o el mensaje feo, lo detectamos
+      if (text.includes("did not return anything") || text.trim() === "" || text.startsWith("<")) {
+        alert("Usuario no encontrado o error del servidor");
+        return;
+      }
 
-    const raw = await res.text();
-    alert("Respuesta cruda:\n" + raw);
-
-    let data = JSON.parse(raw);
-
-    if (data.status !== "success") {
-      alert("⛔ Usuario no encontrado");
-      return;
+      const data = JSON.parse(text);
+      if (data.status === "success") {
+        document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
+        document.getElementById("perfilNombre").textContent = data.nombre || "Sin nombre";
+        document.getElementById("perfilCorreo").textContent = data.correo;
+        document.getElementById("perfilTelefono").textContent = data.telefono || "-";
+        document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
+        document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
+        document.getElementById("perfilCargo").textContent = data.cargo || "-";
+        document.getElementById("modalAutor").classList.remove("hidden");
+      } else {
+        alert("Usuario no encontrado");
+      }
     }
-
-    document.getElementById("perfilFoto").src = data.fotoPerfil;
-    document.getElementById("perfilNombre").textContent = data.nombre;
-    document.getElementById("perfilCorreo").textContent = data.correo;
-    document.getElementById("perfilTelefono").textContent = data.telefono;
-    document.getElementById("perfilCiudad").textContent = data.ciudad;
-    document.getElementById("perfilCongregacion").textContent = data.congregacion;
-    document.getElementById("perfilCargo").textContent = data.cargo;
-
-    document.getElementById("modalAutor").classList.remove("hidden");
-
   } catch (err) {
-    alert("Catch Error:\n" + err);
+    console.error("Error en abrirPerfilPorCorreo:", err);
+    alert("Error de conexión. Intenta de nuevo.");
   }
 }
-
-
 
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
   document.getElementById("modalAutor").classList.add("hidden");
@@ -3719,9 +3741,6 @@ function updateContentOverlay(index) {
         // ===============================
         // ✅ AUTOR CON FOTO ANTIDUPLICADO
         // ===============================
-       // ===============================
-        // AUTOR CON FOTO ANTIDUPLICADO (CORREGIDO)
-        // ===============================
         (async () => {
             const container = document.getElementById("autorContainer");
             if (!container) return;
@@ -3730,82 +3749,83 @@ function updateContentOverlay(index) {
             const token = Date.now() + "-" + Math.random();
             container.dataset.renderToken = token;
 
-            // Limpiar solo una vez al principio
             container.innerHTML = "";
-            container.dataset.correo = ""; // limpiamos por si acaso
 
-            if (!anuncio.autor) return;
+            if (anuncio.autor) {
+                const div = document.createElement("div");
+                div.className = "autor-anuncio-box autor-box";
+                div.style.display = "flex";
+                div.style.alignItems = "center";
+                div.style.gap = "8px";
+                div.style.marginTop = "6px";
 
-            const correoAutor = (anuncio.correo || "").trim();
-            if (!correoAutor) return;
+                const correoAutor = (anuncio.correo || "").trim();
+                let fotoUrl = "";
 
-            let fotoUrl = "";
-            try {
-                fotoUrl = await resolveFotoPerfil(correoAutor, anuncio.autor);
-            } catch (e) {
-                console.error("Error cargando foto de perfil:", e);
-                fotoUrl = ""; // fallback
+                try {
+                    fotoUrl = await resolveFotoPerfil(correoAutor, anuncio.autor);
+                } catch (e) {
+                    console.error("resolveFotoPerfil error:", e);
+                }
+
+                const stillActiveToken = container.dataset.renderToken;
+                const activeIndex = swiperInstance.realIndex;
+                const currentId = anunciosData[activeIndex]?.id;
+
+                if (stillActiveToken !== token || currentId !== expectedId) return;
+
+                // Fallback con inicial
+                if (fotoUrl.startsWith("avatar://")) {
+                    const inicial = fotoUrl.split("://")[1];
+                    const avatar = document.createElement("div");
+                    avatar.style.width = "30px";
+                    avatar.style.height = "30px";
+                    avatar.style.borderRadius = "50%";
+                    avatar.style.background = "#5468ff";
+                    avatar.style.display = "flex";
+                    avatar.style.alignItems = "center";
+                    avatar.style.justifyContent = "center";
+                    avatar.style.fontSize = "14px";
+                    avatar.style.color = "#fff";
+                    avatar.textContent = inicial;
+                    div.appendChild(avatar);
+                } else {
+                    const img = document.createElement("img");
+                    img.className = "autor-foto";
+                    img.style.width = "30px";
+                    img.style.height = "30px";
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "50%";
+                    img.style.border = "2px solid #fff";
+                    img.style.background = "#eee";
+                    img.alt = anuncio.autor || "autor";
+                    img.referrerPolicy = "no-referrer";
+
+                    const sep = fotoUrl.includes("?") ? "&" : "?";
+                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
+
+                    img.onerror = () => {
+                        img.onerror = null;
+                        img.src = "img/default-user.png";
+                    };
+
+                    div.appendChild(img);
+                }
+
+                const span = document.createElement("span");
+                span.style.fontSize = "13px";
+                span.style.color = "#ccc";
+                span.textContent = anuncio.autor;
+                div.appendChild(span);
+
+                container.innerHTML = "";
+                container.appendChild(div);
+              // Guardar el correo en el contenedor
+                 // GUARDAR CORREO EN EL CONTAINER
+                container.dataset.correo = correoAutor;
+
+
             }
-
-            // Verificar que no se haya cambiado de slide mientras tanto
-            const stillActiveToken = container.dataset.renderToken;
-            const activeIndex = swiperInstance.realIndex;
-            const currentId = anunciosData[activeIndex]?.id;
-
-            if (stillActiveToken !== token || currentId !== expectedId) {
-                return; // ya no es el anuncio actual
-            }
-
-            // Crear el contenido del autor
-            const div = document.createElement("div");
-            div.className = "autor-anuncio-box autor-box";
-            div.style.cssText = "display:flex; align-items:center; gap:8px; margin-top:6px; cursor:pointer;";
-
-            // Foto o avatar con inicial
-            if (fotoUrl && fotoUrl.startsWith("avatar://")) {
-                const inicial = fotoUrl.split("://")[1].toUpperCase();
-                const avatar = document.createElement("div");
-                avatar.textContent = inicial;
-                avatar.style.cssText = `
-                    width:30px; height:30px; border-radius:50%; background:#5468ff;
-                    display:flex; align-items:center; justify-content:center;
-                    color:white; font-size:14px; font-weight:bold;
-                `;
-                div.appendChild(avatar);
-            } else {
-                const img = document.createElement("img");
-                img.className = "autor-foto";
-                img.alt = anuncio.autor;
-                img.style.cssText = `
-                    width:30px; height:30px; object-fit:cover; border-radius:50%;
-                    border:2px solid white; background:#eee;
-                `;
-                img.referrerPolicy = "no-referrer";
-                const src = fotoUrl || "img/default-user.png";
-                img.src = src + (src.includes("?") ? "&" : "?") + "v=" + Date.now();
-                img.onerror = () => img.src = "img/default-user.png";
-                div.appendChild(img);
-            }
-
-            // Nombre del autor
-            const span = document.createElement("span");
-            span.textContent = anuncio.autor || "Anónimo";
-            span.style.cssText = "font-size:13px; color:#ccc;";
-            div.appendChild(span);
-
-            // Ahora sí: agregar todo al contenedor
-            container.appendChild(div);
-
-            // ¡IMPORTANTE! Guardar el correo ANTES de cualquier otra limpieza
-            container.dataset.correo = correoAutor;
-
-            // Hacer clickable todo el contenedor
-            container.style.cursor = "pointer";
-            container.onclick = (e) => {
-                e.stopPropagation();
-                abrirPerfilPorCorreo(correoAutor);
-            };
-
         })();
     }
 }
@@ -5669,13 +5689,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
