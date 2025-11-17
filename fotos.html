@@ -4347,7 +4347,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
   const pin = document.getElementById("regPin").value;
   const pinConfirm = document.getElementById("regPinConfirm").value;
   const telefono = document.getElementById("regTelefono").value.trim();
-  const preview = document.getElementById("previewFoto");
 
   // === VALIDACIONES BÁSICAS ===
   if (!nombre || !correo || !pin || !pinConfirm) {
@@ -4401,11 +4400,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
   await new Promise(requestAnimationFrame);
 
   try {
-    if (preview) {
-      preview.innerHTML = `<img src="${window.fotoComprimida}" alt="Previsualización"
-        style="max-width:120px;border-radius:10px;display:block;margin:auto;">`;
-    }
-
+    // Nota: ya no usamos "preview" aquí porque el preview real es #previewContainer
     const formData = new URLSearchParams();
     formData.append("accion", "registro");
     formData.append("nombre", nombre);
@@ -4439,8 +4434,16 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
       document.getElementById("regCongregacion").value = "";
       document.getElementById("regCargo").value = "";
       document.getElementById("regCiudad").value = "";
-      if (preview) preview.innerHTML = "";
-      window.fotoComprimida = null; // Limpiar foto seleccionada
+
+      // LIMPIAR FOTO COMPLETAMENTE (con tus IDs reales)
+      const inputFoto = document.getElementById("regFoto");
+      const previewContainer = document.getElementById("previewContainer");
+      const fotoPreview = document.getElementById("fotoPreview");
+
+      if (inputFoto) inputFoto.value = ""; // Limpia el archivo seleccionado
+      if (previewContainer) previewContainer.style.display = "none"; // Oculta el contenedor
+      if (fotoPreview) fotoPreview.src = ""; // Limpia la imagen
+      window.fotoComprimida = null; // Limpia variable global
 
       mostrarAviso("Cuenta creada! Inicia sesión", "success");
       mostrarForm("login");
@@ -4457,7 +4460,6 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
     mostrarAviso("Error de conexión o al procesar imagen", "error");
   }
 });
-
 // ======================================================================================
 // FUNCIONES DE SPINNER GLOBAL
 // ======================================================================================
@@ -5405,6 +5407,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
