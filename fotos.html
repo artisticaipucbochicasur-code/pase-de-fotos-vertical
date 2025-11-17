@@ -1905,19 +1905,36 @@ document.getElementById("cerrarModalAutor").addEventListener("click", () => {
 
 const autorContainer = document.getElementById("autorContainer");
 
-if (autorContainer) {
-    autorContainer.addEventListener("click", (e) => {
-        e.stopPropagation(); // No expande/colapsa el overlay
+// CLICK EN EL CONTENEDOR COMPLETO
+autorContainer.addEventListener("click", (e) => {
+    e.stopPropagation();
+    alert("Se presionó el autorContainer");
 
-        const correoAutor = autorContainer.dataset.correo; // <-- correo del autor
+    // Obtener correo del autor desde el data-correo
+    const correoAutor = autorContainer.dataset.correo;
+    if (correoAutor) {
+        abrirPerfilPorCorreo(correoAutor);
+    } else {
+        console.warn("autorContainer no tiene data-correo");
+    }
+});
 
+
+// CLICK EN LA FOTO (si existe)
+const autorFoto = document.querySelector("#autorContainer img, #autorContainer .foto");
+
+if (autorFoto) {
+    autorFoto.addEventListener("click", (e) => {
+        e.stopPropagation();
+        alert("Has presionado la foto del autor");
+
+        const correoAutor = autorContainer.dataset.correo;
         if (correoAutor) {
             abrirPerfilPorCorreo(correoAutor);
-        } else {
-            console.warn("autorContainer no tiene data-correo");
         }
     });
 }
+
 
 
 
@@ -5634,6 +5651,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
