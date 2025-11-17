@@ -3719,6 +3719,9 @@ function updateContentOverlay(index) {
         // ===============================
         // ✅ AUTOR CON FOTO ANTIDUPLICADO
         // ===============================
+       // ===============================
+        // AUTOR CON FOTO ANTIDUPLICADO (CORREGIDO)
+        // ===============================
         (async () => {
             const container = document.getElementById("autorContainer");
             if (!container) return;
@@ -3727,83 +3730,82 @@ function updateContentOverlay(index) {
             const token = Date.now() + "-" + Math.random();
             container.dataset.renderToken = token;
 
+            // Limpiar solo una vez al principio
             container.innerHTML = "";
+            container.dataset.correo = ""; // limpiamos por si acaso
 
-            if (anuncio.autor) {
-                const div = document.createElement("div");
-                div.className = "autor-anuncio-box autor-box";
-                div.style.display = "flex";
-                div.style.alignItems = "center";
-                div.style.gap = "8px";
-                div.style.marginTop = "6px";
+            if (!anuncio.autor) return;
 
-                const correoAutor = (anuncio.correo || "").trim();
-                let fotoUrl = "";
+            const correoAutor = (anuncio.correo || "").trim();
+            if (!correoAutor) return;
 
-                try {
-                    fotoUrl = await resolveFotoPerfil(correoAutor, anuncio.autor);
-                } catch (e) {
-                    console.error("resolveFotoPerfil error:", e);
-                }
-
-                const stillActiveToken = container.dataset.renderToken;
-                const activeIndex = swiperInstance.realIndex;
-                const currentId = anunciosData[activeIndex]?.id;
-
-                if (stillActiveToken !== token || currentId !== expectedId) return;
-
-                // Fallback con inicial
-                if (fotoUrl.startsWith("avatar://")) {
-                    const inicial = fotoUrl.split("://")[1];
-                    const avatar = document.createElement("div");
-                    avatar.style.width = "30px";
-                    avatar.style.height = "30px";
-                    avatar.style.borderRadius = "50%";
-                    avatar.style.background = "#5468ff";
-                    avatar.style.display = "flex";
-                    avatar.style.alignItems = "center";
-                    avatar.style.justifyContent = "center";
-                    avatar.style.fontSize = "14px";
-                    avatar.style.color = "#fff";
-                    avatar.textContent = inicial;
-                    div.appendChild(avatar);
-                } else {
-                    const img = document.createElement("img");
-                    img.className = "autor-foto";
-                    img.style.width = "30px";
-                    img.style.height = "30px";
-                    img.style.objectFit = "cover";
-                    img.style.borderRadius = "50%";
-                    img.style.border = "2px solid #fff";
-                    img.style.background = "#eee";
-                    img.alt = anuncio.autor || "autor";
-                    img.referrerPolicy = "no-referrer";
-
-                    const sep = fotoUrl.includes("?") ? "&" : "?";
-                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
-
-                    img.onerror = () => {
-                        img.onerror = null;
-                        img.src = "img/default-user.png";
-                    };
-
-                    div.appendChild(img);
-                }
-
-                const span = document.createElement("span");
-                span.style.fontSize = "13px";
-                span.style.color = "#ccc";
-                span.textContent = anuncio.autor;
-                div.appendChild(span);
-
-                container.innerHTML = "";
-                container.appendChild(div);
-              // Guardar el correo en el contenedor
-                 // GUARDAR CORREO EN EL CONTAINER
-                container.dataset.correo = correoAutor;
-
-
+            let fotoUrl = "";
+            try {
+                fotoUrl = await resolveFotoPerfil(correoAutor, anuncio.autor);
+            } catch (e) {
+                console.error("Error cargando foto de perfil:", e);
+                fotoUrl = ""; // fallback
             }
+
+            // Verificar que no se haya cambiado de slide mientras tanto
+            const stillActiveToken = container.dataset.renderToken;
+            const activeIndex = swiperInstance.realIndex;
+            const currentId = anunciosData[activeIndex]?.id;
+
+            if (stillActiveToken !== token || currentId !== expectedId) {
+                return; // ya no es el anuncio actual
+            }
+
+            // Crear el contenido del autor
+            const div = document.createElement("div");
+            div.className = "autor-anuncio-box autor-box";
+            div.style.cssText = "display:flex; align-items:center; gap:8px; margin-top:6px; cursor:pointer;";
+
+            // Foto o avatar con inicial
+            if (fotoUrl && fotoUrl.startsWith("avatar://")) {
+                const inicial = fotoUrl.split("://")[1].toUpperCase();
+                const avatar = document.createElement("div");
+                avatar.textContent = inicial;
+                avatar.style.cssText = `
+                    width:30px; height:30px; border-radius:50%; background:#5468ff;
+                    display:flex; align-items:center; justify-content:center;
+                    color:white; font-size:14px; font-weight:bold;
+                `;
+                div.appendChild(avatar);
+            } else {
+                const img = document.createElement("img");
+                img.className = "autor-foto";
+                img.alt = anuncio.autor;
+                img.style.cssText = `
+                    width:30px; height:30px; object-fit:cover; border-radius:50%;
+                    border:2px solid white; background:#eee;
+                `;
+                img.referrerPolicy = "no-referrer";
+                const src = fotoUrl || "img/default-user.png";
+                img.src = src + (src.includes("?") ? "&" : "?") + "v=" + Date.now();
+                img.onerror = () => img.src = "img/default-user.png";
+                div.appendChild(img);
+            }
+
+            // Nombre del autor
+            const span = document.createElement("span");
+            span.textContent = anuncio.autor || "Anónimo";
+            span.style.cssText = "font-size:13px; color:#ccc;";
+            div.appendChild(span);
+
+            // Ahora sí: agregar todo al contenedor
+            container.appendChild(div);
+
+            // ¡IMPORTANTE! Guardar el correo ANTES de cualquier otra limpieza
+            container.dataset.correo = correoAutor;
+
+            // Hacer clickable todo el contenedor
+            container.style.cursor = "pointer";
+            container.onclick = (e) => {
+                e.stopPropagation();
+                abrirPerfilPorCorreo(correoAutor);
+            };
+
         })();
     }
 }
@@ -5667,6 +5669,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
