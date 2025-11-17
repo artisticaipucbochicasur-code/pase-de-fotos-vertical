@@ -1970,19 +1970,14 @@ async function abrirPerfilPorCorreo(correo) {
   }
 
   const correoLimpio = correo.trim();
-
   const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
 
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-cache"
-    });
+    const res = await fetch(url, { method: "GET", cache: "no-cache" });
 
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Error HTTP:", res.status, errorText);
-
       mostrarAviso(`Error del servidor (${res.status})\n\n${errorText.substring(0, 400)}`);
       return;
     }
@@ -1998,34 +1993,39 @@ async function abrirPerfilPorCorreo(correo) {
       return;
     }
 
-   if (data.status === "success") {
+    if (data.status === "success") {
 
-  // Foto principal
-  document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
+      // Foto principal
+      document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
 
-  // Foto difuminada
-  document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
+      // Foto difuminada
+      document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
 
-  // Nombre y correo
-  document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
-  document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
+      // Nombre y correo
+      document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
+      document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
 
-  // INSERTAR DATOS AL ESTILO PERFIL
-  mostrarDatosAutor({
-    telefono: data.telefono,
-    ciudad: data.ciudad,
-    congregacion: data.congregacion,
-    cargo: data.cargo
-  });
+      // INSERTAR DATOS AL ESTILO PERFIL
+      mostrarDatosAutor({
+        telefono: data.telefono,
+        ciudad: data.ciudad,
+        congregacion: data.congregacion,
+        cargo: data.cargo
+      });
 
-  // Mostrar modal
-  document.getElementById("modalAutor").classList.remove("hidden");
+      // Mostrar modal
+      document.getElementById("modalAutor").classList.remove("hidden");
 
-} else {
-  mostrarAviso("Perfil no encontrado");
+    } else {
+      mostrarAviso("Perfil no encontrado");
+    }
+
+  } catch (err) {
+    console.error("Error crítico en abrirPerfilPorCorreo:", err);
+    mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
+  }
 }
 
-}
 
 // Cerrar modal
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
@@ -5840,6 +5840,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
