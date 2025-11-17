@@ -1870,26 +1870,57 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
-// CAMBIA ESTO (de POST a GET)
 async function abrirPerfilPorCorreo(correo) {
-  if (!correo || correo.trim() === "") return;
+  if (!correo || correo.trim() === "") {
+    alert("Error: correo vacío o no válido");
+    return;
+  }
 
   const correoLimpio = correo.trim();
-  console.log("Cargando perfil:", correoLimpio);
+  const urlLlamada = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
+
+  // MOSTRAR EN ALERTA QUÉ ESTAMOS ENVIANDO
+  alert(`Intentando cargar perfil...\n\nURL completa:\n${urlLlamada}`);
+
+  console.log("abrirPerfilPorCorreo → Enviando GET a:", urlLlamada);
 
   try {
-    const res = await fetch(
-      `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`
-    );
+    const res = await fetch(urlLlamada, {
+      method: "GET",
+      cache: "no-cache" // evita caché raro
+    });
+
+    // MOSTRAR STATUS DE LA RESPUESTA
+    console.log("Status HTTP:", res.status, res.statusText);
+    alert(`Respuesta del servidor:\nStatus: ${res.status} ${res.statusText}`);
 
     if (!res.ok) {
-      console.error("Error HTTP:", res.status);
+      const errorText = await res.text();
+      console.error("Error del servidor (texto crudo):", errorText);
+      alert(`Error HTTP ${res.status}\n\nRespuesta cruda:\n${errorText.substring(0, 500)}`);
       return;
     }
 
-    const data = await res.json();
+    const textoCrudo = await res.text();
+    console.log("Respuesta cruda del script:", textoCrudo);
+
+    // MOSTRAR EXACTAMENTE LO QUE RECIBIMOS
+    alert(`Respuesta recibida del Apps Script:\n\n${textoCrudo.substring(0, 800)}`);
+
+    // Intentar parsear JSON
+    let data;
+    try {
+      data = JSON.parse(textoCrudo);
+    } catch (parseErr) {
+      console.error("No se pudo parsear JSON:", parseErr);
+      alert(`Error: el servidor no devolvió JSON válido\n\nRecibido:\n${textoCrudo.substring(0, 600)}`);
+      return;
+    }
+
+    console.log("JSON parseado:", data);
 
     if (data.status === "success") {
+      // ÉXITO → rellenar modal
       document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
       document.getElementById("perfilNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("perfilCorreo").textContent = data.correo;
@@ -1897,10 +1928,16 @@ async function abrirPerfilPorCorreo(correo) {
       document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
       document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
       document.getElementById("perfilCargo").textContent = data.cargo || "-";
+
       document.getElementById("modalAutor").classList.remove("hidden");
+      alert("Perfil cargado con éxito!");
+    } else {
+      alert("Usuario no encontrado o error:\n" + (data.message || "Sin mensaje"));
     }
+
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Error completo en fetch:", err);
+    alert("Error de conexión o JavaScript:\n" + err.message);
   }
 }
 
@@ -5667,4 +5704,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
