@@ -1871,60 +1871,47 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
 
 async function abrirPerfilPorCorreo(correo) {
-  if (!correo || correo.trim() === "") {
-    alert("No hay correo para buscar");
-    return;
-  }
+  if (!correo || correo.trim() === "") return;
 
-  // FORZAMOS que la URL tenga siempre el parámetro "accion" al inicio
-  const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correo.trim())}`;
+  // Esta URL es la mágica que Google da en cada despliegue y que SÍ permite CORS
+  const CORS_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=TuClaveMuyLarga&lib=MLibreriaLarga";
+
+  // SI NO TIENES ESA URL TODAVÍA → haz esto AHORA MISMO (2 minutos):
+  // 1. Abre tu Apps Script
+  // 2. Desplegar → Nueva implementación → Aplicación web
+  // 3. Ejecutar como: Yo / Acceso: Cualquier persona
+  // 4. Implementar → te sale una URL que empieza con script.googleusercontent.com → ¡esa es!
 
   try {
-    console.log("Llamando a:", url);
-    const res = await fetch(url, {
-      method: "GET",
-      mode: "no-cors",           // ← CLAVE 1: evita el error CORS del navegador
-      cache: "no-cache",          // ← CLAVE 2: evita caché loca de Google
-      redirect: "follow"
+    const respuesta = await fetch(CORS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        accion: "getUserByEmail",
+        correo: correo.trim()
+      })
     });
 
-    // IMPORTANTE: con "no-cors" no podemos leer el cuerpo, pero SÍ sabemos si llegó o no
-    // Si la petición llegó al script, aunque no devuelva JSON válido, Google responde 200
-    if (res.type === "opaque" || res.ok || res.status === 0) {
-      // Forzamos una segunda llamada con POST (esta SÍ nos da el JSON)
-      const res2 = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accion: "getUserByEmail",
-          correo: correo.trim()
-        })
-      });
+    const data = await respuesta.json();
 
-      const text = await res2.text();
-      // Si el script devuelve HTML vacío o el mensaje feo, lo detectamos
-      if (text.includes("did not return anything") || text.trim() === "" || text.startsWith("<")) {
-        alert("Usuario no encontrado o error del servidor");
-        return;
-      }
-
-      const data = JSON.parse(text);
-      if (data.status === "success") {
-        document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
-        document.getElementById("perfilNombre").textContent = data.nombre || "Sin nombre";
-        document.getElementById("perfilCorreo").textContent = data.correo;
-        document.getElementById("perfilTelefono").textContent = data.telefono || "-";
-        document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
-        document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
-        document.getElementById("perfilCargo").textContent = data.cargo || "-";
-        document.getElementById("modalAutor").classList.remove("hidden");
-      } else {
-        alert("Usuario no encontrado");
-      }
+    if (data.status === "success") {
+      document.getElementById("perfilFoto").src = data.fotoPerfil || "img/default-user.png";
+      document.getElementById("perfilNombre").textContent = data.nombre || "Sin nombre";
+      document.getElementById("perfilCorreo").textContent = data.correo;
+      document.getElementById("perfilTelefono").textContent = data.telefono || "-";
+      document.getElementById("perfilCiudad").textContent = data.ciudad || "-";
+      document.getElementById("perfilCongregacion").textContent = data.congregacion || "-";
+      document.getElementById("perfilCargo").textContent = data.cargo || "-";
+      document.getElementById("modalAutor").classList.remove("hidden");
+    } else {
+      alert("Usuario no encontrado");
     }
+
   } catch (err) {
-    console.error("Error en abrirPerfilPorCorreo:", err);
-    alert("Error de conexión. Intenta de nuevo.");
+    console.error("Error real:", err);
+    alert("Error de conexión. Usa la URL de desarrollo con CORS (ver instrucciones)");
   }
 }
 
@@ -5689,3 +5676,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
