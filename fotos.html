@@ -330,42 +330,38 @@
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-/* Texto del autor: siempre arriba del contenedor de comentarios y clickeable */
+/* Autor: alineado a la izquierda y siempre sube correctamente */
 #autorContainer {
   position: fixed !important;
-  bottom: 74px !important;           /* posición normal cuando comentarios está contraído */
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  z-index: 999 !important;           /* siempre encima del overlay (998) */
+  bottom: 74px !important;           /* posición normal (comentarios contraídos) */
+  left: 18px !important;             /* 👈 alineado a la izquierda, igual que los comentarios */
+  z-index: 999 !important;
   background: transparent !important;
-  padding: 8px 12px !important;      /* pequeño padding solo para área clickeable */
+  padding: 8px 12px !important;      /* zona clickeable cómoda */
   margin: 0 !important;
-  border-radius: 8px !important;     /* opcional: redondeado sutil al hacer hover */
+  border-radius: 8px !important;
   cursor: pointer !important;
-  pointer-events: auto !important;   /* ¡IMPORTANT: ahora SÍ es clickeable! */
+  pointer-events: auto !important;
   color: #e8eaed !important;
   font-size: 14px;
   font-weight: 500;
-  text-align: center;
   white-space: nowrap;
-  transition: all 0.28s ease !important;
+  transition: bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s !important;
   user-select: none;
+  transform: translateY(0) !important;
 }
 
-/* Cuando los comentarios están expandidos → el autor sube automáticamente */
-.comments-overlay-container.expanded ~ #autorContainer,
-.comments-overlay-container.expanded + * ~ #autorContainer,
-body:has(.comments-overlay-container.expanded) #autorContainer {
-  bottom: 82px !important;   /* sube más cuando está expandido */
-  transform: translateX(-50%) translateY(-8px) !important;
+/* CUANDO LOS COMENTARIOS ESTÁN EXPANDIDOS → el autor sube MUCHO más arriba */
+body:has(.comments-overlay-container.expanded) #autorContainer,
+.comments-overlay-container.expanded ~ #autorContainer {
+  bottom: 88px !important;   /* 👈 ahora sí sube bien alto (ajusta si necesitas más: 92px, 98px, etc.) */
 }
 
-/* Hover bonito y moderno (opcional pero queda pro) */
+/* Hover elegante (opcional pero queda brutal) */
 #autorContainer:hover {
   color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  background: rgba(255, 255, 255, 0.09) !important;
+  backdrop-filter: blur(8px) !important;
 }
 
     
@@ -1650,6 +1646,11 @@ body {
 </div>
 
 
+     <!-- Déjalo limpio así -->
+<div id="autorContainer">
+  <!-- tu contenido del autor -->
+</div>
+
 <div class="comments-counter" id="commentsCounter">
   <span class="icon">
     <i class="fa-regular fa-comment"></i>
@@ -1671,10 +1672,7 @@ body {
   <i class="fas fa-trash"></i>
 </button>
 
-   <!-- Déjalo limpio así -->
-<div id="autorContainer">
-  <!-- tu contenido del autor -->
-</div>
+
 
 <!-- MODAL PERFIL (FULLSCREEN) - AHORA SIEMPRE ENCIMA -->
 <div id="modalPerfil" style="
@@ -5551,6 +5549,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
