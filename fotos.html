@@ -871,69 +871,48 @@ body {
     background:#fca5a5 !important;
     color:white !important;
   }
-/* Modo oscuro estilo Google - Ultra limpio y profesional */
+/* 🌑 Tema oscuro global suave y moderno → ahora Google Dark exacto */
 .dark-mode {
-  background-color: #121212 !important;     /* Negro-gris puro de Google */
-  color: #e0e0e0 !important;                /* Texto blanco suave */
+  background-color: #121212;      /* antes #0f172a */
+  color: #e8eaed;                  /* antes #e2e8f0 */
 }
 
-/* Panel del menú lateral - estilo Google Dark */
+/* Ajustes específicos para el menú lateral en dark mode */
 .dark-mode #userMenu > div {
-  background: #121212 !important;
+  background: rgba(31, 31, 31, 0.98) !important;  /* #1f1f1f con opacidad */
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Botones del menú - estilo Google (sin fondo pesado, solo sutil) */
 .dark-mode .menu-btn {
-  background: rgba(255, 255, 255, 0.06) !important;   /* Fondo muy sutil al estilo Google */
-  color: #e8eaed !important;
-  border-radius: 12px !important;
-  padding: 12px 16px !important;
-  transition: all 0.2s ease !important;
+  background: rgba(30, 41, 59, 0.7) !important;
+  color: #cbd5e1 !important;
 }
 
 .dark-mode .menu-btn:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
-  transform: none !important;
+  background: rgba(51, 65, 85, 0.9) !important;
+  transform: translateY(-2px);
 }
 
-/* Textos principales */
-.dark-mode #userName { 
-  color: #ffffff !important; 
-  font-weight: 600;
-}
-.dark-mode #userEmail { 
-  color: #9aa0a6 !important; 
-}
+.dark-mode #userName { color: #f1f5f9; }
+.dark-mode #userEmail { color: #94a3b8; }
 
-/* WhatsApp - mantiene su identidad */
+/* Botón WhatsApp mantiene su color verde incluso en dark mode */
 .dark-mode .menu-btn.whatsapp {
   background: #25D366 !important;
   color: white !important;
 }
-.dark-mode .menu-btn.whatsapp:hover {
-  background: #128C7E !important;
-}
 
-Cerrar sesión - rojo estilo Google 
-.dark-mode .menu-btn.logout,
-.dark-mode #logoutBtn {
-  background: rgba(254, 226, 226, 0.15) !important;
+/* Logout en rojo oscuro */
+.dark-mode .menu-btn.logout {
+  background: rgba(254, 226, 226, 0.2) !important;
   color: #fca5a5 !important;
 }
-.dark-mode .menu-btn.logout:hover,
-.dark-mode #logoutBtn:hover {
+.dark-mode .menu-btn.logout:hover {
   background: #ef4444 !important;
   color: white !important;
 }
 
- Línea separadora y versión 
-.dark-mode .version-menu {
-  color: #9aa0a6 !important;
-  border-top: 1px solid #303030 !important;
-}
 
 @keyframes slideUp {
   from { transform: translateY(40px); opacity: 0; }
@@ -1851,35 +1830,27 @@ themeToggle.addEventListener('click', () => {
   }
 });
 
+// 🎨 Activar modo oscuro
+// 🎨 Activar modo oscuro
 function enableDarkMode() {
-  document.body.classList.add('dark-mode');
+  body.classList.add('dark-mode');
   themeIcon.className = 'fas fa-sun';
   themeText.textContent = 'Tema claro';
-
   const panel = document.querySelector('#userMenu > div');
   if (panel) {
-    panel.style.background = '#121212';
+    panel.style.background = 'rgba(31, 31, 31, 0.98)';  // #1f1f1f 0.98
+    panel.style.color = '#e8eaed';
+    // Refuerzo: textos internos más visibles
+    panel.querySelectorAll('*').forEach(el => {
+      el.style.color = '#e8eaed';
+    });
   }
-
   aplicarDarkModeModalPerfil();
-
-  // RECUPERAR COLORES CORRECTOS AL VOLVER A MODO OSCURO
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.style.color = "#fca5a5";                    // Todo el botón (fuerza el color)
-    logoutBtn.querySelector("span")?.style.setProperty("color", "#fca5a5", "important"); // Solo el texto
-    logoutBtn.querySelector("i")?.style.setProperty("color", "#fca5a5", "important");    // Solo el icono (por si acaso)
-  }
-
-  const version = document.querySelector("#userMenu div[style*='font-size:12px'], #userMenu .version-menu");
-  if (version) {
-    version.style.setProperty("color", "#e8eaed", "important");
-  }
 }
 
 // ☀️ Activar modo claro
 function enableLightMode() {
-  document.body.classList.remove('dark-mode');
+  body.classList.remove('dark-mode');
   themeIcon.className = 'fas fa-moon';
   themeText.textContent = 'Tema oscuro';
 
@@ -1888,18 +1859,15 @@ function enableLightMode() {
     panel.style.background = 'rgba(255, 255, 255, 0.95)';
     panel.style.color = '#1e293b';
 
-    // ANTES (PROBLEMA):
-    // panel.querySelectorAll('*').forEach(el => { el.style.color = '#1e293b'; });
-
-    // AHORA (SOLUCIÓN: solo afecta textos normales, NO a #logoutBtn ni versión)
-    panel.querySelectorAll('p, span, div, button:not(#logoutBtn):not(.version-menu *)').forEach(el => {
+    // Restaurar colores internos
+    panel.querySelectorAll('*').forEach(el => {
       el.style.color = '#1e293b';
     });
   }
+ aplicarLightModeModalPerfil();
 
-  aplicarLightModeModalPerfil();
+
 }
-
 
 
 
@@ -1907,38 +1875,23 @@ function enableLightMode() {
 function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
+  modal.style.background = "rgba(31, 31, 31, 0.98)";  // #1f1f1f 0.98
+  modal.style.color = "#e8eaed";
 
-  // Fondo EXACTO del modo oscuro de Google
-  modal.style.background = "#121212";
-  modal.style.color = "#e0e0e0"; // Texto principal (como Google)
-
-  // Forzar TODOS los textos internos al color perfecto de Google
-  modal.querySelectorAll("p, span, label, h1, h2, h3, div, a, button, input, textarea").forEach(el => {
-    el.style.setProperty("color", "#e0e0e0", "important");
+  // Textos internos
+  modal.querySelectorAll("p, span, label, h1, h2, h3").forEach(el => {
+    el.style.color = "#e8eaed";
   });
 
-  // Texto secundario más suave (como los subtítulos en Google)
-  modal.querySelectorAll("small, .text-muted, .subtitle, .hint").forEach(el => {
-    el.style.setProperty("color", "#9aa0a6", "important");
-  });
-
-  // Botón cerrar (X) - estilo Google
-  const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
-  if (btnCerrar) {
-    btnCerrar.style.background = "rgba(255, 255, 255, 0.12)";
-    btnCerrar.style.color = "#e0e0e0";
-    btnCerrar.style.border = "1px solid rgba(255, 255, 255, 0.15)";
-  }
-
-  /* — Forzar menú lateral también con estilo Google (por si acaso) — */
+  // Forzar textos de botones del menú a color Google claro
   document.querySelectorAll("#userMenu .menu-btn, #userMenu .menu-btn span, #userMenu .menu-btn i")
     .forEach(el => {
-      el.style.setProperty("color", "#e8eaed", "important"); // Blanco suave Google
+      el.style.setProperty("color", "#e8eaed", "important");
     });
 
-  // Versión abajo del menú
+  // Versión (abajo)
   const version = document.querySelector("#userMenu div[style*='font-size:12px']");
-  if (version) version.style.color = "#9aa0a6"; // Gris suave Google
+  if (version) version.style.color = "#9aa0a6";   // texto secundario Google
 }
 
 function aplicarLightModeModalPerfil() {
@@ -5557,13 +5510,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
 
