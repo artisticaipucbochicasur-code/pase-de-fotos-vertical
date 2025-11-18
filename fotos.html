@@ -2133,33 +2133,40 @@ function mostrarDatosAutor(u) {
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
 
-    // ============================
-    // ✅ WHATSAPP (VERSIÓN QUE SÍ FUNCIONA)
-    // ============================
-    const divWA = document.createElement('a');
+    // WHATSAPP (SIN BLOQUEAR MODAL)
+    const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
     divWA.style.alignItems = 'center';
     divWA.style.cursor = 'pointer';
-    divWA.style.textDecoration = 'none';
-    divWA.style.color = 'inherit';
-    divWA.onclick = (e) => { e.stopPropagation(); };
 
-    // Normalizar número
-    let numero = u.telefono.replace(/\D/g, '');
-    if (!numero.startsWith('57') && numero.length === 10) {
-      numero = '57' + numero;
-    }
+    divWA.onclick = function (e) {
+      e.stopPropagation();
 
-    const waUrl = `https://wa.me/${numero}`;
-    divWA.href = waUrl;
-    divWA.target = "_blank"; // 🔥 ESTO LO HACE FUNCIONAR EN TODAS LAS PLATAFORMAS
+      try {
+        let numero = String(u.telefono || "").replace(/\D/g, "");
+
+        console.log("Número original:", u.telefono);
+        console.log("Número limpio:", numero);
+
+        if (!numero.startsWith("57") && numero.length === 10) {
+          numero = "57" + numero;
+          console.log("Código 57 agregado:", numero);
+        }
+
+        const waUrl = `https://wa.me/${numero}`;
+        console.log("URL final:", waUrl);
+
+        window.open(waUrl, "_blank");
+      } catch (err) {
+        console.error("Error al abrir WhatsApp:", err);
+      }
+    };
 
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
-    // ============================
 
     divContacto.appendChild(divTel);
     divContacto.appendChild(divWA);
@@ -2208,6 +2215,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 }
+
 
 
     
@@ -6056,6 +6064,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
