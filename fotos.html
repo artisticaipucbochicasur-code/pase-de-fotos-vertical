@@ -2117,15 +2117,16 @@ function mostrarDatosAutor(u) {
     divContacto.style.display = 'flex';
     divContacto.style.justifyContent = 'center';
     divContacto.style.gap = '20px';
-    divContacto.style.cursor = 'pointer';
 
     // TELÉFONO
     const divTel = document.createElement('div');
     divTel.style.display = 'flex';
     divTel.style.flexDirection = 'column';
     divTel.style.alignItems = 'center';
+    divTel.style.cursor = 'pointer';
     divTel.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       window.location.href = `tel:${u.telefono}`;
     });
     divTel.innerHTML = `
@@ -2133,26 +2134,31 @@ function mostrarDatosAutor(u) {
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
 
-    // WHATSAPP - CON ALERTA PARA DEBUG
+    // WHATSAPP - VERSIÓN SIMPLIFICADA
     const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
     divWA.style.alignItems = 'center';
-    divWA.addEventListener('click', (e) => {
+    divWA.style.cursor = 'pointer';
+    
+    // Agregar el evento directamente al divWA
+    divWA.onclick = function(e) {
       e.stopPropagation();
-      let numero = u.telefono.replace(/\D/g, ''); // limpiar
+      e.preventDefault();
+      alert('Botón WhatsApp clickeado - Número: ' + u.telefono);
       
-      // ALERTA PARA VER QUÉ ESTÁ PASANDO
-      alert(`Número original: ${u.telefono}\nNúmero limpio: ${numero}\nLongitud: ${numero.length}`);
+      let numero = u.telefono.replace(/\D/g, '');
+      alert(`Número limpio: ${numero}`);
       
-      // Verificar si el número ya tiene código de país
       if (!numero.startsWith('57') && numero.length === 10) {
         numero = '57' + numero;
       }
       
-      alert(`URL de WhatsApp: https://wa.me/${numero}`);
-      window.open(`https://wa.me/${numero}`, '_blank');
-    });
+      const waUrl = `https://wa.me/${numero}`;
+      alert(`Abriendo: ${waUrl}`);
+      window.open(waUrl, '_blank');
+    };
+    
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
@@ -6054,6 +6060,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
