@@ -2105,96 +2105,106 @@ if (autorFoto) {
 }
 
 function mostrarDatosAutor(u) {
-  const cont = document.getElementById("autorDatosContainer");
-  if (!cont) return;
+  const cont = document.getElementById("autorDatosContainer");
+  if (!cont) return;
 
-  cont.innerHTML = ''; // limpiar
+  cont.innerHTML = ''; // limpiar
 
-  // TELEFONO
-  if (u.telefono) {
-    const divContacto = document.createElement('div');
-    divContacto.className = 'perfil-dato-item';
-    divContacto.style.display = 'flex';
-    divContacto.style.justifyContent = 'center';
-    divContacto.style.gap = '30px';
+  // Contenedor de contacto (Teléfono + WhatsApp)
+  if (u.telefono) {
+    const divContacto = document.createElement('div');
+    divContacto.className = 'perfil-dato-item';
+    divContacto.style.display = 'flex';
+    divContacto.style.justifyContent = 'center';
+    divContacto.style.gap = '20px';
+    divContacto.style.cursor = 'pointer';
 
-    // LLAMADA
-    const divTel = document.createElement('div');
-    divTel.style.display = 'flex';
-    divTel.style.flexDirection = 'column';
-    divTel.style.alignItems = 'center';
-    divTel.style.cursor = 'pointer';
-    divTel.addEventListener('click', () => {
-      window.location.href = `tel:${u.telefono}`;
-    });
-    divTel.innerHTML = `
-      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
-    `;
+    // TELÉFONO
+    const divTel = document.createElement('div');
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.location.href = `tel:${u.telefono}`;
+    });
+    divTel.innerHTML = `
+      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+    `;
 
-    // WHATSAPP
-    const divWA = document.createElement('a');
-    let numero = u.telefono || '';
-    numero = numero.replace(/\D/g, ''); // limpiar todo lo que no sea número
-    if (!numero.startsWith('57')) numero = '57' + numero; // asegurar prefijo +57
-    divWA.href = `https://wa.me/${numero}`;
-    divWA.target = '_blank';
-    divWA.style.display = 'flex';
-    divWA.style.flexDirection = 'column';
-    divWA.style.alignItems = 'center';
-    divWA.style.textDecoration = 'none';
-    divWA.style.color = 'inherit';
-    divWA.innerHTML = `
-      <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
-    `;
+    // WHATSAPP (SECCIÓN CORREGIDA)
+    const divWA = document.createElement('div');
+    divWA.style.display = 'flex';
+    divWA.style.flexDirection = 'column';
+    divWA.style.alignItems = 'center';
+    
+    // PREPARAR EL NÚMERO DE TELÉFONO
+    let numero = u.telefono.replace(/\D/g, ''); // limpiar
+    if (!numero.startsWith('57')) numero = '57' + numero;
+    const whatsappLink = `https://wa.me/${numero}`;
+    
+    // USAR UN ENLACE <a> DENTRO DEL DIV
+    divWA.innerHTML = `
+      <a href="${whatsappLink}" target="_blank" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
+        <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
+        <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
+      </a>
+    `;
 
-    divContacto.appendChild(divTel);
-    divContacto.appendChild(divWA);
-    cont.appendChild(divContacto);
-  }
+    // Opcional: Si el divWA no tiene un listener de click directo, 
+    // se puede omitir, pero lo mantengo para asegurar que el click
+    // no afecte el contenedor padre si se agregara lógica más tarde.
+    divWA.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
 
-  // CONGREGACIÓN
-  if (u.congregacion) {
-    const divCong = document.createElement('div');
-    divCong.className = 'perfil-dato-item';
-    divCong.innerHTML = `
-      <i class="fas fa-church"></i>
-      <div>
-        <div class="dato-label">Congregación</div>
-        <div class="dato-valor">${u.congregacion}</div>
-      </div>
-    `;
-    cont.appendChild(divCong);
-  }
+    divContacto.appendChild(divTel);
+    divContacto.appendChild(divWA);
+    cont.appendChild(divContacto);
+  }
 
-  // CARGO
-  if (u.cargo) {
-    const divCargo = document.createElement('div');
-    divCargo.className = 'perfil-dato-item';
-    divCargo.innerHTML = `
-      <i class="fas fa-user-tie"></i>
-      <div>
-        <div class="dato-label">Cargo</div>
-        <div class="dato-valor">${u.cargo}</div>
-      </div>
-    `;
-    cont.appendChild(divCargo);
-  }
+  // CONGREGACIÓN
+  if (u.congregacion) {
+    const divCong = document.createElement('div');
+    divCong.className = 'perfil-dato-item';
+    divCong.innerHTML = `
+      <i class="fas fa-church"></i>
+      <div>
+        <div class="dato-label">Congregación</div>
+        <div class="dato-valor">${u.congregacion}</div>
+      </div>
+    `;
+    cont.appendChild(divCong);
+  }
 
-  // CIUDAD
-  if (u.ciudad) {
-    const divCiudad = document.createElement('div');
-    divCiudad.className = 'perfil-dato-item';
-    divCiudad.innerHTML = `
-      <i class="fas fa-map-marker-alt"></i>
-      <div>
-        <div class="dato-label">Ciudad</div>
-        <div class="dato-valor">${u.ciudad}</div>
-      </div>
-    `;
-    cont.appendChild(divCiudad);
-  }
+  // CARGO
+  if (u.cargo) {
+    const divCargo = document.createElement('div');
+    divCargo.className = 'perfil-dato-item';
+    divCargo.innerHTML = `
+      <i class="fas fa-user-tie"></i>
+      <div>
+        <div class="dato-label">Cargo</div>
+        <div class="dato-valor">${u.cargo}</div>
+      </div>
+    `;
+    cont.appendChild(divCargo);
+  }
+
+  // CIUDAD
+  if (u.ciudad) {
+    const divCiudad = document.createElement('div');
+    divCiudad.className = 'perfil-dato-item';
+    divCiudad.innerHTML = `
+      <i class="fas fa-map-marker-alt"></i>
+      <div>
+        <div class="dato-label">Ciudad</div>
+        <div class="dato-valor">${u.ciudad}</div>
+      </div>
+    `;
+    cont.appendChild(divCiudad);
+  }
 }
 
 
@@ -6046,6 +6056,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
