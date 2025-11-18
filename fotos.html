@@ -2112,13 +2112,10 @@ function mostrarDatosAutor(u) {
 
   // ---------------- TELEFONO ----------------
   if (u.telefono) {
-    // Botón de llamada
     const divTel = document.createElement('div');
     divTel.className = 'perfil-dato-item';
     divTel.style.cursor = 'pointer';
-    divTel.addEventListener('click', () => {
-      window.location.href = `tel:${u.telefono}`;
-    });
+    divTel.onclick = () => { window.location.href = `tel:${u.telefono}`; };
     divTel.innerHTML = `
       <i class="fas fa-phone-alt"></i>
       <div>
@@ -2128,19 +2125,17 @@ function mostrarDatosAutor(u) {
     `;
     cont.appendChild(divTel);
 
-    // Botón de WhatsApp
-    const numeroLimpio = u.telefono.replace(/\D/g, ''); // eliminar caracteres no numéricos
-    if (numeroLimpio.length >= 7) { // Validar que sea un número razonable
+    // ---------------- WHATSAPP ----------------
+    const numeroLimpio = u.telefono.replace(/\D/g,'');
+    if (numeroLimpio.length >= 7) {
       const divWA = document.createElement('div');
       divWA.className = 'perfil-dato-item';
       divWA.style.cursor = 'pointer';
-      divWA.addEventListener('click', () => {
+      divWA.onclick = () => {
         let numero = numeroLimpio;
-        if (!numero.startsWith('57')) { // agregar prefijo +57 si no existe
-          numero = '57' + numero;
-        }
+        if (!numero.startsWith('57')) numero = '57' + numero;
         window.open(`https://wa.me/${numero}`, '_blank');
-      });
+      };
       divWA.innerHTML = `
         <i class="fab fa-whatsapp" style="color:#25D366;"></i>
         <div>
@@ -2194,6 +2189,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 }
+
 
 
     
@@ -6042,6 +6038,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
