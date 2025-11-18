@@ -2133,44 +2133,33 @@ function mostrarDatosAutor(u) {
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
 
-    // WHATSAPP - CON ALERTAS PARA DEBUG
-    const divWA = document.createElement('div');
+    // ============================
+    // ✅ WHATSAPP (VERSIÓN QUE SÍ FUNCIONA)
+    // ============================
+    const divWA = document.createElement('a');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
     divWA.style.alignItems = 'center';
     divWA.style.cursor = 'pointer';
-    
-    divWA.onclick = function(e) {
-      e.stopPropagation();
-      
-      alert('=== DEBUG WHATSAPP ===\n' +
-            'Número original: ' + u.telefono);
-      
-      let numero = u.telefono.replace(/\D/g, '');
-      alert('Número limpio: ' + numero + '\n' +
-            'Longitud: ' + numero.length + '\n' +
-            '¿Empieza con 57?: ' + numero.startsWith('57'));
-      
-      // Verificar si el número ya tiene código de país
-      if (!numero.startsWith('57') && numero.length === 10) {
-        numero = '57' + numero;
-        alert('Número con código agregado: ' + numero);
-      }
-      
-      const waUrl = `https://wa.me/${numero}`;
-      alert('URL final de WhatsApp: ' + waUrl + '\n' +
-            'Redirigiendo...');
+    divWA.style.textDecoration = 'none';
+    divWA.style.color = 'inherit';
+    divWA.onclick = (e) => { e.stopPropagation(); };
 
-      // ✔️ CAMBIO: esta versión sí abre WhatsApp correctamente
-      setTimeout(() => {
-        window.open(waUrl, "_blank");
-      }, 200);
-    };
-    
+    // Normalizar número
+    let numero = u.telefono.replace(/\D/g, '');
+    if (!numero.startsWith('57') && numero.length === 10) {
+      numero = '57' + numero;
+    }
+
+    const waUrl = `https://wa.me/${numero}`;
+    divWA.href = waUrl;
+    divWA.target = "_blank"; // 🔥 ESTO LO HACE FUNCIONAR EN TODAS LAS PLATAFORMAS
+
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
+    // ============================
 
     divContacto.appendChild(divTel);
     divContacto.appendChild(divWA);
@@ -2219,6 +2208,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 }
+
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -6066,6 +6056,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
