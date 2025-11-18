@@ -2110,31 +2110,58 @@ function mostrarDatosAutor(u) {
 
   cont.innerHTML = ''; // limpiar
 
-  // Contenedor de contacto (Solo WhatsApp)
+  // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item';
     divContacto.style.display = 'flex';
     divContacto.style.justifyContent = 'center';
     divContacto.style.gap = '20px';
-    divContacto.style.cursor = 'pointer';
 
-    // WHATSAPP
+    // TELÉFONO
+    const divTel = document.createElement('div');
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.style.cursor = 'pointer';
+    divTel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.location.href = `tel:${u.telefono}`;
+    });
+    divTel.innerHTML = `
+      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+    `;
+
+    // WHATSAPP - CORREGIDO
     const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
     divWA.style.alignItems = 'center';
-    divWA.addEventListener('click', (e) => {
+    divWA.style.cursor = 'pointer';
+    
+    divWA.onclick = function(e) {
       e.stopPropagation();
-      let numero = u.telefono.replace(/\D/g, ''); // limpiar
-      if (!numero.startsWith('57')) numero = '57' + numero;
-      window.location.href = `https://wa.me/${numero}`;
-    });
+      // QUITAMOS e.preventDefault() para permitir la navegación
+      
+      let numero = u.telefono.replace(/\D/g, '');
+      
+      // Verificar si el número ya tiene código de país
+      if (!numero.startsWith('57') && numero.length === 10) {
+        numero = '57' + numero;
+      }
+      
+      const waUrl = `https://wa.me/${numero}`;
+      // Usamos window.location.href en lugar de window.open
+      window.location.href = waUrl;
+    };
+    
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
 
+    divContacto.appendChild(divTel);
     divContacto.appendChild(divWA);
     cont.appendChild(divContacto);
   }
@@ -2181,7 +2208,6 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 }
-
     
 // 🌙 Función completa de tema oscuro (2025 style)
 const themeToggle = document.getElementById('themeToggle');
@@ -6028,6 +6054,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
