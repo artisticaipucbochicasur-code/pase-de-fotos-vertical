@@ -2133,7 +2133,7 @@ function mostrarDatosAutor(u) {
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
 
-    // WHATSAPP
+    // WHATSAPP - CORREGIDO
     const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
@@ -2141,8 +2141,11 @@ function mostrarDatosAutor(u) {
     divWA.addEventListener('click', (e) => {
       e.stopPropagation();
       let numero = u.telefono.replace(/\D/g, ''); // limpiar
-      if (!numero.startsWith('57')) numero = '57' + numero;
-      window.location.href = `https://wa.me/${numero}`;
+      // Verificar si el número ya tiene código de país
+      if (!numero.startsWith('57') && numero.length === 10) {
+        numero = '57' + numero;
+      }
+      window.open(`https://wa.me/${numero}`, '_blank');
     });
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
@@ -6047,6 +6050,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
