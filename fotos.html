@@ -5570,6 +5570,30 @@ if (logoutBtn) {
     // 🧹 Limpiar caché localStorage de fotos
     localStorage.removeItem("fotoLocal");
 
+    // ---------------------------------------------------------
+    // 🧹 NUEVO: Limpiar cache de perfiles
+    for (const key in perfilCache) {
+      delete perfilCache[key];
+    }
+
+    // 🧹 NUEVO: Limpiar datos visuales del modal de autor
+    const foto = document.getElementById("autorFoto");
+    const fondo = document.getElementById("autorFotoFondo");
+    const nombre = document.getElementById("autorNombre");
+    const correoAutor = document.getElementById("autorCorreo");
+    const datosCont = document.getElementById("autorDatosContainer");
+
+    if (foto) foto.src = "img/default-user.png";
+    if (fondo) fondo.src = "img/default-user.png";
+    if (nombre) nombre.textContent = "";
+    if (correoAutor) correoAutor.textContent = "";
+    if (datosCont) datosCont.innerHTML = "";
+
+    // 🧹 NUEVO: Cerrar modal si está abierto
+    const modal = document.getElementById("modalAutor");
+    if (modal) modal.classList.add("hidden");
+    // ---------------------------------------------------------
+
     currentAuthorName = "";
     currentAuthorEmail = "";
 
@@ -5579,6 +5603,7 @@ if (logoutBtn) {
     setTimeout(() => location.reload(), 1200);
   });
 }
+
 
 
   const btnMiPerfil = document.querySelector("#userMenu .menu-btn");
@@ -6064,6 +6089,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
