@@ -1971,6 +1971,34 @@ async function abrirPerfilPorCorreo(correo) {
   }
 
   const correoLimpio = correo.trim();
+  const correoNorm = normalizeText(correoLimpio);
+
+  // ⚡ SI EL PERFIL ESTÁ EN CACHÉ → ABRIR INSTANTÁNEO
+  if (perfilCache[correoNorm]) {
+    const data = perfilCache[correoNorm];
+
+    // Foto principal
+    document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
+
+    // Foto difuminada
+    document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
+
+    // Nombre y correo
+    document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
+    document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
+
+    mostrarDatosAutor({
+      telefono: data.telefono,
+      ciudad: data.ciudad,
+      congregacion: data.congregacion,
+      cargo: data.cargo
+    });
+
+    document.getElementById("modalAutor").classList.remove("hidden");
+    return; // ⬅ evita hacer el fetch
+  }
+
+  // ⚡ SI NO ESTÁ EN CACHÉ → HACER PETICIÓN NORMAL
   const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
 
   try {
@@ -1995,6 +2023,9 @@ async function abrirPerfilPorCorreo(correo) {
     }
 
     if (data.status === "success") {
+
+      // ⚡ Guardar en caché para próxima apertura instantánea
+      perfilCache[correoNorm] = data;
 
       // Foto principal
       document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
@@ -2026,6 +2057,7 @@ async function abrirPerfilPorCorreo(correo) {
     mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
   }
 }
+
 
 
 // Cerrar modal
@@ -2311,9 +2343,54 @@ if (btnCerrar) {
 
 }
 
+// Cache de perfiles precargados
+const perfilCache = {}; // clave: correo normalizado → datos completos del perfil
+
+    async function resolvePerfil(correo) {
+    const correoNorm = normalizeText(correo);
+    if (!correoNorm || perfilCache[correoNorm]) return; // ya está cacheado
+
+    try {
+        const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoNorm)}`;
+        const res = await fetch(url, { method: "GET", cache: "no-cache" });
+
+        if (!res.ok) return;
+
+        const textoCrudo = await res.text();
+        const data = JSON.parse(textoCrudo);
+
+        if (data.status === "success") {
+            perfilCache[correoNorm] = data; // guardar perfil en RAM
+        }
+    } catch (e) {
+        console.warn("No se pudo precargar perfil:", correoNorm);
+    }
+}
 
 
-    
+    function mostrarDatosPerfilInstantaneo(data) {
+
+    // Foto principal
+    document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
+
+    // Foto difuminada
+    document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
+
+    // Nombre y correo
+    document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
+    document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
+
+    // Datos estilo perfil
+    mostrarDatosAutor({
+        telefono: data.telefono,
+        ciudad: data.ciudad,
+        congregacion: data.congregacion,
+        cargo: data.cargo
+    });
+
+    document.getElementById("modalAutor").classList.remove("hidden");
+}
+
     
 
   document.querySelectorAll('.toggle-pin').forEach(btn => {
@@ -2329,6 +2406,7 @@ if (btnCerrar) {
     btn.classList.toggle('active', isPassword);
   });
 });
+
 
 
 
@@ -3752,22 +3830,26 @@ async function cargarImagenes() {
         }
     }
 
-    // Filtrar correos únicos que aún no están en caché
+    // Filtrar correos únicos que aún no están cacheados
     const uniqueToCache = [];
     const seen = new Set();
 
     vecinos.forEach(a => {
         if (!a) return;
         const correoNorm = normalizeText(a.correo);
-        if (!seen.has(correoNorm) && !fotoCache[correoNorm]) {
+
+        if (!seen.has(correoNorm)) {
             seen.add(correoNorm);
-            uniqueToCache.push(correoNorm);
+
+            // precargar foto de perfil ↓
+            if (!fotoCache[correoNorm]) resolveFotoPerfil(correoNorm);
+
+            // precargar datos de perfil ↓
+            if (!perfilCache[correoNorm]) resolvePerfil(correoNorm);
         }
     });
-
-    // Cachea solo los que no están en RAM
-    uniqueToCache.forEach(c => resolveFotoPerfil(c));
 }
+
 
 
 
@@ -5920,6 +6002,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
