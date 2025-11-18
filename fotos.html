@@ -2110,45 +2110,47 @@ function mostrarDatosAutor(u) {
 
   cont.innerHTML = ''; // limpiar
 
-  // Contenedor de contacto (Teléfono + WhatsApp)
+  // TELEFONO
   if (u.telefono) {
+    // Contenedor de llamada y WhatsApp
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item';
     divContacto.style.display = 'flex';
     divContacto.style.justifyContent = 'center';
-    divContacto.style.gap = '20px';
+    divContacto.style.gap = '30px';
 
-    // TELÉFONO
-    const aTel = document.createElement('a');
-    aTel.href = `tel:${u.telefono}`;
-    aTel.style.display = 'flex';
-    aTel.style.flexDirection = 'column';
-    aTel.style.alignItems = 'center';
-    aTel.style.textDecoration = 'none';
-    aTel.style.color = 'inherit';
-    aTel.innerHTML = `
+    // LLAMADA
+    const divTel = document.createElement('div');
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.style.cursor = 'pointer';
+    divTel.addEventListener('click', () => {
+      window.location.href = `tel:${u.telefono}`;
+    });
+    divTel.innerHTML = `
       <i class="fas fa-phone-alt" style="font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
 
     // WHATSAPP
-    const aWA = document.createElement('a');
+    const divWA = document.createElement('a');
     let numero = u.telefono.replace(/\D/g, '');
     if (!numero.startsWith('57')) numero = '57' + numero;
-    aWA.href = `https://wa.me/${numero}`;
-    aWA.target = '_blank';
-    aWA.style.display = 'flex';
-    aWA.style.flexDirection = 'column';
-    aWA.style.alignItems = 'center';
-    aWA.style.textDecoration = 'none';
-    aWA.style.color = 'inherit';
-    aWA.innerHTML = `
+    divWA.href = `https://wa.me/${numero}`;
+    divWA.target = '_blank';
+    divWA.style.display = 'flex';
+    divWA.style.flexDirection = 'column';
+    divWA.style.alignItems = 'center';
+    divWA.style.textDecoration = 'none';
+    divWA.style.color = 'inherit';
+    divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
 
-    divContacto.appendChild(aTel);
-    divContacto.appendChild(aWA);
+    divContacto.appendChild(divTel);
+    divContacto.appendChild(divWA);
     cont.appendChild(divContacto);
   }
 
@@ -2194,6 +2196,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 }
+
 
 
 
@@ -6043,6 +6046,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
