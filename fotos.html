@@ -2108,14 +2108,16 @@ function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
 
-  cont.innerHTML = ''; // Limpiar contenido previo
+  cont.innerHTML = ''; // limpiar
 
-  // ---------------- TELEFONO ----------------
+  // TELEFONO
   if (u.telefono) {
     const divTel = document.createElement('div');
     divTel.className = 'perfil-dato-item';
     divTel.style.cursor = 'pointer';
-    divTel.onclick = () => { window.location.href = `tel:${u.telefono}`; };
+    divTel.addEventListener('click', () => {
+      window.location.href = `tel:${u.telefono}`;
+    });
     divTel.innerHTML = `
       <i class="fas fa-phone-alt"></i>
       <div>
@@ -2125,29 +2127,27 @@ function mostrarDatosAutor(u) {
     `;
     cont.appendChild(divTel);
 
-    // ---------------- WHATSAPP ----------------
-    const numeroLimpio = u.telefono.replace(/\D/g,'');
-    if (numeroLimpio.length >= 7) {
-      const divWA = document.createElement('div');
-      divWA.className = 'perfil-dato-item';
-      divWA.style.cursor = 'pointer';
-      divWA.onclick = () => {
-        let numero = numeroLimpio;
-        if (!numero.startsWith('57')) numero = '57' + numero;
-        window.open(`https://wa.me/${numero}`, '_blank');
-      };
-      divWA.innerHTML = `
-        <i class="fab fa-whatsapp" style="color:#25D366;"></i>
-        <div>
-          <div class="dato-label">WhatsApp</div>
-          <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
-        </div>
-      `;
-      cont.appendChild(divWA);
-    }
+    // WhatsApp
+    const divWA = document.createElement('div');
+    divWA.className = 'perfil-dato-item';
+    divWA.style.cursor = 'pointer';
+    divWA.addEventListener('click', () => {
+      if (!u.telefono) return;
+      let numero = u.telefono.replace(/\D/g, ''); // limpiar
+      if (!numero.startsWith('57')) numero = '57' + numero;
+      window.location.href = `https://wa.me/${numero}`;
+    });
+    divWA.innerHTML = `
+      <i class="fab fa-whatsapp" style="color:#25D366;"></i>
+      <div>
+        <div class="dato-label">WhatsApp</div>
+        <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
+      </div>
+    `;
+    cont.appendChild(divWA);
   }
 
-  // ---------------- CONGREGACIÓN ----------------
+  // CONGREGACIÓN
   if (u.congregacion) {
     const divCong = document.createElement('div');
     divCong.className = 'perfil-dato-item';
@@ -2161,7 +2161,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCong);
   }
 
-  // ---------------- CARGO ----------------
+  // CARGO
   if (u.cargo) {
     const divCargo = document.createElement('div');
     divCargo.className = 'perfil-dato-item';
@@ -2175,7 +2175,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCargo);
   }
 
-  // ---------------- CIUDAD ----------------
+  // CIUDAD
   if (u.ciudad) {
     const divCiudad = document.createElement('div');
     divCiudad.className = 'perfil-dato-item';
@@ -2189,7 +2189,6 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 }
-
 
 
     
@@ -6038,6 +6037,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
