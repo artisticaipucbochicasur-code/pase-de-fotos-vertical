@@ -2110,41 +2110,48 @@ function mostrarDatosAutor(u) {
 
   cont.innerHTML = ''; // limpiar
 
-  // TELEFONO
+  // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
+    const divContacto = document.createElement('div');
+    divContacto.className = 'perfil-dato-item';
+    divContacto.style.display = 'flex';
+    divContacto.style.justifyContent = 'center';
+    divContacto.style.gap = '20px';
+    divContacto.style.cursor = 'pointer';
+
+    // TELÉFONO
     const divTel = document.createElement('div');
-    divTel.className = 'perfil-dato-item';
-    divTel.style.cursor = 'pointer';
-    divTel.addEventListener('click', () => {
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.addEventListener('click', (e) => {
+      e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
     divTel.innerHTML = `
-      <i class="fas fa-phone-alt"></i>
-      <div>
-        <div class="dato-label">Teléfono</div>
-        <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
-      </div>
+      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
-    cont.appendChild(divTel);
 
-    // WhatsApp
+    // WHATSAPP
     const divWA = document.createElement('div');
-    divWA.className = 'perfil-dato-item';
-    divWA.style.cursor = 'pointer';
-    divWA.addEventListener('click', () => {
-      if (!u.telefono) return;
+    divWA.style.display = 'flex';
+    divWA.style.flexDirection = 'column';
+    divWA.style.alignItems = 'center';
+    divWA.addEventListener('click', (e) => {
+      e.stopPropagation();
       let numero = u.telefono.replace(/\D/g, ''); // limpiar
       if (!numero.startsWith('57')) numero = '57' + numero;
       window.location.href = `https://wa.me/${numero}`;
     });
     divWA.innerHTML = `
-      <i class="fab fa-whatsapp" style="color:#25D366;"></i>
-      <div>
-        <div class="dato-label">WhatsApp</div>
-        <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
-      </div>
+      <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
-    cont.appendChild(divWA);
+
+    divContacto.appendChild(divTel);
+    divContacto.appendChild(divWA);
+    cont.appendChild(divContacto);
   }
 
   // CONGREGACIÓN
@@ -6037,6 +6044,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
