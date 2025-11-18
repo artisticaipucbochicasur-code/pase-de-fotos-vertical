@@ -2108,124 +2108,57 @@ function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
 
-  // Limpiar
-  cont.innerHTML = "";
+  const telefonoHTML = u.telefono ? `
+    <div class="perfil-dato-item">
+      <i class="fas fa-phone-alt" style="cursor:pointer;" onclick="window.location.href='tel:${u.telefono}'" title="Llamar"></i>
+      
+      <!-- Icono de WhatsApp -->
+      <i class="fab fa-whatsapp" style="color:#25D366; margin-left:12px; cursor:pointer; font-size:1.2em;" 
+         onclick="window.location.href='https://wa.me/${u.telefono.replace(/[^\d]/g, '')}'" 
+         title="Enviar mensaje por WhatsApp"></i>
 
-  // Helper para crear un item
-  function crearItem({ iconClass, label, value, href, isExternal = false }) {
-    const item = document.createElement("div");
-    item.className = "perfil-dato-item";
-    item.style.cursor = href ? "pointer" : "default";
+      <div style="margin-left:12px;">
+        <div class="dato-label">Teléfono</div>
+        <div class="dato-valor">
+          ${u.telefono}
+          <span style="margin-left:8px; color:#25D366; font-size:0.9em;">(WhatsApp disponible)</span>
+        </div>
+      </div>
+    </div>
+  ` : '';
 
-    const icon = document.createElement("i");
-    icon.className = iconClass;
-    // Evitar que iconos hereden colores no deseados
-    icon.style.minWidth = "24px";
-    icon.style.textAlign = "center";
-    icon.style.marginRight = "10px";
+  const datosHTML = `
+    ${telefonoHTML}
+    ${u.congregacion ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-church"></i>
+        <div>
+          <div class="dato-label">Congregación</div>
+          <div class="dato-valor">${u.congregacion}</div>
+        </div>
+      </div>
+    ` : ''}
+    ${u.cargo ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-user-tie"></i>
+        <div>
+          <div class="dato-label">Cargo</div>
+          <div class="dato-valor">${u.cargo}</div>
+        </div>
+      </div>
+    ` : ''}
+    ${u.ciudad ? `
+      <div class="perfil-dato-item">
+        <i class="fas fa-map-marker-alt"></i>
+        <div>
+          <div class="dato-label">Ciudad</div>
+          <div class="dato-valor">${u.ciudad}</div>
+        </div>
+      </div>
+    ` : ''}
+  `;
 
-    const textoWrap = document.createElement("div");
-
-    const labelEl = document.createElement("div");
-    labelEl.className = "dato-label";
-    labelEl.textContent = label;
-
-    const valorEl = document.createElement("div");
-    valorEl.className = "dato-valor";
-    valorEl.textContent = value;
-
-    textoWrap.appendChild(labelEl);
-    textoWrap.appendChild(valorEl);
-
-    if (href) {
-      const a = document.createElement("a");
-      a.href = href;
-      if (isExternal) a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.style.display = "flex";
-      a.style.alignItems = "center";
-      a.style.textDecoration = "none";
-      a.style.color = "inherit";
-
-      // Evitar que el click en el enlace burbujee y cierre el modal
-      a.addEventListener("click", (ev) => ev.stopPropagation());
-
-      item.appendChild(icon);
-      a.appendChild(textoWrap);
-      item.appendChild(a);
-    } else {
-      // Si no hay href, sólo añadir contenido
-      item.appendChild(icon);
-      item.appendChild(textoWrap);
-    }
-
-    return item;
-  }
-
-  // Teléfono (clicable → tel:)
-  if (u.telefono) {
-    const telNormalized = u.telefono.replace(/\s+/g, "");
-    const telHref = `tel:${telNormalized}`;
-    const telItem = crearItem({
-      iconClass: "fas fa-phone-alt",
-      label: "Teléfono",
-      value: u.telefono,
-      href: telHref,
-      isExternal: false
-    });
-    cont.appendChild(telItem);
-
-    // WhatsApp (clicable → wa.me). Normalizamos números y añadimos prefijo '57' si parece local.
-    const onlyNums = u.telefono.replace(/\D/g, "");
-    let waNumber = onlyNums;
-    if (onlyNums.length > 0 && onlyNums.length <= 10) {
-      // asume código de país 57 si no hay indicativo
-      waNumber = `57${onlyNums}`;
-    }
-    if (waNumber.length >= 7) {
-      const waHref = `https://wa.me/${waNumber}`;
-      const waItem = crearItem({
-        iconClass: "fab fa-whatsapp",
-        label: "WhatsApp",
-        value: "Enviar mensaje",
-        href: waHref,
-        isExternal: true
-      });
-      // color oficial whatsapp (no oblig.)
-      waItem.querySelector("i").style.color = "#25D366";
-      cont.appendChild(waItem);
-    }
-  }
-
-  // Congregación
-  if (u.congregacion) {
-    const c = crearItem({
-      iconClass: "fas fa-church",
-      label: "Congregación",
-      value: u.congregacion
-    });
-    cont.appendChild(c);
-  }
-
-  // Cargo
-  if (u.cargo) {
-    const cg = crearItem({
-      iconClass: "fas fa-user-tie",
-      label: "Cargo",
-      value: u.cargo
-    });
-    cont.appendChild(cg);
-  }
-
-  // Ciudad
-  if (u.ciudad) {
-    const cd = crearItem({
-      iconClass: "fas fa-map-marker-alt",
-      label: "Ciudad",
-      value: u.ciudad
-    });
-    cont.appendChild(cd);
-  }
+  cont.innerHTML = datosHTML;
 }
 
 
@@ -6075,5 +6008,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
