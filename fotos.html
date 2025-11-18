@@ -2108,6 +2108,15 @@ function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
 
+  // Normalizar teléfono para WhatsApp
+  let telefonoWhatsApp = "";
+  if (u.telefono) {
+    const soloNumeros = u.telefono.replace(/\D/g, "");
+
+    // Si no tiene indicativo, se asume +57 (Colombia)
+    telefonoWhatsApp = soloNumeros.length <= 10 ? `57${soloNumeros}` : soloNumeros;
+  }
+
   const datosHTML = `
     ${u.telefono ? `
       <div class="perfil-dato-item" onclick="window.location.href='tel:${u.telefono}'" style="cursor:pointer;">
@@ -2115,6 +2124,16 @@ function mostrarDatosAutor(u) {
         <div>
           <div class="dato-label">Teléfono</div>
           <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+        </div>
+      </div>
+    ` : ''}
+
+    ${u.telefono ? `
+      <div class="perfil-dato-item" onclick="window.location.href='https://wa.me/${telefonoWhatsApp}'" style="cursor:pointer;">
+        <i class="fab fa-whatsapp" style="color:#25D366;"></i>
+        <div>
+          <div class="dato-label">WhatsApp</div>
+          <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
         </div>
       </div>
     ` : ''}
@@ -6001,6 +6020,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
