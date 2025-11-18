@@ -2108,70 +2108,85 @@ function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
 
-  let datosHTML = '';
+  cont.innerHTML = ''; // limpiar
 
-  // Teléfono
+  // TELEFONO
   if (u.telefono) {
-    datosHTML += `
-      <div class="perfil-dato-item" onclick="window.location.href='tel:${u.telefono}'" style="cursor:pointer;">
-        <i class="fas fa-phone-alt"></i>
-        <div>
-          <div class="dato-label">Teléfono</div>
-          <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
-        </div>
-      </div>
-      <div class="perfil-dato-item" onclick="window.location.href='https://wa.me/${u.telefono.replace(/\\D/g,'')}'" style="cursor:pointer;">
-        <i class="fab fa-whatsapp" style="color:#25D366;"></i>
-        <div>
-          <div class="dato-label">WhatsApp</div>
-          <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
-        </div>
+    const divTel = document.createElement('div');
+    divTel.className = 'perfil-dato-item';
+    divTel.style.cursor = 'pointer';
+    divTel.addEventListener('click', () => {
+      window.location.href = `tel:${u.telefono}`;
+    });
+    divTel.innerHTML = `
+      <i class="fas fa-phone-alt"></i>
+      <div>
+        <div class="dato-label">Teléfono</div>
+        <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
       </div>
     `;
+    cont.appendChild(divTel);
+
+    // WhatsApp
+    const divWA = document.createElement('div');
+    divWA.className = 'perfil-dato-item';
+    divWA.style.cursor = 'pointer';
+    divWA.addEventListener('click', () => {
+      const numero = u.telefono.replace(/\D/g,''); // limpiar caracteres
+      window.open(`https://wa.me/${numero}`, '_blank');
+    });
+    divWA.innerHTML = `
+      <i class="fab fa-whatsapp" style="color:#25D366;"></i>
+      <div>
+        <div class="dato-label">WhatsApp</div>
+        <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
+      </div>
+    `;
+    cont.appendChild(divWA);
   }
 
-  // Congregación
+  // CONGREGACIÓN
   if (u.congregacion) {
-    datosHTML += `
-      <div class="perfil-dato-item">
-        <i class="fas fa-church"></i>
-        <div>
-          <div class="dato-label">Congregación</div>
-          <div class="dato-valor">${u.congregacion}</div>
-        </div>
+    const divCong = document.createElement('div');
+    divCong.className = 'perfil-dato-item';
+    divCong.innerHTML = `
+      <i class="fas fa-church"></i>
+      <div>
+        <div class="dato-label">Congregación</div>
+        <div class="dato-valor">${u.congregacion}</div>
       </div>
     `;
+    cont.appendChild(divCong);
   }
 
-  // Cargo
+  // CARGO
   if (u.cargo) {
-    datosHTML += `
-      <div class="perfil-dato-item">
-        <i class="fas fa-user-tie"></i>
-        <div>
-          <div class="dato-label">Cargo</div>
-          <div class="dato-valor">${u.cargo}</div>
-        </div>
+    const divCargo = document.createElement('div');
+    divCargo.className = 'perfil-dato-item';
+    divCargo.innerHTML = `
+      <i class="fas fa-user-tie"></i>
+      <div>
+        <div class="dato-label">Cargo</div>
+        <div class="dato-valor">${u.cargo}</div>
       </div>
     `;
+    cont.appendChild(divCargo);
   }
 
-  // Ciudad
+  // CIUDAD
   if (u.ciudad) {
-    datosHTML += `
-      <div class="perfil-dato-item">
-        <i class="fas fa-map-marker-alt"></i>
-        <div>
-          <div class="dato-label">Ciudad</div>
-          <div class="dato-valor">${u.ciudad}</div>
-        </div>
+    const divCiudad = document.createElement('div');
+    divCiudad.className = 'perfil-dato-item';
+    divCiudad.innerHTML = `
+      <i class="fas fa-map-marker-alt"></i>
+      <div>
+        <div class="dato-label">Ciudad</div>
+        <div class="dato-valor">${u.ciudad}</div>
       </div>
     `;
+    cont.appendChild(divCiudad);
   }
-
-  cont.innerHTML = datosHTML;
 }
-
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -6019,6 +6034,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
