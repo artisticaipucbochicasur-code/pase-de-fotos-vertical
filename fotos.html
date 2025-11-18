@@ -2108,29 +2108,24 @@ function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
 
-  // Limpiamos número solo para WhatsApp (solo dígitos)
-  const numeroLimpio = u.telefono ? u.telefono.replace(/[^\d]/g, '') : '';
-
-  const telefonoHTML = u.telefono ? `
-    <div class="perfil-dato-item telefono-item">
-      <i class="fas fa-phone-alt icon-llamar" style="cursor:pointer;" title="Llamar"></i>
-      
-      <i class="fab fa-whatsapp icon-whatsapp" 
-         style="color:#25D366; margin-left:14px; cursor:pointer; font-size:1.3em;" 
-         title="Enviar mensaje por WhatsApp"></i>
-
-      <div style="margin-left:12px; flex:1;">
-        <div class="dato-label">Teléfono</div>
-        <div class="dato-valor">
-          ${u.telefono}
-          <span style="margin-left:8px; color:#25D366; font-size:0.9em;">(WhatsApp disponible)</span>
+  const datosHTML = `
+    ${u.telefono ? `
+      <div class="perfil-dato-item" onclick="window.location.href='tel:${u.telefono}'" style="cursor:pointer;">
+        <i class="fas fa-phone-alt"></i>
+        <div>
+          <div class="dato-label">Teléfono</div>
+          <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
         </div>
       </div>
-    </div>
-  ` : '';
+      <div class="perfil-dato-item" onclick="window.location.href='https://wa.me/${u.telefono.replace(/\\D/g,'')}'" style="cursor:pointer;">
+        <i class="fab fa-whatsapp" style="color:#25D366;"></i>
+        <div>
+          <div class="dato-label">WhatsApp</div>
+          <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje</div>
+        </div>
+      </div>
+    ` : ''}
 
-  const datosHTML = `
-    ${telefonoHTML}
     ${u.congregacion ? `
       <div class="perfil-dato-item">
         <i class="fas fa-church"></i>
@@ -2140,6 +2135,7 @@ function mostrarDatosAutor(u) {
         </div>
       </div>
     ` : ''}
+
     ${u.cargo ? `
       <div class="perfil-dato-item">
         <i class="fas fa-user-tie"></i>
@@ -2149,6 +2145,7 @@ function mostrarDatosAutor(u) {
         </div>
       </div>
     ` : ''}
+
     ${u.ciudad ? `
       <div class="perfil-dato-item">
         <i class="fas fa-map-marker-alt"></i>
@@ -2161,26 +2158,8 @@ function mostrarDatosAutor(u) {
   `;
 
   cont.innerHTML = datosHTML;
-
-  // AHORA SÍ: agregamos los eventos de forma segura (después de insertar el HTML)
-  if (u.telefono) {
-    const btnLlamar = cont.querySelector('.icon-llamar');
-    const btnWhatsApp = cont.querySelector('.icon-whatsapp');
-
-    if (btnLlamar) {
-      btnLlamar.addEventListener('click', () => {
-        window.location.href = `tel:${u.telefono}`;
-      });
-    }
-
-    if (btnWhatsApp && numeroLimpio) {
-      btnWhatsApp.addEventListener('click', (e) => {
-        e.stopPropagation(); // evita que se dispare el click del contenedor padre si lo hubiera
-        window.open(`https://wa.me/${numeroLimpio}`, '_blank');
-      });
-    }
-  }
 }
+
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -6028,6 +6007,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
