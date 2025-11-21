@@ -1055,23 +1055,14 @@ body {
   text-align: left;
 }
 
-   
-    /* 🌙 MODO OSCURO — Que los textos e íconos del modal sean blancos */
-.dark #modalAutor {
-  color: #fff !important;
+   /* Esto garantiza que NUNCA tengan fondo, sin importar el modo */
+.dato-sin-fondo,
+#autorDatosContainer .dato-sin-fondo {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
-
-.dark #modalAutor i {
-  color: #fff !important;
-}
-
-/* Aplicar color blanco a los textos de datos */
-.dark #autorDatosContainer div,
-.dark #autorDatosContainer span,
-.dark #autorDatosContainer p {
-  color: #fff !important;
-}
-
+    
   </style>
 </head>
 
@@ -2123,70 +2114,57 @@ function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
 
-  cont.innerHTML = ''; // limpiar
+  cont.innerHTML = ''; 
+  cont.style.cssText = `
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 16px 0 !important;
+    margin: 0;
+  `;
 
-  // Contenedor de contacto (Teléfono + WhatsApp)
+  // ================== CONTACTO (Tel + WA) ==================
   if (u.telefono) {
     const divContacto = document.createElement('div');
-    divContacto.className = 'perfil-dato-item';
-    
-    /* 🔹 QUITAR FONDO / CONTENEDOR */
-    divContacto.style.background = "none";
-    divContacto.style.boxShadow = "none";
-    divContacto.style.border = "none";
-    
-    divContacto.style.display = 'flex';
-    divContacto.style.justifyContent = 'center';
-    divContacto.style.gap = '20px';
+    divContacto.className = 'dato-sin-fondo';  // ← clase nueva, inmune a los modos
+    divContacto.style.cssText = `
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin: 18px 0;
+      padding: 8px 0;
+    `;
 
-    // TELÉFONO
+    // Teléfono
     const divTel = document.createElement('div');
-    divTel.style.display = 'flex';
-    divTel.style.flexDirection = 'column';
-    divTel.style.alignItems = 'center';
-    divTel.style.cursor = 'pointer';
+    divTel.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
     divTel.addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
     divTel.innerHTML = `
       <i class="fas fa-phone-alt" style="font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+      <div class="dato-valor" style="text-decoration:underline; margin-top:4px;">${u.telefono}</div>
     `;
 
-    // WHATSAPP
+    // WhatsApp
     const divWA = document.createElement('div');
-    divWA.style.display = 'flex';
-    divWA.style.flexDirection = 'column';
-    divWA.style.alignItems = 'center';
-    divWA.style.cursor = 'pointer';
-
+    divWA.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
     divWA.onclick = function (e) {
       e.stopPropagation();
-
       try {
         let numero = String(u.telefono || "").replace(/\D/g, "");
-
-        console.log("Número original:", u.telefono);
-        console.log("Número limpio:", numero);
-
         if (!numero.startsWith("57") && numero.length === 10) {
           numero = "57" + numero;
-          console.log("Código 57 agregado:", numero);
         }
-
-        const waUrl = `https://wa.me/${numero}`;
-        console.log("URL final:", waUrl);
-
-        window.open(waUrl, "_blank");
+        window.open(`https://wa.me/${numero}`, "_blank");
       } catch (err) {
-        console.error("Error al abrir WhatsApp:", err);
+        console.error("Error WhatsApp:", err);
       }
     };
-
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
+      <div class="dato-valor" style="text-decoration:underline; margin-top:4px;">WhatsApp</div>
     `;
 
     divContacto.appendChild(divTel);
@@ -2194,67 +2172,34 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
-  // CONGREGACIÓN
-  if (u.congregacion) {
-    const divCong = document.createElement('div');
-    divCong.className = 'perfil-dato-item';
-
-    /* 🔹 QUITAR FONDO / CONTENEDOR */
-    divCong.style.background = "none";
-    divCong.style.boxShadow = "none";
-    divCong.style.border = "none";
-
-    divCong.innerHTML = `
-      <i class="fas fa-church"></i>
-      <div>
-        <div class="dato-label">Congregación</div>
-        <div class="dato-valor">${u.congregacion}</div>
+  // ================== DATOS SIMPLES ==================
+  const crearDatoSimple = (icono, label, valor) => {
+    const div = document.createElement('div');
+    div.className = 'dato-sin-fondo';  // ← nunca será tocado por los modos
+    div.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 14px 0;
+      padding: 6px 0;
+      width: 100%;
+      max-width: 320px;
+      justify-content: flex-start;
+    `;
+    div.innerHTML = `
+      <i class="${icono}" style="font-size:18px; width:26px; text-align:center;"></i>
+      <div style="flex:1;">
+        <div class="dato-label" style="font-size:0.85em; opacity:0.8;">${label}</div>
+        <div class="dato-valor">${valor}</div>
       </div>
     `;
-    cont.appendChild(divCong);
-  }
+    return div;
+  };
 
-  // CARGO
-  if (u.cargo) {
-    const divCargo = document.createElement('div');
-    divCargo.className = 'perfil-dato-item';
-
-    /* 🔹 QUITAR FONDO / CONTENEDOR */
-    divCargo.style.background = "none";
-    divCargo.style.boxShadow = "none";
-    divCargo.style.border = "none";
-
-    divCargo.innerHTML = `
-      <i class="fas fa-user-tie"></i>
-      <div>
-        <div class="dato-label">Cargo</div>
-        <div class="dato-valor">${u.cargo}</div>
-      </div>
-    `;
-    cont.appendChild(divCargo);
-  }
-
-  // CIUDAD
-  if (u.ciudad) {
-    const divCiudad = document.createElement('div');
-    divCiudad.className = 'perfil-dato-item';
-
-    /* 🔹 QUITAR FONDO / CONTENEDOR */
-    divCiudad.style.background = "none";
-    divCiudad.style.boxShadow = "none";
-    divCiudad.style.border = "none";
-
-    divCiudad.innerHTML = `
-      <i class="fas fa-map-marker-alt"></i>
-      <div>
-        <div class="dato-label">Ciudad</div>
-        <div class="dato-valor">${u.ciudad}</div>
-      </div>
-    `;
-    cont.appendChild(divCiudad);
-  }
+  if (u.congregacion) cont.appendChild(crearDatoSimple('fas fa-church', 'Congregación', u.congregacion));
+  if (u.cargo)         cont.appendChild(crearDatoSimple('fas fa-user-tie', 'Cargo', u.cargo));
+  if (u.ciudad)        cont.appendChild(crearDatoSimple('fas fa-map-marker-alt', 'Ciudad', u.ciudad));
 }
-
 
 
 
@@ -2377,59 +2322,73 @@ function aplicarDarkModeModalAutor() {
   const modal = document.getElementById("contenidoModalAutor");
   if (!modal) return;
 
-  modal.style.setProperty("background", "rgba(31,31,31,0.90)", "important");
-  modal.style.setProperty("color", "#ffffff", "important");
+  modal.style.background = "rgba(31, 31, 31, 0.98)";
+  modal.style.color = "#e8eaed";
 
-  // Textos fuertes blancos
-  modal.querySelectorAll("#autorNombre, #autorCorreo, .dato-label, .dato-valor, p, span, h1, h2, h3")
+  // Textos internos
+  modal.querySelectorAll("p, span, label, h1, h2, h3, .dato-label, .dato-valor")
     .forEach(el => {
-      el.style.setProperty("color", "#ffffff", "important");
+      el.style.color = "#e8eaed";
     });
 
-  // Iconos blancos
-  modal.querySelectorAll("i")
-    .forEach(ic => {
-      ic.style.setProperty("color", "#ffffff", "important");
-    });
-
-  // Botón cerrar
-  const btnCerrar = document.getElementById("cerrarModalAutor");
-  if (btnCerrar) {
-    btnCerrar.style.setProperty("background", "rgba(255,255,255,0.25)", "important");
-    btnCerrar.style.setProperty("color", "#ffffff", "important");
-  }
-}
-
-
-
-function aplicarLightModeModalAutor() {
-  const modal = document.getElementById("contenidoModalAutor");
-  if (!modal) return;
-
-  modal.style.setProperty("background", "white", "important");
-  modal.style.setProperty("color", "#1e293b", "important");
-
-  // Textos modo claro
-  modal.querySelectorAll("#autorNombre, #autorCorreo, .dato-label, .dato-valor, p, span, h1, h2, h3")
-    .forEach(el => {
-      el.style.setProperty("color", "#1e293b", "important");
+  // Ítems (tarjetas de datos)
+  modal.querySelectorAll(".autor-dato-item")
+    .forEach(box => {
+      box.style.background = "rgba(255,255,255,0.06)";
+      box.style.border = "1px solid rgba(255,255,255,0.12)";
     });
 
   // Iconos
   modal.querySelectorAll("i")
     .forEach(ic => {
-      ic.style.setProperty("color", "#1e293b", "important");
+      ic.style.color = "#e8eaed";
     });
 
-  // Botón cerrar claro
-  const btnCerrar = document.getElementById("cerrarModalAutor");
+  // Botón de cerrar (si tiene)
+  const btnCerrar = modal.parentElement.querySelector(".btnCerrarAutor");
   if (btnCerrar) {
-    btnCerrar.style.setProperty("background", "rgba(0,0,0,0.30)", "important");
-    btnCerrar.style.setProperty("color", "white", "important");
+    btnCerrar.style.background = "rgba(255,255,255,0.18)";
+    btnCerrar.style.color = "white";
   }
 }
 
 
+
+    function aplicarLightModeModalAutor() {
+  const modal = document.getElementById("contenidoModalAutor");
+  if (!modal) return;
+
+  modal.style.background = "white";
+  modal.style.color = "#1e293b";
+
+  // Textos internos
+  modal.querySelectorAll("p, span, label, h1, h2, h3, .dato-label, .dato-valor")
+    .forEach(el => {
+      el.style.color = "#1e293b";
+    });
+
+  // Ítems (tarjetas)
+  modal.querySelectorAll(".autor-dato-item")
+    .forEach(box => {
+      box.style.background = "rgba(248,248,248,1)";
+      box.style.border = "1px solid rgba(0,0,0,0.08)";
+    });
+
+  // Iconos
+  modal.querySelectorAll("i")
+    .forEach(ic => {
+      ic.style.color = "#1e293b";
+    });
+
+  // Botón cerrar
+const btnCerrar = document.getElementById("cerrarModalAutor");
+if (btnCerrar) {
+  btnCerrar.style.color = "white";     // X visible en modo claro
+  btnCerrar.style.background = "rgba(255,255,255,0.18)";
+  btnCerrar.style.fontWeight = "700";    // más visible
+}
+
+}
 
 // Cache de perfiles precargados
 const perfilCache = {}; // clave: correo normalizado → datos completos del perfil
@@ -6115,6 +6074,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
