@@ -2214,7 +2214,6 @@ function mostrarDatosAutor(u) {
 
 
 
-
     
 // 🌙 Función completa de tema oscuro (2025 style)
 const themeToggle = document.getElementById('themeToggle');
@@ -2337,24 +2336,14 @@ function aplicarDarkModeModalAutor() {
   modal.style.background = "rgba(31, 31, 31, 0.98)";
   modal.style.color = "#e8eaed";
 
-  // Textos
-  modal.querySelectorAll(".dato-label, .dato-valor, p, span, label, h1, h2, h3")
-    .forEach(el => {
-      el.style.setProperty("color", "#e8eaed", "important");
-    });
+  modal.querySelectorAll(".dato-label, .dato-valor, p, span, label, h1, h2, h3, div")
+    .forEach(el => el.style.setProperty("color", "#e8eaed", "important"));
 
-  // Ítems sin fondo
-  modal.querySelectorAll(".autor-dato-item, .perfil-dato-item")
-    .forEach(box => {
-      box.style.background = "transparent";
-      box.style.border = "none";
-    });
-
-  // Iconos blancos (FORZADO como en Perfil)
-  modal.querySelectorAll("i")
-    .forEach(ic => {
+  modal.querySelectorAll("i").forEach(ic => {
+    if (!ic.closest('.fa-whatsapp')) { // preservamos el verde de WhatsApp
       ic.style.setProperty("color", "#e8eaed", "important");
-    });
+    }
+  });
 
   // Botón cerrar
   const btnCerrar = modal.parentElement.querySelector(".btnCerrarAutor");
@@ -2378,30 +2367,20 @@ function aplicarDarkModeModalAutor() {
 
 
 function aplicarLightModeModalAutor() {
-  const modal = document.getElementById("contenidoModalAutor");
+ const modal = document.getElementById("contenidoModalAutor");
   if (!modal) return;
 
   modal.style.background = "white";
   modal.style.color = "#1e293b";
 
-  // Textos modo claro
-  modal.querySelectorAll(".dato-label, .dato-valor, p, span, label, h1, h2, h3")
-    .forEach(el => {
-      el.style.setProperty("color", "#1e293b", "important");
-    });
+  modal.querySelectorAll(".dato-label, .dato-valor, p, span, label, h1, h2, h3, div")
+    .forEach(el => el.style.setProperty("color", "#1e293b", "important"));
 
-  // Ítems sin fondo
-  modal.querySelectorAll(".autor-dato-item, .perfil-dato-item")
-    .forEach(box => {
-      box.style.background = "transparent";
-      box.style.border = "none";
-    });
-
-  // Iconos modo claro
-  modal.querySelectorAll("i")
-    .forEach(ic => {
+  modal.querySelectorAll("i").forEach(ic => {
+    if (!ic.closest('.fa-whatsapp')) {
       ic.style.setProperty("color", "#1e293b", "important");
-    });
+    }
+  });
 
   // Botón cerrar
   const btnCerrar = document.getElementById("cerrarModalAutor");
@@ -6110,4 +6089,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
