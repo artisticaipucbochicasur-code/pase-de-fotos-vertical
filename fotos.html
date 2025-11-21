@@ -1522,69 +1522,101 @@ body {
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 
-// 1. CARGAR EL HEADER COMPARTIDO
-    fetch('header.html')
-      .then(r => r.text())
-      .then(html => {
-        document.getElementById('shared-header').innerHTML = html;
-        initHeader(); // ← función que inicializa todo
-      });
-
-    // 2. FUNCIÓN QUE SE EJECUTA EN LAS DOS PÁGINAS
-    function initHeader() {
-      const currentPage = location.pathname.split('/').pop();
-
-      // Marcar botón activo
-      if (currentPage.includes('foto') || currentPage === 'index.html') {
-        document.getElementById('imagesBtn')?.classList.add('active');
-      } else if (currentPage.includes('videos')) {
-        document.getElementById('videosBtn')?.classList.add('active');
-      }
-
-      // Navegación sin recargar header
-      document.getElementById('imagesBtn')?.addEventListener('click', () => {
-        if (!currentPage.includes('foto')) location.href = 'foto.html';
-      });
-      document.getElementById('videosBtn')?.addEventListener('click', () => {
-        if (!currentPage.includes('videos')) location.href = 'videosSesion2.html';
-      });
-
-      // ==== SISTEMA DE NOTIFICACIONES COMPARTIDO ====
-      function updateBadge(type, count) {
-        const badge = document.getElementById(type + 'NotificationCount');
-        if (count > 0) {
-          badge.textContent = count > 99 ? '99+' : count;
-          badge.classList.add('show');
-        } else {
-          badge.classList.remove('show');
-        }
-      }
-
-      // Escuchar cambios desde otras pestañas/páginas
-      window.addEventListener('storage', e => {
-        if (e.key === 'newImages') updateBadge('images', parseInt(e.newValue || 0));
-        if (e.key === 'newVideos') updateBadge('videos', parseInt(e.newValue || 0));
-      });
-
-      // Cargar contadores iniciales
-      updateBadge('images', parseInt(localStorage.getItem('newImages') || 0));
-      updateBadge('videos', parseInt(localStorage.getItem('newVideos') || 0));
-
-      // Resetear contador al entrar a la sección
-      if (currentPage.includes('foto')) localStorage.setItem('newImages', 0);
-      if (currentPage.includes('videos')) localStorage.setItem('newVideos', 0);
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const headerResp = await fetch("header.html");
+    if (headerResp.ok) {
+      document.getElementById("shared-header").innerHTML = await headerResp.text();
     }
+  } catch (e) { console.warn("No se pudo cargar header.html", e); }
 
-    // FUNCIÓN GLOBAL para que la llames cuando subas contenido nuevo
-    window.notifyNewContent = function(type) { // type = 'image' o 'video'
-      const key = type === 'image' ? 'newImages' : 'newVideos';
-      const current = parseInt(localStorage.getItem(key) || '0');
-      localStorage.setItem(key, current + 1);
+  // ==================== INICIALIZAR TODO DESPUÉS DEL HEADER ====================
+  initHeader();
+  verificarComentarios().then(() => cargarImagenes());
+
+  // ==================== VIDEO INTRO ====================
+  setTimeout(() => {
+    const loader = document.getElementById("loader");
+    if (loader) loader.style.display = "flex";
+
+    const videoIntro = document.createElement("video");
+    Object.assign(videoIntro, { src: "Ini.mp4", autoplay: true, muted: true, playsInline: true, preload: "auto" });
+    Object.assign(videoIntro.style, {
+      positionodisplay: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", objectFit: "cover",
+      zIndex: 999999, backgroundColor: "black", opacity: 0, transition: "opacity 1s ease"
+    });
+    document.body.appendChild(videoIntro);
+
+    const skipBtn = document.createElement("button");
+    skipBtn.innerText = "Omitir intro";
+    Object.assign(skipBtn.style, {
+      position: "fixed", bottom: "30px", left: "50%", transform: "translateX(-50%)",
+      padding: "10px 20px", fontSize: "16px", background: "rgba(0,0,0,0.6)", color: "white",
+      border: "1px solid rgba(255,255,255,0.3)", borderRadius: "10px", cursor: "pointer",
+      zIndex: 1000000, opacity: 0, transition: "opacity 0.8s ease", backdropFilter: "blur(6px)"
+    });
+    skipBtn.onclick = () => {
+      videoIntro.style.opacity = "0";
+      skipBtn.style.opacity = "0";
+      setTimeout(() => { videoIntro.remove(); skipBtn.remove(); }, 700);
     };
+    document.body.appendChild(skipBtn);
+
+    videoIntro.addEventListener("canplaythrough", () => {
+      if (loader) loader.style.display = "none";
+      videoIntro.style.opacity = "1";
+      videoIntro.play().catch(() => {});
+      setTimeout(() => skipBtn.style.opacity = "1", 3000);
+    });
+
+    videoIntro.addEventListener("ended", () => {
+      videoIntro.style.opacity = "0";
+      skipBtn.style.opacity = "0";
+      setTimeout(() => { videoIntro.remove(); skipBtn.remove(); }, 1000);
+    });
+
+    setTimeout(() => {
+      if (videoIntro.readyState < 3 || videoIntro.paused) {
+        videoIntro.remove(); skipBtn.remove();
+        if (loader) loader.style.display = "none";
+      }
+    }, 6000);
+  }, 300);
+
+  // ==================== RESALTAR BOTÓN IMÁGENES ====================
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) imagesBtn.classList.add("selected");
+
+  // ==================== BLOQUEO SIN SESIÓN ====================
+  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario"));
+  const modal = document.getElementById("loginModal");
+  if (!usuarioGuardado && modal) {
+    modal.style.display = "flex";
+  } else if (usuarioGuardado) {
+    setTimeout(() => {
+      if (document.getElementById("userBtn")) mostrarUsuario(usuarioGuardado);
+    }, 100);
+  }
+    // === INTERVALOS AL FINAL (solo una vez cada uno) ===
+  setInterval(actualizarContador, 5000);
+  setInterval(verificarComentarios, 5000);
+});
 
 
-    
 
+    // ==================== initHeader() (se llama después de cargar el header) ====================
+function initHeader() {
+  // Todos los event listeners que dependen del header
+  const refreshBtn = document.getElementById("refreshBtn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      location.reload();
+      for (const key in fotoCache) delete fotoCache[key];
+      localStorage.removeItem("fotoLocal");
+    });
+  }
+  // ... resto de initHeader que ya tenías ...
+}
 async function abrirPerfilPorCorreo(correo) {
   if (!correo || correo.trim() === "") {
     console.warn("abrirPerfilPorCorreo → correo vacío");
@@ -5857,6 +5889,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
