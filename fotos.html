@@ -2585,17 +2585,36 @@ let base64Imagen = "";
 // 🔹 Abrir modal
 publishBtn.addEventListener("click", (e) => {
   e.preventDefault();
+
+  // Cerrar el modal de búsqueda SI está abierto
+  if (searchOverlay && searchOverlay.style.display === "flex") {
+    searchOverlay.style.display = "none";
+  }
+
+  // Abrir modal de publicar
   publishModal.style.display = "flex";
 
-  // === MARCAR EL BOTÓN DE PUBLICAR COMO SELECCIONADO ===
+  // Resaltar botón activo
   document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
   publishBtn.classList.add('selected');
 
-  // APLICAR TEMA ACTUAL AL MODAL (¡ESTO ES LO QUE FALTABA!)
+  // Aplicar tema actual (como ya teníamos)
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalPublicar();
   } else {
     aplicarLightModeModalPublicar();
+  }
+});
+
+// CERRAR MODAL PUBLICAR (solo un listener!)
+closePublishModal.addEventListener("click", () => {
+  publishModal.style.display = "none";
+
+  // Volver a resaltar el botón de imágenes (o el que quieras por defecto)
+  const imagesBtn = document.getElementById("imagesBtn");
+  if (imagesBtn) {
+    document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
+    imagesBtn.classList.add('selected');
   }
 });
 
@@ -3402,17 +3421,41 @@ function normalizar(txt) {
     .trim();
 }
 
-// ABRIR BUSCADOR
 function abrirBusqueda() {
-  document.getElementById("searchOverlay").style.display = "flex";
-  document.getElementById("searchInput").value = "";
-  document.getElementById("searchResults").innerHTML = "";
-  document.getElementById("searchInput").focus();
+  // Cerrar el modal de Publicar si está abierto
+  const publishModal = document.getElementById("publishModal");
+  if (publishModal && publishModal.style.display === "flex") {
+    publishModal.style.display = "none";
+  }
 
-  // RESALTAR BOTÓN DE BÚSQUEDA AL ABRIR
+  // Abrir el buscador
+  const searchOverlay = document.getElementById("searchOverlay");
+  if (searchOverlay) {
+    searchOverlay.style.display = "flex";
+  }
+
+  // Limpiar y enfocar el input
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.value = "";
+    searchInput.focus();
+  }
+
+  // Limpiar resultados anteriores
+  const searchResults = document.getElementById("searchResults");
+  if (searchResults) {
+    searchResults.innerHTML = "";
+  }
+
+  // Resaltar botón de búsqueda
   document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
   const btnBuscar = document.getElementById("btnBuscar");
-  if (btnBuscar) btnBuscar.classList.add('selected');
+  if (btnBuscar) {
+    btnBuscar.classList.add('selected');
+  }
+
+  // Opcional: aplicar tema al overlay si tienes una función para eso
+  // aplicarTemaSearchOverlay(); // si la creas después
 }
 
 // CERRAR BUSCADOR + RESALTAR IMÁGENES
@@ -6174,7 +6217,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
 
 
 
