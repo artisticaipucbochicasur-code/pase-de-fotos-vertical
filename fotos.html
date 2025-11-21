@@ -1184,1247 +1184,335 @@ body {
 
 <body>
 <!-- AQUÍ SE CARGA EL HEADER COMPARTIDO -->
-  <div id="shared-header"></div>
+<div id="shared-header"></div>
+
 <!-- Contenedor de sliders -->
 <div id="sliderFotos">
   <!-- Aquí va tu slider de fotos -->
+
   <!-- 🔹 Modal de Publicar (Anuncio / Video) -->
-<div id="publishModal" style="
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.5);
-  backdrop-filter:blur(3px);
-  z-index:9999;
-  align-items:center;
-  justify-content:center;
-">
-  <div style="
-    background:#fff;
-    border-radius:16px;
-    width:90%;
-    max-width:520px;
-    padding:20px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.2);
-    position:relative;
+  <div id="publishModal" style="
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.5);
+    backdrop-filter:blur(3px);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
   ">
-    <button id="closePublishModal" style="
-      position:absolute;
-      top:10px; right:15px;
-      background:none;
-      border:none;
-      font-size:22px;
-      cursor:pointer;
-      color:#333;
-    ">×</button>
-
-    <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
-
-    <!-- 🔹 Selector de tipo -->
-    <div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
-      <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">📰 Anuncio</button>
-      <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">🎥 Video</button>
-    </div>
-
-    <!-- 🔹 Sección de Anuncio -->
-    <div id="anuncioSection" style="margin-top:15px;">
-      <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
-      <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-      <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
-
-     <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-<div style="display:flex;align-items:center;gap:10px;">
-  <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraImg" title="Abrir cámara" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
-    <i class="fas fa-camera"></i>
-  </button>
-</div>
-
-      <div style="margin-top:10px;text-align:center;">
-        <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
-      </div>
-
-      <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-        <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
-      </div>
-
-      <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
-      <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-    </div>
-
-    <!-- 🔹 Sección de Video -->
-    <div id="videoSection" style="display:none;margin-top:15px;">
-      <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
-      <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-      <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
-
-     <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-<div style="display:flex;align-items:center;gap:10px;">
-  <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraVideo" title="Grabar video" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
-    <i class="fas fa-video"></i>
-  </button>
-</div>
-
-
-      <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-        <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
-      </div>
-
-      <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
-
-      <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
-
-      <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-    </div>
-  </div>
-</div>
-
-
-  
-
-
-  
-<!-- BOTÓN GUARDAR/VER -->
-<button id="saveBtn" style="
-    position: fixed;
-    bottom: 300px;
-    right: 18px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    z-index: 2000;
-">
-    <i class="far fa-bookmark" style="font-size: 24px;"></i>
-</button>
-  
-<!-- 📌 Modal Guardados -->
-<div id="savedModal" style="
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(4px);
-    z-index: 10000;
-    align-items: center;
-    justify-content: flex-start; /* 🔹 Arranca desde arriba */
-    flex-direction: column;
-    padding: 15px;
-">
-    <div id="savedModalInner" style="
-        background-color: #1c1c1c;
-        color: white;
-        width: 90%;
-        max-width: 420px;
-        max-height: 80%;
-        border-radius: 12px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        overflow: hidden; /* 🔹 Aislamos scroll interno */
-        margin-top: 16vh; /* 🔹 Siempre más arriba */
-        transition: margin-top 0.25s ease;
+    <div style="
+      background:#fff;
+      border-radius:16px;
+      width:90%;
+      max-width:520px;
+      padding:20px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
+      position:relative;
     ">
-        <!-- Encabezado -->
-        <div style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background-color: #1c1c1c;
-            z-index: 20;
-            padding-bottom: 8px;
-        ">
-            <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
-            <button id="closeSavedBtn" style="
-                background: none;
-                border: none;
-                color: white;
-                font-size: 24px;
-                cursor: pointer;
-                line-height: 1;
-            ">&times;</button>
-        </div>
+      <button id="closePublishModal" style="
+        position:absolute;
+        top:10px; right:15px;
+        background:none;
+        border:none;
+        font-size:22px;
+        cursor:pointer;
+        color:#333;
+      ">×</button>
+      <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
 
-        <!-- Input de búsqueda -->
-        <input
-            id="savedSearchInput"
-            type="text"
-            placeholder="Buscar guardados..."
-            style="
-                position: sticky;
-                top: 40px; /* 🔹 Debajo del encabezado */
-                z-index: 15;
-                margin-top: 12px;
-                padding: 10px;
-                border: none;
-                border-radius: 6px;
-                background-color: #2c2c2c;
-                color: white;
-                font-size: 15px;
-            "
-        />
-
-        <!-- Lista de guardados -->
-        <ul id="savedList" style="
-            list-style: none;
-            padding: 0;
-            margin: 15px 0 0;
-            max-height: 250px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #555 #1c1c1c;
-        "></ul>
-    </div>
-</div>
-
-
-<!-- Modal de inicio de sesión / registro -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-<style>
-.toggle-pin {
-  transition: transform 0.2s ease, color 0.3s ease;
-}
-.toggle-pin:hover {
-  transform: scale(1.1);
-}
-.toggle-pin.active {
-  color: #00a2ff;
-  text-shadow: 0 0 6px rgba(0,162,255,0.6);
-}
-</style>
-
-<div id="loginModal"
-     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
-  <div style="background:white; padding:25px; border-radius:15px; width:320px; max-height:90vh; overflow-y:auto; text-align:center; font-family:Arial,sans-serif;">
-    
-    <!-- Pestañas -->
-    <div style="display:flex; margin-bottom:15px; border-bottom:1px solid #ddd;">
-      <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:bold;">Iniciar Sesión</button>
-      <button id="tabRegistro" class="tab-btn" style="flex:1; padding:10px; border:none; background:none;">Registrarse</button>
-    </div>
-
-    <!-- Formulario Login -->
-    <div id="formLogin">
-      <h3>🔐 Iniciar Sesión</h3>
-      <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-      <div style="position:relative;">
-        <input id="loginPin" type="password" placeholder="PIN (Mínimo 4 caracteres)" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="loginPin"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      <!-- Selector de tipo -->
+      <div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
+        <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">Anuncio</button>
+        <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">Video</button>
       </div>
 
-      <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
-      <p style="margin-top:10px; font-size:13px; color:#666;">
-        ¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a>
-      </p>
-      <p style="margin-top:8px; font-size:13px; color:#0077cc; cursor:pointer;" id="olvidastePin">
-        ¿Olvidaste tu PIN?
-      </p>
-    </div>
+      <!-- Sección de Anuncio -->
+      <div id="anuncioSection" style="margin-top:15px;">
+        <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
+        <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+        <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+        <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+        <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
+          <button id="abrirCamaraImg" title="Abrir cámara" style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
+            <i class="fas fa-camera"></i>
+          </button>
+        </div>
+        <div style="margin-top:10px;text-align:center;">
+          <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
+        </div>
+        <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+          <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
+        </div>
+        <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">Publicar Anuncio</button>
+        <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+      </div>
 
-  <!-- Formulario Registro -->
-<div id="formRegistro" style="display:none;">
-  <h3>✨ Crear Cuenta</h3>
-
-  <input id="regNombre" type="text" placeholder="Tu nombre completo"
-         style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-  <input id="regCorreo" type="email" placeholder="Correo electrónico"
-         style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-  <!-- 📞 NUEVO: Número de teléfono -->
-  <input id="regTelefono" type="tel" placeholder="Número de teléfono"
-         style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-  <!-- 🏛 NUEVO: Congregación -->
-  <input id="regCongregacion" type="text" placeholder="Congregación"
-         style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-  <!-- 🧑‍💼 NUEVO: Cargo -->
-  <input id="regCargo" type="text" placeholder="Cargo"
-         style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-  <!-- 🌆 NUEVO: Ciudad -->
-  <input id="regCiudad" type="text" placeholder="Ciudad"
-         style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-  <div style="position:relative;">
-    <input id="regPin" type="password" placeholder="Crea un PIN (Mínimo 4 caracteres)" minlength="4"
-           style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-    <i class="fa-solid fa-eye toggle-pin" data-target="regPin"
-       style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-  </div>
-
-  <div style="position:relative;">
-    <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" minlength="4"
-           style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-    <i class="fa-solid fa-eye toggle-pin" data-target="regPinConfirm"
-       style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-  </div>
-
-  <div style="margin:15px 0; text-align:left; font-size:13px;">
-    <label>Foto de perfil:</label>
-    <input id="regFoto" type="file" accept="image/*"
-           style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:8px;">
-
-    <div id="previewContainer" style="margin-top:10px; text-align:center; display:none;">
-      <img id="fotoPreview" src=""
-           style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:3px solid #0077cc;">
+      <!-- Sección de Video -->
+      <div id="videoSection" style="display:none;margin-top:15px;">
+        <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
+        <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+        <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+        <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+        <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
+          <button id="abrirCamaraVideo" title="Grabar video" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
+            <i class="fas fa-video"></i>
+          </button>
+        </div>
+        <div id="progressContainerVideo" style="width: Videos100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+          <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
+        </div>
+        <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
+        <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">Subir Video</button>
+        <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+      </div>
     </div>
   </div>
 
-  <button id="btnRegistro"
-          style="width:100%; padding:12px; margin-top:10px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">
-    Crear Cuenta
+  <!-- BOTÓN GUARDAR/VER -->
+  <button id="saveBtn" style="
+      position: fixed;
+      bottom: 300px;
+      right: 18px;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      z-index: 2000;
+  ">
+      <i class="far fa-bookmark" style="font-size: 24px;"></i>
   </button>
 
-  <p style="margin-top:10px; font-size:13px; color:#666;">
-    ¿Ya tienes cuenta?  
-    <a href="#" id="irALogin" style="color:#0077cc; text-decoration:underline;">Inicia sesión</a>
-  </p>
-</div>
+  <!-- 📌 Modal Guardados -->
+  <div id="savedModal" style="
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      align-items: center;
+      justify-content: flex-start;
+      flex-direction: column;
+      padding: 15px;
+  ">
+      <div id="savedModalInner" style="
+          background-color: #1c1c1c;
+          color: white;
+          width: 90%;
+          max-width: 420px;
+          max-height: 80%;
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+          overflow: hidden;
+          margin-top: 16vh;
+          transition: margin-top 0.25s ease;
+      ">
+          <div style="display: flex;justify-content: space-between;align-items: center;position: sticky;top: 0;background-color: #1c1c1c;z-index: 20;padding-bottom: 8px;">
+              <h2 style="margin: 0; font-size: 18px; color: white;">Guardados</h2>
+              <button id="closeSavedBtn" style="background: none;border: none;color: white;font-size: 24px;cursor: pointer;line-height: 1;">×</button>
+          </div>
+          <input id="savedSearchInput" type="text" placeholder="Buscar guardados..." style="position: sticky;top: 40px;z-index: 15;margin-top: 12px;padding: 10px;border: none;border-radius: 6px;background-color: #2c2c2c;color: white;font-size: 15px;" />
+          <ul id="savedList" style="list-style: none;padding: 0;margin: 15px 0 0;max-height: 250px;overflow-y: auto;scrollbar-width: thin;scrollbar-color: #555 #1c1c1c;"></ul>
+      </div>
+  </div>
 
+  <!-- Modal de inicio de sesión / registro -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+  .toggle-pin {transition: transform 0.2s ease, color 0.3s ease;}
+  .toggle-pin:hover {transform: scale(1.1);}
+  .toggle-pin.active {color: #00a2ff;text-shadow: 0 0 6px rgba(0,162,255,0.6);}
+  </style>
 
-    <!-- Recuperar PIN -->
-    <div id="formRecuperarPin" style="display:none;">
-      <h3 id="tituloRecuperar">🔁 Recuperar PIN</h3>
-
-      <div id="pasoCorreo">
-        <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal.</p>
-        <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-        <button id="btnEnviarPinTemp" style="width:100%; padding:12px; margin-top:10px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
+  <div id="loginModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
+    <div style="background:white; padding:25px; border-radius:15px; width:320px; max-height:90vh; overflow-y:auto; text-align:center; font-family:Arial,sans-serif;">
+      <div style="display:flex; margin-bottom:15px; border-bottom:1px solid #ddd;">
+        <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:bold;">Iniciar Sesión</button>
+        <button id="tabRegistro" class="tab-btn" style="flex:1; padding:10px; border:none; background:none;">Registrarse</button>
       </div>
 
-      <div id="pasoVerificar" style="display:none;">
-        <p style="font-size:13px;">Revisa tu correo e ingresa el PIN temporal recibido:</p>
+      <!-- Formulario Login -->
+      <div id="formLogin">
+        <h3>Iniciar Sesión</h3>
+        <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
         <div style="position:relative;">
-          <input id="recPinTemp" type="password" minlength="4" placeholder="PIN temporal"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="recPinTemp"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+          <input id="loginPin" type="password" placeholder="PIN (Mínimo 4 caracteres)" minlength="4" style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="loginPin" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
         </div>
-        <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar PIN</button>
+        <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
+        <p style="margin-top:10px; font-size:13px; color:#666;">¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a></p>
+        <p style="margin-top:8px; font-size:13px; color:#0077cc; cursor:pointer;" id="olvidastePin">¿Olvidaste tu PIN?</p>
       </div>
 
-      <div id="pasoNuevoPin" style="display:none;">
-        <p style="font-size:13px;">Crea tu nuevo PIN de acceso:</p>
+      <!-- Formulario Registro -->
+      <div id="formRegistro" style="display:none;">
+        <h3>Crear Cuenta</h3>
+        <input id="regNombre" type="text" placeholder="Tu nombre completo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="regCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="regTelefono" type="tel" placeholder="Número de teléfono" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="regCongregacion" type="text" placeholder="Congregación" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="regCargo" type="text" placeholder="Cargo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input id="regCiudad" type="text" placeholder="Ciudad" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
         <div style="position:relative;">
-          <input id="nuevoPin" type="password" minlength="4" placeholder="Nuevo PIN"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="nuevoPin"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+          <input id="regPin" type="password" placeholder="Crea un PIN (Mínimo 4 caracteres)" minlength="4" style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="regPin" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
         </div>
-
         <div style="position:relative;">
-          <input id="confirmarPin" type="password" minlength="4" placeholder="Confirmar nuevo PIN"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="confirmarPin"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+          <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" minlength="4" style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="regPinConfirm" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
         </div>
-
-        <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Guardar Nuevo PIN</button>
+        <div style="margin:15px 0; text-align:left; font-size:13px;">
+          <label>Foto de perfil:</label>
+          <input id="regFoto" type="file" accept="image/*" style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:8px;">
+          <div id="previewContainer" style="margin-top:10px; text-align:center; display:none;">
+            <img id="fotoPreview" src="" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:3px solid #0077cc;">
+          </div>
+        </div>
+        <button id="btnRegistro" style="width:100%; padding:12px; margin-top:10px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Crear Cuenta</button>
+        <p style="margin-top:10px; font-size:13px; color:#666;">¿Ya tienes cuenta? <a href="#" id="irALogin" style="color:#0077cc; text-decoration:underline;">Inicia sesión</a></p>
       </div>
 
-      <p style="margin-top:10px; font-size:13px;">
-        <a href="#" id="volverLogin" style="color:#0077cc; text-decoration:underline;">Volver al inicio</a>
-      </p>
+      <!-- Recuperar PIN -->
+      <div id="formRecuperarPin" style="display:none;">
+        <h3 id="tituloRecuperar">Recuperar PIN</h3>
+        <div id="pasoCorreo">
+          <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal.</p>
+          <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+          <button id="btnEnviarPinTemp" style="width:100%; padding:12px; margin-top:10px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
+        </div>
+        <div id="pasoVerificar" style="display:none;">
+          <p style="font-size:13px;">Revisa tu correo e ingresa el PIN temporal recibido:</p>
+          <div style="position:relative;">
+            <input id="recPinTemp" type="password" minlength="4" placeholder="PIN temporal" style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+            <i class="fa-solid fa-eye toggle-pin" data-target="recPinTemp" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+          </div>
+          <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar PIN</button>
+        </div>
+        <div id="pasoNuevoPin" style="display:none;">
+          <p style="font-size:13px;">Crea tu nuevo PIN de acceso:</p>
+          <div style="position:relative;">
+            <input id="nuevoPin" type="password" minlength="4" placeholder="Nuevo PIN" style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+            <i class="fa-solid fa-eye toggle-pin" data-target="nuevoPin" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+          </div>
+          <div style="position:relative;">
+            <input id="confirmarPin" type="password" minlength="4" placeholder="Confirmar nuevo PIN" style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+            <i class="fa-solid fa-eye toggle-pin" data-target="confirmarPin" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+          </div>
+          <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Guardar Nuevo PIN</button>
+        </div>
+        <p style="margin-top:10px; font-size:13px;"><a href="#" id="volverLogin" style="color:#0077cc; text-decoration:underline;">Volver al inicio</a></p>
+      </div>
+      <button onclick="document.getElementById('loginModal').style.display='none'" style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
     </div>
-
-    <button onclick="document.getElementById('loginModal').style.display='none'" 
-            style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
   </div>
-</div>
-  
-  
+
+  <!-- Resto de elementos compartidos (comentarios, overlays, etc.) -->
   <div class="swiper"><div class="swiper-wrapper"></div></div>
- <div id="loader">
-  <i class="fas fa-spinner fa-spin"></i>
-</div>
-
-  
- <div id="lblContador">
-  <i class="far fa-bell"></i>
-  <span id="notificationCount"></span>
-</div>
-
+  <div id="loader"><i class="fas fa-spinner fa-spin"></i></div>
+  <div id="lblContador"><i class="far fa-bell"></i><span id="notificationCount"></span></div>
   <div id="custommostrarAvisoOverlay">
-      <div class="custom-mostrarAviso">
-          <h2 id="mostrarAvisoTitle"></h2>
-          <div class="titles-list" id="mostrarAvisoMessage"></div>
-      </div>
+    <div class="custom-mostrarAviso">
+      <h2 id="mostrarAvisoTitle"></h2>
+      <div class="titles-list" id="mostrarAvisoMessage"></div>
+    </div>
   </div>
-
-<!-- 🔄 Botón de actualizar -->
-<button id="refreshBtn" class="refresh-btn" title="Actualizar página">
-  <i class="fas fa-sync-alt"></i>
-</button>
-
-
-  
-<!-- 🔍 Overlay de búsqueda -->
-<div id="searchOverlay" class="custom-mostrarAviso-overlay" style="display:none;">
-  <div class="custom-mostrarAviso">
-    <h2>Buscar anuncio</h2>
-    <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
-    <div id="searchResults" class="titles-list"></div>
-    <button onclick="cerrarBusqueda()">Cerrar</button>
+  <button id="refreshBtn" class="refresh-btn" title="Actualizar página"><i class="fas fa-sync-alt"></i></button>
+  <div id="searchOverlay" class="custom-mostrarAviso-overlay" style="display:none;">
+    <div class="custom-mostrarAviso">
+      <h2>Buscar anuncio</h2>
+      <input type="text" id="searchInput" placeholder="Escribe para buscar..." style="width:100%; padding:8px; margin:10px 0;">
+      <div id="searchResults" class="titles-list"></div>
+      <button onclick="cerrarBusqueda()">Cerrar</button>
+    </div>
   </div>
-</div>
-
-
-<div class="content-overlay" id="contentOverlay">
+  <div class="content-overlay" id="contentOverlay">
     <h3 id="currentTitle"></h3>
     <p id="currentDescription"></p>
   </div>
-
-<div class="comments-overlay-container" id="commentsOverlay">
+  <div class="comments-overlay-container" id="commentsOverlay">
     <div id="autorContainer" style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #444;"></div>
     <ul id="commentsList"></ul>
-</div>
-
-
-<div class="comments-counter" id="commentsCounter">
-  <span class="icon">
-    <i class="fa-regular fa-comment"></i>
-  </span>
-  <span class="count" id="commentCountValue">0</span>
-</div>
-
-<div class="comment-input-container" id="commentInputContainer">
-  <div class="comment-input-wrapper">
-    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
-</div>
-
-
-
-  <!-- Botón fijo para eliminar anuncio -->
-<button id="deleteAnnouncementBtn" class="delete-announcement-btn">
-  <i class="fas fa-trash"></i>
-</button>
-
-
-<!-- MODAL PERFIL (FULLSCREEN) - AHORA SIEMPRE ENCIMA -->
-<div id="modalPerfil" style="
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(4px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999 !important;
-  animation: fadeIn 0.25s ease;
-">
-  <div id="contenidoModalPerfil" style="
-    width: 100%;
-    max-width: 500px;
-    height: 100%;
-    background: white;
-    position: relative;
-    overflow-y: auto;
-    animation: slideUp 0.25s ease;
-    display: flex;
-    flex-direction: column;
-  ">
-    <!-- BOTÓN CERRAR SUTIL Y ELEGANTE -->
-    <span onclick="cerrarModalPerfil()" style="
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      border-radius: 50%;
-      font-size: 18px;
-      font-weight: 300;
-      cursor: pointer;
-      z-index: 999999 !important;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      transition: all 0.2s ease;
-      user-select: none;
-    "
-    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-    onmouseout="this.style.background='rgba(255,255,255,0.15)'"
-    ontouchstart="this.style.background='rgba(255,255,255,0.3)'"
-    ontouchend="this.style.background='rgba(255,255,255,0.15)'">
-      ×
-    </span>
-
-    <!-- CONTENEDOR FOTO -->
-    <div id="fotoBlurContainer" style="
-      width: 100%;
-      height: 45vh;
-      min-height: 260px;
-      max-height: 380px;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: black;
-      z-index: 1;
-      flex-shrink: 0;
-    ">
-      <img id="fotoFondoDifuminado" src="" style="
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        filter: blur(18px) brightness(0.6);
-        transform: scale(1.1);
-        z-index: 1;
-      ">
-      <img id="fotoPerfilModal" src="" style="
-        position: relative;
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        z-index: 2;
-        display: block;
-      ">
- <span id="editarFotoBtn" style="
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  z-index: 3;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
-"
-onmouseover="this.style.background='rgba(255,255,255,0.35)'; this.style.borderColor='rgba(255,255,255,0.6)'"
-onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='rgba(255,255,255,0.3)'">
-  <i class="fas fa-pencil-alt"></i>
-</span>
+  <div class="comments-counter" id="commentsCounter">
+    <span class="icon"><i class="fa-regular fa-comment"></i></span>
+    <span class="count" id="commentCountValue">0</span>
+  </div>
+  <div class="comment-input-container" id="commentInputContainer">
+    <div class="comment-input-wrapper">
+      <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+      <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
     </div>
+  </div>
+  <button id="deleteAnnouncementBtn" class="delete-announcement-btn"><i class="fas fa-trash"></i></button>
 
-    <!-- INFO DEL USUARIO -->
-    <div style="padding: 22px; text-align: center; flex-grow: 1;">
-      <p id="nombrePerfil" style="font-size: 22px; font-weight: bold; color: #222; margin-bottom: 6px;"></p>
-      <p id="correoPerfil" style="font-size: 15px; color: #666; margin-bottom: 16px;"></p>
+  <!-- Modal Perfil (versión moderna y completa) -->
+  <div id="modalPerfil" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:99999 !important;animation:fadeIn 0.25s ease;">
+    <div id="contenidoModalPerfil" style="width:100%;max-width:500px;height:100%;background:white;position:relative;overflow-y:auto;animation:slideUp 0.25s ease;display:flex;flex-direction:column;">
+      <span onclick="cerrarModalPerfil()" style="position:absolute;top:16px;right:16px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.15);color:white;border-radius:50%;font-size:18px;font-weight:300;cursor:pointer;z-index:999999 !important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</span>
+      <div id="fotoBlurContainer" style="width:100%;height:45vh;min-height:260px;max-height:380px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:black;z-index:1;flex-shrink:0;">
+        <img id="fotoFondoDifuminado" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;filter:blur(18px) brightness(0.6);transform:scale(1.1);z-index:1;">
+        <img id="fotoPerfilModal" src="" style="position:relative;max-width:100%;max-height:100%;object-fit:contain;z-index:2;display:block;">
+        <span id="editarFotoBtn" style="position:absolute;right:14px;bottom:14px;background:rgba(255,255,255,0.15);color:white;border:2px solid rgba(255,255,255,0.3);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;z-index:3;box-shadow:0 3px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.35)';this.style.borderColor='rgba(255,255,255,0.6)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='rgba(255,255,255,0.3)'">
+          <i class="fas fa-pencil-alt"></i>
+        </span>
+      </div>
+      <div style="padding:22px;text-align:center;flex-grow:1;">
+        <p id="nombrePerfil" style="font-size:22px;font-weight:bold;color:#222;margin-bottom:6px;"></p>
+        <p id="correoPerfil" style="font-size:15px;color:#666;margin-bottom:16px;"></p>
+        <div id="perfilDatosContainer" style="margin-top:8px;padding:0 20px;display:grid;gap:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"></div>
+      </div>
+      <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
+    </div>
+  </div>
 
-      <!-- DATOS ADICIONALES: ESTILO RED SOCIAL -->
-      <div id="perfilDatosContainer" style="
-        margin-top: 8px;
-        padding: 0 20px;
-        display: grid;
-        gap: 12px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      ">
-        <!-- Los datos se insertan aquí con JS -->
+  <!-- Modal Foto Grande -->
+  <div id="modalFotoGrande" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);display:none;justify-content:center;align-items:center;z-index:999999;">
+    <img id="fotoGrandeVista" src="" style="max-width:90%;max-height:90%;border-radius:20px;box-shadow:0 0 25px rgba(0,0,0,0.4);object-fit:contain;">
+    <div onclick="document.getElementById('modalFotoGrande').style.display='none'" style="position:absolute;top:0;left:0;width:100%;height:100%;"></div>
+  </div>
+
+  <!-- Modal Autor -->
+  <div id="modalAutor" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:99999;animation:fadeIn 0.25s ease;">
+    <div style="width:100%;max-width:500px;height:100%;background:white;position:relative;overflow-y:auto;animation:slideUp 0.25s ease;display:flex;flex-direction:column;">
+      <span id="cerrarModalAutor" style="position:absolute;top:16px;right:16px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);color:white;border-radius:50%;font-size:18px;font-weight:300;cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;transition:0.25s ease;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(0,0,0,0.25)'">×</span>
+      <div style="width:100%;height:45vh;min-height:260px;max-height:380px;position:relative;overflow:hidden;background:black;display:flex;align-items:center;justify-content:center;">
+        <img id="autorFotoFondo" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;filter:blur(18px) brightness(0.6);transform:scale(1.1);">
+        <img id="autorFoto" style="position:relative;max-width:100%;max-height:100%;object-fit:contain;z-index:2;">
+      </div>
+      <div style="padding:25px;text-align:center;flex-grow:1;">
+        <h2 id="autorNombre" style="font-size:22px;font-weight:bold;color:#222;margin-bottom:6px;"></h2>
+        <p id="autorCorreo" style="font-size:15px;color:#666;margin-bottom:20px;"></p>
+        <div id="autorDatosContainer" style="display:flex;flex-direction:column;gap:14px;padding-top:10px;"></div>
       </div>
     </div>
-
-    <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
   </div>
 </div>
 
-
-  <!-- MODAL FOTO GRANDE -->
-<div id="modalFotoGrande" style="
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.8);
-  backdrop-filter:blur(6px);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:999999;
-">
-  <img id="fotoGrandeVista" src="" style="
-    max-width:90%;
-    max-height:90%;
-    border-radius:20px;
-    box-shadow:0 0 25px rgba(0,0,0,0.4);
-    object-fit:contain;
-  ">
-
-  <!-- cerrar al hacer clic en fondo -->
-  <div onclick="document.getElementById('modalFotoGrande').style.display='none'"
-    style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
-</div>
-
-<!-- MODAL AUTOR - AHORA IGUAL AL MODAL PERFIL -->
-<div id="modalAutor" class="modal-autor hidden" style="
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  animation: fadeIn 0.25s ease;
-">
-
-<div id="contenidoModalAutor" class="modal-content" style="
-    width: 100%;
-    max-width: 500px;
-    height: 100%;
-    background: white;
-    position: relative;
-    overflow-y: auto;
-    animation: slideUp 0.25s ease;
-    display: flex;
-    flex-direction: column;
-">
-
-
-    <!-- BOTÓN CERRAR -->
-    <span id="cerrarModalAutor" class="close btnCerrarAutor" style="
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.25);
-      color: white;
-      border-radius: 50%;
-      font-size: 18px;
-      font-weight: 300;
-      cursor: pointer;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      z-index: 9999;
-      transition: 0.25s ease;
-      user-select: none;
-    "
-    onmouseover="this.style.background='rgba(255,255,255,0.35)'"
-    onmouseout="this.style.background='rgba(0,0,0,0.25)'">
-      ×
-    </span>
-
-    <!-- FOTO -->
-    <div style="
-      width: 100%;
-      height: 45vh;
-      min-height: 260px;
-      max-height: 380px;
-      position: relative;
-      overflow: hidden;
-      background: black;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    ">
-      <img id="autorFotoFondo" style="
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        filter: blur(18px) brightness(0.6);
-        transform: scale(1.1);
-      ">
-      <img id="autorFoto" style="
-        position: relative;
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        z-index: 2;
-      ">
-    </div>
-
-    <!-- INFORMACIÓN -->
-    <div style="padding: 25px; text-align: center; flex-grow: 1;">
-
-      <h2 id="autorNombre" style="
-        font-size: 22px;
-        font-weight: bold;
-        color: #222;
-        margin-bottom: 6px;
-      "></h2>
-
-      <p id="autorCorreo" style="
-        font-size: 15px;
-        color: #666;
-        margin-bottom: 20px;
-      "></p>
-
-      <!-- DATOS RED SOCIAL IGUALES AL MODAL PERFIL -->
-      <div id="autorDatosContainer" style="
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        padding-top: 10px;
-      "></div>
-
-    </div>
-
-  </div>
-</div>
-
-</div>
-
+<!-- Slider de Videos (opcional, si usas pestañas) -->
 <div id="sliderVideos" style="display: none;">
-  <!-- Aquí va tu slider de videos -->
-  <!-- 🔹 Modal de Publicar (Anuncio / Video) -->
-<div id="publishModal" style="
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.5);
-  backdrop-filter:blur(3px);
-  z-index:9999;
-  align-items:center;
-  justify-content:center;
-">
-  <div style="
-    background:#fff;
-    border-radius:16px;
-    width:90%;
-    max-width:520px;
-    padding:20px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.2);
-    position:relative;
-  ">
-    <button id="closePublishModal" style="
-      position:absolute;
-      top:10px; right:15px;
-      background:none;
-      border:none;
-      font-size:22px;
-      cursor:pointer;
-      color:#333;
-    ">×</button>
-
-    <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
-
-    <!-- 🔹 Selector de tipo -->
-    <div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
-      <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">📰 Anuncio</button>
-      <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">🎥 Video</button>
-    </div>
-
-    <!-- 🔹 Sección de Anuncio -->
-    <div id="anuncioSection" style="margin-top:15px;">
-      <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
-      <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-      <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
-
-     <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
-<div style="display:flex;align-items:center;gap:10px;">
-  <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraImg" title="Abrir cámara" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
-    <i class="fas fa-camera"></i>
-  </button>
+  <!-- Aquí va el contenido del slider de videos (se mantiene igual que el de fotos si aplica) -->
 </div>
-
-      <div style="margin-top:10px;text-align:center;">
-        <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
-      </div>
-
-      <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-        <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
-      </div>
-
-      <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
-      <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-    </div>
-
-    <!-- 🔹 Sección de Video -->
-    <div id="videoSection" style="display:none;margin-top:15px;">
-      <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
-      <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
-
-      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
-      <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
-
-     <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
-<div style="display:flex;align-items:center;gap:10px;">
-  <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraVideo" title="Grabar video" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
-    <i class="fas fa-video"></i>
-  </button>
-</div>
-
-
-      <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
-        <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
-      </div>
-
-      <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
-
-      <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
-
-      <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
-    </div>
-  </div>
-</div>
-
-
-
-    
-
-
-
-<div id="loginModal"
-     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
-  <div style="background:white; padding:25px; border-radius:15px; width:320px; max-height:90vh; overflow-y:auto; text-align:center; font-family:Arial,sans-serif;">
-    
-    <!-- Pestañas -->
-    <div style="display:flex; margin-bottom:15px; border-bottom:1px solid #ddd;">
-      <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:bold;">Iniciar Sesión</button>
-      <button id="tabRegistro" class="tab-btn" style="flex:1; padding:10px; border:none; background:none;">Registrarse</button>
-    </div>
-
-    <!-- Formulario Login -->
-    <div id="formLogin">
-      <h3>🔐 Iniciar Sesión</h3>
-      <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-
-      <div style="position:relative;">
-        <input id="loginPin" type="password" placeholder="PIN (Mínimo 4 caracteres)" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="loginPin"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-      </div>
-
-      <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
-      <p style="margin-top:10px; font-size:13px; color:#666;">
-        ¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a>
-      </p>
-      <p style="margin-top:8px; font-size:13px; color:#0077cc; cursor:pointer;" id="olvidastePin">
-        ¿Olvidaste tu PIN?
-      </p>
-    </div>
-
-    <!-- Formulario Registro -->
-    <div id="formRegistro" style="display:none;">
-      <h3>✨ Crear Cuenta</h3>
-      <input id="regNombre" type="text" placeholder="Tu nombre completo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-      <input id="regCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-      
-      <div style="position:relative;">
-        <input id="regPin" type="password" placeholder="Crea un PIN (Mínimo 4 caracteres)" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="regPin"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-      </div>
-
-      <div style="position:relative;">
-        <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" minlength="4"
-               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-        <i class="fa-solid fa-eye toggle-pin" data-target="regPinConfirm"
-           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-      </div>
-      
-      <div style="margin:15px 0; text-align:left; font-size:13px;">
-        <label>Foto de perfil:</label>
-        <input id="regFoto" type="file" accept="image/*" style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:8px;">
-        <div id="previewContainer" style="margin-top:10px; text-align:center; display:none;">
-          <img id="fotoPreview" src="" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:3px solid #0077cc;">
-        </div>
-      </div>
-
-      <button id="btnRegistro" style="width:100%; padding:12px; margin-top:10px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Crear Cuenta</button>
-      <p style="margin-top:10px; font-size:13px; color:#666;">
-        ¿Ya tienes cuenta? <a href="#" id="irALogin" style="color:#0077cc; text-decoration:underline;">Inicia sesión</a>
-      </p>
-    </div>
-
-    <!-- Recuperar PIN -->
-    <div id="formRecuperarPin" style="display:none;">
-      <h3 id="tituloRecuperar">🔁 Recuperar PIN</h3>
-
-      <div id="pasoCorreo">
-        <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal.</p>
-        <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
-        <button id="btnEnviarPinTemp" style="width:100%; padding:12px; margin-top:10px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
-      </div>
-
-      <div id="pasoVerificar" style="display:none;">
-        <p style="font-size:13px;">Revisa tu correo e ingresa el PIN temporal recibido:</p>
-        <div style="position:relative;">
-          <input id="recPinTemp" type="password" minlength="4" placeholder="PIN temporal"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="recPinTemp"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-        </div>
-        <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar PIN</button>
-      </div>
-
-      <div id="pasoNuevoPin" style="display:none;">
-        <p style="font-size:13px;">Crea tu nuevo PIN de acceso:</p>
-        <div style="position:relative;">
-          <input id="nuevoPin" type="password" minlength="4" placeholder="Nuevo PIN"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="nuevoPin"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-        </div>
-
-        <div style="position:relative;">
-          <input id="confirmarPin" type="password" minlength="4" placeholder="Confirmar nuevo PIN"
-                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
-          <i class="fa-solid fa-eye toggle-pin" data-target="confirmarPin"
-             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
-        </div>
-
-        <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Guardar Nuevo PIN</button>
-      </div>
-
-      <p style="margin-top:10px; font-size:13px;">
-        <a href="#" id="volverLogin" style="color:#0077cc; text-decoration:underline;">Volver al inicio</a>
-      </p>
-    </div>
-
-    <button onclick="document.getElementById('loginModal').style.display='none'" 
-            style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
-  </div>
-</div>
-
-
-    <!-- MODAL PERFIL -->
-<div id="modalPerfil" style="
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.65);
-  backdrop-filter: blur(4px);
-  display: none;
-  align-items:center;
-  justify-content:center;
-  z-index: 9999;
-  animation: fadeIn 0.25s ease;
-">
-  <div id="contenidoModalPerfil" style="
-    width:85%;
-    max-width:380px;
-    background:white;
-    border-radius:14px;
-    padding:18px;
-    text-align:center;
-    position:relative;
-    animation: zoomIn 0.25s ease;
-  ">
-    <!-- Botón cerrar -->
-    <span onclick="cerrarModalPerfil()" style="
-      position:absolute;
-      right:12px;
-      top:8px;
-      font-size:23px;
-      cursor:pointer;
-      color:#333;
-      font-weight:bold;
-    ">✖</span>
-
-    <div style="position:relative; display:inline-block; margin-top:10px;">
-      <img id="fotoPerfilModal" src="" style="
-        width:100%;
-        max-width:250px;
-        height:250px;
-        border-radius:12px;
-        object-fit:cover;
-        border:3px solid #0077cc;
-        box-shadow:0 2px 6px rgba(0,0,0,0.3);
-      ">
-
-      <!-- ✏️ Icono editar -->
-      <span id="editarFotoBtn" style="
-        position:absolute;
-        right:6px;
-        bottom:6px;
-        background:#0077cc;
-        color:white;
-        border-radius:50%;
-        width:38px;
-        height:38px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        cursor:pointer;
-        font-size:18px;
-        box-shadow:0 2px 6px rgba(0,0,0,0.3);
-      ">✏️</span>
-    </div>
-
-    <p id="nombrePerfil" style="
-      margin-top:12px;
-      font-weight:bold;
-      color:#222;
-      font-size:18px;
-    "></p>
-
-    <p id="correoPerfil" style="
-      color:#555;
-      font-size:14px;
-      margin-top:4px;
-    "></p>
-
-    <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
-  </div>
-</div>
-    
-    
-<!-- BOTÓN GUARDAR/VER -->
-<button id="saveBtn" style="
-    position: fixed;
-    bottom: 300px;
-    right: 18px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    z-index: 2000;
-">
-    <i class="far fa-bookmark" style="font-size: 24px;"></i>
-</button>
-
-
-<!-- 📌 Modal Guardados -->
-<div id="savedModal" style="
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(4px);
-    z-index: 10000;
-    align-items: center;
-    justify-content: flex-start;
-    flex-direction: column;
-    padding: 15px;
-">
-    <div id="savedModalInner" style="
-        background-color: #1c1c1c;
-        color: white;
-        width: 90%;
-        max-width: 420px;
-        max-height: 80%;
-        border-radius: 12px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        overflow: hidden;
-        margin-top: 16vh;
-        transition: margin-top 0.25s ease;
-    ">
-        <!-- Encabezado -->
-        <div style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background-color: #1c1c1c;
-            z-index: 20;
-            padding-bottom: 8px;
-        ">
-            <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
-            <button id="closeSavedBtn" style="
-                background: none;
-                border: none;
-                color: white;
-                font-size: 24px;
-                cursor: pointer;
-                line-height: 1;
-            ">&times;</button>
-        </div>
-
-        <!-- Input de búsqueda -->
-        <input
-            id="savedSearchInput"
-            type="text"
-            placeholder="Buscar guardados..."
-            style="
-                position: sticky;
-                top: 40px;
-                z-index: 15;
-                margin-top: 12px;
-                padding: 10px;
-                border: none;
-                border-radius: 6px;
-                background-color: #2c2c2c;
-                color: white;
-                font-size: 15px;
-            "
-        />
-
-        <!-- Lista de guardados -->
-        <ul id="savedList" style="
-            list-style: none;
-            padding: 0;
-            margin: 15px 0 0;
-            max-height: 250px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #555 #1c1c1c;
-        "></ul>
-    </div>
-</div>
-
-
-
-
-    
-<!-- 🔍 Modal de búsqueda -->
-<div id="search-modal" class="hidden">
-  <div class="modal-content">
-    <h3 style="margin:0 0 10px; font-size:18px;">Buscar video</h3>
-    <input type="text" id="search-input" placeholder="Escribe el título...">
-    <ul id="search-results"></ul>
-    <div class="modal-actions" style="margin-top:10px; text-align:right;">
-      <button id="search-close">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- 🔄 Botón de actualizar -->
-<button id="refreshBtn" class="refresh-btn" title="Actualizar página">
-  <i class="fas fa-sync-alt"></i>
-</button>
-
-<div class="comments-overlay-container" id="commentsOverlay">
-  <ul id="commentsList"></ul>
-</div>
-
-<div class="comments-counter" id="commentsCounter">
-  <span class="icon">
-    <i class="fa-regular fa-comment"></i>
-  </span>
-  <span class="count" id="commentCountValue">0</span>
-</div>
-
-
-
-<div class="comment-input-container">
-  <div class="comment-input-wrapper">
-    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
-  </div>
-</div>
-
-
-    
-<!-- Notificaciones -->
-<div id="notification-wrapper">
-  <button id="notification-btn">
-    <i class="far fa-bell"></i>
-    <span id="notification-count"></span>
-  </button>
-  <div id="notification-list" class="hidden"></div>
-</div>
-
-    
-<div id="custom-alert-modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>¡Atención!</h3>
-    <p id="custom-alert-message"></p>
-    <div class="modal-actions">
-      <button id="custom-alert-ok" style="background:#007bff; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer;">Aceptar</button>
-    </div>
-  </div>
-</div>
-<!-- Modal de eliminación -->
-<div id="delete-modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>¿Eliminar Video?</h3>
-    <p id="delete-video-title">¿Seguro que deseas eliminar este video?</p>
-    <div class="modal-actions">
-      <button id="delete-confirm" style="background:#dc3545; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer;">Eliminar</button>
-      <button id="delete-cancel" style="background:#444; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer;">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-    
-        <!-- BOTONES flotantes -->
-   <div class="floating-buttons">
-  <button id="btn-delete" class="fab danger"><i class="fas fa-trash"></i></button>
-</div>
-
-  
-
-<div class="swiper">
-  <div class="swiper-wrapper" id="slides">
-    <!-- aquí solo van los slides -->
-  </div>
-
-  <!-- 👇 contenedor global del título, fuera de los slides -->
-  <div id="video-title-fixed">
-    <div class="video-title"></div>
-    <div class="video-desc"></div>
-  </div>
-</div>
-
-
-
-   <div id="loader">
-  <i class="fas fa-spinner fa-spin"></i>
-</div>
-
-</div>
-  
 
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -6769,6 +5857,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
