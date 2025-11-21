@@ -1975,51 +1975,45 @@ async function abrirPerfilPorCorreo(correo) {
     console.warn("abrirPerfilPorCorreo → correo vacío");
     return;
   }
-
   const correoLimpio = correo.trim();
   const correoNorm = normalizeText(correoLimpio);
 
-  // ⚡ SI EL PERFIL ESTÁ EN CACHÉ → ABRIR INSTANTÁNEO
+  // SI EL PERFIL ESTÁ EN CACHÉ → ABRIR INSTANTÁNEO
   if (perfilCache[correoNorm]) {
     const data = perfilCache[correoNorm];
-
-    // Foto principal
     document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
-
-    // Foto difuminada
     document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
-
-    // Nombre y correo
     document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
     document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
-
     mostrarDatosAutor({
       telefono: data.telefono,
       ciudad: data.ciudad,
       congregacion: data.congregacion,
       cargo: data.cargo
     });
-
     document.getElementById("modalAutor").classList.remove("hidden");
-    return; // ⬅ evita hacer el fetch
+
+    // APLICAR TEMA CORRECTO DESPUÉS DE MOSTRAR (¡ESTO LO ARREGLA TODO!)
+    if (document.body.classList.contains('dark-mode')) {
+      aplicarDarkModeModalAutor();
+    } else {
+      aplicarLightModeModalAutor();
+    }
+    return;
   }
 
-  // ⚡ SI NO ESTÁ EN CACHÉ → HACER PETICIÓN NORMAL
+  // SI NO ESTÁ EN CACHÉ → FETCH
   const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
-
   try {
     const res = await fetch(url, { method: "GET", cache: "no-cache" });
-
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Error HTTP:", res.status, errorText);
       mostrarAviso(`Error del servidor (${res.status})\n\n${errorText.substring(0, 400)}`);
       return;
     }
-
     const textoCrudo = await res.text();
     let data;
-
     try {
       data = JSON.parse(textoCrudo);
     } catch (parseErr) {
@@ -2027,23 +2021,14 @@ async function abrirPerfilPorCorreo(correo) {
       mostrarAviso("Error: el servidor no devolvió datos válidos.\nRevisa la consola para más detalles.");
       return;
     }
-
     if (data.status === "success") {
-
-      // ⚡ Guardar en caché para próxima apertura instantánea
       perfilCache[correoNorm] = data;
 
-      // Foto principal
       document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
-
-      // Foto difuminada
       document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
-
-      // Nombre y correo
       document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
 
-      // INSERTAR DATOS AL ESTILO PERFIL
       mostrarDatosAutor({
         telefono: data.telefono,
         ciudad: data.ciudad,
@@ -2051,70 +2036,30 @@ async function abrirPerfilPorCorreo(correo) {
         cargo: data.cargo
       });
 
-      // Mostrar modal
       document.getElementById("modalAutor").classList.remove("hidden");
 
+      // APLICAR TEMA CORRECTO DESPUÉS DE TODO (¡ESTO ES LA CLAVE!)
+      if (document.body.classList.contains('dark-mode')) {
+        aplicarDarkModeModalAutor();
+      } else {
+        aplicarLightModeModalAutor();
+      }
     } else {
       mostrarAviso("Perfil no encontrado");
     }
-
   } catch (err) {
     console.error("Error crítico en abrirPerfilPorCorreo:", err);
     mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
+  } finally {
+    // Ocultar loader siempre al final
+    document.getElementById("loader").style.display = "none";
   }
-}
-
-
-
-// Cerrar modal
-document.getElementById("cerrarModalAutor").addEventListener("click", () => {
-  document.getElementById("modalAutor").classList.add("hidden");
-
-  // 🔽 OCULTAR LOADER AL CERRAR (AGREGADO)
-  document.getElementById("loader").style.display = "none";
-});
-
-
-// Click en el contenedor del autor
-const autorContainer = document.getElementById("autorContainer");
-
-autorContainer.addEventListener("click", (e) => {
-  e.stopPropagation();
-
-  const correo = autorContainer.dataset.correo;
-
-  if (!correo) {
-    mostrarAviso("ERROR: el contenedor no tiene data-correo");
-    return;
-  }
-
-  // 🔽 MOSTRAR LOADER AL ABRIR (AGREGADO)
-  document.getElementById("loader").style.display = "block";
-
-  abrirPerfilPorCorreo(correo);
-});
-
-
-// CLICK EN LA FOTO (si existe)
-const autorFoto = document.querySelector("#autorContainer img, #autorContainer .foto");
-
-if (autorFoto) {
-    autorFoto.addEventListener("click", (e) => {
-        e.stopPropagation();
-        mostrarAviso("Has presionado la foto del autor");
-
-        const correoAutor = autorContainer.dataset.correo;
-        if (correoAutor) {
-            abrirPerfilPorCorreo(correoAutor);
-        }
-    });
 }
 
 function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
-
-  cont.innerHTML = ''; 
+  cont.innerHTML = '';
   cont.style.cssText = `
     background: transparent !important;
     border: none !important;
@@ -2126,7 +2071,7 @@ function mostrarDatosAutor(u) {
   // ================== CONTACTO (Tel + WA) ==================
   if (u.telefono) {
     const divContacto = document.createElement('div');
-    divContacto.className = 'dato-sin-fondo';  // ← clase nueva, inmune a los modos
+    divContacto.className = 'dato-sin-fondo';
     divContacto.style.cssText = `
       display: flex;
       justify-content: center;
@@ -2135,7 +2080,6 @@ function mostrarDatosAutor(u) {
       padding: 8px 0;
     `;
 
-    // Teléfono
     const divTel = document.createElement('div');
     divTel.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
     divTel.addEventListener('click', (e) => {
@@ -2147,16 +2091,13 @@ function mostrarDatosAutor(u) {
       <div class="dato-valor" style="text-decoration:underline; margin-top:4px;">${u.telefono}</div>
     `;
 
-    // WhatsApp
     const divWA = document.createElement('div');
     divWA.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
     divWA.onclick = function (e) {
       e.stopPropagation();
       try {
         let numero = String(u.telefono || "").replace(/\D/g, "");
-        if (!numero.startsWith("57") && numero.length === 10) {
-          numero = "57" + numero;
-        }
+        if (!numero.startsWith("57") && numero.length === 10) numero = "57" + numero;
         window.open(`https://wa.me/${numero}`, "_blank");
       } catch (err) {
         console.error("Error WhatsApp:", err);
@@ -2175,7 +2116,7 @@ function mostrarDatosAutor(u) {
   // ================== DATOS SIMPLES ==================
   const crearDatoSimple = (icono, label, valor) => {
     const div = document.createElement('div');
-    div.className = 'dato-sin-fondo';  // ← nunca será tocado por los modos
+    div.className = 'dato-sin-fondo';
     div.style.cssText = `
       display: flex;
       align-items: center;
@@ -2189,6 +2130,7 @@ function mostrarDatosAutor(u) {
     div.innerHTML = `
       <i class="${icono}" style="font-size:18px; width:26px; text-align:center;"></i>
       <div style="flex:1;">
+        <!-- QUITADO opacity:0.8 (resuelto como en problemas similares) -->
         <div class="dato-label" style="font-size:0.85em;">${label}</div>
         <div class="dato-valor">${valor}</div>
       </div>
@@ -2200,7 +2142,6 @@ function mostrarDatosAutor(u) {
   if (u.cargo)         cont.appendChild(crearDatoSimple('fas fa-user-tie', 'Cargo', u.cargo));
   if (u.ciudad)        cont.appendChild(crearDatoSimple('fas fa-map-marker-alt', 'Ciudad', u.ciudad));
 }
-
 
 
     
@@ -6089,5 +6030,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
