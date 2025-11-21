@@ -1055,13 +1055,7 @@ body {
   text-align: left;
 }
 
-   /* Esto garantiza que NUNCA tengan fondo, sin importar el modo */
-.dato-sin-fondo,
-#autorDatosContainer .dato-sin-fondo {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
+   
     
   </style>
 </head>
@@ -1975,45 +1969,51 @@ async function abrirPerfilPorCorreo(correo) {
     console.warn("abrirPerfilPorCorreo → correo vacío");
     return;
   }
+
   const correoLimpio = correo.trim();
   const correoNorm = normalizeText(correoLimpio);
 
-  // SI EL PERFIL ESTÁ EN CACHÉ → ABRIR INSTANTÁNEO
+  // ⚡ SI EL PERFIL ESTÁ EN CACHÉ → ABRIR INSTANTÁNEO
   if (perfilCache[correoNorm]) {
     const data = perfilCache[correoNorm];
+
+    // Foto principal
     document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
+
+    // Foto difuminada
     document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
+
+    // Nombre y correo
     document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
     document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
+
     mostrarDatosAutor({
       telefono: data.telefono,
       ciudad: data.ciudad,
       congregacion: data.congregacion,
       cargo: data.cargo
     });
-    document.getElementById("modalAutor").classList.remove("hidden");
 
-    // APLICAR TEMA CORRECTO DESPUÉS DE MOSTRAR (¡ESTO LO ARREGLA TODO!)
-    if (document.body.classList.contains('dark-mode')) {
-      aplicarDarkModeModalAutor();
-    } else {
-      aplicarLightModeModalAutor();
-    }
-    return;
+    document.getElementById("modalAutor").classList.remove("hidden");
+    return; // ⬅ evita hacer el fetch
   }
 
-  // SI NO ESTÁ EN CACHÉ → FETCH
+  // ⚡ SI NO ESTÁ EN CACHÉ → HACER PETICIÓN NORMAL
   const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
+
   try {
     const res = await fetch(url, { method: "GET", cache: "no-cache" });
+
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Error HTTP:", res.status, errorText);
       mostrarAviso(`Error del servidor (${res.status})\n\n${errorText.substring(0, 400)}`);
       return;
     }
+
     const textoCrudo = await res.text();
     let data;
+
     try {
       data = JSON.parse(textoCrudo);
     } catch (parseErr) {
@@ -2021,14 +2021,23 @@ async function abrirPerfilPorCorreo(correo) {
       mostrarAviso("Error: el servidor no devolvió datos válidos.\nRevisa la consola para más detalles.");
       return;
     }
+
     if (data.status === "success") {
+
+      // ⚡ Guardar en caché para próxima apertura instantánea
       perfilCache[correoNorm] = data;
 
+      // Foto principal
       document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
+
+      // Foto difuminada
       document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
+
+      // Nombre y correo
       document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
       document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
 
+      // INSERTAR DATOS AL ESTILO PERFIL
       mostrarDatosAutor({
         telefono: data.telefono,
         ciudad: data.ciudad,
@@ -2036,112 +2045,168 @@ async function abrirPerfilPorCorreo(correo) {
         cargo: data.cargo
       });
 
+      // Mostrar modal
       document.getElementById("modalAutor").classList.remove("hidden");
 
-      // APLICAR TEMA CORRECTO DESPUÉS DE TODO (¡ESTO ES LA CLAVE!)
-      if (document.body.classList.contains('dark-mode')) {
-        aplicarDarkModeModalAutor();
-      } else {
-        aplicarLightModeModalAutor();
-      }
     } else {
       mostrarAviso("Perfil no encontrado");
     }
+
   } catch (err) {
     console.error("Error crítico en abrirPerfilPorCorreo:", err);
     mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
-  } finally {
-    // Ocultar loader siempre al final
-    document.getElementById("loader").style.display = "none";
   }
+}
+
+
+
+// Cerrar modal
+document.getElementById("cerrarModalAutor").addEventListener("click", () => {
+  document.getElementById("modalAutor").classList.add("hidden");
+
+  // 🔽 OCULTAR LOADER AL CERRAR (AGREGADO)
+  document.getElementById("loader").style.display = "none";
+});
+
+
+// Click en el contenedor del autor
+const autorContainer = document.getElementById("autorContainer");
+
+autorContainer.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  const correo = autorContainer.dataset.correo;
+
+  if (!correo) {
+    mostrarAviso("ERROR: el contenedor no tiene data-correo");
+    return;
+  }
+
+  // 🔽 MOSTRAR LOADER AL ABRIR (AGREGADO)
+  document.getElementById("loader").style.display = "block";
+
+  abrirPerfilPorCorreo(correo);
+});
+
+
+// CLICK EN LA FOTO (si existe)
+const autorFoto = document.querySelector("#autorContainer img, #autorContainer .foto");
+
+if (autorFoto) {
+    autorFoto.addEventListener("click", (e) => {
+        e.stopPropagation();
+        mostrarAviso("Has presionado la foto del autor");
+
+        const correoAutor = autorContainer.dataset.correo;
+        if (correoAutor) {
+            abrirPerfilPorCorreo(correoAutor);
+        }
+    });
 }
 
 function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
-  cont.innerHTML = '';
-  cont.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 16px 0 !important;
-    margin: 0;
-  `;
 
-  // ================== CONTACTO (Tel + WA) ==================
+  cont.innerHTML = ''; // limpiar
+
+  // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
-    divContacto.className = 'dato-sin-fondo';
-    divContacto.style.cssText = `
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin: 18px 0;
-      padding: 8px 0;
-    `;
+    divContacto.className = 'autor-dato-item';
+    divContacto.style.display = 'flex';
+    divContacto.style.justifyContent = 'center';
+    divContacto.style.gap = '20px';
+    divContacto.style.background = "transparent";   // SIN FONDO
+    divContacto.style.border = "none";             // SIN BORDE
 
+    // TELÉFONO
     const divTel = document.createElement('div');
-    divTel.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.style.cursor = 'pointer';
+    divTel.innerHTML = `
+      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+    `;
     divTel.addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
-    divTel.innerHTML = `
-      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline; margin-top:4px;">${u.telefono}</div>
-    `;
 
+    // WHATSAPP
     const divWA = document.createElement('div');
-    divWA.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
+    divWA.style.display = 'flex';
+    divWA.style.flexDirection = 'column';
+    divWA.style.alignItems = 'center';
+    divWA.style.cursor = 'pointer';
+    divWA.innerHTML = `
+      <i class="fab fa-whatsapp" style="font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
+    `;
     divWA.onclick = function (e) {
       e.stopPropagation();
-      try {
-        let numero = String(u.telefono || "").replace(/\D/g, "");
-        if (!numero.startsWith("57") && numero.length === 10) numero = "57" + numero;
-        window.open(`https://wa.me/${numero}`, "_blank");
-      } catch (err) {
-        console.error("Error WhatsApp:", err);
-      }
+      let numero = String(u.telefono || "").replace(/\D/g, "");
+      if (!numero.startsWith("57") && numero.length === 10) numero = "57" + numero;
+      window.open(`https://wa.me/${numero}`, "_blank");
     };
-    divWA.innerHTML = `
-      <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline; margin-top:4px;">WhatsApp</div>
-    `;
 
     divContacto.appendChild(divTel);
     divContacto.appendChild(divWA);
     cont.appendChild(divContacto);
   }
 
-  // ================== DATOS SIMPLES ==================
-  const crearDatoSimple = (icono, label, valor) => {
-    const div = document.createElement('div');
-    div.className = 'dato-sin-fondo';
-    div.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin: 14px 0;
-      padding: 6px 0;
-      width: 100%;
-      max-width: 320px;
-      justify-content: flex-start;
-    `;
-    div.innerHTML = `
-      <i class="${icono}" style="font-size:18px; width:26px; text-align:center;"></i>
-      <div style="flex:1;">
-        <!-- QUITADO opacity:0.8 (resuelto como en problemas similares) -->
-        <div class="dato-label" style="font-size:0.85em;">${label}</div>
-        <div class="dato-valor">${valor}</div>
+  // CONGREGACIÓN
+  if (u.congregacion) {
+    const divCong = document.createElement('div');
+    divCong.className = 'autor-dato-item';
+    divCong.style.background = "transparent";
+    divCong.style.border = "none";
+    divCong.innerHTML = `
+      <i class="fas fa-church"></i>
+      <div>
+        <div class="dato-label">Congregación</div>
+        <div class="dato-valor">${u.congregacion}</div>
       </div>
     `;
-    return div;
-  };
+    cont.appendChild(divCong);
+  }
 
-  if (u.congregacion) cont.appendChild(crearDatoSimple('fas fa-church', 'Congregación', u.congregacion));
-  if (u.cargo)         cont.appendChild(crearDatoSimple('fas fa-user-tie', 'Cargo', u.cargo));
-  if (u.ciudad)        cont.appendChild(crearDatoSimple('fas fa-map-marker-alt', 'Ciudad', u.ciudad));
+  // CARGO
+  if (u.cargo) {
+    const divCargo = document.createElement('div');
+    divCargo.className = 'autor-dato-item';
+    divCargo.style.background = "transparent";
+    divCargo.style.border = "none";
+    divCargo.innerHTML = `
+      <i class="fas fa-user-tie"></i>
+      <div>
+        <div class="dato-label">Cargo</div>
+        <div class="dato-valor">${u.cargo}</div>
+      </div>
+    `;
+    cont.appendChild(divCargo);
+  }
+
+  // CIUDAD
+  if (u.ciudad) {
+    const divCiudad = document.createElement('div');
+    divCiudad.className = 'autor-dato-item';
+    divCiudad.style.background = "transparent";
+    divCiudad.style.border = "none";
+    divCiudad.innerHTML = `
+      <i class="fas fa-map-marker-alt"></i>
+      <div>
+        <div class="dato-label">Ciudad</div>
+        <div class="dato-valor">${u.ciudad}</div>
+      </div>
+    `;
+    cont.appendChild(divCiudad);
+  }
 }
+
+
 
 
     
@@ -2262,88 +2327,73 @@ function aplicarLightModeModalPerfil() {
 function aplicarDarkModeModalAutor() {
   const modal = document.getElementById("contenidoModalAutor");
   if (!modal) return;
-  
+
   modal.style.background = "rgba(31, 31, 31, 0.98)";
   modal.style.color = "#e8eaed";
-  
+
   // Textos internos
   modal.querySelectorAll("p, span, label, h1, h2, h3, .dato-label, .dato-valor")
     .forEach(el => {
       el.style.color = "#e8eaed";
     });
-    
-  // Ítems (tarjetas de datos) - sigue funcionando para otros modales
+
+  // Ítems (tarjetas de datos)
   modal.querySelectorAll(".autor-dato-item")
     .forEach(box => {
       box.style.background = "rgba(255,255,255,0.06)";
       box.style.border = "1px solid rgba(255,255,255,0.12)";
     });
-    
+
   // Iconos
   modal.querySelectorAll("i")
     .forEach(ic => {
       ic.style.color = "#e8eaed";
     });
-    
-  // Botón de cerrar
+
+  // Botón de cerrar (si tiene)
   const btnCerrar = modal.parentElement.querySelector(".btnCerrarAutor");
   if (btnCerrar) {
     btnCerrar.style.background = "rgba(255,255,255,0.18)";
     btnCerrar.style.color = "white";
   }
-
-  // AÑADIDO: Corrige visibilidad de los datos del autor (sin fondo)
-  modal.querySelectorAll(".dato-label").forEach(el => {
-    el.style.opacity = "0.75";
-  });
-  modal.querySelectorAll(".dato-valor").forEach(el => {
-    el.style.opacity = "1";
-  });
 }
 
 
 
-   function aplicarLightModeModalAutor() {
+    function aplicarLightModeModalAutor() {
   const modal = document.getElementById("contenidoModalAutor");
   if (!modal) return;
-  
+
   modal.style.background = "white";
   modal.style.color = "#1e293b";
-  
+
   // Textos internos
   modal.querySelectorAll("p, span, label, h1, h2, h3, .dato-label, .dato-valor")
     .forEach(el => {
       el.style.color = "#1e293b";
     });
-    
+
   // Ítems (tarjetas)
   modal.querySelectorAll(".autor-dato-item")
     .forEach(box => {
       box.style.background = "rgba(248,248,248,1)";
       box.style.border = "1px solid rgba(0,0,0,0.08)";
     });
-    
+
   // Iconos
   modal.querySelectorAll("i")
     .forEach(ic => {
       ic.style.color = "#1e293b";
     });
-    
-  // Botón cerrar
-  const btnCerrar = document.getElementById("cerrarModalAutor");
-  if (btnCerrar) {
-    btnCerrar.style.color = "white";
-    btnCerrar.style.background = "rgba(255,255,255,0.18)";
-    btnCerrar.style.fontWeight = "700";
-  }
 
-  // AÑADIDO: Corrige visibilidad en modo claro
-  modal.querySelectorAll(".dato-label").forEach(el => {
-    el.style.opacity = "0.70";
-  });
-  modal.querySelectorAll(".dato-valor").forEach(el => {
-    el.style.opacity = "1";
-  });
+  // Botón cerrar
+const btnCerrar = document.getElementById("cerrarModalAutor");
+if (btnCerrar) {
+  btnCerrar.style.color = "white";     // X visible en modo claro
+  btnCerrar.style.background = "rgba(255,255,255,0.18)";
+  btnCerrar.style.fontWeight = "700";    // más visible
+}
+
 }
 
 // Cache de perfiles precargados
@@ -6030,6 +6080,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
