@@ -1056,14 +1056,423 @@ body {
   text-align: left;
 }
 
-   
+    /* Botones flotantes */
+.floating-buttons {
+    position: fixed;
+    bottom: 90px;
+    right: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 2000;
+}
+.fab {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+.fab.danger {}
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+.modal-actions button {
+    flex: 1;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+.modal.hidden { display: none; }
+.modal-content {
+    background: #111;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: #fff;
+}
+.modal-content input { padding: 6px; }
+
+/* Progreso flotante */
+.progress-toast {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    z-index: 4000;
+    width: 200px;
+}
+.progress-toast.hidden { display: none; }
+.progress-toast .bar {
+    height: 4px;
+    background: #28a745;
+    width: 0%;
+    margin-bottom: 6px;
+    transition: width 0.3s ease;
+}
+
+.swiper {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.swiper-slide {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    position: relative;
+    background: #000;
+}
+
+.player-card {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    background: #000;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    border-radius: 10px;
+}
+
+.poster {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+    background-size: cover;
+    background-position: center center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.play-btn {
+    display: grid;
+    place-items: center;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    font-size: 28px;
+    line-height: 1;
+    border: 2px solid #fff;
+}
+
+.player-iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #000;
+}
+
+/* Truncamiento para el contenedor del título y la descripción */
+#video-title-fixed .text-container {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; /* Truncar a 2 líneas por defecto */
+    transition: -webkit-line-clamp 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    max-height: 4em;
+    line-height: 1.2;
+}
+
+#video-title-fixed .text-container.expanded {
+    -webkit-line-clamp: unset;
+    cursor: pointer;
+    overflow-y: auto;
+    max-height: 60vh;
+    padding-right: 15px;
+}
+
+#video-title-fixed .toggle-text {
+    color: #ccc;
+    font-size: 12px;
+    font-weight: bold;
+    user-select: none;
+    display: inline-block;
+    margin-left: 6px;
+    cursor: pointer;
+    background: none !important; /* 👈 sin fondo */
+    padding: 0;
+}
+
+
+#video-title-fixed {
+    position: absolute;
+    top: 60px; /* Bajado para estar debajo del encabezado */
+    left: 0; /* alineado a la izquierda */
+    width: 100%; /* ocupa todo el ancho */
+    max-width: 100%; /* no limitar */
+    z-index: 1000;
+    background: rgba(0,0,0,0.3);
+    transition: opacity 0.18s ease;
+    opacity: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 6px 10px;
+    margin: 0;
+    border-bottom-left-radius: 6px; /* 👌 opcional */
+    border-bottom-right-radius: 6px; /* 👌 opcional */
+}
+
+
+
+
+#video-title-fixed .video-title {
+    font-size: 18px;
+    font-weight: 600;
+    text-align: left;
+    color: #f1f1f1;
+}
+
+#video-title-fixed .video-desc {
+    font-size: 14px;
+    opacity: 0.85;
+    text-align: left;
+    color: #ddd;
+}
     
   </style>
 </head>
 
 <body>
+<header id="socialHeader">
+  <div class="header-content" style="display:flex;align-items:center;justify-content:space-between;">
+    <h1>DECOM</h1>
 
-<!-- 🔹 Modal de Publicar (Anuncio / Video) -->
+    <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
+      <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
+      <button id="imagesBtn" class="header-btn selected" title="Imágenes" style="position: relative;">
+        <i class="fas fa-image"></i>
+        <span id="imagesNotificationCount" style="
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: red;
+          color: white;
+          font-size: 11px;
+          font-weight: bold;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          display: none;
+          z-index: 10;
+        "></span>
+      </button>
+
+     <button id="videosBtn" class="header-btn" title="Videos">
+  <i class="fas fa-video"></i>
+  <span id="videosNotificationCount" style="
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: red;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none;
+    z-index: 10;
+  "></span>
+</button>
+
+
+      <a href="#" class="header-btn" id="publishBtn" title="Publicar">
+        <i class="fas fa-plus-circle"></i>
+      </a>
+
+      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
+        <i class="fas fa-search"></i>
+      </button>
+
+  <!-- 🔹 Botón de usuario -->
+<div id="userBtn" 
+     style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:bold;cursor:pointer;z-index:1000;">
+</div>
+
+<!-- 🔹 Fondo oscuro (WhatsApp/Facebook) -->
+<div id="userOverlay"
+     style="display:none;position:fixed;top:0;left:0;width:100%;height:100vh;
+            background:rgba(0,0,0,0.45);z-index:2000;">
+</div>
+
+<!-- Panel lateral moderno 2025 - VERSIÓN FINAL MINIMALISTA -->
+<div id="userMenu" style="
+    display:none;
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(15, 23, 42, 0.70);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index:9999;
+    animation: fadeIn 0.25s ease-out;
+">
+  <div style="
+    position:absolute;
+    top:70px; right:0;
+    width:340px; max-width:90vw;
+    height:calc(100vh - 90px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px 0 0 20px;
+    box-shadow: -10px 0 40px rgba(0,0,0,0.3);
+    padding:30px 24px;
+    overflow-y:auto;
+    animation: slideInRight 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+  ">
+    <!-- Botón cerrar (X) -->
+    <button onclick="document.getElementById('userMenu').style.display='none'"
+            style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#64748b; padding:8px; border-radius:50%;">
+      <i class="fas fa-xmark"></i>
+    </button>
+
+    <!-- Cerrar sesión arriba a la izquierda -->
+    <button id="logoutBtn" style="position:absolute; top:16px; left:16px; background:none !important; border:none !important; color:#ef4444; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <i class="fas fa-arrow-right-from-bracket"></i>
+      <span>Cerrar sesión</span>
+    </button>
+
+    <!-- Foto y datos -->
+    <div style="text-align:center; margin:60px 0 30px;">
+      <div id="userMenuPhoto" style="width:96px; height:96px; border-radius:50%; margin:0 auto 16px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; color:white; box-shadow:0 8px 25px rgba(102,126,234,0.4); overflow:hidden; border:4px solid rgba(255,255,255,0.3);">
+        <img src="ruta-de-tu-foto.jpg" style="width:100%; height:100%; object-fit:cover;" alt="Foto">
+      </div>
+      <p id="userName" style="margin:0; font-weight:700; font-size:20px; color:#1e293b;"></p>
+      <p id="userEmail" style="margin:6px 0 0; font-size:14px; color:#64748b;"></p>
+    </div>
+
+    <!-- ESTILOS FUERTES PARA SOBREESCRIBIR CUALQUIER TEMA -->
+    <style>
+      /* FORZAR QUE NO HAYA FONDO NI BORDE EN NINGÚN BOTÓN */
+      #userMenu button.menu-btn,
+      #userMenu button:not(#logoutBtn):not([onclick*="display='none'"]) {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 10px 0 !important;
+        margin: 0 !important;
+        margin-bottom: 16px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 14px !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        color: #475569 !important;
+        cursor: pointer !important;
+        width: 100% !important;
+        text-align: left !important;
+        transition: none !important;
+      }
+      #userMenu button.menu-btn:last-of-type { margin-bottom: 40px !important; }
+
+      #userMenu button.menu-btn i {
+        width: 20px !important;
+        text-align: center !important;
+        font-size: 18px !important;
+        color: #64748b !important;
+      }
+      #userMenu button.menu-btn span {
+        color: #475569 !important;
+      }
+
+      /* Quitar cualquier hover o foco */
+      #userMenu button:hover,
+      #userMenu button:focus,
+      #userMenu button:active {
+        background: transparent !important;
+        color: inherit !important;
+        transform: none !important;
+      }
+      
+    </style>
+
+    <!-- BOTONES SIN NADA - SOLO ICONO + TEXTO -->
+    <button class="menu-btn">
+      <i class="fas fa-user-circle"></i>
+      <span>Mi perfil</span>
+    </button>
+
+    <button class="menu-btn">
+      <i class="fas fa-bell"></i>
+      <span>Notificaciones</span>
+    </button>
+
+    <button id="themeToggle" class="menu-btn">
+      <i class="fas fa-sun" id="themeIcon"></i>
+      <span id="themeText">Tema claro</span>
+    </button>
+
+    <button id="whatsappBtn" class="menu-btn">
+      <i class="fab fa-whatsapp"></i>
+      <span>Soporte</span>
+    </button>
+
+    <!-- Versión abajo -->
+    <div style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px; padding-top:20px; border-top:1px solid #e2e8f0;">
+      v2.4.1 • © 2025 DECOM
+    </div>
+  </div>
+</div>
+
+
+    </div>
+  </div>
+</header>
+<!-- Contenedor de sliders -->
+<div id="sliderFotos">
+  <!-- Aquí va tu slider de fotos -->
+  <!-- 🔹 Modal de Publicar (Anuncio / Video) -->
 <div id="publishModal" style="
   display:none;
   position:fixed;
@@ -1275,183 +1684,7 @@ body {
     </div>
 </div>
 
-<header id="socialHeader">
-  <div class="header-content" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1>DECOM</h1>
 
-    <div class="header-buttons" style="display:flex;align-items:center;gap:10px;">
-      <!-- BOTÓN DE IMÁGENES CON CONTADOR -->
-      <button id="imagesBtn" class="header-btn selected" title="Imágenes" style="position: relative;">
-        <i class="fas fa-image"></i>
-        <span id="imagesNotificationCount" style="
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          background: red;
-          color: white;
-          font-size: 11px;
-          font-weight: bold;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          display: none;
-          z-index: 10;
-        "></span>
-      </button>
-
-      <a href="./videosSesion2.html" class="header-btn" title="Videos">
-        <i class="fas fa-video"></i>
-      </a>
-
-      <a href="#" class="header-btn" id="publishBtn" title="Publicar">
-        <i class="fas fa-plus-circle"></i>
-      </a>
-
-      <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
-        <i class="fas fa-search"></i>
-      </button>
-
-  <!-- 🔹 Botón de usuario -->
-<div id="userBtn" 
-     style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-            display:flex;align-items:center;justify-content:center;
-            font-weight:bold;cursor:pointer;z-index:1000;">
-</div>
-
-<!-- 🔹 Fondo oscuro (WhatsApp/Facebook) -->
-<div id="userOverlay"
-     style="display:none;position:fixed;top:0;left:0;width:100%;height:100vh;
-            background:rgba(0,0,0,0.45);z-index:2000;">
-</div>
-
-<!-- Panel lateral moderno 2025 - VERSIÓN FINAL MINIMALISTA -->
-<div id="userMenu" style="
-    display:none;
-    position:fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(15, 23, 42, 0.70);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    z-index:9999;
-    animation: fadeIn 0.25s ease-out;
-">
-  <div style="
-    position:absolute;
-    top:70px; right:0;
-    width:340px; max-width:90vw;
-    height:calc(100vh - 90px);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 20px 0 0 20px;
-    box-shadow: -10px 0 40px rgba(0,0,0,0.3);
-    padding:30px 24px;
-    overflow-y:auto;
-    animation: slideInRight 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
-  ">
-    <!-- Botón cerrar (X) -->
-    <button onclick="document.getElementById('userMenu').style.display='none'"
-            style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#64748b; padding:8px; border-radius:50%;">
-      <i class="fas fa-xmark"></i>
-    </button>
-
-    <!-- Cerrar sesión arriba a la izquierda -->
-    <button id="logoutBtn" style="position:absolute; top:16px; left:16px; background:none !important; border:none !important; color:#ef4444; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer;">
-      <i class="fas fa-arrow-right-from-bracket"></i>
-      <span>Cerrar sesión</span>
-    </button>
-
-    <!-- Foto y datos -->
-    <div style="text-align:center; margin:60px 0 30px;">
-      <div id="userMenuPhoto" style="width:96px; height:96px; border-radius:50%; margin:0 auto 16px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; color:white; box-shadow:0 8px 25px rgba(102,126,234,0.4); overflow:hidden; border:4px solid rgba(255,255,255,0.3);">
-        <img src="ruta-de-tu-foto.jpg" style="width:100%; height:100%; object-fit:cover;" alt="Foto">
-      </div>
-      <p id="userName" style="margin:0; font-weight:700; font-size:20px; color:#1e293b;"></p>
-      <p id="userEmail" style="margin:6px 0 0; font-size:14px; color:#64748b;"></p>
-    </div>
-
-    <!-- ESTILOS FUERTES PARA SOBREESCRIBIR CUALQUIER TEMA -->
-    <style>
-      /* FORZAR QUE NO HAYA FONDO NI BORDE EN NINGÚN BOTÓN */
-      #userMenu button.menu-btn,
-      #userMenu button:not(#logoutBtn):not([onclick*="display='none'"]) {
-        background: transparent !important;
-        background-color: transparent !important;
-        border: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        padding: 10px 0 !important;
-        margin: 0 !important;
-        margin-bottom: 16px !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 14px !important;
-        font-size: 15px !important;
-        font-weight: 500 !important;
-        color: #475569 !important;
-        cursor: pointer !important;
-        width: 100% !important;
-        text-align: left !important;
-        transition: none !important;
-      }
-      #userMenu button.menu-btn:last-of-type { margin-bottom: 40px !important; }
-
-      #userMenu button.menu-btn i {
-        width: 20px !important;
-        text-align: center !important;
-        font-size: 18px !important;
-        color: #64748b !important;
-      }
-      #userMenu button.menu-btn span {
-        color: #475569 !important;
-      }
-
-      /* Quitar cualquier hover o foco */
-      #userMenu button:hover,
-      #userMenu button:focus,
-      #userMenu button:active {
-        background: transparent !important;
-        color: inherit !important;
-        transform: none !important;
-      }
-    </style>
-
-    <!-- BOTONES SIN NADA - SOLO ICONO + TEXTO -->
-    <button class="menu-btn">
-      <i class="fas fa-user-circle"></i>
-      <span>Mi perfil</span>
-    </button>
-
-    <button class="menu-btn">
-      <i class="fas fa-bell"></i>
-      <span>Notificaciones</span>
-    </button>
-
-    <button id="themeToggle" class="menu-btn">
-      <i class="fas fa-sun" id="themeIcon"></i>
-      <span id="themeText">Tema claro</span>
-    </button>
-
-    <button id="whatsappBtn" class="menu-btn">
-      <i class="fab fa-whatsapp"></i>
-      <span>Soporte</span>
-    </button>
-
-    <!-- Versión abajo -->
-    <div style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px; padding-top:20px; border-top:1px solid #e2e8f0;">
-      v2.4.1 • © 2025 DECOM
-    </div>
-  </div>
-</div>
-
-
-    </div>
-  </div>
-</header>
 <!-- Modal de inicio de sesión / registro -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -1956,6 +2189,526 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
   </div>
 </div>
+
+</div>
+
+<div id="sliderVideos" style="display: none;">
+  <!-- Aquí va tu slider de videos -->
+  <!-- 🔹 Modal de Publicar (Anuncio / Video) -->
+<div id="publishModal" style="
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(3px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    background:#fff;
+    border-radius:16px;
+    width:90%;
+    max-width:520px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    position:relative;
+  ">
+    <button id="closePublishModal" style="
+      position:absolute;
+      top:10px; right:15px;
+      background:none;
+      border:none;
+      font-size:22px;
+      cursor:pointer;
+      color:#333;
+    ">×</button>
+
+    <h2 style="text-align:center;color:#0077cc;">Publicar Contenido</h2>
+
+    <!-- 🔹 Selector de tipo -->
+    <div style="display:flex;gap:10px;margin-top:15px;justify-content:center;">
+      <button id="tabAnuncio" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0077cc;color:white;cursor:pointer;font-weight:bold;">📰 Anuncio</button>
+      <button id="tabVideo" style="flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold;">🎥 Video</button>
+    </div>
+
+    <!-- 🔹 Sección de Anuncio -->
+    <div id="anuncioSection" style="margin-top:15px;">
+      <label style="font-weight:600;display:block;margin-top:10px;">Título</label>
+      <input type="text" id="titulo" placeholder="Escribe un título" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+      <textarea id="descripcion" rows="4" placeholder="Describe tu anuncio..." required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+     <label style="font-weight:600;display:block;margin-top:10px;">Imagen</label>
+<div style="display:flex;align-items:center;gap:10px;">
+  <input type="file" id="imagen" accept="image/*" style="flex:1;margin-top:5px;" />
+  <button id="abrirCamaraImg" title="Abrir cámara" 
+    style="background:none;border:none;cursor:pointer;font-size:22px;color:#0077cc;">
+    <i class="fas fa-camera"></i>
+  </button>
+</div>
+
+      <div style="margin-top:10px;text-align:center;">
+        <img id="previewImg" src="" style="max-width:100%;border-radius:12px;display:none;" />
+      </div>
+
+      <div id="progressContainer" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+        <div id="progressBar" style="width:0%;height:10px;background:#0077cc;border-radius:8px;transition:width 0.3s;"></div>
+      </div>
+
+      <button id="btnPublicar" style="background:#0077cc;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Publicar Anuncio</button>
+      <div id="mensaje" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+    </div>
+
+    <!-- 🔹 Sección de Video -->
+    <div id="videoSection" style="display:none;margin-top:15px;">
+      <label style="font-weight:600;display:block;margin-top:10px;">Título del Video</label>
+      <input type="text" id="videoTitle" placeholder="Escribe el título" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;" />
+
+      <label style="font-weight:600;display:block;margin-top:10px;">Descripción</label>
+      <textarea id="videoDescripcion" rows="3" placeholder="Describe tu video..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-top:5px;"></textarea>
+
+     <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
+<div style="display:flex;align-items:center;gap:10px;">
+  <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
+  <button id="abrirCamaraVideo" title="Grabar video" 
+    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
+    <i class="fas fa-video"></i>
+  </button>
+</div>
+
+
+      <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
+        <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
+      </div>
+
+      <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
+
+      <button id="btnUploadVideo" style="background:#6b46c1;color:white;padding:12px;border:none;width:100%;border-radius:8px;margin-top:20px;font-size:16px;cursor:pointer;">📤 Subir Video</button>
+
+      <div id="statusVideo" style="margin-top:15px;text-align:center;font-weight:bold;"></div>
+    </div>
+  </div>
+</div>
+
+
+
+    
+
+
+
+<div id="loginModal"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:25px; border-radius:15px; width:320px; max-height:90vh; overflow-y:auto; text-align:center; font-family:Arial,sans-serif;">
+    
+    <!-- Pestañas -->
+    <div style="display:flex; margin-bottom:15px; border-bottom:1px solid #ddd;">
+      <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; border:none; background:none; font-weight:bold;">Iniciar Sesión</button>
+      <button id="tabRegistro" class="tab-btn" style="flex:1; padding:10px; border:none; background:none;">Registrarse</button>
+    </div>
+
+    <!-- Formulario Login -->
+    <div id="formLogin">
+      <h3>🔐 Iniciar Sesión</h3>
+      <input id="loginCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+
+      <div style="position:relative;">
+        <input id="loginPin" type="password" placeholder="PIN (Mínimo 4 caracteres)" minlength="4"
+               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+        <i class="fa-solid fa-eye toggle-pin" data-target="loginPin"
+           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      </div>
+
+      <button id="btnLogin" style="width:100%; padding:12px; margin-top:15px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Entrar</button>
+      <p style="margin-top:10px; font-size:13px; color:#666;">
+        ¿No tienes cuenta? <a href="#" id="irARegistro" style="color:#0077cc; text-decoration:underline;">Regístrate aquí</a>
+      </p>
+      <p style="margin-top:8px; font-size:13px; color:#0077cc; cursor:pointer;" id="olvidastePin">
+        ¿Olvidaste tu PIN?
+      </p>
+    </div>
+
+    <!-- Formulario Registro -->
+    <div id="formRegistro" style="display:none;">
+      <h3>✨ Crear Cuenta</h3>
+      <input id="regNombre" type="text" placeholder="Tu nombre completo" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      <input id="regCorreo" type="email" placeholder="Correo electrónico" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+      
+      <div style="position:relative;">
+        <input id="regPin" type="password" placeholder="Crea un PIN (Mínimo 4 caracteres)" minlength="4"
+               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+        <i class="fa-solid fa-eye toggle-pin" data-target="regPin"
+           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      </div>
+
+      <div style="position:relative;">
+        <input id="regPinConfirm" type="password" placeholder="Confirma tu PIN" minlength="4"
+               style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+        <i class="fa-solid fa-eye toggle-pin" data-target="regPinConfirm"
+           style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+      </div>
+      
+      <div style="margin:15px 0; text-align:left; font-size:13px;">
+        <label>Foto de perfil:</label>
+        <input id="regFoto" type="file" accept="image/*" style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:8px;">
+        <div id="previewContainer" style="margin-top:10px; text-align:center; display:none;">
+          <img id="fotoPreview" src="" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:3px solid #0077cc;">
+        </div>
+      </div>
+
+      <button id="btnRegistro" style="width:100%; padding:12px; margin-top:10px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Crear Cuenta</button>
+      <p style="margin-top:10px; font-size:13px; color:#666;">
+        ¿Ya tienes cuenta? <a href="#" id="irALogin" style="color:#0077cc; text-decoration:underline;">Inicia sesión</a>
+      </p>
+    </div>
+
+    <!-- Recuperar PIN -->
+    <div id="formRecuperarPin" style="display:none;">
+      <h3 id="tituloRecuperar">🔁 Recuperar PIN</h3>
+
+      <div id="pasoCorreo">
+        <p style="font-size:13px; color:#555;">Ingresa tu correo y te enviaremos un PIN temporal.</p>
+        <input id="recCorreo" type="email" placeholder="Correo registrado" style="width:100%; margin:10px 0; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <button id="btnEnviarPinTemp" style="width:100%; padding:12px; margin-top:10px; background:#0077cc; color:white; border:none; border-radius:8px; font-weight:bold;">Enviar PIN Temporal</button>
+      </div>
+
+      <div id="pasoVerificar" style="display:none;">
+        <p style="font-size:13px;">Revisa tu correo e ingresa el PIN temporal recibido:</p>
+        <div style="position:relative;">
+          <input id="recPinTemp" type="password" minlength="4" placeholder="PIN temporal"
+                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="recPinTemp"
+             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+        </div>
+        <button id="btnVerificarPinTemp" style="width:100%; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">Verificar PIN</button>
+      </div>
+
+      <div id="pasoNuevoPin" style="display:none;">
+        <p style="font-size:13px;">Crea tu nuevo PIN de acceso:</p>
+        <div style="position:relative;">
+          <input id="nuevoPin" type="password" minlength="4" placeholder="Nuevo PIN"
+                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="nuevoPin"
+             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+        </div>
+
+        <div style="position:relative;">
+          <input id="confirmarPin" type="password" minlength="4" placeholder="Confirmar nuevo PIN"
+                 style="width:100%; margin:10px 0; padding:10px 35px 10px 10px; border-radius:8px; border:1px solid #ccc;">
+          <i class="fa-solid fa-eye toggle-pin" data-target="confirmarPin"
+             style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; color:#0077cc;"></i>
+        </div>
+
+        <button id="btnCambiarPin" style="width:100%; padding:12px; background:#ff9800; color:white; border:none; border-radius:8px; font-weight:bold;">Guardar Nuevo PIN</button>
+      </div>
+
+      <p style="margin-top:10px; font-size:13px;">
+        <a href="#" id="volverLogin" style="color:#0077cc; text-decoration:underline;">Volver al inicio</a>
+      </p>
+    </div>
+
+    <button onclick="document.getElementById('loginModal').style.display='none'" 
+            style="margin-top:15px; background:none; border:none; color:#999; font-size:20px;">✕</button>
+  </div>
+</div>
+
+
+    <!-- MODAL PERFIL -->
+<div id="modalPerfil" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+  animation: fadeIn 0.25s ease;
+">
+  <div id="contenidoModalPerfil" style="
+    width:85%;
+    max-width:380px;
+    background:white;
+    border-radius:14px;
+    padding:18px;
+    text-align:center;
+    position:relative;
+    animation: zoomIn 0.25s ease;
+  ">
+    <!-- Botón cerrar -->
+    <span onclick="cerrarModalPerfil()" style="
+      position:absolute;
+      right:12px;
+      top:8px;
+      font-size:23px;
+      cursor:pointer;
+      color:#333;
+      font-weight:bold;
+    ">✖</span>
+
+    <div style="position:relative; display:inline-block; margin-top:10px;">
+      <img id="fotoPerfilModal" src="" style="
+        width:100%;
+        max-width:250px;
+        height:250px;
+        border-radius:12px;
+        object-fit:cover;
+        border:3px solid #0077cc;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">
+
+      <!-- ✏️ Icono editar -->
+      <span id="editarFotoBtn" style="
+        position:absolute;
+        right:6px;
+        bottom:6px;
+        background:#0077cc;
+        color:white;
+        border-radius:50%;
+        width:38px;
+        height:38px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
+        font-size:18px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      ">✏️</span>
+    </div>
+
+    <p id="nombrePerfil" style="
+      margin-top:12px;
+      font-weight:bold;
+      color:#222;
+      font-size:18px;
+    "></p>
+
+    <p id="correoPerfil" style="
+      color:#555;
+      font-size:14px;
+      margin-top:4px;
+    "></p>
+
+    <input type="file" id="inputFotoPerfil" accept="image/*" style="display:none;">
+  </div>
+</div>
+    
+    
+<!-- BOTÓN GUARDAR/VER -->
+<button id="saveBtn" style="
+    position: fixed;
+    bottom: 300px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 2000;
+">
+    <i class="far fa-bookmark" style="font-size: 24px;"></i>
+</button>
+
+
+<!-- 📌 Modal Guardados -->
+<div id="savedModal" style="
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: column;
+    padding: 15px;
+">
+    <div id="savedModalInner" style="
+        background-color: #1c1c1c;
+        color: white;
+        width: 90%;
+        max-width: 420px;
+        max-height: 80%;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        margin-top: 16vh;
+        transition: margin-top 0.25s ease;
+    ">
+        <!-- Encabezado -->
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background-color: #1c1c1c;
+            z-index: 20;
+            padding-bottom: 8px;
+        ">
+            <h2 style="margin: 0; font-size: 18px; color: white;">🔖 Guardados</h2>
+            <button id="closeSavedBtn" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                line-height: 1;
+            ">&times;</button>
+        </div>
+
+        <!-- Input de búsqueda -->
+        <input
+            id="savedSearchInput"
+            type="text"
+            placeholder="Buscar guardados..."
+            style="
+                position: sticky;
+                top: 40px;
+                z-index: 15;
+                margin-top: 12px;
+                padding: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #2c2c2c;
+                color: white;
+                font-size: 15px;
+            "
+        />
+
+        <!-- Lista de guardados -->
+        <ul id="savedList" style="
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0;
+            max-height: 250px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #1c1c1c;
+        "></ul>
+    </div>
+</div>
+
+
+
+
+    
+<!-- 🔍 Modal de búsqueda -->
+<div id="search-modal" class="hidden">
+  <div class="modal-content">
+    <h3 style="margin:0 0 10px; font-size:18px;">Buscar video</h3>
+    <input type="text" id="search-input" placeholder="Escribe el título...">
+    <ul id="search-results"></ul>
+    <div class="modal-actions" style="margin-top:10px; text-align:right;">
+      <button id="search-close">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🔄 Botón de actualizar -->
+<button id="refreshBtn" class="refresh-btn" title="Actualizar página">
+  <i class="fas fa-sync-alt"></i>
+</button>
+
+<div class="comments-overlay-container" id="commentsOverlay">
+  <ul id="commentsList"></ul>
+</div>
+
+<div class="comments-counter" id="commentsCounter">
+  <span class="icon">
+    <i class="fa-regular fa-comment"></i>
+  </span>
+  <span class="count" id="commentCountValue">0</span>
+</div>
+
+
+
+<div class="comment-input-container">
+  <div class="comment-input-wrapper">
+    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
+    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+
+
+    
+<!-- Notificaciones -->
+<div id="notification-wrapper">
+  <button id="notification-btn">
+    <i class="far fa-bell"></i>
+    <span id="notification-count"></span>
+  </button>
+  <div id="notification-list" class="hidden"></div>
+</div>
+
+    
+<div id="custom-alert-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>¡Atención!</h3>
+    <p id="custom-alert-message"></p>
+    <div class="modal-actions">
+      <button id="custom-alert-ok" style="background:#007bff; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer;">Aceptar</button>
+    </div>
+  </div>
+</div>
+<!-- Modal de eliminación -->
+<div id="delete-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>¿Eliminar Video?</h3>
+    <p id="delete-video-title">¿Seguro que deseas eliminar este video?</p>
+    <div class="modal-actions">
+      <button id="delete-confirm" style="background:#dc3545; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer;">Eliminar</button>
+      <button id="delete-cancel" style="background:#444; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+    
+        <!-- BOTONES flotantes -->
+   <div class="floating-buttons">
+  <button id="btn-delete" class="fab danger"><i class="fas fa-trash"></i></button>
+</div>
+
+  
+
+<div class="swiper">
+  <div class="swiper-wrapper" id="slides">
+    <!-- aquí solo van los slides -->
+  </div>
+
+  <!-- 👇 contenedor global del título, fuera de los slides -->
+  <div id="video-title-fixed">
+    <div class="video-title"></div>
+    <div class="video-desc"></div>
+  </div>
+</div>
+
+
+
+   <div id="loader">
+  <i class="fas fa-spinner fa-spin"></i>
+</div>
+
+</div>
+  
 
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -2570,6 +3323,24 @@ const perfilCache = {}; // clave: correo normalizado → datos completos del per
 
 
 
+const imagesBtn = document.getElementById('imagesBtn');
+const videosBtn = document.getElementById('videosBtn');
+const sliderFotos = document.getElementById('sliderFotos');
+const sliderVideos = document.getElementById('sliderVideos');
+
+imagesBtn.addEventListener('click', () => {
+  sliderFotos.style.display = 'block';
+  sliderVideos.style.display = 'none';
+  imagesBtn.classList.add('selected');
+  videosBtn.classList.remove('selected');
+});
+
+videosBtn.addEventListener('click', () => {
+  sliderVideos.style.display = 'block';
+  sliderFotos.style.display = 'none';
+  videosBtn.classList.add('selected');
+  imagesBtn.classList.remove('selected');
+});
 
 const publishBtn = document.getElementById("publishBtn");
 const publishModal = document.getElementById("publishModal");
@@ -6218,6 +6989,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
