@@ -2287,23 +2287,28 @@ aplicarLightModeModalAutor();
 function aplicarDarkModeModalPerfil() {
   const modal = document.getElementById("contenidoModalPerfil");
   if (!modal) return;
-  modal.style.background = "rgba(31, 31, 31, 0.98)";  // #1f1f1f 0.98
+
+  modal.style.background = "rgba(31, 31, 31, 0.98)";
   modal.style.color = "#e8eaed";
 
-  // Textos internos
-  modal.querySelectorAll("p, span, label, h1, h2, h3").forEach(el => {
-    el.style.color = "#e8eaed";
+  // Forzar todos los textos (incluidos los generados dinámicamente)
+  modal.querySelectorAll(".dato-label, .dato-valor, p, span, label, h1, h2, h3, div")
+    .forEach(el => el.style.setProperty("color", "#e8eaed", "important"));
+
+  // Iconos en blanco (excepto WhatsApp que no existe aquí, pero por si acaso)
+  modal.querySelectorAll("i").forEach(ic => {
+    ic.style.setProperty("color", "#e8eaed", "important");
   });
 
-  // Forzar textos de botones del menú a color Google claro
-  document.querySelectorAll("#userMenu .menu-btn, #userMenu .menu-btn span, #userMenu .menu-btn i")
-    .forEach(el => {
-      el.style.setProperty("color", "#e8eaed", "important");
-    });
+  // Asegurar que los items no tengan fondo
+  modal.querySelectorAll(".perfil-dato-item").forEach(item => {
+    item.style.background = "transparent";
+    item.style.border = "none";
+  });
 
-  // Versión (abajo)
-  const version = document.querySelector("#userMenu div[style*='font-size:12px']");
-  if (version) version.style.color = "#9aa0a6";   // texto secundario Google
+  // Menú de usuario (opcional)
+  document.querySelectorAll("#userMenu .menu-btn, #userMenu .menu-btn span, #userMenu .menu-btn i")
+    .forEach(el => el.style.setProperty("color", "#e8eaed", "important"));
 }
 
 function aplicarLightModeModalPerfil() {
@@ -2313,19 +2318,28 @@ function aplicarLightModeModalPerfil() {
   modal.style.background = "white";
   modal.style.color = "#1e293b";
 
-  // Textos internos restaurados
-  modal.querySelectorAll("p, span, label, h1, h2, h3").forEach(el => {
-    el.style.color = "#1e293b";
+  // Forzar textos en modo claro
+  modal.querySelectorAll(".dato-label, .dato-valor, p, span, label, h1, h2, h3, div")
+    .forEach(el => el.style.setProperty("color", "#1e293b", "important"));
+
+  // Iconos en gris oscuro
+  modal.querySelectorAll("i").forEach(ic => {
+    ic.style.setProperty("color", "#1e293b", "important");
   });
 
-  // Botón cerrar vuelve a estilo claro
+  // Sin fondo ni borde
+  modal.querySelectorAll(".perfil-dato-item").forEach(item => {
+    item.style.background = "transparent";
+    item.style.border = "none";
+  });
+
+  // Botón cerrar (si existe)
   const btnCerrar = modal.parentElement.querySelector("span[onclick='cerrarModalPerfil()']");
   if (btnCerrar) {
     btnCerrar.style.background = "rgba(255,255,255,0.15)";
     btnCerrar.style.color = "white";
   }
 }
-
 
 
 
@@ -5629,53 +5643,30 @@ function abrirPerfil() {
   u.cargo = u.cargo || localStorage.getItem("cargo") || "";
   u.ciudad = u.ciudad || localStorage.getItem("ciudad") || "";
 
-  // Cerrar userMenu si está abierto
-  /*const userMenu = document.getElementById("userMenu");
-  if (userMenu) userMenu.style.display = "none";*/
-
   // Mostrar modal
   const modal = document.getElementById("modalPerfil");
   modal.style.display = "flex";
 
-  // Elementos relevantes
+  // === FOTO DE PERFIL (sin cambios, funciona bien) ===
   const userBtn = document.getElementById("userBtn");
   const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
   const fotoModal = document.getElementById("fotoPerfilModal");
   const menuPhoto = document.getElementById("userMenuPhoto");
 
-  // Determinar la fuente de la foto (prioridad)
   let fotoSrc = "";
-  if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
+  if (userBtnImg?.src) fotoSrc = userBtnImg.src;
   else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
-  else {
-    const menuImg = menuPhoto?.querySelector("img");
-    if (menuImg?.src) fotoSrc = menuImg.src;
-  }
-  if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
-    fotoSrc = localStorage.getItem("fotoPerfil");
-  }
+  else if (menuPhoto?.querySelector("img")?.src) fotoSrc = menuPhoto.querySelector("img").src;
+  if (!fotoSrc && localStorage.getItem("fotoPerfil")) fotoSrc = localStorage.getItem("fotoPerfil");
 
-  // Aplicar foto
   if (fotoSrc) {
     if (fotoModal) fotoModal.src = fotoSrc;
     document.getElementById("fotoFondoDifuminado").src = fotoSrc;
-
     if (menuPhoto) {
-      menuPhoto.innerHTML = `
-        <img src="${fotoSrc}" style="
-          width:80px;
-          height:80px;
-          border-radius:50%;
-          object-fit:cover;
-          border:2px solid #0077cc;
-        ">
-      `;
+      menuPhoto.innerHTML = `<img src="${fotoSrc}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
     }
     if (userBtn && !userBtnImg) {
-      userBtn.innerHTML = `
-        <img src="${fotoSrc}"
-        style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
-      `;
+      userBtn.innerHTML = `<img src="${fotoSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
     }
   }
 
@@ -5683,18 +5674,17 @@ function abrirPerfil() {
   document.getElementById("nombrePerfil").textContent = u.nombre;
   document.getElementById("correoPerfil").textContent = u.correo || "Sin correo registrado";
 
-  // --- DATOS ADICIONALES CON ESTILO RED SOCIAL ---
+  // === DATOS ADICIONALES (SIN ESTILOS INLINE DE COLOR) ===
   const datosHTML = `
     ${u.telefono ? `
       <div class="perfil-dato-item">
         <i class="fas fa-phone-alt"></i>
         <div>
           <div class="dato-label">Teléfono</div>
-          <div class="dato-valor">${u.telefono}</div>
+          <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
         </div>
       </div>
     ` : ''}
-
     ${u.congregacion ? `
       <div class="perfil-dato-item">
         <i class="fas fa-church"></i>
@@ -5704,7 +5694,6 @@ function abrirPerfil() {
         </div>
       </div>
     ` : ''}
-
     ${u.cargo ? `
       <div class="perfil-dato-item">
         <i class="fas fa-user-tie"></i>
@@ -5714,7 +5703,6 @@ function abrirPerfil() {
         </div>
       </div>
     ` : ''}
-
     ${u.ciudad ? `
       <div class="perfil-dato-item">
         <i class="fas fa-map-marker-alt"></i>
@@ -5730,8 +5718,14 @@ function abrirPerfil() {
   if (contenedor) {
     contenedor.innerHTML = datosHTML;
   }
-}
 
+  // === APLICAR TEMA CORRECTO AL FINAL (esto es lo que lo arregla todo) ===
+  if (document.body.classList.contains('dark-mode')) {
+    aplicarDarkModeModalPerfil();
+  } else {
+    aplicarLightModeModalPerfil();
+  }
+}
 
 
 function cerrarModalPerfil() {
@@ -6089,6 +6083,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
