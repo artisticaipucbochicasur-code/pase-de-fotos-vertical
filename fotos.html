@@ -2258,6 +2258,7 @@ function enableDarkMode() {
   }
   aplicarDarkModeModalPerfil();
   aplicarDarkModeModalAutor();
+  aplicarDarkModeModalPublicar();
 }
 
 // ☀️ Activar modo claro
@@ -2278,6 +2279,7 @@ function enableLightMode() {
   }
  aplicarLightModeModalPerfil();
 aplicarLightModeModalAutor();
+  aplicarLightModeModalPublicar();
 
 }
 
@@ -2418,6 +2420,88 @@ function aplicarLightModeModalAutor() {
 }
 
 
+
+    // MODO OSCURO - Modal Publicar
+function aplicarDarkModeModalPublicar() {
+  const modal = document.getElementById("publishModal");
+  if (!modal) return;
+
+  const inner = modal.querySelector("div > div"); // el div blanco interno
+  if (inner) {
+    inner.style.background = "rgba(31, 31, 31, 0.98)";
+    inner.style.color = "#e8eaed";
+    inner.style.boxShadow = "0 4px 20px rgba(0,0,0,0.6)";
+  }
+
+  // Textos, inputs, labels, textarea
+  modal.querySelectorAll("label, input, textarea, h2, p, div, span")
+    .forEach(el => el.style.setProperty("color", "#e8eaed", "important"));
+
+  modal.querySelectorAll("input, textarea")
+    .forEach(el => {
+      el.style.background = "rgba(50, 50, 50, 0.9)";
+      el.style.border = "1px solid #555";
+      el.style.color = "#e8eaed";
+    });
+
+  // Botón cerrar (×)
+  const closeBtn = document.getElementById("closePublishModal");
+  if (closeBtn) closeBtn.style.color = "#e8eaed";
+
+  // Tabs
+  document.getElementById("tabAnuncio").style.background = "#0077cc";
+  document.getElementById("tabAnuncio").style.color = "white";
+  document.getElementById("tabVideo").style.background = "#444";
+  document.getElementById("tabVideo").style.color = "#e8eaed";
+
+  // Botones principales
+  document.getElementById("btnPublicar").style.background = "#0077cc";
+  document.getElementById("btnUploadVideo").style.background = "#6b46c1";
+
+  // Barras de progreso
+  modal.querySelectorAll("#progressContainer, #progressContainerVideo")
+    .forEach(bar => bar.style.background = "#444");
+}
+
+// MODO CLARO - Modal Publicar
+function aplicarLightModeModalPublicar() {
+  const modal = document.getElementById("publishModal");
+  if (!modal) return;
+
+  const inner = modal.querySelector("div > div");
+  if (inner) {
+    inner.style.background = "#fff";
+    inner.style.color = "#1e293b";
+    inner.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+  }
+
+  modal.querySelectorAll("label, input, textarea, h2, p, div, span")
+    .forEach(el => el.style.setProperty("color", "#1e293b", "important"));
+
+  modal.querySelectorAll("input, textarea")
+    .forEach(el => {
+      el.style.background = "white";
+      el.style.border = "1px solid #ccc";
+      el.style.color = "#1e293b";
+    });
+
+  const closeBtn = document.getElementById("closePublishModal");
+  if (closeBtn) closeBtn.style.color = "#333";
+
+  // Tabs
+  document.getElementById("tabAnuncio").style.background = "#0077cc";
+  document.getElementById("tabAnuncio").style.color = "white";
+  document.getElementById("tabVideo").style.background = "#ccc";
+  document.getElementById("tabVideo").style.color = "#333";
+
+  // Botones principales (colores originales)
+  document.getElementById("btnPublicar").style.background = "#0077cc";
+  document.getElementById("btnUploadVideo").style.background = "#6b46c1";
+
+  // Barras de progreso
+  modal.querySelectorAll("#progressContainer, #progressContainerVideo")
+    .forEach(bar => bar.style.background = "#eee");
+}
     
 // Cache de perfiles precargados
 const perfilCache = {}; // clave: correo normalizado → datos completos del perfil
@@ -2506,6 +2590,13 @@ publishBtn.addEventListener("click", (e) => {
   // === MARCAR EL BOTÓN DE PUBLICAR COMO SELECCIONADO ===
   document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
   publishBtn.classList.add('selected');
+
+  // APLICAR TEMA ACTUAL AL MODAL (¡ESTO ES LO QUE FALTABA!)
+  if (document.body.classList.contains('dark-mode')) {
+    aplicarDarkModeModalPublicar();
+  } else {
+    aplicarLightModeModalPublicar();
+  }
 });
 
 // 🔹 Cerrar modal
@@ -6083,6 +6174,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
