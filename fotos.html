@@ -2162,44 +2162,37 @@ if (autorFoto) {
 function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
-  cont.innerHTML = ''; // limpiar
 
-  // Contenedor de contacto (Teléfono + WhatsApp)
+  cont.innerHTML = ''; // limpiar contenido anterior
+
+  // ===================================
+  // 1. Contacto: Teléfono + WhatsApp
+  // ===================================
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item autor-dato-item';
-    divContacto.style.background = "transparent";
-    divContacto.style.border = "none";
-    divContacto.style.display = 'flex';
-    divContacto.style.justifyContent = 'center';
-    divContacto.style.gap = '20px';
+    divContacto.style.cssText = 'background:transparent; border:none; display:flex; justify-content:center; gap:20px;';
 
-    // TELÉFONO
+    // Teléfono
     const divTel = document.createElement('div');
-    divTel.style.display = 'flex';
-    divTel.style.flexDirection = 'column';
-    divTel.style.alignItems = 'center';
-    divTel.style.cursor = 'pointer';
+    divTel.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
     divTel.innerHTML = `
       <i class="fas fa-phone-alt" style="font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
-    divTel.addEventListener('click', (e) => {
+    divTel.addEventListener('click', e => {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
 
-    // WHATSAPP
+    // WhatsApp
     const divWA = document.createElement('div');
-    divWA.style.display = 'flex';
-    divWA.style.flexDirection = 'column';
-    divWA.style.alignItems = 'center';
-    divWA.style.cursor = 'pointer';
+    divWA.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
-    divWA.onclick = function (e) {
+    divWA.onclick = e => {
       e.stopPropagation();
       let numero = String(u.telefono || "").replace(/\D/g, "");
       if (!numero.startsWith("57") && numero.length === 10) numero = "57" + numero;
@@ -2211,61 +2204,63 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
-  // CONGREGACIÓN
+  // ===================================
+  // 2. Congregación
+  // ===================================
   if (u.congregacion) {
-    const divCong = document.createElement('div');
-    divCong.className = 'perfil-dato-item autor-dato-item';
-    divCong.style.background = "transparent";
-    divCong.style.border = "none";
-    divCong.innerHTML = `
+    const div = document.createElement('div');
+    div.className = 'perfil-dato-item autor-dato-item';
+    div.style.cssText = 'background:transparent; border:none;';
+    div.innerHTML = `
       <i class="fas fa-church"></i>
       <div>
         <div class="dato-label">Congregación</div>
         <div class="dato-valor">${u.congregacion}</div>
       </div>
     `;
-    cont.appendChild(divCong);
+    cont.appendChild(div);
   }
 
-  // CARGO
+  // ===================================
+  // 3. Cargo
+  // ===================================
   if (u.cargo) {
-    const divCargo = document.createElement('div');
-    divCargo.className = 'perfil-dato-item autor-dato-item';
-    divCargo.style.background = "transparent";
-    divCargo.style.border = "none";
-    divCargo.innerHTML = `
+    const div = document.createElement('div');
+    div.className = 'perfil-dato-item autor-dato-item';
+    div.style.cssText = 'background:transparent; border:none;';
+    div.innerHTML = `
       <i class="fas fa-user-tie"></i>
       <div>
         <div class="dato-label">Cargo</div>
         <div class="dato-valor">${u.cargo}</div>
       </div>
     `;
-    cont.appendChild(divCargo);
+    cont.appendChild(div);
   }
 
-  // CIUDAD
+  // ===================================
+  // 4. Ciudad
+  // ===================================
   if (u.ciudad) {
-    const divCiudad = document.createElement('div');
-    divCiudad.className = 'perfil-dato-item autor-dato-item';
-    divCiudad.style.background = "transparent";
-    divCiudad.style.border = "none";
-    divCiudad.innerHTML = `
+    const div = document.createElement('div');
+    div.className = 'perfil-dato-item autor-dato-item';
+    div.style.cssText = 'background:transparent; border:none;';
+    div.innerHTML = `
       <i class="fas fa-map-marker-alt"></i>
       <div>
         <div class="dato-label">Ciudad</div>
         <div class="dato-valor">${u.ciudad}</div>
       </div>
     `;
-    cont.appendChild(divCiudad);
+    cont.appendChild(div);
   }
 
-  // === BOTÓN DE MENSAJES: único, independiente del anuncio ===
+  // ===================================
+  // 5. BOTÓN DE MENSAJES (ícono visible)
+  // ===================================
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
-  divMensajes.style.background = "transparent";
-  divMensajes.style.border = "none";
-  divMensajes.style.cursor = "pointer";
-
+  divMensajes.style.cssText = 'background:transparent; border:none; cursor:pointer;';
   divMensajes.innerHTML = `
     <i class="fas fa-comments" style="font-size:18px;"></i>
     <div>
@@ -2274,21 +2269,37 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // Crear botón "real" oculto que mantiene compatibilidad con tu sistema
-  const messagesBtn = document.createElement('div');
-  messagesBtn.id = 'messagesBtn';
-  messagesBtn.style.display = 'none';
-  document.body.appendChild(messagesBtn);
+  // Botón real único (ya existe en el DOM)
+  const messagesBtn = document.getElementById('messagesBtn');
 
-  // Al hacer clic en el botón visible → dispara el botón real
-  divMensajes.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('messagesBtn')?.click();
-  });
+  // Si el usuario es uno mismo → no permitir chat
+  const esUsuarioActual = usuarioActual && normalizeText(u.correo) === normalizeText(usuarioActual.correo);
+
+  if (esUsuarioActual || !u.correo) {
+    divMensajes.style.opacity = "0.5";
+    divMensajes.style.pointerEvents = "none";
+  } else {
+    // Configurar el botón real con los datos del autor actual
+    messagesBtn.onclick = () => {
+      iniciarChatCon({
+        nombre: u.nombre || u.autor || "Usuario",
+        correo: u.correo,
+        fotoPerfil: u.fotoPerfil || u.foto || ""
+      });
+    };
+
+    // Al hacer clic en el ícono visible → disparar el botón real
+    divMensajes.addEventListener('click', e => {
+      e.stopPropagation();
+      messagesBtn.click();
+    });
+  }
 
   cont.appendChild(divMensajes);
 
-  // Aplicar tema después de generar todo
+  // ===================================
+  // Tema dark/light
+  // ===================================
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
@@ -5049,6 +5060,12 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
+   if (!document.getElementById("messagesBtn")) {
+    const btn = document.createElement("div");
+    btn.id = "messagesBtn";
+    btn.style.display = "none";
+    document.body.appendChild(btn);
+  }
  const notificationCount = document.getElementById("notificationCount");
   const imagesNotificationCount = document.getElementById("imagesNotificationCount");
 
