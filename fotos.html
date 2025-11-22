@@ -2164,7 +2164,9 @@ function mostrarDatosAutor(u) {
   if (!cont) return;
   cont.innerHTML = ''; // limpiar
 
-  // Contenedor de contacto (Teléfono + WhatsApp)
+  // ==========================
+  //  CONTACTO (TEL + WHATSAPP)
+  // ==========================
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item autor-dato-item';
@@ -2211,7 +2213,9 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
-  // CONGREGACIÓN
+  // ==========================
+  //   CONGREGACIÓN
+  // ==========================
   if (u.congregacion) {
     const divCong = document.createElement('div');
     divCong.className = 'perfil-dato-item autor-dato-item';
@@ -2227,7 +2231,9 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCong);
   }
 
-  // CARGO
+  // ==========================
+  //   CARGO
+  // ==========================
   if (u.cargo) {
     const divCargo = document.createElement('div');
     divCargo.className = 'perfil-dato-item autor-dato-item';
@@ -2243,7 +2249,9 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCargo);
   }
 
-  // CIUDAD
+  // ==========================
+  //   CIUDAD
+  // ==========================
   if (u.ciudad) {
     const divCiudad = document.createElement('div');
     divCiudad.className = 'perfil-dato-item autor-dato-item';
@@ -2259,12 +2267,14 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 
-  // === BOTÓN DE MENSAJES: mismo estilo que los otros íconos ===
+  // ==========================
+  //   BOTÓN MENSAJES (FIX)
+  // ==========================
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
   divMensajes.style.background = "transparent";
   divMensajes.style.border = "none";
-  divMensajes.style.cursor = "pointer"; // para que se vea clicable
+  divMensajes.style.cursor = "pointer";
 
   divMensajes.innerHTML = `
     <i class="fas fa-comments" style="font-size:18px;"></i>
@@ -2274,27 +2284,34 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // Reutilizamos el ID original para que TODA tu lógica existente siga funcionando
-  const messagesBtn = document.createElement('div');
-  messagesBtn.id = 'messagesBtn';
-  messagesBtn.style.display = 'none'; // lo ocultamos visualmente pero sigue existiendo en el DOM
-  document.body.appendChild(messagesBtn); // lo ponemos en el body para que exista
+  // ✅ usar el existente, NO crear más
+  const messagesBtn = document.getElementById('messagesBtn');
 
-  // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
-  divMensajes.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
-  });
+  if (messagesBtn) {
+    // ✅ prevenir cierre inmediato
+    messagesBtn.addEventListener('click', (ev) => ev.stopPropagation());
+
+    divMensajes.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      // ✅ disparar click real (mantiene toda tu lógica original)
+      const evt = new MouseEvent('click', { bubbles: true });
+      messagesBtn.dispatchEvent(evt);
+    });
+  }
 
   cont.appendChild(divMensajes);
 
-  // Aplicar tema correcto después de generar el contenido
+  // ==========================
+  //   TEMA
+  // ==========================
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
     aplicarLightModeModalAutor();
   }
 }
+
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -6600,3 +6617,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
