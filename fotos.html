@@ -2787,37 +2787,40 @@ document.getElementById("chatEnviar").onclick = async () => {
 }
 
 
-// =====================================
-// EVITAR QUE SE CIERRE JUSTO AL ABRIRLO
-// =====================================
+// ======================================================================
+//   C ERRAR CHAT AL CLIC AFUERA  (VERSIÓN CORRECTA Y COMPATIBLE)
+// ======================================================================
 
-// Evita que los clics dentro del chat lo cierren
-document.addEventListener("click", function (e) {
+// 1️⃣ Evitar que los clics dentro del chat cierren la ventana
+document.addEventListener("click", function(e) {
     const chat = document.getElementById("chatBox");
     if (!chat) return;
 
     if (chat.contains(e.target)) {
+        e.stopPropagation(); 
+    }
+}, true);
+
+
+// 2️⃣ Evitar que el clic en messagesBtn (abre el chat) sea detectado como clic afuera
+document.addEventListener("click", function(e) {
+    if (e.target.closest("#messagesBtn")) {
         e.stopPropagation();
     }
 }, true);
 
-// Evita que el clic en el botón "Enviar mensaje" cierre el chat al abrir
-document.addEventListener("click", function (e) {
-    const btn = e.target.closest("#messagesBtn");
-    if (btn) {
-        e.stopPropagation(); // Muy importante
-    }
-}, true);
 
-// Cierra chat al hacer clic afuera
-document.addEventListener("click", function (e) {
+// 3️⃣ Cerrar chat cuando se haga clic afuera
+document.addEventListener("click", function(e) {
     const chat = document.getElementById("chatBox");
     if (!chat) return;
 
+    // Si está oculto → no hacemos nada
     if (chat.style.display === "none") return;
 
+    // Si haces clic en cualquier parte que NO sea el chat → cerrar
     if (!chat.contains(e.target)) {
-        chat.style.display = "none";
+        cerrarChat(); // usa tu propia función
     }
 });
 
@@ -6494,6 +6497,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
