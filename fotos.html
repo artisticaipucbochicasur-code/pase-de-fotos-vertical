@@ -2160,15 +2160,11 @@ if (autorFoto) {
 }
 
 function mostrarDatosAutor(u) {
-  console.log("SE EJECUTA mostrarDatosAutor()");
-
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
   cont.innerHTML = ''; // limpiar
 
-  // ==========================
-  //  CONTACTO (TEL + WHATSAPP)
-  // ==========================
+  // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item autor-dato-item';
@@ -2178,6 +2174,7 @@ function mostrarDatosAutor(u) {
     divContacto.style.justifyContent = 'center';
     divContacto.style.gap = '20px';
 
+    // TELÉFONO
     const divTel = document.createElement('div');
     divTel.style.display = 'flex';
     divTel.style.flexDirection = 'column';
@@ -2192,6 +2189,7 @@ function mostrarDatosAutor(u) {
       window.location.href = `tel:${u.telefono}`;
     });
 
+    // WHATSAPP
     const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
@@ -2213,9 +2211,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
-  // ==========================
-  //   CONGREGACIÓN
-  // ==========================
+  // CONGREGACIÓN
   if (u.congregacion) {
     const divCong = document.createElement('div');
     divCong.className = 'perfil-dato-item autor-dato-item';
@@ -2231,9 +2227,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCong);
   }
 
-  // ==========================
-  //   CARGO
-  // ==========================
+  // CARGO
   if (u.cargo) {
     const divCargo = document.createElement('div');
     divCargo.className = 'perfil-dato-item autor-dato-item';
@@ -2249,9 +2243,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCargo);
   }
 
-  // ==========================
-  //   CIUDAD
-  // ==========================
+  // CIUDAD
   if (u.ciudad) {
     const divCiudad = document.createElement('div');
     divCiudad.className = 'perfil-dato-item autor-dato-item';
@@ -2267,9 +2259,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 
-  // ==========================
-  //   BOTÓN MENSAJES (INTERNO)
-  // ==========================
+  // === BOTÓN DE MENSAJES ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
   divMensajes.style.background = "transparent";
@@ -2284,29 +2274,16 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // 👉 Aquí buscamos el botón REAL del sistema (externo)
-  const messagesBtn = document.getElementById('messagesBtn');
-
+  // === CORRECCIÓN: usar el botón REAL que ya tienes ===
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-
-    if (!messagesBtn) {
-      console.warn("⚠️ NO EXISTE messagesBtn en el DOM");
-      return;
-    }
-
-    console.log("🔥 Disparando botón REAL messagesBtn");
-    messagesBtn.click(); // dispara el chat oficial
+    const realBtn = document.getElementById("messagesBtn");
+    if (realBtn) realBtn.click();
   });
 
   cont.appendChild(divMensajes);
 
-  console.log("BOTÓN DE MENSAJES INSERTADO EN EL DOM");
-  console.log(divMensajes);
-
-  // ==========================
-  //   TEMA
-  // ==========================
+  // Aplicar tema correcto después de generar el contenido
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
