@@ -2698,40 +2698,52 @@ function renderizarMensajes(mensajes) {
 
     
 
-   function abrirVentanaChat() {
+function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
-
     // Mostrar chat
     box.style.display = "flex";
 
-    // 🔄 Iniciar auto-refresh
+    // CERRAR AL TOCAR AFUERA (nueva funcionalidad)
+    const cerrarAlTocarAfuera = (e) => {
+        if (e.target === box) {
+            cerrarChat();
+        }
+    };
+    // Añadimos el listener (con un pequeño retraso para evitar cierre inmediato)
+    setTimeout(() => {
+        box.addEventListener("click", cerrarAlTocarAfuera);
+    }, 100);
+
+    // Guardamos referencia para poder removerlo al cerrar
+    box._cerrarAlTocarAfuera = cerrarAlTocarAfuera;
+
+    // Iniciar auto-refresh
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = setInterval(() => {
         if (usuarioActual && chatConUsuario) {
-            cargarConversacion(); // NO PASAR PARÁMETROS
+            cargarConversacion();
         }
     }, 2500);
 
-    // Tomar info del usuario del chat
+    // Info del usuario
     const { nombre, correo, foto } = chatConUsuario;
-
     document.getElementById("chatNombre").textContent = nombre;
     document.getElementById("chatCorreo").textContent = correo;
-
-    // Foto real o default
-    if (foto && foto.startsWith("http")) {
-        document.getElementById("chatFoto").src = foto;
-    } else {
-        document.getElementById("chatFoto").src = "img/default-user.png";
-    }
+    document.getElementById("chatFoto").src = (foto && foto.startsWith("http")) ? foto : "img/default-user.png";
 }
 
 function cerrarChat() {
-    document.getElementById("chatBox").style.display = "none";
+    const box = document.getElementById("chatBox");
+    box.style.display = "none";
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = null;
-}
 
+    // REMOVER EL EVENTO DE CIERRE AL TOCAR AFUERA
+    if (box._cerrarAlTocarAfuera) {
+        box.removeEventListener("click", box._cerrarAlTocarAfuera);
+        box._cerrarAlTocarAfuera = null;
+    }
+}
 
 
 
@@ -6457,5 +6469,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
