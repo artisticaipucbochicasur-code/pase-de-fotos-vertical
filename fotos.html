@@ -2862,7 +2862,6 @@ function cerrarChat() {
 
 
 
-// =============== BOTÓN ENVIAR (CORREGIDO Y FUNCIONANDO) ===============
 document.getElementById("chatEnviar").onclick = async () => {
     const input = document.getElementById("chatInput");
     const btn = document.getElementById("chatEnviar");
@@ -2871,25 +2870,20 @@ document.getElementById("chatEnviar").onclick = async () => {
 
     if (!txt || !chatConUsuario || !usuarioActual) return;
 
-    // 1. Animación botón
     btn.style.transform = "scale(0.88)";
     btn.style.transition = "transform 0.18s ease";
     setTimeout(() => btn.style.transform = "scale(1)", 180);
 
-    // 2. Guardar scroll
     const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
 
-    // 3. Mensaje temporal con ID único
-    const tempId = "temp_" + Date.now() + "_" + Math.random();
+    const tempId = "temp_" + Date.now();
     const mensajeTemp = {
         id: tempId,
         de: usuarioActual.correo,
         mensaje: txt,
-        fecha: "Ahora",
-        esTemporal: true
+        fecha: "Ahora"
     };
 
-    // Añadir al caché
     if (!chatCache[chatConUsuario.correo]) chatCache[chatConUsuario.correo] = [];
     chatCache[chatConUsuario.correo].push(mensajeTemp);
     agregarMensajeIndividual(mensajeTemp);
@@ -2901,7 +2895,7 @@ document.getElementById("chatEnviar").onclick = async () => {
     input.value = "";
     input.focus();
 
-    // 4. Enviar al servidor
+    // Enviar al servidor
     const body = new FormData();
     body.append("accion", "guardarChat");
     body.append("de", usuarioActual.correo);
@@ -2911,7 +2905,6 @@ document.getElementById("chatEnviar").onclick = async () => {
     try {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
-
         if (json.status !== "success") {
             actualizarUltimoMensaje({
                 mensaje: txt + " (No enviado)",
@@ -2919,7 +2912,6 @@ document.getElementById("chatEnviar").onclick = async () => {
             });
         }
     } catch (err) {
-        console.error("Error enviando:", err);
         actualizarUltimoMensaje({
             mensaje: txt + " (Sin conexión)",
             fecha: "Reintentar"
@@ -2996,51 +2988,59 @@ async function cargarConversacion() {
         if (!json.mensajes) return;
 
         const mensajesServidor = json.mensajes;
-        const mensajesCache = chatCache[chatConUsuario.correo] || [];
+        const cacheActual = chatCache[chatConUsuario.correo] || [];
+        const cont = document.getElementById("chatMensajes");
 
-        mensajesServidor.forEach((msgServidor, index) => {
-            const msgCache = mensajesCache[index];
+        let huboCambios = false;
 
-            // CORREGIDO: aquí estaba el error → "c Número" → ahora es "correo"
-            if (msgCache &&
-                msgCache.de === usuarioActual.correo &&  // ← ¡CORREGIDO!
-                msgCache.mensaje === msgServidor.mensaje &&
-                msgCache.esTemporal) {
+        // Recorremos los mensajes que ya están en pantalla (DOM)
+        Array.from(cont.children).forEach((divMensaje, index) => {
+            const msgEnPantalla = cacheActual[index];
+            const msgServidor = mensajesServidor[index];
 
-                // Actualizar solo la hora del mensaje temporal
-                const cont = document.getElementById("chatMensajes");
-                const divMensaje = cont.children[index];
-                if (divMensaje) {
-                    const small = divMensaje.querySelector("small");
-                    if (small && small.textContent === "Ahora") {
-                        small.textContent = msgServidor.fecha;
-                    }
+            // Si es un mensaje temporal nuestro (tiene id temp_ y dice "Ahora")
+            if (msgEnPantalla?.id?.startsWith("temp_") && 
+                msgEnPantalla.de === usuarioActual.correo &&
+                msgServidor && 
+                msgServidor.mensaje === msgEnPantalla.mensaje) {
+
+                // REEMPLAZAR: actualizar el mismo mensaje en pantalla
+                const small = divMensaje.querySelector("small");
+                if (small && small.textContent === "Ahora") {
+                    small.textContent = msgServidor.fecha;
+                    huboCambios = true;
                 }
-                // Quitar marca temporal
-                delete msgCache.esTemporal;
-            }
-            // Si es un mensaje nuevo del otro → agregarlo
-            else if (index >= mensajesCache.length || 
-                     msgCache.mensaje !== msgServidor.mensaje || 
-                     msgCache.de !== msgServidor.de) {
-                agregarMensajeIndividual(msgServidor);
             }
         });
 
-        // Actualizar caché
+        // Si hay mensajes NUEVOS del otro usuario → agregarlos
+        if (mensajesServidor.length > cacheActual.length) {
+            const nuevos = mensajesServidor.slice(cacheActual.length);
+            nuevos.forEach(msg => {
+                agregarMensajeIndividual(msg);
+                huboCambios = true;
+            });
+        }
+
+        // Actualizar el caché con la verdad absoluta del servidor
         chatCache[chatConUsuario.correo] = mensajesServidor;
 
         // Scroll automático solo si el usuario estaba abajo
-        const cont = document.getElementById("chatMensajes");
-        const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
-        if (estabaAbajo) {
-            setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+        if (huboCambios) {
+            const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+            if (estabaAbajo) {
+                setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+            }
         }
 
     } catch (err) {
         console.warn("Error en refresh:", err);
     }
 }
+
+
+
+    
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
 function activarCerrarAfuera() {
   // Esperamos a que termine el click que abrió el chat
@@ -6735,4 +6735,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
