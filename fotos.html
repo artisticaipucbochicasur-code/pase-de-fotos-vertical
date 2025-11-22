@@ -2259,12 +2259,12 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 
-  // === BOTÓN DE MENSAJES ===
+  // === BOTÓN DE MENSAJES: mismo estilo que los otros íconos ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
   divMensajes.style.background = "transparent";
   divMensajes.style.border = "none";
-  divMensajes.style.cursor = "pointer";
+  divMensajes.style.cursor = "pointer"; // para que se vea clicable
 
   divMensajes.innerHTML = `
     <i class="fas fa-comments" style="font-size:18px;"></i>
@@ -2274,19 +2274,21 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // 👉 Abrir chat directamente SIN usar el sistema anterior
+  // Reutilizamos el ID original para que TODA tu lógica existente siga funcionando
+  const messagesBtn = document.createElement('div');
+  messagesBtn.id = 'messagesBtn';
+  messagesBtn.style.display = 'none'; // lo ocultamos visualmente pero sigue existiendo en el DOM
+  document.body.appendChild(messagesBtn); // lo ponemos en el body para que exista
+
+  // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-    iniciarChatCon({
-      nombre: u.nombre,
-      correo: u.correo,
-      foto: u.fotoPerfil || ""
-    });
+    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
   });
 
   cont.appendChild(divMensajes);
 
-  // Tema
+  // Aplicar tema correcto después de generar el contenido
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
@@ -6584,4 +6586,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
