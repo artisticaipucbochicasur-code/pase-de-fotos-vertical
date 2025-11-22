@@ -2800,15 +2800,10 @@ function iniciarChatCon(info) {
 // 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-
-    // 🔥 ORDENAR DE MENOR → MAYOR (del más viejo al más nuevo)
-    mensajes = [...mensajes].reverse();
-
-    cont.innerHTML = "";  // Se usa solo en carga inicial
-
+    cont.innerHTML = "";  // Solo se usa en carga inicial
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
-
+        // (todo el estilo igual que antes)
         div.style.maxWidth = "75%";
         div.style.margin = "6px 0";
         div.style.padding = "8px 12px";
@@ -2842,19 +2837,15 @@ function renderizarMensajes(mensajes) {
 
         cont.appendChild(div);
 
+        // Animación cascada solo al inicio
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // ⭐ SCROLL SUAVE AL FINAL
-    setTimeout(() => {
-        cont.scrollTo({
-            top: cont.scrollHeight,
-            behavior: "smooth"
-        });
-    }, 50 + mensajes.length * 30);
+    // Scroll al final solo en carga inicial
+    setTimeout(() => cont.scrollTop = cont.scrollHeight, 50 + mensajes.length * 30);
 }
 
 
@@ -3063,19 +3054,18 @@ async function cargarConversacion() {
         const json = await res.json();
         if (!json.mensajes) return;
 
-        // 🔥 ORDENAR DE MENOR → MAYOR
-        const mensajesServidor = [...json.mensajes].reverse();
-
+        const mensajesServidor = json.mensajes;
         const cont = document.getElementById("chatMensajes");
         const cacheActual = chatCache[chatConUsuario.correo] || [];
 
         let huboCambios = false;
 
+        // --- 🔥 ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
         if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
 
-        // --- 1. ACTUALIZAR HORAS DE TEMPORALES ---
+        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
         const cache = chatCache[chatConUsuario.correo] || [];
         const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
 
@@ -3109,12 +3099,17 @@ async function cargarConversacion() {
         }
 
         // --- 3. ACTUALIZAR CACHE ---
-        chatCache[chatConUsuario.correo] = mensajesServidor;
+        if (mensajesServidor.length >= cacheActual.length) {
+            chatCache[chatConUsuario.correo] = mensajesServidor;
+        }
 
-        // --- 4. INDICADOR “ESCRIBIENDO...” ---
+        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
         const typingDiv = document.getElementById("chatEscribiendo");
 
+        if (!window.typingTimeout) window.typingTimeout = null;
+
         if (json.typing === true) {
+
             typingDiv.style.display = "block";
             typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
 
@@ -3127,22 +3122,16 @@ async function cargarConversacion() {
         } else {
             typingDiv.style.display = "none";
             typingDiv.innerHTML = "";
+
             clearTimeout(window.typingTimeout);
             window.typingTimeout = null;
         }
 
-        // --- 5. SCROLL INTELIGENTE SUAVE ---
+        // --- 5. SCROLL INTELIGENTE ---
         if (huboCambios) {
-            const estabaAbajo =
-                cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 150;
-
+            const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
             if (estabaAbajo) {
-                setTimeout(() => {
-                    cont.scrollTo({
-                        top: cont.scrollHeight,
-                        behavior: "smooth"
-                    });
-                }, 80);
+                setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
             }
         }
 
@@ -3150,8 +3139,6 @@ async function cargarConversacion() {
         console.warn("Error en refresh:", err);
     }
 }
-
-
 
 
     
@@ -6849,19 +6836,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
