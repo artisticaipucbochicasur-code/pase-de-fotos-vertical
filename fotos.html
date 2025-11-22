@@ -2787,23 +2787,29 @@ document.getElementById("chatEnviar").onclick = async () => {
 }
 
 
-// =============================
-// CERRAR CHAT AL CLIC AFUERA
-// =============================
+// =====================================
+// EVITAR QUE SE CIERRE JUSTO AL ABRIRLO
+// =====================================
 
 // Evita que los clics dentro del chat lo cierren
-document.getElementById("chatBox")?.addEventListener("click", function (e) {
-    e.stopPropagation();
-});
-
-// Evitar que el clic que abre el chat lo cierre inmediatamente
 document.addEventListener("click", function (e) {
-    if (e.target.closest("#messagesBtn")) {
+    const chat = document.getElementById("chatBox");
+    if (!chat) return;
+
+    if (chat.contains(e.target)) {
         e.stopPropagation();
     }
 }, true);
 
-// Cierra el chat al hacer clic fuera
+// Evita que el clic en el botón "Enviar mensaje" cierre el chat al abrir
+document.addEventListener("click", function (e) {
+    const btn = e.target.closest("#messagesBtn");
+    if (btn) {
+        e.stopPropagation(); // Muy importante
+    }
+}, true);
+
+// Cierra chat al hacer clic afuera
 document.addEventListener("click", function (e) {
     const chat = document.getElementById("chatBox");
     if (!chat) return;
@@ -6488,6 +6494,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
