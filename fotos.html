@@ -2696,24 +2696,41 @@ async function precargarTodosLosChats() {
         console.error("Error precargando lista de chats:", err);
     }
 }
+
+    
 function iniciarChatCon(info) {
 
-    // ✅ aseguramos que la foto venga del campo correcto
+    const correoNorm = normalizeText(info.correo);
+
+    // ✅ 1) TOMAR FOTO DIRECTA DEL PERFIL CARGADO
+    const fotoDesdePerfil =
+        perfilCache[correoNorm]?.fotoPerfil ||
+        null;
+
+    // ✅ 2) FOTO DEL LOCALSTORAGE (si es el usuario actual)
+    const fotoUsuarioActual =
+        usuarioActual?.correo === info.correo
+            ? usuarioActual.fotoPerfil
+            : null;
+
+    // ✅ 3) ELEGIR FOTO FINAL EN ESTE ORDEN:
     const fotoFinal =
-        info.fotoPerfil && info.fotoPerfil.trim() !== "" ? info.fotoPerfil :
-        info.foto && info.foto.trim() !== "" ? info.foto :
+        fotoDesdePerfil ||
+        fotoUsuarioActual ||
+        info.fotoPerfil ||
+        info.foto ||
         "img/default-user.png";
 
-    // ✅ guardar usuario activo con foto correcta
+    // ✅ guardar usuario activo con foto unificada
     chatConUsuario = {
         ...info,
         foto: fotoFinal
     };
 
-    // ✅ DEBUG para confirmar lo que está llegando
-    console.log("INFO RECIBIDA:", info);
-    console.log("FOTO FINAL USADA:", fotoFinal);
-    alert("FOTO USADA PARA CHAT: " + fotoFinal);
+    // ✅ DEBUG para confirmar
+    console.log("CHAT → info recibido:", info);
+    console.log("CHAT → foto usada:", fotoFinal);
+    alert("FOTO CHAT ASIGNADA:\n" + fotoFinal);
 
     abrirVentanaChat();
 
@@ -2726,6 +2743,7 @@ function iniciarChatCon(info) {
 
     cargarConversacion();
 }
+
 
 
 
@@ -6584,6 +6602,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
