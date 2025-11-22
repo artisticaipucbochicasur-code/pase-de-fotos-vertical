@@ -2988,48 +2988,45 @@ async function cargarConversacion() {
         if (!json.mensajes) return;
 
         const mensajesServidor = json.mensajes;
-        const cacheActual = chatCache[chatConUsuario.correo] || [];
         const cont = document.getElementById("chatMensajes");
+        const cacheActual = chatCache[chatConUsuario.correo] || [];
 
         let huboCambios = false;
 
-        // 1. ACTUALIZAR MENSAJES TEMPORALES (los nuestros con id temp_)
+        // 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES (los que enviamos nosotros)
         Array.from(cont.children).forEach((divMensaje, index) => {
             const msgEnPantalla = cacheActual[index];
             const msgServidor = mensajesServidor[index];
 
-            // Detectar mensaje temporal: tiene id que empieza con "temp_"
-            if (msgEnPantalla?.id?.startsWith("temp_") &&
+            if (msgEnPantalla?.id?.startsWith("temp_") && 
                 msgEnPantalla.de === usuarioActual.correo &&
-                msgServidor &&
+                msgServidor && 
                 msgServidor.mensaje === msgEnPantalla.mensaje) {
 
-                // Actualizar la hora sin importar qué diga ("Ahora", "Justo ahora", etc.)
                 const small = divMensaje.querySelector("small");
                 if (small) {
                     small.textContent = msgServidor.fecha;
                     huboCambios = true;
                 }
-
-                // Quitar el id temporal para que no se detecte más
+                // Marcar como confirmado
                 delete msgEnPantalla.id;
             }
         });
 
-        // 2. AGREGAR SOLO MENSAJES NUEVOS DEL OTRO USUARIO
+        // 2. AGREGAR MENSAJES NUEVOS (del otro usuario)
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
-                // Solo agregar si NO es un mensaje nuestro (evita duplicados raros)
-                if (msg.de !== usuarioActual.correo) {
-                    agregarMensajeIndividual(msg);
-                    huboCambios = true;
-                }
+                agregarMensajeIndividual(msg);
+                huboCambios = true;
             });
         }
 
-        // 3. ACTUALIZAR CACHÉ
-        chatCache[chatConUsuario.correo] = mensajesServidor;
+        // 3. SI EL SERVIDOR TIENE MÁS MENSAJES QUE EL CACHÉ (por ejemplo, nuestro mensaje ya está confirmado)
+        // → Forzar actualización del caché (esto soluciona el "Enviando..." eterno)
+        if (mensajesServidor.length >= cacheActual.length) {
+            chatCache[chatConUsuario.correo] = mensajesServidor;
+        }
 
         // 4. SCROLL INTELIGENTE
         if (huboCambios) {
@@ -6739,6 +6736,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
