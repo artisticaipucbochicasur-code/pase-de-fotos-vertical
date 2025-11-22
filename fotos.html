@@ -2057,12 +2057,24 @@ function mostrarDatosAutor(u) {
   if (!cont) return;
   cont.innerHTML = ''; // limpiar
 
-  // === BOTÓN DE MENSAJES TRASLADADO AQUÍ (100% original del header, con id y todo) ===
+  // BOTÓN DE MENSAJES TRASLADADO Y AHORA FUNCIONA
   const messagesBtn = document.createElement('button');
   messagesBtn.id = "messagesBtn";
   messagesBtn.className = "header-btn";
   messagesBtn.title = "Mensajes";
-  messagesBtn.style.cssText = "position:relative; margin:15px auto; display:block; width:56px; height:56px; border-radius:50%; background:#0077cc; color:white; border:none; box-shadow:0 4px 15px rgba(0,119,204,0.4);";
+  messagesBtn.style.cssText = "position:relative; margin:20px auto; display:block; width:56px; height:56px; border-radius:50%; background:#0077cc; color:white; border:none; box-shadow:0 6px 20px rgba(0,119,204,0.4); cursor:pointer;";
+ 
+  // AQUÍ ESTÁ LA CORRECCIÓN: abre el chat con este usuario
+  messagesBtn.onclick = function(e) {
+    e.stopPropagation();
+    const infoUsuario = {
+      nombre: u.nombre || u.autor || "Anunciante",
+      correo: u.correo,
+      foto: u.foto || "img/default-user.png"
+    };
+    iniciarChatCon(infoUsuario); // Esta función ya existe y funciona perfecto
+  };
+
   messagesBtn.innerHTML = `
     <i class="fas fa-comments" style="font-size:22px;"></i>
     <span id="messagesNotificationCount" style="
@@ -2084,26 +2096,9 @@ function mostrarDatosAutor(u) {
     "></span>
   `;
   cont.appendChild(messagesBtn);
-  // === FIN DEL BOTÓN TRASLADADO ===
 
-  // === NUEVO: BOTÓN PARA ABRIR CHAT CON EL AUTOR ===
-  const divChat = document.createElement('div');
-  divChat.className = 'perfil-dato-item autor-dato-item';
-  divChat.style.cssText = 'background:#25D366;color:white;border:none;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;border-radius:12px;padding:14px;margin:8px 0;font-weight:600;';
-  divChat.innerHTML = `
-    <i class="fab fa-whatsapp" style="font-size:22px;"></i>
-    <span>Chatear con ${u.nombre || 'el anunciante'}</span>
-  `;
-  divChat.onclick = function(e) {
-    e.stopPropagation();
-    const infoUsuario = {
-      nombre: u.nombre || u.autor || "Anunciante",
-      correo: u.correo,
-      foto: u.foto || "img/default-user.png"
-    };
-    iniciarChatCon(infoUsuario);
-  };
-  cont.appendChild(divChat);
+  // === EL BOTÓN VERDE FUE ELIMINADO (como pediste) ===
+
   // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
@@ -2113,7 +2108,7 @@ function mostrarDatosAutor(u) {
     divContacto.style.display = 'flex';
     divContacto.style.justifyContent = 'center';
     divContacto.style.gap = '20px';
-    // TELÉFONO
+
     const divTel = document.createElement('div');
     divTel.style.display = 'flex';
     divTel.style.flexDirection = 'column';
@@ -2127,7 +2122,7 @@ function mostrarDatosAutor(u) {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
-    // WHATSAPP
+
     const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
@@ -2143,10 +2138,12 @@ function mostrarDatosAutor(u) {
       if (!numero.startsWith("57") && numero.length === 10) numero = "57" + numero;
       window.open(`https://wa.me/${numero}`, "_blank");
     };
+
     divContacto.appendChild(divTel);
     divContacto.appendChild(divWA);
     cont.appendChild(divContacto);
   }
+
   // CONGREGACIÓN
   if (u.congregacion) {
     const divCong = document.createElement('div');
@@ -2162,6 +2159,7 @@ function mostrarDatosAutor(u) {
     `;
     cont.appendChild(divCong);
   }
+
   // CARGO
   if (u.cargo) {
     const divCargo = document.createElement('div');
@@ -2177,6 +2175,7 @@ function mostrarDatosAutor(u) {
     `;
     cont.appendChild(divCargo);
   }
+
   // CIUDAD
   if (u.ciudad) {
     const divCiudad = document.createElement('div');
@@ -2192,6 +2191,7 @@ function mostrarDatosAutor(u) {
     `;
     cont.appendChild(divCiudad);
   }
+
   // Aplicar tema
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
@@ -2199,7 +2199,6 @@ function mostrarDatosAutor(u) {
     aplicarLightModeModalAutor();
   }
 }
-
 
 
     
@@ -6416,5 +6415,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
