@@ -2111,25 +2111,41 @@ function mostrarDatosAutor(u) {
   if (!cont) return;
   cont.innerHTML = ''; // limpiar
 
-  // =================================================================
-  // 1. CONTACTO (Teléfono + WhatsApp) - SIN CAMBIOS
-  // =================================================================
+  // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item autor-dato-item';
-    divContacto.style.cssText = 'background:transparent;border:none;display:flex;justify-content:center;gap:20px;margin:15px 0;';
+    divContacto.style.background = "transparent";
+    divContacto.style.border = "none";
+    divContacto.style.display = 'flex';
+    divContacto.style.justifyContent = 'center';
+    divContacto.style.gap = '20px';
 
+    // TELÉFONO
     const divTel = document.createElement('div');
-    divTel.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
-    divTel.innerHTML = `<i class="fas fa-phone-alt" style="font-size:20px;"></i><div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>`;
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.style.cursor = 'pointer';
+    divTel.innerHTML = `
+      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+    `;
     divTel.addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
 
+    // WHATSAPP
     const divWA = document.createElement('div');
-    divWA.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
-    divWA.innerHTML = `<i class="fab fa-whatsapp" style="color:#25D366;font-size:20px;"></i><div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>`;
+    divWA.style.display = 'flex';
+    divWA.style.flexDirection = 'column';
+    divWA.style.alignItems = 'center';
+    divWA.style.cursor = 'pointer';
+    divWA.innerHTML = `
+      <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
+      <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
+    `;
     divWA.onclick = function (e) {
       e.stopPropagation();
       let numero = String(u.telefono || "").replace(/\D/g, "");
@@ -2142,52 +2158,84 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
-  // =================================================================
-  // 2. Congregación, Cargo, Ciudad - SIN CAMBIOS
-  // =================================================================
+  // CONGREGACIÓN
   if (u.congregacion) {
     const divCong = document.createElement('div');
     divCong.className = 'perfil-dato-item autor-dato-item';
-    divCong.style.cssText = 'background:transparent;border:none;';
-    divCong.innerHTML = `<i class="fas fa-church"></i><div><div class="dato-label">Congregación</div><div class="dato-valor">${u.congregacion}</div></div>`;
+    divCong.style.background = "transparent";
+    divCong.style.border = "none";
+    divCong.innerHTML = `
+      <i class="fas fa-church"></i>
+      <div>
+        <div class="dato-label">Congregación</div>
+        <div class="dato-valor">${u.congregacion}</div>
+      </div>
+    `;
     cont.appendChild(divCong);
   }
 
+  // CARGO
   if (u.cargo) {
     const divCargo = document.createElement('div');
     divCargo.className = 'perfil-dato-item autor-dato-item';
-    divCargo.style.cssText = 'background:transparent;border:none;';
-    divCargo.innerHTML = `<i class="fas fa-user-tie"></i><div><div class="dato-label">Cargo</div><div class="dato-valor">${u.cargo}</div></div>`;
+    divCargo.style.background = "transparent";
+    divCargo.style.border = "none";
+    divCargo.innerHTML = `
+      <i class="fas fa-user-tie"></i>
+      <div>
+        <div class="dato-label">Cargo</div>
+        <div class="dato-valor">${u.cargo}</div>
+      </div>
+    `;
     cont.appendChild(divCargo);
   }
 
+  // CIUDAD
   if (u.ciudad) {
     const divCiudad = document.createElement('div');
     divCiudad.className = 'perfil-dato-item autor-dato-item';
-    divCiudad.style.cssText = 'background:transparent;border:none;';
-    divCiudad.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><div class="dato-label">Ciudad</div><div class="dato-valor">${u.ciudad}</div></div>`;
+    divCiudad.style.background = "transparent";
+    divCiudad.style.border = "none";
+    divCiudad.innerHTML = `
+      <i class="fas fa-map-marker-alt"></i>
+      <div>
+        <div class="dato-label">Ciudad</div>
+        <div class="dato-valor">${u.ciudad}</div>
+      </div>
+    `;
     cont.appendChild(divCiudad);
   }
 
-  // =================================================================
-  // 3. BOTÓN DE MENSAJES DIRECTOS (debajo de la ciudad) - NUEVO
-  // =================================================================
+  // === BOTÓN DE MENSAJES: mismo estilo que los otros íconos ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
-  divMensajes.style.cssText = 'background:transparent;border:none;text-align:center;margin-top:20px;';
+  divMensajes.style.background = "transparent";
+  divMensajes.style.border = "none";
+  divMensajes.style.cursor = "pointer"; // para que se vea clicable
 
   divMensajes.innerHTML = `
-    <button id="messagesBtn" class="header-btn" title="Mensajes" style="position:relative; font-size:18px; padding:14px 20px; border-radius:50px; background:#0077cc; color:white; border:none; cursor:pointer; box-shadow:0 4px 15px rgba(0,119,204,0.3);">
-      <i class="fas fa-comments"></i> Enviar mensaje directo
-      <span id="messagesNotificationCount" style="position:absolute; top:-8px; right:-8px; background:red; color:white; font-size:11px; font-weight:bold; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; display:none; z-index:10;"></span>
-    </button>
+    <i class="fas fa-comments" style="font-size:18px;"></i>
+    <div>
+      <div class="dato-label">Mensajes</div>
+      <div class="dato-valor" style="text-decoration:underline;">Enviar mensaje directo</div>
+    </div>
   `;
+
+  // Reutilizamos el ID original para que TODA tu lógica existente siga funcionando
+  const messagesBtn = document.createElement('div');
+  messagesBtn.id = 'messagesBtn';
+  messagesBtn.style.display = 'none'; // lo ocultamos visualmente pero sigue existiendo en el DOM
+  document.body.appendChild(messagesBtn); // lo ponemos en el body para que exista
+
+  // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
+  divMensajes.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
+  });
 
   cont.appendChild(divMensajes);
 
-  // =================================================================
-  // 4. Tema (sin cambios)
-  // =================================================================
+  // Aplicar tema correcto después de generar el contenido
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
@@ -6409,4 +6457,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
