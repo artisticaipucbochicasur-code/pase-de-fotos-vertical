@@ -2801,64 +2801,57 @@ function iniciarChatCon(info) {
 // 1. NUEVA FUNCIÓN MEJORADA: renderizar mensajes con scroll siempre abajo al inicio
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    const esCargaInicial = cont.innerHTML.trim() === "" || cont.innerHTML.includes("Cargando");
-
-    // Limpiar solo en carga inicial
-    if (esCargaInicial) {
+    
+    // Solo limpiamos y renderizamos si es la primera vez
+    if (cont.innerHTML.trim() === "" || cont.innerHTML.includes("Cargando")) {
         cont.innerHTML = "";
-    }
+        
+        mensajes.forEach((m, index) => {
+            const div = document.createElement("div");
+            div.style.maxWidth = "75%";
+            div.style.margin = "6px 0";
+            div.style.padding = "8px 12px";
+            div.style.borderRadius = "12px";
+            div.style.fontSize = "14px";
+            div.style.lineHeight = "1.3";
+            div.style.wordBreak = "break-word";
+            div.style.opacity = "0";
+            div.style.transform = "translateY(20px)";
+            div.style.transition = "all 0.35s ease";
 
-    // Si no es carga inicial, no tocamos nada (solo agregamos después con agregarMensajeIndividual)
-    if (!esCargaInicial) return;
+            if (m.de === usuarioActual.correo) {
+                div.style.background = "#6FA3FF";
+                div.style.color = "#000";
+                div.style.marginLeft = "auto";
+                div.style.border = "1px solid #5A8DEE";
+                div.style.borderBottomRightRadius = "4px";
+            } else {
+                div.style.background = "#CFCFCF";
+                div.style.color = "#000";
+                div.style.border = "1px solid #b6b6b6";
+                div.style.borderBottomLeftRadius = "4px";
+            }
 
-    mensajes.forEach((m, index) => {
-        const div = document.createElement("div");
-        div.style.maxWidth = "75%";
-        div.style.margin = "6px 0";
-        div.style.padding = "8px 12px";
-        div.style.borderRadius = "12px";
-        div.style.fontSize = "14px";
-        div.style.lineHeight = "1.3";
-        div.style.wordBreak = "break-word";
-        div.style.opacity = "0";
-        div.style.transform = "translateY(20px)";
-        div.style.transition = "all 0.35s ease";
+            div.innerHTML = `
+                <div>${m.mensaje}</div>
+                <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
+                    ${m.fecha}
+                </small>
+            `;
 
-        if (m.de === usuarioActual.correo) {
-            div.style.background = "#6FA3FF";
-            div.style.color = "#000";
-            div.style.marginLeft = "auto";
-            div.style.border = "1px solid #5A8DEE";
-            div.style.borderBottomRightRadius = "4px";
-        } else {
-            div.style.background = "#CFCFCF";
-            div.style.color = "#000";
-            div.style.border = "1px solid #b6b6b6";
-            div.style.borderBottomLeftRadius = "4px";
-        }
+            cont.appendChild(div);
 
-        div.innerHTML = `
-            <div>${m.mensaje}</div>
-            <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
-                ${m.fecha}
-            </small>
-        `;
+            setTimeout(() => {
+                div.style.opacity = "1";
+                div.style.transform = "translateY(0)";
+            }, index * 25);
+        });
 
-        cont.appendChild(div);
-
-        // Animación suave de entrada (solo en carga inicial)
-        setTimeout(() => {
-            div.style.opacity = "1";
-            div.style.transform = "translateY(0)";
-        }, index * 25);
-    });
-
-    // SCROLL SUAVE AL FINAL EN CARGA INICIAL (como WhatsApp)
-    if (esCargaInicial) {
+        // Scroll suave al final al cargar
         setTimeout(() => {
             cont.scrollTo({
                 top: cont.scrollHeight,
-                behavior: 'smooth'   // ← Esto es lo que querías: scroll suave
+                behavior: 'smooth'
             });
         }, 100 + mensajes.length * 25);
     }
@@ -3087,19 +3080,16 @@ async function cargarConversacion() {
         const mensajesServidor = json.mensajes;
         const cont = document.getElementById("chatMensajes");
         const cacheActual = chatCache[chatConUsuario.correo] || [];
-
         let huboCambios = false;
 
-        // Si es la primera carga o está vacío → renderizamos todo de una
+        // 1. PRIMERA CARGA: renderizamos todo con animación y scroll abajo
         if (cacheActual.length === 0 && mensajesServidor.length > 0) {
             chatCache[chatConUsuario.correo] = mensajesServidor;
-            renderizarMensajes(mensajesServidor);  // ← Aquí entra con scroll suave abajo
-            return;
+            renderizarMensajes(mensajesServidor);
+            return; // ¡Importante! Salimos aquí para no duplicar
         }
 
-        // === Actualizar mensajes temporales, nuevos, etc. ===
-        // (tu código existente de temp, typing, etc. sigue igual)
-
+        // 2. MENSAJES NUEVOS (cuando ya había carga previa)
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
@@ -3108,10 +3098,31 @@ async function cargarConversacion() {
             });
         }
 
-        // Actualizar cache
+        // 3. ACTUALIZAR MENSAJES TEMPORALES (cuando envías uno)
+        const tempMsg = cacheActual.find(m => m.id && m.id.startsWith("temp_"));
+        if (tempMsg) {
+            const confirmado = mensajesServidor.find(ms => 
+                ms.de === usuarioActual.correo && 
+                ms.mensaje === tempMsg.mensaje
+            );
+            if (confirmado) {
+                const ultimoDiv = cont.lastElementChild;
+                if (ultimoDiv) {
+                    const small = ultimoDiv.querySelector("small");
+                    if (small) small.textContent = confirmado.fecha;
+                }
+                // Actualizamos el cache también
+                const idx = chatCache[chatConUsuario.correo].findIndex(m => m.id?.startsWith("temp_"));
+                if (idx !== -1) {
+                    chatCache[chatConUsuario.correo][idx] = confirmado;
+                }
+            }
+        }
+
+        // 4. ACTUALIZAR CACHE COMPLETO
         chatCache[chatConUsuario.correo] = mensajesServidor;
 
-        // Scroll inteligente solo si ya estaba abajo
+        // 5. SCROLL INTELIGENTE (solo si ya estaba abajo)
         if (huboCambios) {
             const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
             if (estabaAbajo) {
@@ -3119,11 +3130,10 @@ async function cargarConversacion() {
             }
         }
 
-    }	first catch (err) {
-        console.warn("Error en refresh:", err);
+    } catch (err) {  // ← ESTO ESTABA MAL ESCRITO ANTES ("first catch")
+        console.warn("Error en cargarConversacion:", err);
     }
 }
-
 
     
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
@@ -6820,4 +6830,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
