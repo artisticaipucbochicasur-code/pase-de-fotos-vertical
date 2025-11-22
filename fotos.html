@@ -2697,22 +2697,26 @@ async function precargarTodosLosChats() {
     }
 }
 function iniciarChatCon(info) {
-    chatConUsuario = info;
-    console.log("CHAT CON:", info);
+    // ✅ asegurar que tenga foto válida
+    chatConUsuario = {
+        ...info,
+        foto: info.foto || info.fotoPerfil || "img/default-user.png"
+    };
+
+    console.log("CHAT CON:", chatConUsuario);
 
     abrirVentanaChat();
 
-    // 1. Mostrar inmediatamente lo que ya tengamos en caché
     if (chatCache[info.correo]) {
         renderizarMensajes(chatCache[info.correo]);
     } else {
-        // Si no hay caché, limpiar y mostrar loader opcional
-        document.getElementById("chatMensajes").innerHTML = "<div style='text-align:center;color:#999;padding:20px;'>Cargando mensajes...</div>";
+        document.getElementById("chatMensajes").innerHTML =
+            "<div style='text-align:center;color:#999;padding:20px;'>Cargando mensajes...</div>";
     }
 
-    // 2. Siempre cargar la versión fresca (en segundo plano)
-    cargarConversacion(); // esta función la vamos a modificar
+    cargarConversacion();
 }
+
 
 
 
@@ -6569,6 +6573,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
