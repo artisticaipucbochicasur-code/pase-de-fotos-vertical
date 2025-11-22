@@ -2800,7 +2800,11 @@ function iniciarChatCon(info) {
 // 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = "";  // Solo se usa en carga inicial
+
+    // 🔥 ORDENAR DE MENOR → MAYOR (del más viejo al más nuevo)
+    mensajes = [...mensajes].reverse();
+
+    cont.innerHTML = "";  // Se usa solo en carga inicial
 
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
@@ -2838,25 +2842,21 @@ function renderizarMensajes(mensajes) {
 
         cont.appendChild(div);
 
-        // Animación cascada solo al inicio
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // ==============================
-    // ⭐ SCROLL SUAVE AL ÚLTIMO MENSAJE
-    // ==============================
-    const delay = 50 + mensajes.length * 30;
-
+    // ⭐ SCROLL SUAVE AL FINAL
     setTimeout(() => {
         cont.scrollTo({
             top: cont.scrollHeight,
             behavior: "smooth"
         });
-    }, delay);
+    }, 50 + mensajes.length * 30);
 }
+
 
     
 
@@ -3063,18 +3063,19 @@ async function cargarConversacion() {
         const json = await res.json();
         if (!json.mensajes) return;
 
-        const mensajesServidor = json.mensajes;
+        // 🔥 ORDENAR DE MENOR → MAYOR
+        const mensajesServidor = [...json.mensajes].reverse();
+
         const cont = document.getElementById("chatMensajes");
         const cacheActual = chatCache[chatConUsuario.correo] || [];
 
         let huboCambios = false;
 
-        // --- 🔥 ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
         if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
 
-        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
+        // --- 1. ACTUALIZAR HORAS DE TEMPORALES ---
         const cache = chatCache[chatConUsuario.correo] || [];
         const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
 
@@ -3108,17 +3109,12 @@ async function cargarConversacion() {
         }
 
         // --- 3. ACTUALIZAR CACHE ---
-        if (mensajesServidor.length >= cacheActual.length) {
-            chatCache[chatConUsuario.correo] = mensajesServidor;
-        }
+        chatCache[chatConUsuario.correo] = mensajesServidor;
 
-        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
+        // --- 4. INDICADOR “ESCRIBIENDO...” ---
         const typingDiv = document.getElementById("chatEscribiendo");
 
-        if (!window.typingTimeout) window.typingTimeout = null;
-
         if (json.typing === true) {
-
             typingDiv.style.display = "block";
             typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
 
@@ -3131,15 +3127,14 @@ async function cargarConversacion() {
         } else {
             typingDiv.style.display = "none";
             typingDiv.innerHTML = "";
-
             clearTimeout(window.typingTimeout);
             window.typingTimeout = null;
         }
 
-        // --- 5. SCROLL INTELIGENTE + SCROLL SUAVE ---
+        // --- 5. SCROLL INTELIGENTE SUAVE ---
         if (huboCambios) {
             const estabaAbajo =
-                (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+                cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 150;
 
             if (estabaAbajo) {
                 setTimeout(() => {
@@ -3155,6 +3150,7 @@ async function cargarConversacion() {
         console.warn("Error en refresh:", err);
     }
 }
+
 
 
 
@@ -6853,6 +6849,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
