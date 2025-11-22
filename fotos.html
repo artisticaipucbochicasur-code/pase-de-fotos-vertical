@@ -4714,36 +4714,24 @@ function updateContentOverlay(index) {
             }
         })();
    
-        // BOTÓN DE CHAT OCULTO - actualizado en cada slide
-        const messagesBtn = document.getElementById("messagesBtn");
-        if (messagesBtn) {
-            if (anuncio.correo && normalizeText(anuncio.correo) !== normalizeText(currentAuthorEmail)) {
-                messagesBtn.style.display = "none";
+        // -------------------------------------------
+// BOTÓN DE CHAT (abrir chat con el autor)
+// -------------------------------------------
+const messagesBtn = document.getElementById("messagesBtn");
 
-                // Limpiar listener anterior
-                messagesBtn.replaceWith(messagesBtn.cloneNode(true));
-                const newBtn = document.getElementById("messagesBtn");
+if (anuncio.correo && anuncio.correo !== currentAuthorEmail) {
+    messagesBtn.style.display = "flex";
+    messagesBtn.onclick = () => {
+        iniciarChatCon({
+            nombre: anuncio.autor,
+            correo: anuncio.correo,
+            foto: anuncio.fotoPerfil || ""
+        });
+    };
+} else {
+    messagesBtn.style.display = "none";
+}
 
-                newBtn.onclick = async () => {
-                    let fotoUrl = "img/default-user.png";
-                    try {
-                        fotoUrl = await resolveFotoPerfil(anuncio.correo, anuncio.autor);
-                    } catch (e) {
-                        console.warn("Error resolviendo foto para chat:", e);
-                    }
-
-                    iniciarChatCon({
-                        nombre: anuncio.autor || "Usuario",
-                        correo: anuncio.correo,
-                        fotoPerfil: fotoUrl,
-                        foto: fotoUrl
-                    });
-                };
-            } else {
-                messagesBtn.style.display = "none";
-                messagesBtn.onclick = null;
-            }
-        }
 
 }
  }
@@ -6611,6 +6599,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
