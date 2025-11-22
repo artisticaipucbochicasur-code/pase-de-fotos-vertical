@@ -2787,29 +2787,34 @@ document.getElementById("chatEnviar").onclick = async () => {
 }
 
 
- 
 // =============================
 // CERRAR CHAT AL CLIC AFUERA
 // =============================
 
 // Evita que los clics dentro del chat lo cierren
-document.getElementById("chatBox").addEventListener("click", function (e) {
+document.getElementById("chatBox")?.addEventListener("click", function (e) {
     e.stopPropagation();
 });
+
+// Evitar que el clic que abre el chat lo cierre inmediatamente
+document.addEventListener("click", function (e) {
+    if (e.target.closest("#messagesBtn")) {
+        e.stopPropagation();
+    }
+}, true);
 
 // Cierra el chat al hacer clic fuera
 document.addEventListener("click", function (e) {
     const chat = document.getElementById("chatBox");
     if (!chat) return;
 
-    // Si el chat NO está visible, no hacemos nada
     if (chat.style.display === "none") return;
 
-    // Si el clic NO fue dentro del chat → cerrar
     if (!chat.contains(e.target)) {
         chat.style.display = "none";
     }
 });
+
 
 
 const publishBtn = document.getElementById("publishBtn");
@@ -6483,6 +6488,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
