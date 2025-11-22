@@ -2112,92 +2112,24 @@ function mostrarDatosAutor(u) {
   cont.innerHTML = ''; // limpiar
 
   // =================================================================
-  // AÑADIMOS EL BOTÓN DE MENSAJES AL HEADER (solo una vez por sesión)
-  // =================================================================
-  (function agregarBotonMensajes() {
-    // Si ya existe (por si se abre varias veces el perfil), no lo duplicamos
-    if (document.getElementById('messagesBtn')) return;
-
-    const headerButtons = document.querySelector('#socialHeader .header-buttons');
-    if (!headerButtons) return;
-
-    // Creamos el botón exactamente igual al que tenías en el HTML original
-    const messagesBtn = document.createElement('button');
-    messagesBtn.id = 'messagesBtn';
-    messagesBtn.className = 'header-btn';
-    messagesBtn.title = 'Mensajes';
-    messagesBtn.style.position = 'relative';
-
-    messagesBtn.innerHTML = `
-      <i class="fas fa-comments"></i>
-      <span id="messagesNotificationCount" style="
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background: red;
-        color: white;
-        font-size: 11px;
-        font-weight: bold;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        display: none;
-        z-index: 10;
-      "></span>
-    `;
-
-    // Lo insertamos justo antes del botón de usuario (quedará perfecto visualmente)
-    const userBtn = document.getElementById('userBtn');
-    if (userBtn && userBtn.parentNode) {
-      userBtn.parentNode.insertBefore(messagesBtn, userBtn);
-    } else {
-      // Alternativa: al final del contenedor de botones
-      headerButtons.appendChild(messagesBtn);
-    }
-
-    // IMPORTANTE: Si tenías event listeners puestos directamente en el botón original,
-    // aquí los recuperamos automáticamente gracias al ID. 
-    // Todos los scripts que escuchan #messagesBtn seguirán funcionando sin cambios.
-  })();
-
-  // =================================================================
-  // RESTO DE TU FUNCIÓN ORIGINAL (100% SIN MODIFICAR)
+  // 1. CONTACTO (Teléfono + WhatsApp) - SIN CAMBIOS
   // =================================================================
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item autor-dato-item';
-    divContacto.style.background = "transparent";
-    divContacto.style.border = "none";
-    divContacto.style.display = 'flex';
-    divContacto.style.justifyContent = 'center';
-    divContacto.style.gap = '20px';
+    divContacto.style.cssText = 'background:transparent;border:none;display:flex;justify-content:center;gap:20px;margin:15px 0;';
 
     const divTel = document.createElement('div');
-    divTel.style.display = 'flex';
-    divTel.style.flexDirection = 'column';
-    divTel.style.alignItems = 'center';
-    divTel.style.cursor = 'pointer';
-    divTel.innerHTML = `
-      <i class="fas fa-phone-alt" style="font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
-    `;
+    divTel.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+    divTel.innerHTML = `<i class="fas fa-phone-alt" style="font-size:20px;"></i><div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>`;
     divTel.addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
 
     const divWA = document.createElement('div');
-    divWA.style.display = 'flex';
-    divWA.style.flexDirection = 'column';
-    divWA.style.alignItems = 'center';
-    divWA.style.cursor = 'pointer';
-    divWA.innerHTML = `
-      <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
-      <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
-    `;
+    divWA.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+    divWA.innerHTML = `<i class="fab fa-whatsapp" style="color:#25D366;font-size:20px;"></i><div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>`;
     divWA.onclick = function (e) {
       e.stopPropagation();
       let numero = String(u.telefono || "").replace(/\D/g, "");
@@ -2210,59 +2142,58 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
+  // =================================================================
+  // 2. Congregación, Cargo, Ciudad - SIN CAMBIOS
+  // =================================================================
   if (u.congregacion) {
     const divCong = document.createElement('div');
     divCong.className = 'perfil-dato-item autor-dato-item';
-    divCong.style.background = "transparent";
-    divCong.style.border = "none";
-    divCong.innerHTML = `
-      <i class="fas fa-church"></i>
-      <div>
-        <div class="dato-label">Congregación</div>
-        <div class="dato-valor">${u.congregacion}</div>
-      </div>
-    `;
+    divCong.style.cssText = 'background:transparent;border:none;';
+    divCong.innerHTML = `<i class="fas fa-church"></i><div><div class="dato-label">Congregación</div><div class="dato-valor">${u.congregacion}</div></div>`;
     cont.appendChild(divCong);
   }
 
   if (u.cargo) {
     const divCargo = document.createElement('div');
     divCargo.className = 'perfil-dato-item autor-dato-item';
-    divCargo.style.background = "transparent";
-    divCargo.style.border = "none";
-    divCargo.innerHTML = `
-      <i class="fas fa-user-tie"></i>
-      <div>
-        <div class="dato-label">Cargo</div>
-        <div class="dato-valor">${u.cargo}</div>
-      </div>
-    `;
+    divCargo.style.cssText = 'background:transparent;border:none;';
+    divCargo.innerHTML = `<i class="fas fa-user-tie"></i><div><div class="dato-label">Cargo</div><div class="dato-valor">${u.cargo}</div></div>`;
     cont.appendChild(divCargo);
   }
 
   if (u.ciudad) {
     const divCiudad = document.createElement('div');
     divCiudad.className = 'perfil-dato-item autor-dato-item';
-    divCiudad.style.background = "transparent";
-    divCiudad.style.border = "none";
-    divCiudad.innerHTML = `
-      <i class="fas fa-map-marker-alt"></i>
-      <div>
-        <div class="dato-label">Ciudad</div>
-        <div class="dato-valor">${u.ciudad}</div>
-      </div>
-    `;
+    divCiudad.style.cssText = 'background:transparent;border:none;';
+    divCiudad.innerHTML = `<i class="fas fa-map-marker-alt"></i><div><div class="dato-label">Ciudad</div><div class="dato-valor">${u.ciudad}</div></div>`;
     cont.appendChild(divCiudad);
   }
 
-  // Tema
+  // =================================================================
+  // 3. BOTÓN DE MENSAJES DIRECTOS (debajo de la ciudad) - NUEVO
+  // =================================================================
+  const divMensajes = document.createElement('div');
+  divMensajes.className = 'perfil-dato-item autor-dato-item';
+  divMensajes.style.cssText = 'background:transparent;border:none;text-align:center;margin-top:20px;';
+
+  divMensajes.innerHTML = `
+    <button id="messagesBtn" class="header-btn" title="Mensajes" style="position:relative; font-size:18px; padding:14px 20px; border-radius:50px; background:#0077cc; color:white; border:none; cursor:pointer; box-shadow:0 4px 15px rgba(0,119,204,0.3);">
+      <i class="fas fa-comments"></i> Enviar mensaje directo
+      <span id="messagesNotificationCount" style="position:absolute; top:-8px; right:-8px; background:red; color:white; font-size:11px; font-weight:bold; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; display:none; z-index:10;"></span>
+    </button>
+  `;
+
+  cont.appendChild(divMensajes);
+
+  // =================================================================
+  // 4. Tema (sin cambios)
+  // =================================================================
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
     aplicarLightModeModalAutor();
   }
 }
-
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -6478,3 +6409,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
