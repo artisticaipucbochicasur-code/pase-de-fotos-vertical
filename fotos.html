@@ -2862,7 +2862,7 @@ function cerrarChat() {
 
 
 
-// =============== BOTÓN ENVIAR MEJORADO (SIN DUPLICADOS NUNCA MÁS) ===============
+// =============== BOTÓN ENVIAR (CON HORA CORRECTA FINAL) ===============
 document.getElementById("chatEnviar").onclick = async () => {
     const input = document.getElementById("chatInput");
     const btn = document.getElementById("chatEnviar");
@@ -2879,33 +2879,25 @@ document.getElementById("chatEnviar").onclick = async () => {
     // 2. Guardar scroll
     const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
 
-    // 3. Crear mensaje temporal con ID único (esto evita duplicados)
+    // 3. ID temporal único + marca para identificar que es nuestro mensaje pendiente
     const tempId = "temp_" + Date.now() + "_" + Math.random();
     const mensajeTemp = {
-        id: tempId,                    // ← CLAVE: ID temporal único
+        id: tempId,
         de: usuarioActual.correo,
         mensaje: txt,
-        fecha: "Enviando..."
+        fecha: "Ahora",           // ← Mientras se envía
+        esTemporal: true          // ← MARCA CLAVE para saber que es nuestro
     };
 
-    // Asegurar caché
-    if (!chatCache[chatConUsuario.correo]) {
-        chatCache[chatConUsuario.correo] = [];
-    }
+    // Añadir al caché
+    if (!chatCache[chatConUsuario.correo]) chatCache[chatConUsuario.correo] = [];
+    chatCache[chatConUsuario.correo].push(mensajeTemp);
+    agregarMensajeIndividual(mensajeTemp);
 
-    // Solo agregar si no existe ya un mensaje con ese ID temporal
-    const yaExiste = chatCache[chatConUsuario.correo].some(m => m.id === tempId);
-    if (!yaExiste) {
-        chatCache[chatConUsuario.correo].push(mensajeTemp);
-        agregarMensajeIndividual(mensajeTemp);
-    }
-
-    // Scroll solo si estaba abajo
     if (estabaAlFinal) {
         setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
     }
 
-    // Limpiar input
     input.value = "";
     input.focus();
 
@@ -2920,18 +2912,20 @@ document.getElementById("chatEnviar").onclick = async () => {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
 
-        if (json.status !== "success") {
-            actualizarUltimoMensaje({ 
-                mensaje: txt + " (No enviado)", 
-                fecha: "Error" 
+        if (json.status === "success") {
+            // → El refresh se encargará de poner la hora real
+            // No hacemos nada aquí
+        } else {
+            actualizarUltimoMensaje({
+                mensaje: txt + " (No enviado)",
+                fecha: "Error"
             });
         }
-        // No hacemos nada más: el refresh lo actualizará correctamente
     } catch (err) {
         console.error("Error enviando:", err);
-        actualizarUltimoMensaje({ 
-            mensaje: txt + " (Sin conexión)", 
-            fecha: "Reintentar" 
+        actualizarUltimoMensaje({
+            mensaje: txt + " (Sin conexión)",
+            fecha: "Reintentar"
         });
     }
 };
@@ -3008,36 +3002,51 @@ async function cargarConversacion() {
         const mensajesServidor = json.mensajes;
         const mensajesCache = chatCache[chatConUsuario.correo] || [];
 
-        // Filtrar mensajes temporales (los que tienen id que empieza con "temp_")
-        const mensajesSinTemporales = mensajesCache.filter(m => !m.id || !m.id.toString().startsWith("temp_"));
-        const mensajesTemporales = mensajesCache.filter(m => m.id && m.id.toString().startsWith("temp_"));
+        let huboCambio = false;
 
-        let hayCambios = false;
+        // Recorrer mensajes del servidor
+        mensajesServidor.forEach((msgServidor, index) => {
+            const msgCache = mensajesCache[index];
 
-        // Detectar mensajes nuevos del servidor
-        if (mensajesServidor.length > mensajesSinTemporales.length) {
-            const nuevos = mensajesServidor.slice(mensajesSinTemporales.length);
-            nuevos.forEach(msg => {
-                // Si coincide con un temporal (mismo texto y de mí), reemplazar
-                const tempIndex = mensajesTemporales.findIndex(t => 
-                    t.de === msg.de && t.mensaje === msg.mensaje
-                );
-                if (tempIndex !== -1) {
-                    mensajesTemporales[tempIndex] = msg; // reemplazar temporal por real
-                } else {
-                    agregarMensajeIndividual(msg);
+            // Si es un mensaje nuestro y coincide en texto → actualizar fecha
+            if (msgCache && 
+                msgCache.de === usuarioActual.c Número &&
+                msgCache.mensaje === msgServidor.mensaje &&
+                msgCache.esTemporal) {
+                
+                // Actualizar SOLO la fecha del mensaje que ya mostramos
+                const ultimoDiv = document.getElementById("chatMensajes").children[index];
+                if (ultimoDiv) {
+                    const small = ultimoDiv.querySelector("small");
+                    if (small && small.textContent === "Ahora") {
+                        small.textContent = msgServidor.fecha;
+                        huboCambio = true;
+                    }
                 }
-                hayCambios = true;
-            });
+
+                // Limpiar marca temporal
+                delete msgCache.esTemporal;
+            }
+            // Si es nuevo del otro → agregar
+            else if (!msgCache || 
+                     (msgCache.mensaje !== msgServidor.mensaje || 
+                      msgCache.de !== msgServidor.de)) {
+                agregarMensajeIndividual(msgServidor);
+                huboCambio = true;
+            }
+        });
+
+        // Actualizar caché final
+        chatCache[chatConUsuario.correo] = mensajesServidor;
+
+        // Scroll solo si estaba abajo y llegó algo nuevo
+        if (huboCambio) {
+            const cont = document.getElementById("chatMensajes");
+            const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+            if (estabaAlFinal) {
+                setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+            }
         }
-
-        // Reconstruir caché limpio (sin temporales duplicados)
-        const cacheFinal = [...mensajesSinTemporales, ...mensajesTemporales.filter(t => {
-            // Mantener temporal solo si NO existe ya en el servidor
-            return !mensajesServidor.some(s => s.mensaje === t.mensaje && s.de === t.de);
-        }), ...mensajesServidor.slice(mensajesSinTemporales.length)];
-
-        chatCache[chatConUsuario.correo] = cacheFinal;
 
     } catch (err) {
         console.warn("Error en refresh:", err);
@@ -6737,6 +6746,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
