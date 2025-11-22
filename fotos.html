@@ -2700,22 +2700,23 @@ function renderizarMensajes(mensajes) {
 
 function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
-    // Mostrar chat
+
+    // Mostrar el chat (sube desde abajo)
     box.style.display = "flex";
 
-    // CERRAR AL TOCAR AFUERA (nueva funcionalidad)
-    const cerrarAlTocarAfuera = (e) => {
-        if (e.target === box) {
+    // === CERRAR AL TOCAR AFUERA (EN CUALQUIER LUGAR FUERA DEL CHAT) ===
+    const cerrarSiTocaAfuera = (e) => {
+        if (!box.contains(e.target)) {  // ← si el clic NO está dentro del chat
             cerrarChat();
         }
     };
-    // Añadimos el listener (con un pequeño retraso para evitar cierre inmediato)
-    setTimeout(() => {
-        box.addEventListener("click", cerrarAlTocarAfuera);
-    }, 100);
 
-    // Guardamos referencia para poder removerlo al cerrar
-    box._cerrarAlTocarAfuera = cerrarAlTocarAfuera;
+    // Añadimos el listener al document (captura todo)
+    document.addEventListener("click", cerrarSiTocaAfuera);
+    document.addEventListener("touchstart", cerrarSiTocaAfuera); // para móviles
+
+    // Guardamos la función para poder removerla después
+    box._handlerCerrarAfuera = cerrarSiTocaAfuera;
 
     // Iniciar auto-refresh
     clearInterval(chatAutoRefresh);
@@ -2734,15 +2735,19 @@ function abrirVentanaChat() {
 
 function cerrarChat() {
     const box = document.getElementById("chatBox");
+
     box.style.display = "none";
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = null;
 
-    // REMOVER EL EVENTO DE CIERRE AL TOCAR AFUERA
-    if (box._cerrarAlTocarAfuera) {
-        box.removeEventListener("click", box._cerrarAlTocarAfuera);
-        box._cerrarAlTocarAfuera = null;
+    // Removemos los listeners de "tocar afuera"
+    if (box._handlerCerrarAfuera) {
+        document.removeEventListener("click", box._handlerCerrarAfuera);
+        document.removeEventListener("touchstart", box._handlerCerrarAfuera);
+        box._handlerCerrarAfuera = null;
     }
+
+    chatConUsuario = null;
 }
 
 
@@ -6469,6 +6474,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
