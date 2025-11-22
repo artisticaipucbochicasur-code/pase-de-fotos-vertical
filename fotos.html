@@ -3136,11 +3136,18 @@ async function cargarConversacion() {
             window.typingTimeout = null;
         }
 
-        // --- 5. SCROLL INTELIGENTE ---
+        // --- 5. SCROLL INTELIGENTE + SCROLL SUAVE ---
         if (huboCambios) {
-            const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+            const estabaAbajo =
+                (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+
             if (estabaAbajo) {
-                setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+                setTimeout(() => {
+                    cont.scrollTo({
+                        top: cont.scrollHeight,
+                        behavior: "smooth"
+                    });
+                }, 80);
             }
         }
 
@@ -3148,6 +3155,7 @@ async function cargarConversacion() {
         console.warn("Error en refresh:", err);
     }
 }
+
 
 
     
@@ -6845,6 +6853,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
