@@ -2754,13 +2754,18 @@ function iniciarChatCon(info) {
 
 
 
-function renderizarMensajes(mensajes) {
+// 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
+function renderizarMensajes(mensajes, { mantenerScroll = false } = {}) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = "";
+    const estabaAlFinal = mantenerScroll ? false : (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
 
-    mensajes.forEach(m => {
+    // Guardar mensajes anteriores para comparar
+    const mensajesAnteriores = chatCache[chatConUsuario?.correo] || [];
+
+    cont.innerHTML = ""; // limpiamos una sola vez
+
+    mensajes.forEach((m, index) => {
         const div = document.createElement("div");
-
         div.style.maxWidth = "75%";
         div.style.margin = "6px 0";
         div.style.padding = "8px 12px";
@@ -2768,39 +2773,46 @@ function renderizarMensajes(mensajes) {
         div.style.fontSize = "14px";
         div.style.lineHeight = "1.3";
         div.style.wordBreak = "break-word";
+        div.style.opacity = "0";
+        div.style.transform = "translateY(10px)";
+        div.style.transition = "opacity 0.2s ease, transform 0.2s ease";
 
         if (m.de === usuarioActual.correo) {
-            // ✅ ENVIADO — azul y texto negro
             div.style.background = "#6FA3FF";
-            div.style.color = "#000"; // ✅ texto negro
+            div.style.color = "#000";
             div.style.marginLeft = "auto";
             div.style.border = "1px solid #5A8DEE";
             div.style.borderBottomRightRadius = "4px";
         } else {
-            // ✅ RECIBIDO — gris más oscuro
-            div.style.background = "#CFCFCF"; 
-            div.style.color = "#000"; // ✅ texto negro
+            div.style.background = "#CFCFCF";
+            div.style.color = "#000";
             div.style.border = "1px solid #b6b6b6";
             div.style.borderBottomLeftRadius = "4px";
         }
 
         div.innerHTML = `
             <div>${m.mensaje}</div>
-            <small style="
-                font-size:10px;
-                color:#00000099; /* ✅ visible en ambos */
-                display:block;
-                margin-top:4px;
-                text-align:right;
-            ">${m.fecha}</small>
+            <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
+                ${m.fecha}
+            </small>
         `;
 
         cont.appendChild(div);
+
+        // Animación suave de entrada
+        setTimeout(() => {
+            div.style.opacity = "1";
+            div.style.transform = "translateY(0)";
+        }, index * 30); // efecto cascada solo en nuevos
     });
 
-    setTimeout(() => cont.scrollTop = cont.scrollHeight, 50);
+    // Solo scrollear al final si el usuario ya estaba abajo o es un mensaje nuevo
+    setTimeout(() => {
+        if (estabaAlFinal || mensajes.length > mensajesAnteriores.length) {
+            cont.scrollTop = cont.scrollHeight;
+        }
+    }, 100);
 }
-
 
 
     
@@ -2862,40 +2874,45 @@ function cerrarChat() {
 document.getElementById("chatEnviar").onclick = async () => {
     const input = document.getElementById("chatInput");
     const btn = document.getElementById("chatEnviar");
+    const cont = document.getElementById("chatMensajes");
     const txt = input.value.trim();
 
     if (!txt || !chatConUsuario || !usuarioActual) return;
 
-    // 1. ANIMACIÓN DEL BOTÓN (se achica y gira el avión)
-    btn.style.transform = "scale(0.85)";
+    // 1. Animación del botón
+    btn.style.transform = "scale(0.88)";
     btn.style.transition = "transform 0.18s ease";
+    setTimeout(() => btn.style.transform = "scale(1)", 180);
 
-    // 2. MOSTRAR MENSAJE INMEDIATAMENTE COMO ENVIADO (optimistic UI)
-    const mensajeTemporal = {
+    // 2. Guardar estado del scroll (para no molestar si está arriba)
+    const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
+
+    // 3. Mensaje optimista (aparece al instante)
+    const mensajeTemp = {
         de: usuarioActual.correo,
         mensaje: txt,
         fecha: "Enviando..."
     };
 
-    // Agregar al caché local temporalmente
+    // Asegurar caché
     if (!chatCache[chatConUsuario.correo]) {
         chatCache[chatConUsuario.correo] = [];
     }
-    chatCache[chatConUsuario.correo].push(mensajeTemporal);
+    chatCache[chatConUsuario.correo].push(mensajeTemp);
 
-    // Renderizar al instante (incluyendo el mensaje nuevo)
+    // Renderizar al instante SIN perder scroll
     renderizarMensajes(chatCache[chatConUsuario.correo]);
 
-    // 3. LIMPIAR INPUT AL INSTANTE
+    // Mantener scroll solo si estaba al final
+    if (estabaAlFinal) {
+        setTimeout(() => cont.scrollTop = cont.scrollHeight, 50);
+    }
+
+    // 4. Limpiar input
     input.value = "";
     input.focus();
 
-    // 4. Volver el botón a su estado normal
-    setTimeout(() => {
-        btn.style.transform = "scale(1)";
-    }, 180);
-
-    // 5. ENVIAR AL SERVIDOR EN SEGUNDO PLANO
+    // 5. Enviar al servidor (en segundo plano)
     const body = new FormData();
     body.append("accion", "guardarChat");
     body.append("de", usuarioActual.correo);
@@ -2907,33 +2924,31 @@ document.getElementById("chatEnviar").onclick = async () => {
         const json = await res.json();
 
         if (json.status === "success") {
-            // Reemplazar el mensaje temporal por el real con fecha correcta
-            await cargarConversacion(); // esto actualiza todo con la fecha real del servidor
+            // El auto-refresh (cada 2.5s) se encargará de actualizar la fecha real
+            // → NO llamamos a cargarConversacion() aquí → evita parpadeo
         } else {
-            // Si falla, mostrar error en el mensaje temporal
-            const ultimo = chatCache[chatConUsuario.correo].pop();
+            // Error del servidor
+            const ultimo = chatCache[chatConUsuario.correo].slice(-1)[0];
             if (ultimo) {
                 ultimo.mensaje = txt + " (No enviado)";
                 ultimo.fecha = "Error";
-                chatCache[chatConUsuario.correo].push(ultimo);
                 renderizarMensajes(chatCache[chatConUsuario.correo]);
             }
         }
     } catch (err) {
         console.error("Error enviando mensaje:", err);
-        // Marcar como fallido
-        const ultimo = chatCache[chatConUsuario.correo].pop();
+        const ultimo = chatCache[chatConUsuario.correo].slice(-1)[0];
         if (ultimo) {
             ultimo.mensaje = txt + " (Sin conexión)";
             ultimo.fecha = "Reintentar";
-            chatCache[chatConUsuario.correo].push(ultimo);
             renderizarMensajes(chatCache[chatConUsuario.correo]);
         }
     }
 };
 
 
- async function cargarConversacion() {
+// 2. NUEVA cargarConversacion (inteligente y sin molestar)
+async function cargarConversacion() {
     if (!chatConUsuario || !usuarioActual) return;
 
     const body = new FormData();
@@ -2942,23 +2957,28 @@ document.getElementById("chatEnviar").onclick = async () => {
     body.append("user2", chatConUsuario.correo);
 
     try {
-        let res = await fetch(SCRIPT_URL, { method: "POST", body });
-        let json = await res.json();
+        const res = await fetch(SCRIPT_URL, { method: "POST", body });
+        const json = await res.json();
 
         if (!json.mensajes) return;
 
-        // Guardar en caché para abrir el chat instantáneamente la próxima vez
-        chatCache[chatConUsuario.correo] = json.mensajes;
+        const mensajesAnteriores = chatCache[chatConUsuario.correo] || [];
+        const mensajesNuevos = json.mensajes;
 
-        // Usar la función moderna de renderizado (la que ya mejoramos antes)
-        renderizarMensajes(json.mensajes);
+        // Solo actualizar si hay cambios reales
+        if (JSON.stringify(mensajesAnteriores) !== JSON.stringify(mensajesNuevos)) {
+            chatCache[chatConUsuario.correo] = mensajesNuevos;
 
-    } catch (err) {
-        console.error("Error cargando conversación:", err);
-        // En caso de error, si ya había caché, mostrarla como fallback
-        if (chatCache[chatConUsuario.correo]) {
-            renderizarMensajes(chatCache[chatConUsuario.correo]);
+            // Detectar si el usuario está viendo arriba (no molestar)
+            const cont = document.getElementById("chatMensajes");
+            const estaArriba = cont.scrollTop < 100;
+
+            renderizarMensajes(mensajesNuevos, {
+                mantenerScroll: estaArriba // ← clave: si está arriba, no scrollea
+            });
         }
+    } catch (err) {
+        console.warn("Error en refresh silencioso:", err);
     }
 }
 
@@ -6657,6 +6677,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
