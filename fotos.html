@@ -1952,6 +1952,8 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     <div>
       <div id="chatNombre" style="font-weight:600; font-size:15px;"></div>
       <div id="chatCorreo" style="font-size:12px; opacity:0.8;"></div>
+      <div id="chatEscribiendo"  style="font-size:11px;color:#7ad;display:none;margin-top:2px;"></div>
+
     </div>
     <div style="margin-left:auto; cursor:pointer;" onclick="cerrarChat()">
       <i class="fas fa-xmark" style="font-size:20px;"></i>
@@ -2919,6 +2921,30 @@ document.getElementById("chatEnviar").onclick = async () => {
     }
 };
 
+    // AVISAR QUE ESTÁS ESCRIBIENDO
+let typingTimeout = null;
+document.getElementById("chatInput").addEventListener("input", () => {
+    if (!chatConUsuario || !usuarioActual) return;
+
+    // Avisar al servidor que estás escribiendo
+    const body = new FormData();
+    body.append("accion", "typing");
+    body.append("de", usuarioActual.correo);
+    body.append("para", chatConUsuario.correo);
+    fetch(SCRIPT_URL, { method: "POST", body });
+
+    // Si pasan 2s sin escribir → avisar que ya no
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        const body2 = new FormData();
+        body2.append("accion", "notTyping");
+        body2.append("de", usuarioActual.correo);
+        body2.append("para", chatConUsuario.correo);
+        fetch(SCRIPT_URL, { method: "POST", body: body2 });
+    }, 2000);
+});
+
+
    // NUEVA: Agrega SOLO un mensaje nuevo SIN recargar todo (anti-parpadeo)
 function agregarMensajeIndividual(m) {
     const cont = document.getElementById("chatMensajes");
@@ -2973,7 +2999,7 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
     }
 }
 
-// =============== CARGAR CONVERSACIÓN (CORREGIDA Y SIN ERRORES) ===============
+// ================= CARGAR CONVERSACIÓN (CON INDICADOR "ESCRIBIENDO") =================
 async function cargarConversacion() {
     if (!chatConUsuario || !usuarioActual) return;
 
@@ -2993,37 +3019,31 @@ async function cargarConversacion() {
 
         let huboCambios = false;
 
-// 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES (los que enviamos nosotros)
-// ----------------------------------------------------------------------
-const cache = chatCache[chatConUsuario.correo] || [];
-const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
+        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
+        const cache = chatCache[chatConUsuario.correo] || [];
+        const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
 
-if (tempMsg) {
-    // Buscar coincidencia real en el servidor
-    const confirmado = mensajesServidor.find(ms =>
-        ms.de === usuarioActual.correo &&
-        ms.mensaje === tempMsg.mensaje
-    );
+        if (tempMsg) {
+            const confirmado = mensajesServidor.find(ms =>
+                ms.de === usuarioActual.correo &&
+                ms.mensaje === tempMsg.mensaje
+            );
 
-    if (confirmado) {
-        // Actualizar DOM (último mensaje enviado)
-        const ult = cont.lastElementChild;
-        if (ult) {
-            const small = ult.querySelector("small");
-            if (small) small.textContent = confirmado.fecha;
+            if (confirmado) {
+                const ult = cont.lastElementChild;
+                if (ult) {
+                    const small = ult.querySelector("small");
+                    if (small) small.textContent = confirmado.fecha;
+                }
+
+                tempMsg.fecha = confirmado.fecha;
+                delete tempMsg.id;
+
+                huboCambios = true;
+            }
         }
 
-        // Actualizar cache local
-        tempMsg.fecha = confirmado.fecha;
-        delete tempMsg.id;
-
-        huboCambios = true;
-    }
-}
-
-
-
-        // 2. AGREGAR MENSAJES NUEVOS (del otro usuario)
+        // --- 2. AGREGAR MENSAJES NUEVOS ---
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
@@ -3032,13 +3052,21 @@ if (tempMsg) {
             });
         }
 
-        // 3. SI EL SERVIDOR TIENE MÁS MENSAJES QUE EL CACHÉ (por ejemplo, nuestro mensaje ya está confirmado)
-        // → Forzar actualización del caché (esto soluciona el "Enviando..." eterno)
+        // --- 3. ACTUALIZAR CACHE ---
         if (mensajesServidor.length >= cacheActual.length) {
             chatCache[chatConUsuario.correo] = mensajesServidor;
         }
 
-        // 4. SCROLL INTELIGENTE
+        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
+        const typingDiv = document.getElementById("typingIndicator");
+
+        if (json.typing && json.typing === true) {
+            typingDiv.style.display = "block";
+        } else {
+            typingDiv.style.display = "none";
+        }
+
+        // --- 5. SCROLL INTELIGENTE ---
         if (huboCambios) {
             const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
             if (estabaAbajo) {
@@ -3050,6 +3078,7 @@ if (tempMsg) {
         console.warn("Error en refresh:", err);
     }
 }
+
 
     
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
@@ -6746,6 +6775,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
