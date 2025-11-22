@@ -3060,6 +3060,11 @@ async function cargarConversacion() {
 
         let huboCambios = false;
 
+        // --- 🔥 ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
+        if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
+            cont.innerHTML = "";
+        }
+
         // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
         const cache = chatCache[chatConUsuario.correo] || [];
         const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
@@ -3098,35 +3103,29 @@ async function cargarConversacion() {
             chatCache[chatConUsuario.correo] = mensajesServidor;
         }
 
-// --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
-const typingDiv = document.getElementById("chatEscribiendo");
+        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
+        const typingDiv = document.getElementById("chatEscribiendo");
 
-// Timer anti-pegado global (se conserva entre llamadas)
-if (!window.typingTimeout) window.typingTimeout = null;
+        if (!window.typingTimeout) window.typingTimeout = null;
 
-// Si viene typing=true desde el servidor
-if (json.typing === true) {
+        if (json.typing === true) {
 
-    typingDiv.style.display = "block";
-    typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
+            typingDiv.style.display = "block";
+            typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
 
-    // Reinicia timer anti-pegado
-    clearTimeout(window.typingTimeout);
-    window.typingTimeout = setTimeout(() => {
-        typingDiv.style.display = "none";
-        typingDiv.innerHTML = "";
-    }, 6000); // 👈 Si pasan 6s sin nueva señal, se oculta
+            clearTimeout(window.typingTimeout);
+            window.typingTimeout = setTimeout(() => {
+                typingDiv.style.display = "none";
+                typingDiv.innerHTML = "";
+            }, 6000);
 
-} else {
-    // Servidor dice typing=false → ocultar inmediatamente
-    typingDiv.style.display = "none";
-    typingDiv.innerHTML = "";
+        } else {
+            typingDiv.style.display = "none";
+            typingDiv.innerHTML = "";
 
-    clearTimeout(window.typingTimeout);
-    window.typingTimeout = null;
-}
-
-
+            clearTimeout(window.typingTimeout);
+            window.typingTimeout = null;
+        }
 
         // --- 5. SCROLL INTELIGENTE ---
         if (huboCambios) {
@@ -6837,6 +6836,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
