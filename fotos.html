@@ -2230,8 +2230,7 @@ function mostrarDatosAutor(u) {
   // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-   abrirVentanaChat(e);
-
+    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
   });
 
   cont.appendChild(divMensajes);
@@ -2243,6 +2242,32 @@ function mostrarDatosAutor(u) {
     aplicarLightModeModalAutor();
   }
 }
+
+    } // ← cierre de mostrarDatosAutor(u)
+
+
+// =============================
+// CERRAR CHAT AL CLIC AFUERA
+// =============================
+
+// Evita que los clics dentro del chat lo cierren
+document.getElementById("chatBox").addEventListener("click", function (e) {
+    e.stopPropagation();
+});
+
+// Cierra el chat al hacer clic fuera
+document.addEventListener("click", function (e) {
+    const chat = document.getElementById("chatBox");
+    if (!chat) return;
+
+    // Si el chat NO está visible, no hacemos nada
+    if (chat.style.display === "none") return;
+
+    // Si el clic NO fue dentro del chat → cerrar
+    if (!chat.contains(e.target)) {
+        chat.style.display = "none";
+    }
+});
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -2699,59 +2724,40 @@ function renderizarMensajes(mensajes) {
 
     
 
-function abrirVentanaChat(e) {
-    if (e) e.stopPropagation(); // ⛔ evita que el clic que abre cierre el modal
-
+   function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
 
-    // Mostrar el chat
+    // Mostrar chat
     box.style.display = "flex";
 
-    // CERRAR AL TOCAR AFUERA — pero con una pequeña protección
-    const cerrarSiTocaAfuera = (e) => {
-        // Solo cerramos si el chat ya está visible Y el clic fue fuera del panel
-        if (box.style.display === "flex" && !box.contains(e.target)) {
-            cerrarChat();
-        }
-    };
-
-    // Usamos un pequeño retraso para que el clic que abrió el chat no lo cierre
-    setTimeout(() => {
-        document.addEventListener("click", cerrarSiTocaAfuera);
-        document.addEventListener("touchstart", cerrarSiTocaAfuera);
-        box._handlerCerrarAfuera = cerrarSiTocaAfuera;
-    }, 100);
-
-    // Auto-refresh
+    // 🔄 Iniciar auto-refresh
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = setInterval(() => {
-        if (usuarioActual && chatConUsuario) cargarConversacion();
+        if (usuarioActual && chatConUsuario) {
+            cargarConversacion(); // NO PASAR PARÁMETROS
+        }
     }, 2500);
 
-    // Info del usuario
+    // Tomar info del usuario del chat
     const { nombre, correo, foto } = chatConUsuario;
+
     document.getElementById("chatNombre").textContent = nombre;
     document.getElementById("chatCorreo").textContent = correo;
-    document.getElementById("chatFoto").src = foto && foto.startsWith("http") ? foto : "img/default-user.png";
-}
 
+    // Foto real o default
+    if (foto && foto.startsWith("http")) {
+        document.getElementById("chatFoto").src = foto;
+    } else {
+        document.getElementById("chatFoto").src = "img/default-user.png";
+    }
+}
 
 function cerrarChat() {
-    const box = document.getElementById("chatBox");
-
-    box.style.display = "none";
+    document.getElementById("chatBox").style.display = "none";
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = null;
-
-    // Removemos los listeners
-    if (box._handlerCerrarAfuera) {
-        document.removeEventListener("click", box._handlerCerrarAfuera);
-        document.removeEventListener("touchstart", box._handlerCerrarAfuera);
-        box._handlerCerrarAfuera = null;
-    }
-
-    chatConUsuario = null;
 }
+
 
 
 
@@ -6477,10 +6483,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
