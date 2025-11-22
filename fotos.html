@@ -2697,13 +2697,23 @@ async function precargarTodosLosChats() {
     }
 }
 function iniciarChatCon(info) {
-    // ✅ asegurar que tenga foto válida
+
+    // ✅ aseguramos que la foto venga del campo correcto
+    const fotoFinal =
+        info.fotoPerfil && info.fotoPerfil.trim() !== "" ? info.fotoPerfil :
+        info.foto && info.foto.trim() !== "" ? info.foto :
+        "img/default-user.png";
+
+    // ✅ guardar usuario activo con foto correcta
     chatConUsuario = {
         ...info,
-        foto: info.foto || info.fotoPerfil || "img/default-user.png"
+        foto: fotoFinal
     };
 
-    console.log("CHAT CON:", chatConUsuario);
+    // ✅ DEBUG para confirmar lo que está llegando
+    console.log("INFO RECIBIDA:", info);
+    console.log("FOTO FINAL USADA:", fotoFinal);
+    alert("FOTO USADA PARA CHAT: " + fotoFinal);
 
     abrirVentanaChat();
 
@@ -2716,6 +2726,7 @@ function iniciarChatCon(info) {
 
     cargarConversacion();
 }
+
 
 
 
@@ -6573,6 +6584,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
