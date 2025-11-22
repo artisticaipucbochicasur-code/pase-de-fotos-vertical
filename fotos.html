@@ -1997,7 +1997,9 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 </div>
 
 
- 
+  <button id="btnEnviarChat">Enviar</button>
+<input id="mensajeChat" type="text" placeholder="Escribe tu mensaje...">
+
   
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
@@ -2609,152 +2611,52 @@ const perfilCache = {}; // clave: correo normalizado → datos completos del per
   });
 });
 
-let chatCache = {}; // { correo: [mensajes] }
+
+    
 let chatAutoRefresh = null;
 
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
 let chatConUsuario = null;
 
-// ======================================================================
-// SISTEMA DE LISTA DE CHATS PRE-CARGADOS
-// ======================================================================
-
-let listaChats = [];
-let chatActualIndex = 0;
-const PRELOAD = 7;
-
-// ---------------------------------------------------------
-// Cargar chat con caché
-// ---------------------------------------------------------
-async function resolveChat(correo) {
-    if (chatCache[correo]) return chatCache[correo];
-
-    const body = new FormData();
-    body.append("accion", "listarChat");
-    body.append("user1", usuarioActual.correo);
-    body.append("user2", correo);
-
-    let res = await fetch(SCRIPT_URL, { method: "POST", body });
-    let json = await res.json();
-
-    chatCache[correo] = json.mensajes || [];
-    return chatCache[correo];
-}
-
-// ---------------------------------------------------------
-// Lista de chats
-// ---------------------------------------------------------
-async function cargarListaChats() {
-    const body = new FormData();
-    body.append("accion", "listarUsuariosChat");
-    body.append("user", usuarioActual.correo);
-
-    let res = await fetch(SCRIPT_URL, { method: "POST", body });
-    let json = await res.json();
-
-    listaChats = json.usuarios || [];
-
-    mostrarChatsPreCargados();
-}
-
-function mostrarChatsPreCargados() {
-    const cont = document.getElementById("listaChats");
-    cont.innerHTML = "";
-
-    if (listaChats.length === 0) return;
-
-    const inicio = Math.max(0, chatActualIndex - PRELOAD);
-    const fin = Math.min(listaChats.length - 1, chatActualIndex + PRELOAD);
-    const subset = listaChats.slice(inicio, fin + 1);
-
-    subset.forEach(u => {
-        const div = document.createElement("div");
-        div.className = "chatItem";
-        div.onclick = () => iniciarChatCon(u);
-
-        div.innerHTML = `
-            <img src="${u.foto || "img/default-user.png"}" class="chatFoto">
-            <div class="chatInfo">
-                <b>${u.nombre || u.correo}</b>
-                <small>${u.ultimoMensaje || ""}</small>
-            </div>
-        `;
-
-        cont.appendChild(div);
-    });
-}
-
-let cargaChatAbort = null;
-
-// ---------------------------------------------------------
-// Abrir chat con alguien
-// ---------------------------------------------------------
-async function iniciarChatCon(info) {
-    // Cancelar carga previa
-    if (cargaChatAbort) cargaChatAbort.abort();
-
+function iniciarChatCon(info) {
     chatConUsuario = info;
-    cargaChatAbort = new AbortController();
 
-    // limpiar pantalla inmediatamente
-    document.getElementById("chatMensajes").innerHTML = "";
+    console.log("CHAT CON:", info);
 
-    // actualizar índice para precarga
-    chatActualIndex = listaChats.findIndex(u => u.correo === info.correo);
-
+    // aquí abres tu interfaz de chat (no afecta ningún menú existente)
     abrirVentanaChat();
 
-    // cargar mensajes de este chat
-    cargarConversacion(cargaChatAbort.signal);
-
-    mostrarChatsPreCargados();
+    cargarConversacion();
 }
 
-// ---------------------------------------------------------
-// Refrescar lista de chats cada 2.5s
-// ---------------------------------------------------------
-async function refrescarListaChats() {
-    const body = new FormData();
-    body.append("accion", "listarUsuariosChat");
-    body.append("user", usuarioActual.correo);
 
-    let res = await fetch(SCRIPT_URL, { method: "POST", body });
-    let json = await res.json();
 
-    const nuevaLista = json.usuarios || [];
-
-    if (JSON.stringify(nuevaLista) !== JSON.stringify(listaChats)) {
-        listaChats = nuevaLista;
-
-        if (chatConUsuario) {
-            chatActualIndex = listaChats.findIndex(u => u.correo === chatConUsuario.correo);
-            if (chatActualIndex < 0) chatActualIndex = 0;
-        }
-
-        mostrarChatsPreCargados();
-    }
-}
-
-// ---------------------------------------------------------
-function abrirVentanaChat() {
+   function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
+
+    // Mostrar chat
     box.style.display = "flex";
 
+    // 🔄 Iniciar auto-refresh
     clearInterval(chatAutoRefresh);
-
     chatAutoRefresh = setInterval(() => {
-        if (usuarioActual) {
-            if (chatConUsuario) cargarConversacion(true);
-            refrescarListaChats();
+        if (usuarioActual && chatConUsuario) {
+            cargarConversacion(); // NO PASAR PARÁMETROS
         }
     }, 2500);
 
+    // Tomar info del usuario del chat
     const { nombre, correo, foto } = chatConUsuario;
 
     document.getElementById("chatNombre").textContent = nombre;
     document.getElementById("chatCorreo").textContent = correo;
-    document.getElementById("chatFoto").src = 
-        (foto && foto.startsWith("http")) ? foto : "img/default-user.png";
+
+    // Foto real o default
+    if (foto && foto.startsWith("http")) {
+        document.getElementById("chatFoto").src = foto;
+    } else {
+        document.getElementById("chatFoto").src = "img/default-user.png";
+    }
 }
 
 function cerrarChat() {
@@ -2763,9 +2665,10 @@ function cerrarChat() {
     chatAutoRefresh = null;
 }
 
-// ======================================================================
-// ENVIAR MENSAJE
-// ======================================================================
+
+
+
+
 document.getElementById("chatEnviar").onclick = async () => {
     const txt = document.getElementById("chatInput").value.trim();
     if (!txt || !chatConUsuario) return;
@@ -2785,53 +2688,23 @@ document.getElementById("chatEnviar").onclick = async () => {
     }
 };
 
-// ======================================================================
-// CARGAR CHAT + CACHE
-// ======================================================================
-async function cargarConversacion(signal) {
+
+
+   async function cargarConversacion() {
     if (!chatConUsuario) return;
 
-    const correo = chatConUsuario.correo;
-    const correoNorm = normalizeText(correo);
-
-    // ----------------------------------------------
-    // 1️⃣ PINTAR AL INSTANTE SI YA EXISTE EN CACHE
-    // ----------------------------------------------
-    if (chatCache[correoNorm]) {
-        pintarChatDesdeCache(chatCache[correoNorm]);
-    }
-
-    // ----------------------------------------------
-    // 2️⃣ HACER FETCH PARA ACTUALIZAR CHAT
-    // ----------------------------------------------
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
     body.append("user2", chatConUsuario.correo);
 
-    let res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        body,
-        signal
-    });
-
-    if (signal?.aborted) return;
-
+    let res = await fetch(SCRIPT_URL, { method: "POST", body });
     let json = await res.json();
-    let mensajes = json.mensajes || [];
 
-    // Guardar en caché actualizado
-    chatCache[correoNorm] = mensajes;
-
-    pintarChatDesdeCache(mensajes);
-}
-
-// ======================================================================
-function pintarChatDesdeCache(mensajes) {
     const cont = document.getElementById("chatMensajes");
     cont.innerHTML = "";
 
-    mensajes.forEach(m => {
+    json.mensajes.forEach(m => {
         const div = document.createElement("div");
         div.style.maxWidth = "70%";
         div.style.margin = "6px 0";
@@ -2856,10 +2729,13 @@ function pintarChatDesdeCache(mensajes) {
         cont.appendChild(div);
     });
 
-    cont.scrollTop = cont.scrollHeight;
+    // Scroll al final
+    setTimeout(() => {
+        cont.scrollTop = cont.scrollHeight;
+    }, 50);
 }
 
-    
+
 const publishBtn = document.getElementById("publishBtn");
 const publishModal = document.getElementById("publishModal");
 const closePublishModal = document.getElementById("closePublishModal");
@@ -4295,16 +4171,15 @@ async function cargarImagenes() {
 
     try {
         const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         let newAnunciosData = [];
 
-        if (data.url && data.url.length > 0) {
+        if(data.url && data.url.length > 0) {
             data.url.forEach((url, index) => {
                 const idAnuncio = data.id[index];
                 const comentarios = comentariosPorAnuncio[idAnuncio] || [];
                 const comentariosFormateados = normalizarComentarios(comentarios);
-
                 newAnunciosData.push({
                     titulo: data.titulo[index] || "",
                     descripcion: data.descripcion[index] || "",
@@ -4320,58 +4195,43 @@ async function cargarImagenes() {
         }
 
         newAnunciosData.reverse();
+{
+    const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const vecinos = [];
 
-        /* ---------------------------------------------
-           🎯 PRE-CARGA DE PERFIL, FOTO Y CHAT (OPTIMIZADA)
-        ---------------------------------------------- */
-
-        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
-        const vecinos = [];
-
-        for (let i = activeIndex - 7; i <= activeIndex + 7; i++) {
-            if (i >= 0 && i < newAnunciosData.length) {
-                vecinos.push(newAnunciosData[i]);
-            }
+    // precargar 7 anteriores y 7 posteriores + el actual = 15
+    for (let i = activeIndex - 7; i <= activeIndex + 7; i++) {
+        if (i >= 0 && i < newAnunciosData.length) {
+            vecinos.push(newAnunciosData[i]);
         }
+    }
 
-        // Evitar llamadas duplicadas
-        const seen = new Set();
+    // Filtrar correos únicos que aún no están cacheados
+    const uniqueToCache = [];
+    const seen = new Set();
 
-        vecinos.forEach(a => {
-            if (!a) return;
+    vecinos.forEach(a => {
+        if (!a) return;
+        const correoNorm = normalizeText(a.correo);
 
-            const correoNorm = normalizeText(a.correo);
-            if (seen.has(correoNorm)) return;
+        if (!seen.has(correoNorm)) {
             seen.add(correoNorm);
 
-            // precargar foto
+            // precargar foto de perfil ↓
             if (!fotoCache[correoNorm]) resolveFotoPerfil(correoNorm);
 
-            // precargar perfil
+            // precargar datos de perfil ↓
             if (!perfilCache[correoNorm]) resolvePerfil(correoNorm);
+        }
+    });
+}
 
-            // ⚡ precargar chat sin crear colas ni retrasos
-            if (!chatCache[correoNorm]) {
-                chatCache[correoNorm] = {
-                    loaded: false,
-                    mensajes: []
-                };
 
-                // precargar en background
-                resolveChat(correoNorm).then(msgs => {
-                    chatCache[correoNorm].loaded = true;
-                    chatCache[correoNorm].mensajes = msgs;
-                }).catch(e => console.error("Error precargando chat:", e));
-            }
-        });
 
-        /* ---------------------------------------------
-           FIN PRE-CARGA
-        ---------------------------------------------- */
 
         const oldAnunciosIds = anunciosData.map(a => a.id);
         const newAnunciosIds = newAnunciosData.map(a => a.id);
-
+        
         if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
             loader.style.display = 'none';
             return;
@@ -4379,12 +4239,12 @@ async function cargarImagenes() {
 
         const currentSlideId = currentId;
         anunciosData = newAnunciosData;
-
-        reconstruirIndiceBusqueda();
-
+      // 🔁 Re-construir índice de búsqueda siempre que cambien los anuncios
+reconstruirIndiceBusqueda();
+        
         if (swiperInstance) {
             swiperInstance.removeAllSlides();
-
+            
             anunciosData.forEach(anuncio => {
                 const slide = document.createElement('div');
                 slide.classList.add('swiper-slide');
@@ -4402,15 +4262,16 @@ async function cargarImagenes() {
 
                 swiperInstance.appendSlide(slide);
             });
-
+            
+            // 🔥 Ajuste: elegir correctamente a dónde ir tras eliminar
             let newIndex = anunciosData.findIndex(a => a.id === currentSlideId);
             if (newIndex !== -1) {
                 swiperInstance.slideToLoop(newIndex, 0, false);
             } else {
                 if (currentIndex < anunciosData.length) {
-                    swiperInstance.slideToLoop(currentIndex, 0, false);
+                    swiperInstance.slideToLoop(currentIndex, 0, false); // siguiente
                 } else {
-                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false);
+                    swiperInstance.slideToLoop(anunciosData.length - 1, 0, false); // anterior si era la última
                 }
             }
 
@@ -4418,7 +4279,7 @@ async function cargarImagenes() {
         } else {
             const swiperWrapper = document.querySelector('.swiper-wrapper');
             swiperWrapper.innerHTML = '';
-
+            
             anunciosData.forEach(anuncio => {
                 const slide = document.createElement('div');
                 slide.classList.add('swiper-slide');
@@ -4436,14 +4297,14 @@ async function cargarImagenes() {
 
                 swiperWrapper.appendChild(slide);
             });
-
+            
             initSwiper(0);
         }
 
-        const idx = swiperInstance ? swiperInstance.realIndex : 0;
-        updateContentOverlay(idx);
+        const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+        updateContentOverlay(activeIndex);
 
-    } catch (error) {
+    } catch(error) {
         console.error("Error al cargar las imágenes:", error);
     } finally {
         loader.style.display = 'none';
@@ -6543,5 +6404,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
