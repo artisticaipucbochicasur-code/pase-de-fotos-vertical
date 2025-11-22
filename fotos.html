@@ -2274,19 +2274,17 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-
+  // Reutilizamos el ID original para que TODA tu lógica existente siga funcionando
+  const messagesBtn = document.createElement('div');
+  messagesBtn.id = 'messagesBtn';
+  messagesBtn.style.display = 'none'; // lo ocultamos visualmente pero sigue existiendo en el DOM
+  document.body.appendChild(messagesBtn); // lo ponemos en el body para que exista
 
   // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
   divMensajes.addEventListener('click', (e) => {
-  e.stopPropagation();
-
-  iniciarChatCon({
-    nombre: u.nombre,
-    correo: u.correo,
-    foto: u.fotoPerfil || ""
+    e.stopPropagation();
+    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
   });
-});
-
 
   cont.appendChild(divMensajes);
 
@@ -6602,21 +6600,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
