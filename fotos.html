@@ -2881,7 +2881,7 @@ document.getElementById("chatEnviar").onclick = async () => {
         id: tempId,
         de: usuarioActual.correo,
         mensaje: txt,
-        fecha: "Ahora"
+        fecha: "Enviando..."
     };
 
     if (!chatCache[chatConUsuario.correo]) chatCache[chatConUsuario.correo] = [];
@@ -2993,52 +2993,45 @@ async function cargarConversacion() {
 
         let huboCambios = false;
 
-        // 1. ACTUALIZAR MENSAJES TEMPORALES (los que enviamos nosotros)
+        // 1. ACTUALIZAR MENSAJES TEMPORALES (los nuestros con id temp_)
         Array.from(cont.children).forEach((divMensaje, index) => {
             const msgEnPantalla = cacheActual[index];
             const msgServidor = mensajesServidor[index];
 
-            // Si es un mensaje temporal nuestro (id empieza con temp_)
+            // Detectar mensaje temporal: tiene id que empieza con "temp_"
             if (msgEnPantalla?.id?.startsWith("temp_") &&
                 msgEnPantalla.de === usuarioActual.correo &&
                 msgServidor &&
                 msgServidor.mensaje === msgEnPantalla.mensaje) {
 
-                // Solo actualizamos la hora en el MISMO mensaje
+                // Actualizar la hora sin importar qué diga ("Ahora", "Justo ahora", etc.)
                 const small = divMensaje.querySelector("small");
-                if (small && small.textContent === "Ahora") {
+                if (small) {
                     small.textContent = msgServidor.fecha;
                     huboCambios = true;
                 }
 
-                // Opcional: quitar el id temporal para que no se detecte más
+                // Quitar el id temporal para que no se detecte más
                 delete msgEnPantalla.id;
             }
         });
 
-        // 2. AGREGAR SOLO LOS VERDADERAMENTE NUEVOS (del otro usuario)
+        // 2. AGREGAR SOLO MENSAJES NUEVOS DEL OTRO USUARIO
         if (mensajesServidor.length > cacheActual.length) {
-            const desde = cacheActual.length;
-            for (let i = desde; i < mensajesServidor.length; i++) {
-                const msgNuevo = mensajesServidor[i];
-
-                // Evitar duplicar si por alguna razón ya está en pantalla
-                const yaExiste = Array.from(cont.children).some(div => {
-                    const texto = div.querySelector("div")?.textContent;
-                    return texto === msgNuevo.mensaje && div.style.marginLeft !== "auto"; // es del otro
-                });
-
-                if (!yaExiste) {
-                    agregarMensajeIndividual(msgNuevo);
+            const nuevos = mensajesServidor.slice(cacheActual.length);
+            nuevos.forEach(msg => {
+                // Solo agregar si NO es un mensaje nuestro (evita duplicados raros)
+                if (msg.de !== usuarioActual.correo) {
+                    agregarMensajeIndividual(msg);
                     huboCambios = true;
                 }
-            }
+            });
         }
 
-        // 3. ACTUALIZAR CACHÉ CON LA VERDAD DEL SERVIDOR
+        // 3. ACTUALIZAR CACHÉ
         chatCache[chatConUsuario.correo] = mensajesServidor;
 
-        // 4. SCROLL AUTOMÁTICO solo si estábamos abajo
+        // 4. SCROLL INTELIGENTE
         if (huboCambios) {
             const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
             if (estabaAbajo) {
@@ -3050,7 +3043,6 @@ async function cargarConversacion() {
         console.warn("Error en refresh:", err);
     }
 }
-
 
     
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
@@ -6747,6 +6739,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
