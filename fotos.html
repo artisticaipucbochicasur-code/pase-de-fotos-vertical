@@ -2862,6 +2862,7 @@ function cerrarChat() {
 
 
 
+// =============== BOTÓN ENVIAR MEJORADO (SIN DUPLICADOS NUNCA MÁS) ===============
 document.getElementById("chatEnviar").onclick = async () => {
     const input = document.getElementById("chatInput");
     const btn = document.getElementById("chatEnviar");
@@ -2870,16 +2871,18 @@ document.getElementById("chatEnviar").onclick = async () => {
 
     if (!txt || !chatConUsuario || !usuarioActual) return;
 
-    // 1. Animación del botón
+    // 1. Animación botón
     btn.style.transform = "scale(0.88)";
     btn.style.transition = "transform 0.18s ease";
     setTimeout(() => btn.style.transform = "scale(1)", 180);
 
-    // 2. Guardar estado del scroll
+    // 2. Guardar scroll
     const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
 
-    // 3. Mensaje optimista (aparece al instante)
+    // 3. Crear mensaje temporal con ID único (esto evita duplicados)
+    const tempId = "temp_" + Date.now() + "_" + Math.random();
     const mensajeTemp = {
+        id: tempId,                    // ← CLAVE: ID temporal único
         de: usuarioActual.correo,
         mensaje: txt,
         fecha: "Enviando..."
@@ -2889,21 +2892,24 @@ document.getElementById("chatEnviar").onclick = async () => {
     if (!chatCache[chatConUsuario.correo]) {
         chatCache[chatConUsuario.correo] = [];
     }
-    chatCache[chatConUsuario.correo].push(mensajeTemp);
 
-    // 4. Agregar SOLO el mensaje nuevo (sin recargar todo)
-    agregarMensajeIndividual(mensajeTemp);  // ← Nueva función para no parpadear
-
-    // Mantener scroll solo si estaba al final
-    if (estabaAlFinal) {
-        setTimeout(() => cont.scrollTop = cont.scrollHeight, 50);
+    // Solo agregar si no existe ya un mensaje con ese ID temporal
+    const yaExiste = chatCache[chatConUsuario.correo].some(m => m.id === tempId);
+    if (!yaExiste) {
+        chatCache[chatConUsuario.correo].push(mensajeTemp);
+        agregarMensajeIndividual(mensajeTemp);
     }
 
-    // 5. Limpiar input
+    // Scroll solo si estaba abajo
+    if (estabaAlFinal) {
+        setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+    }
+
+    // Limpiar input
     input.value = "";
     input.focus();
 
-    // 6. Enviar al servidor (en segundo plano)
+    // 4. Enviar al servidor
     const body = new FormData();
     body.append("accion", "guardarChat");
     body.append("de", usuarioActual.correo);
@@ -2914,18 +2920,21 @@ document.getElementById("chatEnviar").onclick = async () => {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
 
-        if (json.status === "success") {
-            // El auto-refresh se encargará de actualizar la fecha real
-        } else {
-            // Error del servidor
-            actualizarUltimoMensaje({ mensaje: txt + " (No enviado)", fecha: "Error" });
+        if (json.status !== "success") {
+            actualizarUltimoMensaje({ 
+                mensaje: txt + " (No enviado)", 
+                fecha: "Error" 
+            });
         }
+        // No hacemos nada más: el refresh lo actualizará correctamente
     } catch (err) {
-        console.error("Error enviando mensaje:", err);
-        actualizarUltimoMensaje({ mensaje: txt + " (Sin conexión)", fecha: "Reintentar" });
+        console.error("Error enviando:", err);
+        actualizarUltimoMensaje({ 
+            mensaje: txt + " (Sin conexión)", 
+            fecha: "Reintentar" 
+        });
     }
 };
-
 
 
    // NUEVA: Agrega SOLO un mensaje nuevo SIN recargar todo (anti-parpadeo)
@@ -2994,34 +3003,46 @@ async function cargarConversacion() {
     try {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
-
         if (!json.mensajes) return;
 
+        const mensajesServidor = json.mensajes;
         const mensajesCache = chatCache[chatConUsuario.correo] || [];
-        const mensajesNuevos = json.mensajes;
 
-        // Solo si hay cambios
-        if (mensajesNuevos.length > mensajesCache.length) {
-            // Agregar SOLO los nuevos (anti-parpadeo)
-            const nuevos = mensajesNuevos.slice(mensajesCache.length);
-            nuevos.forEach(agregarMensajeIndividual);
-        } else if (JSON.stringify(mensajesCache) !== JSON.stringify(mensajesNuevos)) {
-            // Si hay actualizaciones (ej. fecha real), actualizar el último
-            const ultimoNuevo = mensajesNuevos[mensajesNuevos.length - 1];
-            actualizarUltimoMensaje({
-                mensaje: ultimoNuevo.mensaje,
-                fecha: ultimoNuevo.fecha
+        // Filtrar mensajes temporales (los que tienen id que empieza con "temp_")
+        const mensajesSinTemporales = mensajesCache.filter(m => !m.id || !m.id.toString().startsWith("temp_"));
+        const mensajesTemporales = mensajesCache.filter(m => m.id && m.id.toString().startsWith("temp_"));
+
+        let hayCambios = false;
+
+        // Detectar mensajes nuevos del servidor
+        if (mensajesServidor.length > mensajesSinTemporales.length) {
+            const nuevos = mensajesServidor.slice(mensajesSinTemporales.length);
+            nuevos.forEach(msg => {
+                // Si coincide con un temporal (mismo texto y de mí), reemplazar
+                const tempIndex = mensajesTemporales.findIndex(t => 
+                    t.de === msg.de && t.mensaje === msg.mensaje
+                );
+                if (tempIndex !== -1) {
+                    mensajesTemporales[tempIndex] = msg; // reemplazar temporal por real
+                } else {
+                    agregarMensajeIndividual(msg);
+                }
+                hayCambios = true;
             });
         }
 
-        // Actualizar caché
-        chatCache[chatConUsuario.correo] = mensajesNuevos;
+        // Reconstruir caché limpio (sin temporales duplicados)
+        const cacheFinal = [...mensajesSinTemporales, ...mensajesTemporales.filter(t => {
+            // Mantener temporal solo si NO existe ya en el servidor
+            return !mensajesServidor.some(s => s.mensaje === t.mensaje && s.de === t.de);
+        }), ...mensajesServidor.slice(mensajesSinTemporales.length)];
+
+        chatCache[chatConUsuario.correo] = cacheFinal;
 
     } catch (err) {
         console.warn("Error en refresh:", err);
     }
 }
-
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
 function activarCerrarAfuera() {
   // Esperamos a que termine el click que abrió el chat
@@ -6716,6 +6737,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
