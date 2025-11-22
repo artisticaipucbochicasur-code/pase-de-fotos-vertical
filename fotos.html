@@ -2801,9 +2801,10 @@ function iniciarChatCon(info) {
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
     cont.innerHTML = "";  // Solo se usa en carga inicial
+
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
-        // (todo el estilo igual que antes)
+
         div.style.maxWidth = "75%";
         div.style.margin = "6px 0";
         div.style.padding = "8px 12px";
@@ -2844,10 +2845,18 @@ function renderizarMensajes(mensajes) {
         }, index * 30);
     });
 
-    // Scroll al final solo en carga inicial
-    setTimeout(() => cont.scrollTop = cont.scrollHeight, 50 + mensajes.length * 30);
-}
+    // ==============================
+    // ⭐ SCROLL SUAVE AL ÚLTIMO MENSAJE
+    // ==============================
+    const delay = 50 + mensajes.length * 30;
 
+    setTimeout(() => {
+        cont.scrollTo({
+            top: cont.scrollHeight,
+            behavior: "smooth"
+        });
+    }, delay);
+}
 
     
 
@@ -6836,6 +6845,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
