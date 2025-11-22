@@ -2699,7 +2699,7 @@ function renderizarMensajes(mensajes) {
 
     
 
-   function abrirVentanaChat() {
+function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
 
     // Mostrar chat
@@ -2709,29 +2709,32 @@ function renderizarMensajes(mensajes) {
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = setInterval(() => {
         if (usuarioActual && chatConUsuario) {
-            cargarConversacion(); // NO PASAR PARÁMETROS
+            cargarConversacion();
         }
     }, 2500);
 
-    // Tomar info del usuario del chat
+    // Info del usuario
     const { nombre, correo, foto } = chatConUsuario;
-
     document.getElementById("chatNombre").textContent = nombre;
     document.getElementById("chatCorreo").textContent = correo;
 
-    // Foto real o default
-    if (foto && foto.startsWith("http")) {
-        document.getElementById("chatFoto").src = foto;
-    } else {
-        document.getElementById("chatFoto").src = "img/default-user.png";
-    }
+    document.getElementById("chatFoto").src =
+        foto && foto.startsWith("http") ? foto : "img/default-user.png";
+
+    // ✅ activar cierre afuera SIN bloquear apertura
+    activarCerrarAfuera();
 }
+
 
 function cerrarChat() {
     document.getElementById("chatBox").style.display = "none";
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = null;
+
+    // ✅ dejar de escuchar clicks afuera
+    document.removeEventListener("click", cerrarClickAfuera);
 }
+
 
 
 
@@ -2788,18 +2791,25 @@ document.getElementById("chatEnviar").onclick = async () => {
 }
 
 
-    // 🔴 CERRAR CHAT AL HACER CLICK AFUERA
-document.addEventListener("click", (e) => {
+   // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
+function activarCerrarAfuera() {
+  // Esperamos a que termine el click que abrió el chat
+  setTimeout(() => {
+    document.addEventListener("click", cerrarClickAfuera);
+  }, 50);
+}
+
+function cerrarClickAfuera(e) {
   const box = document.getElementById("chatBox");
 
-  // Si está cerrado, no hacer nada
   if (!box || box.style.display !== "flex") return;
 
-  // Si el clic NO fue dentro del chat → cerrar
+  // Si el clic NO fue dentro → cerrar
   if (!box.contains(e.target)) {
     cerrarChat();
   }
-});
+}
+
 
 
     
@@ -6474,4 +6484,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
