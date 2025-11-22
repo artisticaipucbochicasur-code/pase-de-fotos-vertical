@@ -2259,7 +2259,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 
-  // === BOTÓN DE MENSAJES UI ===
+  // === BOTÓN DE MENSAJES: único, independiente del anuncio ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
   divMensajes.style.background = "transparent";
@@ -2274,40 +2274,27 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // === CREAR EL BOTÓN REAL (LOGICA ORIGINAL) ===
-  let messagesBtn = document.getElementById("messagesBtn");
-  if (!messagesBtn) {
-    messagesBtn = document.createElement('div');
-    messagesBtn.id = 'messagesBtn';
-    messagesBtn.style.display = 'none';
-    document.body.appendChild(messagesBtn);
-  }
+  // Crear botón "real" oculto que mantiene compatibilidad con tu sistema
+  const messagesBtn = document.createElement('div');
+  messagesBtn.id = 'messagesBtn';
+  messagesBtn.style.display = 'none';
+  document.body.appendChild(messagesBtn);
 
-  // === LÓGICA ORIGINAL PARA ABRIR EL CHAT ===
-  messagesBtn.onclick = () => {
-    iniciarChatCon({
-      nombre: u.nombre || u.autor || "",
-      correo: u.correo || "",
-      foto: u.fotoPerfil || ""
-    });
-  };
-
-  // Conectar el botón visible con el real
+  // Al hacer clic en el botón visible → dispara el botón real
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-    messagesBtn.click();
+    document.getElementById('messagesBtn')?.click();
   });
 
   cont.appendChild(divMensajes);
 
-  // Tema
+  // Aplicar tema después de generar todo
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
     aplicarLightModeModalAutor();
   }
 }
-
 
     
 // 🌙 Función completa de tema oscuro (2025 style)
@@ -6597,6 +6584,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
