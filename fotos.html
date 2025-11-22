@@ -2665,16 +2665,32 @@ function mostrarChatsPreCargados() {
     });
 }
 
-function iniciarChatCon(info) {
+let cargaChatAbort = null;
+
+async function iniciarChatCon(info) {
+    // Cancelar cualquier carga anterior
+    if (cargaChatAbort) cargaChatAbort.abort();
+
     chatConUsuario = info;
 
+    // Reiniciar abort controller para este nuevo chat
+    cargaChatAbort = new AbortController();
+
+    // Limpia UI INMEDIATAMENTE (evita mostrar chat anterior)
+    document.getElementById("chatMensajes").innerHTML = "";
+
+    // actualizar índice de lista (para la precarga)
     chatActualIndex = listaChats.findIndex(u => u.correo === info.correo);
-    if (chatActualIndex < 0) chatActualIndex = 0;
 
     abrirVentanaChat();
-    cargarConversacion();
+
+    // cargar chats de este usuario
+    cargarConversacion(cargaChatAbort.signal);
+
+    // actualizar lista
     mostrarChatsPreCargados();
 }
+
 
 
 
@@ -2770,18 +2786,34 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-   async function cargarConversacion() {
+  async function cargarConversacion(signal) {
     if (!chatConUsuario) return;
+
+    // Si no viene signal (por compatibilidad), se crea uno vacío
+    if (!signal) {
+        const controller = new AbortController();
+        signal = controller.signal;
+    }
 
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
     body.append("user2", chatConUsuario.correo);
 
-    let res = await fetch(SCRIPT_URL, { method: "POST", body });
+    let res = await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body,
+        signal
+    });
+
+    // Si se canceló la carga, NO pintar nada
+    if (signal.aborted) return;
+
     let json = await res.json();
 
     const cont = document.getElementById("chatMensajes");
+    
+    // 🔥 limpiar siempre ANTES de pintar
     cont.innerHTML = "";
 
     json.mensajes.forEach(m => {
@@ -2809,7 +2841,7 @@ document.getElementById("chatEnviar").onclick = async () => {
         cont.appendChild(div);
     });
 
-    // Scroll al final
+    // ir al final
     setTimeout(() => {
         cont.scrollTop = cont.scrollHeight;
     }, 50);
@@ -6484,3 +6516,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
