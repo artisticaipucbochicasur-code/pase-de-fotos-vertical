@@ -2162,37 +2162,44 @@ if (autorFoto) {
 function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
+  cont.innerHTML = ''; // limpiar
 
-  cont.innerHTML = ''; // limpiar contenido anterior
-
-  // ===================================
-  // 1. Contacto: Teléfono + WhatsApp
-  // ===================================
+  // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
     divContacto.className = 'perfil-dato-item autor-dato-item';
-    divContacto.style.cssText = 'background:transparent; border:none; display:flex; justify-content:center; gap:20px;';
+    divContacto.style.background = "transparent";
+    divContacto.style.border = "none";
+    divContacto.style.display = 'flex';
+    divContacto.style.justifyContent = 'center';
+    divContacto.style.gap = '20px';
 
-    // Teléfono
+    // TELÉFONO
     const divTel = document.createElement('div');
-    divTel.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
+    divTel.style.display = 'flex';
+    divTel.style.flexDirection = 'column';
+    divTel.style.alignItems = 'center';
+    divTel.style.cursor = 'pointer';
     divTel.innerHTML = `
       <i class="fas fa-phone-alt" style="font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
     `;
-    divTel.addEventListener('click', e => {
+    divTel.addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `tel:${u.telefono}`;
     });
 
-    // WhatsApp
+    // WHATSAPP
     const divWA = document.createElement('div');
-    divWA.style.cssText = 'display:flex; flex-direction:column; align-items:center; cursor:pointer;';
+    divWA.style.display = 'flex';
+    divWA.style.flexDirection = 'column';
+    divWA.style.alignItems = 'center';
+    divWA.style.cursor = 'pointer';
     divWA.innerHTML = `
       <i class="fab fa-whatsapp" style="color:#25D366; font-size:20px;"></i>
       <div class="dato-valor" style="text-decoration:underline;">WhatsApp</div>
     `;
-    divWA.onclick = e => {
+    divWA.onclick = function (e) {
       e.stopPropagation();
       let numero = String(u.telefono || "").replace(/\D/g, "");
       if (!numero.startsWith("57") && numero.length === 10) numero = "57" + numero;
@@ -2204,63 +2211,61 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divContacto);
   }
 
-  // ===================================
-  // 2. Congregación
-  // ===================================
+  // CONGREGACIÓN
   if (u.congregacion) {
-    const div = document.createElement('div');
-    div.className = 'perfil-dato-item autor-dato-item';
-    div.style.cssText = 'background:transparent; border:none;';
-    div.innerHTML = `
+    const divCong = document.createElement('div');
+    divCong.className = 'perfil-dato-item autor-dato-item';
+    divCong.style.background = "transparent";
+    divCong.style.border = "none";
+    divCong.innerHTML = `
       <i class="fas fa-church"></i>
       <div>
         <div class="dato-label">Congregación</div>
         <div class="dato-valor">${u.congregacion}</div>
       </div>
     `;
-    cont.appendChild(div);
+    cont.appendChild(divCong);
   }
 
-  // ===================================
-  // 3. Cargo
-  // ===================================
+  // CARGO
   if (u.cargo) {
-    const div = document.createElement('div');
-    div.className = 'perfil-dato-item autor-dato-item';
-    div.style.cssText = 'background:transparent; border:none;';
-    div.innerHTML = `
+    const divCargo = document.createElement('div');
+    divCargo.className = 'perfil-dato-item autor-dato-item';
+    divCargo.style.background = "transparent";
+    divCargo.style.border = "none";
+    divCargo.innerHTML = `
       <i class="fas fa-user-tie"></i>
       <div>
         <div class="dato-label">Cargo</div>
         <div class="dato-valor">${u.cargo}</div>
       </div>
     `;
-    cont.appendChild(div);
+    cont.appendChild(divCargo);
   }
 
-  // ===================================
-  // 4. Ciudad
-  // ===================================
+  // CIUDAD
   if (u.ciudad) {
-    const div = document.createElement('div');
-    div.className = 'perfil-dato-item autor-dato-item';
-    div.style.cssText = 'background:transparent; border:none;';
-    div.innerHTML = `
+    const divCiudad = document.createElement('div');
+    divCiudad.className = 'perfil-dato-item autor-dato-item';
+    divCiudad.style.background = "transparent";
+    divCiudad.style.border = "none";
+    divCiudad.innerHTML = `
       <i class="fas fa-map-marker-alt"></i>
       <div>
         <div class="dato-label">Ciudad</div>
         <div class="dato-valor">${u.ciudad}</div>
       </div>
     `;
-    cont.appendChild(div);
+    cont.appendChild(divCiudad);
   }
 
-  // ===================================
-  // 5. BOTÓN DE MENSAJES (ícono visible)
-  // ===================================
+  // === BOTÓN DE MENSAJES: mismo estilo que los otros íconos ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
-  divMensajes.style.cssText = 'background:transparent; border:none; cursor:pointer;';
+  divMensajes.style.background = "transparent";
+  divMensajes.style.border = "none";
+  divMensajes.style.cursor = "pointer"; // para que se vea clicable
+
   divMensajes.innerHTML = `
     <i class="fas fa-comments" style="font-size:18px;"></i>
     <div>
@@ -2269,37 +2274,21 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // Botón real único (ya existe en el DOM)
-  const messagesBtn = document.getElementById('messagesBtn');
+  // Reutilizamos el ID original para que TODA tu lógica existente siga funcionando
+  const messagesBtn = document.createElement('div');
+  messagesBtn.id = 'messagesBtn';
+  messagesBtn.style.display = 'none'; // lo ocultamos visualmente pero sigue existiendo en el DOM
+  document.body.appendChild(messagesBtn); // lo ponemos en el body para que exista
 
-  // Si el usuario es uno mismo → no permitir chat
-  const esUsuarioActual = usuarioActual && normalizeText(u.correo) === normalizeText(usuarioActual.correo);
-
-  if (esUsuarioActual || !u.correo) {
-    divMensajes.style.opacity = "0.5";
-    divMensajes.style.pointerEvents = "none";
-  } else {
-    // Configurar el botón real con los datos del autor actual
-    messagesBtn.onclick = () => {
-      iniciarChatCon({
-        nombre: u.nombre || u.autor || "Usuario",
-        correo: u.correo,
-        fotoPerfil: u.fotoPerfil || u.foto || ""
-      });
-    };
-
-    // Al hacer clic en el ícono visible → disparar el botón real
-    divMensajes.addEventListener('click', e => {
-      e.stopPropagation();
-      messagesBtn.click();
-    });
-  }
+  // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
+  divMensajes.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
+  });
 
   cont.appendChild(divMensajes);
 
-  // ===================================
-  // Tema dark/light
-  // ===================================
+  // Aplicar tema correcto después de generar el contenido
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
@@ -5060,12 +5049,6 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
-   if (!document.getElementById("messagesBtn")) {
-    const btn = document.createElement("div");
-    btn.id = "messagesBtn";
-    btn.style.display = "none";
-    document.body.appendChild(btn);
-  }
  const notificationCount = document.getElementById("notificationCount");
   const imagesNotificationCount = document.getElementById("imagesNotificationCount");
 
