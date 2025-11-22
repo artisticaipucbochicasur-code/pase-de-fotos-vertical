@@ -1988,22 +1988,28 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
         outline:none;
       ">
 
-    <button id="chatEnviar"
-      style="
-        width:42px;
-        height:42px;
-        border:none;
-        background:#5A8DEE; /* ✅ botón azul suave */
-        color:white;
-        border-radius:50%;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:18px;
-        cursor:pointer;
-      ">
-      <i class="fas fa-paper-plane"></i>
-    </button>
+  <button id="chatEnviar"
+  style="
+    width:44px;
+    height:44px;
+    border:none;
+    background:#5A8DEE;
+    color:white;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+    cursor:pointer;
+    box-shadow: 0 4px 12px rgba(90,141,238,0.4);
+    transition: all 0.2s ease;
+    outline:none;
+  "
+  onmousedown="this.style.transform='scale(0.92)'; this.style.boxShadow='0 2px 6px rgba(90,141,238,0.6)'"
+  onmouseup="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(90,141,238,0.4)'"
+  onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(90,141,238,0.4)'">
+  <i class="fas fa-paper-plane"></i>
+</button>
   </div>
 </div>
 
@@ -2853,40 +2859,43 @@ function cerrarChat() {
 
 
 
-
 document.getElementById("chatEnviar").onclick = async () => {
     const input = document.getElementById("chatInput");
     const btn = document.getElementById("chatEnviar");
     const txt = input.value.trim();
-    
+
     if (!txt || !chatConUsuario || !usuarioActual) return;
 
-    // 1. ANIMACIÓN DEL BOTÓN (súper bonita)
+    // 1. ANIMACIÓN DEL BOTÓN (se achica y gira el avión)
     btn.style.transform = "scale(0.85)";
-    setTimeout(() => {
-        btn.style.transform = "scale(1)";
-    }, 120);
+    btn.style.transition = "transform 0.18s ease";
 
-    // 2. CREAR Y MOSTRAR EL MENSAJE AL INSTANTE (¡se ve enviado ya!)
-    const nuevoMensaje = {
+    // 2. MOSTRAR MENSAJE INMEDIATAMENTE COMO ENVIADO (optimistic UI)
+    const mensajeTemporal = {
         de: usuarioActual.correo,
         mensaje: txt,
-        fecha: "Ahora"
+        fecha: "Enviando..."
     };
 
-    // Añadir al caché para que se muestre inmediatamente
+    // Agregar al caché local temporalmente
     if (!chatCache[chatConUsuario.correo]) {
         chatCache[chatConUsuario.correo] = [];
     }
-    chatCache[chatConUsuario.correo].push(nuevoMensaje);
+    chatCache[chatConUsuario.correo].push(mensajeTemporal);
 
-    // Renderizar al instante
+    // Renderizar al instante (incluyendo el mensaje nuevo)
     renderizarMensajes(chatCache[chatConUsuario.correo]);
 
-    // 3. Limpiar el input YA (se ve limpio de una)
+    // 3. LIMPIAR INPUT AL INSTANTE
     input.value = "";
+    input.focus();
 
-    // 4. Enviar al servidor en segundo plano (sin bloquear)
+    // 4. Volver el botón a su estado normal
+    setTimeout(() => {
+        btn.style.transform = "scale(1)";
+    }, 180);
+
+    // 5. ENVIAR AL SERVIDOR EN SEGUNDO PLANO
     const body = new FormData();
     body.append("accion", "guardarChat");
     body.append("de", usuarioActual.correo);
@@ -2898,17 +2907,30 @@ document.getElementById("chatEnviar").onclick = async () => {
         const json = await res.json();
 
         if (json.status === "success") {
-            // Actualizar la fecha del último mensaje a la correcta
-            cargarConversacion(); // refresca con la hora real del servidor
+            // Reemplazar el mensaje temporal por el real con fecha correcta
+            await cargarConversacion(); // esto actualiza todo con la fecha real del servidor
         } else {
-            console.warn("Error al enviar mensaje:", json);
-            // Opcional: cambiar el "Enviando..." a "No enviado" si falla
+            // Si falla, mostrar error en el mensaje temporal
+            const ultimo = chatCache[chatConUsuario.correo].pop();
+            if (ultimo) {
+                ultimo.mensaje = txt + " (No enviado)";
+                ultimo.fecha = "Error";
+                chatCache[chatConUsuario.correo].push(ultimo);
+                renderizarMensajes(chatCache[chatConUsuario.correo]);
+            }
         }
     } catch (err) {
-        console.error("Error de red al enviar mensaje:", err);
+        console.error("Error enviando mensaje:", err);
+        // Marcar como fallido
+        const ultimo = chatCache[chatConUsuario.correo].pop();
+        if (ultimo) {
+            ultimo.mensaje = txt + " (Sin conexión)";
+            ultimo.fecha = "Reintentar";
+            chatCache[chatConUsuario.correo].push(ultimo);
+            renderizarMensajes(chatCache[chatConUsuario.correo]);
+        }
     }
 };
-
 
 
  async function cargarConversacion() {
@@ -6635,6 +6657,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
