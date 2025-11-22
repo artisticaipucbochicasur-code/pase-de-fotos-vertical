@@ -2993,32 +2993,34 @@ async function cargarConversacion() {
 
         let huboCambios = false;
 
-    // 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES (los que enviamos nosotros)
-chatCache[chatConUsuario.correo].forEach((msgLocal, i) => {
+// 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES (los que enviamos nosotros)
+// ----------------------------------------------------------------------
+const cache = chatCache[chatConUsuario.correo] || [];
+const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
 
-    // Solo mensajes temporales
-    if (!msgLocal.id || !msgLocal.id.startsWith("temp_")) return;
-    if (msgLocal.de !== usuarioActual.correo) return;
-
-    // Buscar en el servidor uno igual por contenido y autor
+if (tempMsg) {
+    // Buscar coincidencia real en el servidor
     const confirmado = mensajesServidor.find(ms =>
         ms.de === usuarioActual.correo &&
-        ms.mensaje === msgLocal.mensaje
+        ms.mensaje === tempMsg.mensaje
     );
 
-    // Si lo encontramos → reemplazar fecha en pantalla y quitar "temp_"
     if (confirmado) {
-        const div = cont.children[i];
-        if (div) {
-            const small = div.querySelector("small");
+        // Actualizar DOM (último mensaje enviado)
+        const ult = cont.lastElementChild;
+        if (ult) {
+            const small = ult.querySelector("small");
             if (small) small.textContent = confirmado.fecha;
         }
 
-        msgLocal.fecha = confirmado.fecha;
-        delete msgLocal.id;  // marcado como confirmado
+        // Actualizar cache local
+        tempMsg.fecha = confirmado.fecha;
+        delete tempMsg.id;
+
         huboCambios = true;
     }
-});
+}
+
 
 
         // 2. AGREGAR MENSAJES NUEVOS (del otro usuario)
@@ -6744,6 +6746,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
