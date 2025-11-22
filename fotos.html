@@ -2160,7 +2160,8 @@ if (autorFoto) {
 }
 
 function mostrarDatosAutor(u) {
-  console.log("SE EJECUTA mostrarDatosAutor()");  // <<--- PEGAR AQUÍ
+  console.log("SE EJECUTA mostrarDatosAutor()");
+
   const cont = document.getElementById("autorDatosContainer");
   if (!cont) return;
   cont.innerHTML = ''; // limpiar
@@ -2177,7 +2178,6 @@ function mostrarDatosAutor(u) {
     divContacto.style.justifyContent = 'center';
     divContacto.style.gap = '20px';
 
-    // TELÉFONO
     const divTel = document.createElement('div');
     divTel.style.display = 'flex';
     divTel.style.flexDirection = 'column';
@@ -2192,7 +2192,6 @@ function mostrarDatosAutor(u) {
       window.location.href = `tel:${u.telefono}`;
     });
 
-    // WHATSAPP
     const divWA = document.createElement('div');
     divWA.style.display = 'flex';
     divWA.style.flexDirection = 'column';
@@ -2269,7 +2268,7 @@ function mostrarDatosAutor(u) {
   }
 
   // ==========================
-  //   BOTÓN MENSAJES (FIX)
+  //   BOTÓN MENSAJES (INTERNO)
   // ==========================
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
@@ -2285,36 +2284,25 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // ✅ usar el existente, NO crear más
+  // 👉 Aquí buscamos el botón REAL del sistema (externo)
   const messagesBtn = document.getElementById('messagesBtn');
 
-  if (messagesBtn) {
- divMensajes.addEventListener('click', (e) => {
-  e.stopPropagation();
+  divMensajes.addEventListener('click', (e) => {
+    e.stopPropagation();
 
-  console.log("CLICK EN divMensajes");
+    if (!messagesBtn) {
+      console.warn("⚠️ NO EXISTE messagesBtn en el DOM");
+      return;
+    }
 
-  if (!messagesBtn) {
-    console.warn("⚠️ messagesBtn NO existe");
-    return;
-  }
+    console.log("🔥 Disparando botón REAL messagesBtn");
+    messagesBtn.click(); // dispara el chat oficial
+  });
 
-  console.log("Ejecutando apertura del chat...");
-  setTimeout(() => {
-    console.log("CLICK forzado a messagesBtn");
-    messagesBtn.click();
-  }, 20);
-});
+  cont.appendChild(divMensajes);
 
-
-
-  }
-
-cont.appendChild(divMensajes);
-
-console.log("BOTÓN DE MENSAJES INSERTADO EN EL DOM");
-console.log(divMensajes);
-
+  console.log("BOTÓN DE MENSAJES INSERTADO EN EL DOM");
+  console.log(divMensajes);
 
   // ==========================
   //   TEMA
@@ -6631,8 +6619,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
