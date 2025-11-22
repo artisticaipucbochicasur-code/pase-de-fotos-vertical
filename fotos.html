@@ -1304,7 +1304,7 @@ body {
         "></span>
       </button>
 
-      <!-- BOTÓN DE MENSAJES ELIMINADO -->
+      <!-- BOTÓN DE MENSAJES TRASLADADO AL MODAL DEL AUTOR -->
 
       <a href="./videosSesion2.html" class="header-btn" title="Videos">
         <i class="fas fa-video"></i>
@@ -2057,6 +2057,35 @@ function mostrarDatosAutor(u) {
   if (!cont) return;
   cont.innerHTML = ''; // limpiar
 
+  // === BOTÓN DE MENSAJES TRASLADADO AQUÍ (100% original del header, con id y todo) ===
+  const messagesBtn = document.createElement('button');
+  messagesBtn.id = "messagesBtn";
+  messagesBtn.className = "header-btn";
+  messagesBtn.title = "Mensajes";
+  messagesBtn.style.cssText = "position:relative; margin:15px auto; display:block; width:56px; height:56px; border-radius:50%; background:#0077cc; color:white; border:none; box-shadow:0 4px 15px rgba(0,119,204,0.4);";
+  messagesBtn.innerHTML = `
+    <i class="fas fa-comments" style="font-size:22px;"></i>
+    <span id="messagesNotificationCount" style="
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: red;
+      color: white;
+      font-size: 11px;
+      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      display: none;
+      z-index: 10;
+    "></span>
+  `;
+  cont.appendChild(messagesBtn);
+  // === FIN DEL BOTÓN TRASLADADO ===
+
   // === NUEVO: BOTÓN PARA ABRIR CHAT CON EL AUTOR ===
   const divChat = document.createElement('div');
   divChat.className = 'perfil-dato-item autor-dato-item';
@@ -2067,7 +2096,6 @@ function mostrarDatosAutor(u) {
   `;
   divChat.onclick = function(e) {
     e.stopPropagation();
-    // Crear objeto del usuario para el chat
     const infoUsuario = {
       nombre: u.nombre || u.autor || "Anunciante",
       correo: u.correo,
@@ -2076,7 +2104,6 @@ function mostrarDatosAutor(u) {
     iniciarChatCon(infoUsuario);
   };
   cont.appendChild(divChat);
-
   // Contenedor de contacto (Teléfono + WhatsApp)
   if (u.telefono) {
     const divContacto = document.createElement('div');
@@ -2165,7 +2192,6 @@ function mostrarDatosAutor(u) {
     `;
     cont.appendChild(divCiudad);
   }
-
   // Aplicar tema
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
@@ -2173,7 +2199,6 @@ function mostrarDatosAutor(u) {
     aplicarLightModeModalAutor();
   }
 }
-
 
 
 
@@ -6391,4 +6416,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
