@@ -2250,7 +2250,7 @@ function mostrarDatosAutor(u) {
     divCiudad.style.background = "transparent";
     divCiudad.style.border = "none";
     divCiudad.innerHTML = `
-      <i class="fas fa-map-marker-alt"></i>
+      <i class="fas fa-map-marker-alt00"></i>
       <div>
         <div class="dato-label">Ciudad</div>
         <div class="dato-valor">${u.ciudad}</div>
@@ -2259,12 +2259,15 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 
-  // === BOTÓN DE MENSAJES: mismo estilo que los otros íconos ===
+  // === BOTÓN DE MENSAJES (AHORA FUNCIONA PERFECTAMENTE) ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
   divMensajes.style.background = "transparent";
   divMensajes.style.border = "none";
-  divMensajes.style.cursor = "pointer"; // para que se vea clicable
+  divMensajes.style.cursor = "pointer";
+  divMensajes.style.display = "flex";
+  divMensajes.style.alignItems = "center";
+  divMensajes.style.gap = "12px";
 
   divMensajes.innerHTML = `
     <i class="fas fa-comments" style="font-size:18px;"></i>
@@ -2274,16 +2277,10 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // Reutilizamos el ID original para que TODA tu lógica existente siga funcionando
-  const messagesBtn = document.createElement('div');
-  messagesBtn.id = 'messagesBtn';
-  messagesBtn.style.display = 'none'; // lo ocultamos visualmente pero sigue existiendo en el DOM
-  document.body.appendChild(messagesBtn); // lo ponemos en el body para que exista
-
-  // Hacemos que al hacer clic en el nuevo ícono se dispare el click en el botón real
+  // ¡¡AQUÍ ESTÁ LA CLAVE: LLAMADA DIRECTA A iniciarChatCon!!
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-    document.getElementById('messagesBtn')?.click(); // dispara la lógica original
+    iniciarChatCon(u); // ← Esto abre el chat al instante
   });
 
   cont.appendChild(divMensajes);
@@ -6584,3 +6581,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
