@@ -2855,21 +2855,57 @@ function cerrarChat() {
 
 
 document.getElementById("chatEnviar").onclick = async () => {
-    const txt = document.getElementById("chatInput").value.trim();
-    if (!txt || !chatConUsuario) return;
+    const input = document.getElementById("chatInput");
+    const btn = document.getElementById("chatEnviar");
+    const txt = input.value.trim();
+    
+    if (!txt || !chatConUsuario || !usuarioActual) return;
 
+    // 1. ANIMACIÓN DEL BOTÓN (súper bonita)
+    btn.style.transform = "scale(0.85)";
+    setTimeout(() => {
+        btn.style.transform = "scale(1)";
+    }, 120);
+
+    // 2. CREAR Y MOSTRAR EL MENSAJE AL INSTANTE (¡se ve enviado ya!)
+    const nuevoMensaje = {
+        de: usuarioActual.correo,
+        mensaje: txt,
+        fecha: "Ahora"
+    };
+
+    // Añadir al caché para que se muestre inmediatamente
+    if (!chatCache[chatConUsuario.correo]) {
+        chatCache[chatConUsuario.correo] = [];
+    }
+    chatCache[chatConUsuario.correo].push(nuevoMensaje);
+
+    // Renderizar al instante
+    renderizarMensajes(chatCache[chatConUsuario.correo]);
+
+    // 3. Limpiar el input YA (se ve limpio de una)
+    input.value = "";
+
+    // 4. Enviar al servidor en segundo plano (sin bloquear)
     const body = new FormData();
     body.append("accion", "guardarChat");
     body.append("de", usuarioActual.correo);
     body.append("para", chatConUsuario.correo);
     body.append("mensaje", txt);
 
-    let res = await fetch(SCRIPT_URL, { method: "POST", body });
-    let json = await res.json();
+    try {
+        const res = await fetch(SCRIPT_URL, { method: "POST", body });
+        const json = await res.json();
 
-    if (json.status === "success") {
-        document.getElementById("chatInput").value = "";
-        cargarConversacion();
+        if (json.status === "success") {
+            // Actualizar la fecha del último mensaje a la correcta
+            cargarConversacion(); // refresca con la hora real del servidor
+        } else {
+            console.warn("Error al enviar mensaje:", json);
+            // Opcional: cambiar el "Enviando..." a "No enviado" si falla
+        }
+    } catch (err) {
+        console.error("Error de red al enviar mensaje:", err);
     }
 };
 
@@ -6599,6 +6635,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
