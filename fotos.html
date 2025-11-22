@@ -2274,22 +2274,26 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // === CORRECCIÓN: usar el botón REAL que ya tienes ===
+  // 👉 Abrir chat directamente SIN usar el sistema anterior
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-    const realBtn = document.getElementById("messagesBtn");
-    if (realBtn) realBtn.click();
+    iniciarChatCon({
+      nombre: u.nombre,
+      correo: u.correo,
+      foto: u.fotoPerfil || ""
+    });
   });
 
   cont.appendChild(divMensajes);
 
-  // Aplicar tema correcto después de generar el contenido
+  // Tema
   if (document.body.classList.contains('dark-mode')) {
     aplicarDarkModeModalAutor();
   } else {
     aplicarLightModeModalAutor();
   }
 }
+
 
 
     
@@ -4712,23 +4716,7 @@ function updateContentOverlay(index) {
             }
         })();
    
-  // -------------------------------------------
-// BOTÓN DE CHAT (abrir chat con el autor)
-// -------------------------------------------
-const messagesBtn = document.getElementById("messagesBtn");
 
-if (anuncio.correo && anuncio.correo !== currentAuthorEmail) {
-    messagesBtn.style.display = "flex";
-    messagesBtn.onclick = () => {
-        iniciarChatCon({
-            nombre: anuncio.autor,
-            correo: anuncio.correo,
-            foto: anuncio.fotoPerfil || ""
-        });
-    };
-} else {
-    messagesBtn.style.display = "none";
-}
 
 }
  }
@@ -6596,3 +6584,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
