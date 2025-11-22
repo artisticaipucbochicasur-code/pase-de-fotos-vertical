@@ -2259,7 +2259,7 @@ function mostrarDatosAutor(u) {
     cont.appendChild(divCiudad);
   }
 
-  // === BOTÓN DE MENSAJES (AHORA FUNCIONA PERFECTAMENTE) ===
+    // === BOTÓN DE MENSAJES (VISUAL) - solo dispara el botón real ===
   const divMensajes = document.createElement('div');
   divMensajes.className = 'perfil-dato-item autor-dato-item';
   divMensajes.style.background = "transparent";
@@ -2277,10 +2277,10 @@ function mostrarDatosAutor(u) {
     </div>
   `;
 
-  // ¡¡AQUÍ ESTÁ LA CLAVE: LLAMADA DIRECTA A iniciarChatCon!!
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-    iniciarChatCon(u); // ← Esto abre el chat al instante
+    const btn = document.getElementById('messagesBtn');
+    if (btn) btn.click(); // Dispara el botón real que tiene los datos correctos
   });
 
   cont.appendChild(divMensajes);
@@ -4713,7 +4713,36 @@ function updateContentOverlay(index) {
             }
         })();
    
+        // BOTÓN DE CHAT OCULTO - actualizado en cada slide
+        const messagesBtn = document.getElementById("messagesBtn");
+        if (messagesBtn) {
+            if (anuncio.correo && normalizeText(anuncio.correo) !== normalizeText(currentAuthorEmail)) {
+                messagesBtn.style.display = "none";
 
+                // Limpiar listener anterior
+                messagesBtn.replaceWith(messagesBtn.cloneNode(true));
+                const newBtn = document.getElementById("messagesBtn");
+
+                newBtn.onclick = async () => {
+                    let fotoUrl = "img/default-user.png";
+                    try {
+                        fotoUrl = await resolveFotoPerfil(anuncio.correo, anuncio.autor);
+                    } catch (e) {
+                        console.warn("Error resolviendo foto para chat:", e);
+                    }
+
+                    iniciarChatCon({
+                        nombre: anuncio.autor || "Usuario",
+                        correo: anuncio.correo,
+                        fotoPerfil: fotoUrl,
+                        foto: fotoUrl
+                    });
+                };
+            } else {
+                messagesBtn.style.display = "none";
+                messagesBtn.onclick = null;
+            }
+        }
 
 }
  }
@@ -6581,4 +6610,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
