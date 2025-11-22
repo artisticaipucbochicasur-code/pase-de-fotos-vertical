@@ -1959,19 +1959,21 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 </div>
 
    <!-- CAJA DE CHAT -->
- <div id="chatBox" style="
+<div id="chatBox" style="
     display:none;
     position:fixed;
     bottom:0;
-    right:0;
-    width:320px;
+    left:0;
+    width:100%;
+    max-width:100%;
     height:420px;
     background:white;
     border-radius:12px 12px 0 0;
-    box-shadow:0 0 12px rgba(0,0,0,0.25);
+    box-shadow:0 -2px 12px rgba(0,0,0,0.25);
     z-index:999999;
     flex-direction:column;
 ">
+
 
   <div style="padding:12px; display:flex; align-items:center; gap:10px; border-bottom:1px solid #ddd;">
     <img id="chatFoto" src="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
@@ -2610,6 +2612,9 @@ const perfilCache = {}; // clave: correo normalizado → datos completos del per
 });
 
 
+    
+let chatAutoRefresh = null;
+
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
 let chatConUsuario = null;
 
@@ -2626,26 +2631,40 @@ function iniciarChatCon(info) {
 
 
 
-    function abrirVentanaChat() {
+   function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
+
+    // Mostrar chat
+    box.style.display = "flex";
+
+    // 🔄 Iniciar auto-refresh
+    clearInterval(chatAutoRefresh);
+    chatAutoRefresh = setInterval(() => {
+        if (usuarioActual && chatConUsuario) {
+            cargarConversacion(); // NO PASAR PARÁMETROS
+        }
+    }, 2500);
+
+    // Tomar info del usuario del chat
     const { nombre, correo, foto } = chatConUsuario;
 
     document.getElementById("chatNombre").textContent = nombre;
     document.getElementById("chatCorreo").textContent = correo;
 
-    // foto real
+    // Foto real o default
     if (foto && foto.startsWith("http")) {
         document.getElementById("chatFoto").src = foto;
     } else {
         document.getElementById("chatFoto").src = "img/default-user.png";
     }
-
-    box.style.display = "flex";
 }
 
 function cerrarChat() {
     document.getElementById("chatBox").style.display = "none";
+    clearInterval(chatAutoRefresh);
+    chatAutoRefresh = null;
 }
+
 
 
 
@@ -2671,7 +2690,7 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-    async function cargarConversacion() {
+   async function cargarConversacion() {
     if (!chatConUsuario) return;
 
     const body = new FormData();
@@ -2685,35 +2704,35 @@ document.getElementById("chatEnviar").onclick = async () => {
     const cont = document.getElementById("chatMensajes");
     cont.innerHTML = "";
 
-   json.mensajes.forEach(m => {
-    const div = document.createElement("div");
-    div.style.maxWidth = "70%";
-    div.style.margin = "6px 0";
-    div.style.padding = "8px 10px";
-    div.style.borderRadius = "10px";
+    json.mensajes.forEach(m => {
+        const div = document.createElement("div");
+        div.style.maxWidth = "70%";
+        div.style.margin = "6px 0";
+        div.style.padding = "8px 10px";
+        div.style.borderRadius = "10px";
 
-    if (m.de === usuarioActual.correo) {
-        // 💬 Mensaje mío
-        div.style.background = "#d3f8c6";
-        div.style.color = "#111";
-        div.style.marginLeft = "auto";
-    } else {
-        // 💬 Mensaje recibido (más visible)
-        div.style.background = "#f1f0f0";
-        div.style.border = "1px solid #ccc";
-        div.style.color = "#222";
-    }
+        if (m.de === usuarioActual.correo) {
+            div.style.background = "#d3f8c6";
+            div.style.color = "#111";
+            div.style.marginLeft = "auto";
+        } else {
+            div.style.background = "#f1f0f0";
+            div.style.border = "1px solid #ccc";
+            div.style.color = "#222";
+        }
 
-    div.innerHTML = `
-        <div>${m.mensaje}</div>
-        <small style="font-size:10px;color:#555;">${m.fecha}</small>
-    `;
+        div.innerHTML = `
+            <div>${m.mensaje}</div>
+            <small style="font-size:10px;color:#555;">${m.fecha}</small>
+        `;
 
-    cont.appendChild(div);
-});
+        cont.appendChild(div);
+    });
 
-
-    cont.scrollTop = cont.scrollHeight;
+    // Scroll al final
+    setTimeout(() => {
+        cont.scrollTop = cont.scrollHeight;
+    }, 50);
 }
 
 
@@ -6385,6 +6404,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
