@@ -2701,36 +2701,35 @@ function renderizarMensajes(mensajes) {
 function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
 
-    // Mostrar el chat (sube desde abajo)
+    // Mostrar el chat
     box.style.display = "flex";
 
-    // === CERRAR AL TOCAR AFUERA (EN CUALQUIER LUGAR FUERA DEL CHAT) ===
+    // CERRAR AL TOCAR AFUERA — pero con una pequeña protección
     const cerrarSiTocaAfuera = (e) => {
-        if (!box.contains(e.target)) {  // ← si el clic NO está dentro del chat
+        // Solo cerramos si el chat ya está visible Y el clic fue fuera del panel
+        if (box.style.display === "flex" && !box.contains(e.target)) {
             cerrarChat();
         }
     };
 
-    // Añadimos el listener al document (captura todo)
-    document.addEventListener("click", cerrarSiTocaAfuera);
-    document.addEventListener("touchstart", cerrarSiTocaAfuera); // para móviles
+    // Usamos un pequeño retraso para que el clic que abrió el chat no lo cierre
+    setTimeout(() => {
+        document.addEventListener("click", cerrarSiTocaAfuera);
+        document.addEventListener("touchstart", cerrarSiTocaAfuera);
+        box._handlerCerrarAfuera = cerrarSiTocaAfuera;
+    }, 100);
 
-    // Guardamos la función para poder removerla después
-    box._handlerCerrarAfuera = cerrarSiTocaAfuera;
-
-    // Iniciar auto-refresh
+    // Auto-refresh
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = setInterval(() => {
-        if (usuarioActual && chatConUsuario) {
-            cargarConversacion();
-        }
+        if (usuarioActual && chatConUsuario) cargarConversacion();
     }, 2500);
 
     // Info del usuario
     const { nombre, correo, foto } = chatConUsuario;
     document.getElementById("chatNombre").textContent = nombre;
     document.getElementById("chatCorreo").textContent = correo;
-    document.getElementById("chatFoto").src = (foto && foto.startsWith("http")) ? foto : "img/default-user.png";
+    document.getElementById("chatFoto").src = foto && foto.startsWith("http") ? foto : "img/default-user.png";
 }
 
 function cerrarChat() {
@@ -2740,7 +2739,7 @@ function cerrarChat() {
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = null;
 
-    // Removemos los listeners de "tocar afuera"
+    // Removemos los listeners
     if (box._handlerCerrarAfuera) {
         document.removeEventListener("click", box._handlerCerrarAfuera);
         document.removeEventListener("touchstart", box._handlerCerrarAfuera);
@@ -6474,6 +6473,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
