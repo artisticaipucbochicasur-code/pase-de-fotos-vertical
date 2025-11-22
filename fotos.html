@@ -2611,24 +2611,106 @@ const perfilCache = {}; // clave: correo normalizado → datos completos del per
 });
 
 
-    
+  // Cache de conversaciones completas: clave = correo del otro usuario
+const chatCache = {};  
 let chatAutoRefresh = null;
 
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
 let chatConUsuario = null;
+async function precargarTodosLosChats() {
+    if (!usuarioActual) return;
 
+    try {
+        const body = new FormData();
+        body.append("accion", "listarUsuariosChat");
+        body.append("user", usuarioActual.correo);
+
+        const res = await fetch(SCRIPT_URL, { method: "POST", body });
+        const json = await res.json();
+
+        if (json.status !== "success" || !json.usuarios) return;
+
+        // Para cada usuario con quien has hablado → precargar su conversación completa
+        const promesas = json.usuarios.map(async (u) => {
+            if (chatCache[u.correo]) return; // ya lo tenemos
+
+            const body2 = new FormData();
+            body2.append("accion", "listarChat");
+            body2.append("user1", usuarioActual.correo);
+            body2.append("user2", u.correo);
+
+            try {
+                const res2 = await fetch(SCRIPT_URL, { method: "POST", body2 });
+                const data = await res2.json();
+                if (data.mensajes) {
+                    chatCache[u.correo] = data.mensajes; // guardamos en caché
+                }
+            } catch (e) {
+                console.warn("Error precargando chat con", u.correo, e);
+            }
+        });
+
+        // No bloqueamos la UI: lanzamos todas en paralelo
+        await Promise.allSettled(promesas);
+
+    } catch (err) {
+        console.error("Error precargando lista de chats:", err);
+    }
+}
 function iniciarChatCon(info) {
     chatConUsuario = info;
-
     console.log("CHAT CON:", info);
 
-    // aquí abres tu interfaz de chat (no afecta ningún menú existente)
     abrirVentanaChat();
 
-    cargarConversacion();
+    // 1. Mostrar inmediatamente lo que ya tengamos en caché
+    if (chatCache[info.correo]) {
+        renderizarMensajes(chatCache[info.correo]);
+    } else {
+        // Si no hay caché, limpiar y mostrar loader opcional
+        document.getElementById("chatMensajes").innerHTML = "<div style='text-align:center;color:#999;padding:20px;'>Cargando mensajes...</div>";
+    }
+
+    // 2. Siempre cargar la versión fresca (en segundo plano)
+    cargarConversacion(); // esta función la vamos a modificar
 }
 
 
+
+function renderizarMensajes(mensajes) {
+    const cont = document.getElementById("chatMensajes");
+    cont.innerHTML = "";
+
+    mensajes.forEach(m => {
+        const div = document.createElement("div");
+        div.style.maxWidth = "70%";
+        div.style.margin = "6px 0";
+        div.style.padding = "8px 10px";
+        div.style.borderRadius = "10px";
+
+        if (m.de === usuarioActual.correo) {
+            div.style.background = "#d3f8c6";
+            div.style.color = "#111";
+            div.style.marginLeft = "auto";
+        } else {
+            div.style.background = "#f1f0f0";
+            div.style.border = "1px solid #ccc";
+            div.style.color = "#222";
+        }
+
+        div.innerHTML = `
+            <div>${m.mensaje}</div>
+            <small style="font-size:10px;color:#555;display:block;margin-top:4px;">${m.fecha}</small>
+        `;
+        cont.appendChild(div);
+    });
+
+    // Scroll al final
+    setTimeout(() => cont.scrollTop = cont.scrollHeight, 50);
+}
+
+
+    
 
    function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
@@ -2689,51 +2771,34 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-   async function cargarConversacion() {
-    if (!chatConUsuario) return;
+ async function cargarConversacion() {
+    if (!chatConUsuario || !usuarioActual) return;
 
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
     body.append("user2", chatConUsuario.correo);
 
-    let res = await fetch(SCRIPT_URL, { method: "POST", body });
-    let json = await res.json();
+    try {
+        let res = await fetch(SCRIPT_URL, { method: "POST", body });
+        let json = await res.json();
 
-    const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = "";
+        if (!json.mensajes) return;
 
-    json.mensajes.forEach(m => {
-        const div = document.createElement("div");
-        div.style.maxWidth = "70%";
-        div.style.margin = "6px 0";
-        div.style.padding = "8px 10px";
-        div.style.borderRadius = "10px";
+        // Guardar en caché para abrir el chat instantáneamente la próxima vez
+        chatCache[chatConUsuario.correo] = json.mensajes;
 
-        if (m.de === usuarioActual.correo) {
-            div.style.background = "#d3f8c6";
-            div.style.color = "#111";
-            div.style.marginLeft = "auto";
-        } else {
-            div.style.background = "#f1f0f0";
-            div.style.border = "1px solid #ccc";
-            div.style.color = "#222";
+        // Usar la función moderna de renderizado (la que ya mejoramos antes)
+        renderizarMensajes(json.mensajes);
+
+    } catch (err) {
+        console.error("Error cargando conversación:", err);
+        // En caso de error, si ya había caché, mostrarla como fallback
+        if (chatCache[chatConUsuario.correo]) {
+            renderizarMensajes(chatCache[chatConUsuario.correo]);
         }
-
-        div.innerHTML = `
-            <div>${m.mensaje}</div>
-            <small style="font-size:10px;color:#555;">${m.fecha}</small>
-        `;
-
-        cont.appendChild(div);
-    });
-
-    // Scroll al final
-    setTimeout(() => {
-        cont.scrollTop = cont.scrollHeight;
-    }, 50);
+    }
 }
-
 
 const publishBtn = document.getElementById("publishBtn");
 const publishModal = document.getElementById("publishModal");
@@ -4302,7 +4367,10 @@ reconstruirIndiceBusqueda();
 
         const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
         updateContentOverlay(activeIndex);
-
+// LÍNEA NUEVA: precargamos todos los chats en segundo plano (sin bloquear nada)
+        if (usuarioActual) {
+            precargarTodosLosChats(); // ← ¡AQUÍ VA! No espera, se lanza y olvida
+        }
     } catch(error) {
         console.error("Error al cargar las imágenes:", error);
     } finally {
