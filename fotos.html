@@ -2993,25 +2993,33 @@ async function cargarConversacion() {
 
         let huboCambios = false;
 
-        // 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES (los que enviamos nosotros)
-        Array.from(cont.children).forEach((divMensaje, index) => {
-            const msgEnPantalla = cacheActual[index];
-            const msgServidor = mensajesServidor[index];
+    // 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES (los que enviamos nosotros)
+chatCache[chatConUsuario.correo].forEach((msgLocal, i) => {
 
-            if (msgEnPantalla?.id?.startsWith("temp_") && 
-                msgEnPantalla.de === usuarioActual.correo &&
-                msgServidor && 
-                msgServidor.mensaje === msgEnPantalla.mensaje) {
+    // Solo mensajes temporales
+    if (!msgLocal.id || !msgLocal.id.startsWith("temp_")) return;
+    if (msgLocal.de !== usuarioActual.correo) return;
 
-                const small = divMensaje.querySelector("small");
-                if (small) {
-                    small.textContent = msgServidor.fecha;
-                    huboCambios = true;
-                }
-                // Marcar como confirmado
-                delete msgEnPantalla.id;
-            }
-        });
+    // Buscar en el servidor uno igual por contenido y autor
+    const confirmado = mensajesServidor.find(ms =>
+        ms.de === usuarioActual.correo &&
+        ms.mensaje === msgLocal.mensaje
+    );
+
+    // Si lo encontramos → reemplazar fecha en pantalla y quitar "temp_"
+    if (confirmado) {
+        const div = cont.children[i];
+        if (div) {
+            const small = div.querySelector("small");
+            if (small) small.textContent = confirmado.fecha;
+        }
+
+        msgLocal.fecha = confirmado.fecha;
+        delete msgLocal.id;  // marcado como confirmado
+        huboCambios = true;
+    }
+});
+
 
         // 2. AGREGAR MENSAJES NUEVOS (del otro usuario)
         if (mensajesServidor.length > cacheActual.length) {
@@ -6736,6 +6744,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
