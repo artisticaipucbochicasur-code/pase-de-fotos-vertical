@@ -2798,10 +2798,10 @@ function iniciarChatCon(info) {
 
 
 // 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
-// ================= RENDERIZAR MENSAJES (CON SCROLL ABAJO EN CARGA INICIAL) =================
+// ================= RENDERIZAR MENSAJES (CARGA INICIAL → SIEMPRE ABAJO) =================
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = ""; // Solo se usa en carga inicial
+    cont.innerHTML = "";
 
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
@@ -2838,20 +2838,17 @@ function renderizarMensajes(mensajes) {
 
         cont.appendChild(div);
 
-        // Animación cascada
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // SCROLL ABAJO DESPUÉS DE LA ANIMACIÓN (carga inicial completa)
+    // En carga inicial → siempre scroll al final
     setTimeout(() => {
         cont.scrollTop = cont.scrollHeight;
     }, 150 + mensajes.length * 30);
 }
-
-
     
 
 function abrirVentanaChat() {
@@ -3043,39 +3040,40 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
     }
 }
 
-// ================= CARGAR CONVERSACIÓN (CON SCROLL ABAJO SIEMPRE) =================
+// ================= CARGAR CONVERSACIÓN (COMO WHATSAPP: SCROLL INTELIGENTE) =================
 async function cargarConversacion() {
     if (!chatConUsuario || !usuarioActual) return;
+
+    const cont = document.getElementById("chatMensajes");
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
     body.append("user2", chatConUsuario.correo);
+
     try {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
         if (!json.mensajes) return;
+
         const mensajesServidor = json.mensajes;
-        const cont = document.getElementById("chatMensajes");
         const cacheActual = chatCache[chatConUsuario.correo] || [];
         let huboCambios = false;
 
-        // --- ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
+        // --- ELIMINAR "Cargando mensajes..." ---
         if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
 
-        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
-        const cache = chatCache[chatConUsuario.correo] || [];
-        const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
+        // --- 1. ACTUALIZAR HORA DEL MENSAJE TEMPORAL ---
+        const tempMsg = cacheActual.find(m => m.id && m.id.startsWith("temp_"));
         if (tempMsg) {
             const confirmado = mensajesServidor.find(ms =>
-                ms.de === usuarioActual.correo &&
-                ms.mensaje === tempMsg.mensaje
+                ms.de === usuarioActual.correo && ms.mensaje === tempMsg.mensaje
             );
             if (confirmado) {
-                const ult = cont.lastElementChild;
-                if (ult) {
-                    const small = ult.querySelector("small");
+                const ultimoDiv = cont.lastElementChild;
+                if (ultimoDiv) {
+                    const small = ultimoDiv.querySelector("small");
                     if (small) small.textContent = confirmado.fecha;
                 }
                 tempMsg.fecha = confirmado.fecha;
@@ -3098,9 +3096,10 @@ async function cargarConversacion() {
             chatCache[chatConUsuario.correo] = mensajesServidor;
         }
 
-        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
+        // --- 4. INDICADOR "ESCRIBIENDO..." ---
         const typingDiv = document.getElementById("chatEscribiendo");
         if (!window.typingTimeout) window.typingTimeout = null;
+
         if (json.typing === true) {
             typingDiv.style.display = "block";
             typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
@@ -3116,12 +3115,19 @@ async function cargarConversacion() {
             window.typingTimeout = null;
         }
 
-        // --- 5. SCROLL ABAJO SIEMPRE CUANDO HAYA CAMBIOS (ABRIR CHAT O NUEVOS MSJS) ---
-        if (huboCambios || cont.innerHTML === "") {
+        // --- SCROLL INTELIGENTE (COMO WHATSAPP) ---
+        // Solo hacer scroll abajo si:
+        // 1. Es la primera carga (cont vacío o casi vacío)
+        // 2. El usuario ya estaba viendo el final (dentro de 100px)
+        const esPrimeraCarga = cont.innerHTML === "" || cont.scrollHeight <= cont.clientHeight + 100;
+        const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+
+        if (esPrimeraCarga || estabaAbajo) {
             setTimeout(() => {
                 cont.scrollTop = cont.scrollHeight;
             }, 100);
         }
+        // Si no estaba abajo → no hacemos nada (los nuevos mensajes llegan en silencio)
 
     } catch (err) {
         console.warn("Error en refresh:", err);
@@ -6823,5 +6829,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
