@@ -2054,12 +2054,24 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
   <i class="fas fa-paper-plane"></i>
 </button>
   </div>
+
+  <!-- PEGA ESTO DENTRO DEL #chatBox, justo antes del cierre -->
+<div id="botonBajarChat" style="position:absolute; bottom:80px; right:20px; background:#00A2FF; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); cursor:pointer; z-index:99; display:none;" onclick="bajarAlFinal()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 5v14m-7-7l7 7 7-7"/></svg>
+    <span id="contadorNuevos" style="position:absolute; top:-8px; right:-8px; background:red; color:white; font-size:11px; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center;"></span>
+</div>
+  
 </div>
 
 <!-- Botón oculto que controla el chat (SOLO UNO EN TODA LA PÁGINA) -->
 <div id="messagesBtn" style="display:none;"></div>
 
 
+  <!-- PEGA ESTO DENTRO DEL #chatBox, justo antes del cierre -->
+<div id="botonBajarChat" style="position:absolute; bottom:80px; right:20px; background:#00A2FF; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); cursor:pointer; z-index:99; display:none;" onclick="bajarAlFinal()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 5v14m-7-7l7 7 7-7"/></svg>
+    <span id="contadorNuevos" style="position:absolute; top:-8px; right:-8px; background:red; color:white; font-size:11px; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center;"></span>
+</div>
 
 
   
@@ -2750,44 +2762,31 @@ async function precargarTodosLosChats() {
 
     
 function iniciarChatCon(info) {
-
     const correoNorm = normalizeText(info.correo);
+    const fotoDesdePerfil = perfilCache[correoNorm]?.fotoPerfil || null;
+    const fotoUsuarioActual = usuarioActual?.correo === info.correo ? usuarioActual.fotoPerfil : null;
+    const fotoFinal = fotoDesdePerfil || fotoUsuarioActual || info.fotoPerfil || info.foto || "img/default-user.png";
 
-    // ✅ 1) TOMAR FOTO DIRECTA DEL PERFIL CARGADO
-    const fotoDesdePerfil =
-        perfilCache[correoNorm]?.fotoPerfil ||
-        null;
-
-    // ✅ 2) FOTO DEL LOCALSTORAGE (si es el usuario actual)
-    const fotoUsuarioActual =
-        usuarioActual?.correo === info.correo
-            ? usuarioActual.fotoPerfil
-            : null;
-
-    // ✅ 3) ELEGIR FOTO FINAL EN ESTE ORDEN:
-    const fotoFinal =
-        fotoDesdePerfil ||
-        fotoUsuarioActual ||
-        info.fotoPerfil ||
-        info.foto ||
-        "img/default-user.png";
-
-    // ✅ guardar usuario activo con foto unificada
-    chatConUsuario = {
-        ...info,
-        foto: fotoFinal
-    };
-
-   
+    chatConUsuario = { ...info, foto: fotoFinal };
 
     abrirVentanaChat();
 
-    if (chatCache[info.correo]) {
+    const cont = document.getElementById("chatMensajes");
+    cont.innerHTML = ""; // ← Limpieza total
+
+    // Reiniciamos contador del botón flotante
+    window.mensajesPendientesAbajo = 0;
+    if (document.getElementById("botonBajarChat")) {
+        document.getElementById("botonBajarChat").style.display = "none";
+    }
+
+    if (chatCache[info.correo] && chatCache[info.correo].length > 0) {
         renderizarMensajes(chatCache[info.correo]);
     } else {
-        document.getElementById("chatMensajes").innerHTML =
-            "<div style='text-align:center;color:#999;padding:20px;'>Cargando mensajes...</div>";
+        cont.innerHTML = "<div style='text-align:center;color:#999;padding:40px;font-size:14px;'>Cargando mensajes...</div>";
     }
+
+    
 
     cargarConversacion();
 }
@@ -2798,10 +2797,16 @@ function iniciarChatCon(info) {
 
 
 // 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
-// ================= RENDERIZAR MENSAJES (CON SCROLL ABAJO EN CARGA INICIAL) =================
+// ================= RENDERIZAR MENSAJES (CARGA INICIAL → SIEMPRE ABAJO) =================
+// ================= RENDERIZAR MENSAJES (solo se llama al abrir el chat) =================
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = ""; // Solo se usa en carga inicial
+    cont.innerHTML = ""; // Solo en carga inicial
+
+    if (mensajes.length === 0) {
+        cont.scrollTop = cont.scrollHeight;
+        return;
+    }
 
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
@@ -2835,20 +2840,20 @@ function renderizarMensajes(mensajes) {
                 ${m.fecha}
             </small>
         `;
-
         cont.appendChild(div);
 
-        // Animación cascada
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // SCROLL ABAJO DESPUÉS DE LA ANIMACIÓN (carga inicial completa)
-    setTimeout(() => {
-        cont.scrollTop = cont.scrollHeight;
-    }, 150 + mensajes.length * 30);
+    // Forzamos scroll abajo solo al cargar el chat por primera vez
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            cont.scrollTop = cont.scrollHeight;
+        });
+    });
 }
 
 
@@ -2916,12 +2921,15 @@ document.getElementById("chatEnviar").onclick = async () => {
 
     if (!txt || !chatConUsuario || !usuarioActual) return;
 
+    // Detectar si el usuario ya estaba abajo (con tolerancia razonable)
+    const estabaAbajo = (cont.scrollTop + cont.clientHeight) >= (cont.scrollHeight - 100);
+
+    // Animación del botón
     btn.style.transform = "scale(0.88)";
     btn.style.transition = "transform 0.18s ease";
     setTimeout(() => btn.style.transform = "scale(1)", 180);
 
-    const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
-
+    // Mensaje temporal
     const tempId = "temp_" + Date.now();
     const mensajeTemp = {
         id: tempId,
@@ -2934,8 +2942,11 @@ document.getElementById("chatEnviar").onclick = async () => {
     chatCache[chatConUsuario.correo].push(mensajeTemp);
     agregarMensajeIndividual(mensajeTemp);
 
-    if (estabaAlFinal) {
-        setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+    // Solo bajar si el usuario ya estaba abajo antes de enviar
+    if (estabaAbajo) {
+        requestAnimationFrame(() => {
+            cont.scrollTop = cont.scrollHeight;
+        });
     }
 
     input.value = "";
@@ -2965,19 +2976,17 @@ document.getElementById("chatEnviar").onclick = async () => {
     }
 };
 
-    // AVISAR QUE ESTÁS ESCRIBIENDO
+// AVISAR QUE ESTÁS ESCRIBIENDO (sin cambios)
 let typingTimeout = null;
 document.getElementById("chatInput").addEventListener("input", () => {
     if (!chatConUsuario || !usuarioActual) return;
 
-    // Avisar al servidor que estás escribiendo
     const body = new FormData();
     body.append("accion", "typing");
     body.append("de", usuarioActual.correo);
     body.append("para", chatConUsuario.correo);
     fetch(SCRIPT_URL, { method: "POST", body });
 
-    // Si pasan 2s sin escribir → avisar que ya no
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
         const body2 = new FormData();
@@ -3043,84 +3052,73 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
     }
 }
 
-// ================= CARGAR CONVERSACIÓN (CON SCROLL ABAJO SIEMPRE) =================
+// ================= CARGAR CONVERSACIÓN (refresh cada 2.5s) - CORREGIDA =================
 async function cargarConversacion() {
     if (!chatConUsuario || !usuarioActual) return;
+
+    const cont = document.getElementById("chatMensajes");
+    const estabaAbajo = (cont.scrollTop + cont.clientHeight) >= (cont.scrollHeight - 100); // tolerancia
+
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
     body.append("user2", chatConUsuario.correo);
+
     try {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
         if (!json.mensajes) return;
-        const mensajesServidor = json.mensajes;
-        const cont = document.getElementById("chatMensajes");
-        const cacheActual = chatCache[chatConUsuario.correo] || [];
-        let huboCambios = false;
 
-        // --- ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
+        const mensajesServidor = json.mensajes;
+        const cacheActual = chatCache[chatConUsuario.correo] || [];
+
+        // Eliminar "Cargando mensajes..."
         if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
 
-        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
-        const cache = chatCache[chatConUsuario.correo] || [];
-        const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
+        // Actualizar mensaje temporal (enviando → hora real)
+        const tempMsg = cacheActual.find(m => m.id?.startsWith("temp_"));
         if (tempMsg) {
             const confirmado = mensajesServidor.find(ms =>
-                ms.de === usuarioActual.correo &&
-                ms.mensaje === tempMsg.mensaje
+                ms.de === usuarioActual.correo && ms.mensaje === tempMsg.mensaje
             );
             if (confirmado) {
-                const ult = cont.lastElementChild;
-                if (ult) {
-                    const small = ult.querySelector("small");
-                    if (small) small.textContent = confirmado.fecha;
+                const ultimo = cont.lastElementChild;
+                if (ultimo) {
+                    ultimo.querySelector("small").textContent = confirmado.fecha;
                 }
                 tempMsg.fecha = confirmado.fecha;
                 delete tempMsg.id;
-                huboCambios = true;
             }
         }
 
-        // --- 2. AGREGAR MENSAJES NUEVOS ---
+        // Agregar solo mensajes nuevos
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
                 agregarMensajeIndividual(msg);
-                huboCambios = true;
             });
-        }
-
-        // --- 3. ACTUALIZAR CACHE ---
-        if (mensajesServidor.length >= cacheActual.length) {
             chatCache[chatConUsuario.correo] = mensajesServidor;
         }
 
-        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
+        // Indicador "escribiendo..."
         const typingDiv = document.getElementById("chatEscribiendo");
-        if (!window.typingTimeout) window.typingTimeout = null;
         if (json.typing === true) {
             typingDiv.style.display = "block";
             typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
             clearTimeout(window.typingTimeout);
-            window.typingTimeout = setTimeout(() => {
-                typingDiv.style.display = "none";
-                typingDiv.innerHTML = "";
-            }, 6000);
+            window.typingTimeout = setTimeout(() => typingDiv.style.display = "none", 6000);
         } else {
             typingDiv.style.display = "none";
-            typingDiv.innerHTML = "";
             clearTimeout(window.typingTimeout);
-            window.typingTimeout = null;
         }
 
-        // --- 5. SCROLL ABAJO SIEMPRE CUANDO HAYA CAMBIOS (ABRIR CHAT O NUEVOS MSJS) ---
-        if (huboCambios || cont.innerHTML === "") {
-            setTimeout(() => {
+        // SCROLL INTELIGENTE: solo bajar si el usuario ya estaba abajo
+        if (estabaAbajo || cont.scrollHeight <= cont.clientHeight + 200) {
+            requestAnimationFrame(() => {
                 cont.scrollTop = cont.scrollHeight;
-            }, 100);
+            });
         }
 
     } catch (err) {
@@ -3149,6 +3147,39 @@ function cerrarClickAfuera(e) {
 }
 
 
+// PEGA ESTO TAMBIÉN UNA VEZ (al final del JS)
+window.mensajesPendientesAbajo = 0;
+
+function mostrarBotonBajar() {
+    const btn = document.getElementById("botonBajarChat");
+    const contador = document.getElementById("contadorNuevos");
+    if (!btn) return;
+    btn.style.display = "flex";
+    contador.textContent = window.mensajesPendientesAbajo > 99 ? "99+" : window.mensajesPendientesAbajo;
+}
+
+function ocultarBotonBajar() {
+    const btn = document.getElementById("botonBajarChat");
+    if (btn) btn.style.display = "none";
+}
+
+function bajarAlFinal() {
+    const cont = document.getElementById("chatMensajes");
+    cont.scrollTop = cont.scrollHeight;
+    window.mensajesPendientesAbajo = 0;
+    ocultarBotonBajar();
+}
+
+// Opcional: ocultar al hacer scroll manual
+document.getElementById("chatMensajes").addEventListener("scroll", () => {
+    const cont = document.getElementById("chatMensajes");
+    const casiAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
+    if (casiAbajo) {
+        window.mensajesPendientesAbajo = 0;
+        ocultarBotonBajar();
+    }
+});
+    
 
     
 const publishBtn = document.getElementById("publishBtn");
@@ -6823,6 +6854,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
