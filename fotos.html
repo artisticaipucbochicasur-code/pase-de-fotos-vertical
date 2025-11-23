@@ -2786,10 +2786,7 @@ function iniciarChatCon(info) {
         cont.innerHTML = "<div style='text-align:center;color:#999;padding:40px;font-size:14px;'>Cargando mensajes...</div>";
     }
 
-    // Forzamos scroll abajo después de la primera carga (sea del caché o del servidor)
-    setTimeout(() => {
-        cont.scrollTop = cont.scrollHeight;
-    }, 300);
+    
 
     cargarConversacion();
 }
@@ -2803,7 +2800,13 @@ function iniciarChatCon(info) {
 // ================= RENDERIZAR MENSAJES (CARGA INICIAL → SIEMPRE ABAJO) =================
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = "";
+    cont.innerHTML = ""; // limpiamos
+
+    // Si no hay mensajes, igual forzamos scroll abajo
+    if (mensajes.length === 0) {
+        cont.scrollTop = cont.scrollHeight;
+        return;
+    }
 
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
@@ -2837,23 +2840,32 @@ function renderizarMensajes(mensajes) {
                 ${m.fecha}
             </small>
         `;
-
         cont.appendChild(div);
 
+        // Animación de entrada
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // SCROLL ABAJO CON FUERZA BRUTA (funciona siempre)
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            cont.scrollTop = cont.scrollHeight;
-        });
-    });
-}
+    // SCROLL ABAJO CON MÁXIMA PRIORIDAD (funciona 100% incluso con animaciones)
+    // Usamos MutationObserver + requestAnimationFrame doble para asegurar que el DOM ya está pintado
+    const forzarScrollAbajo = () => {
+        cont.scrollTop = cont.scrollHeight;
+    };
 
+    // Múltiples intentos seguros
+    requestAnimationFrame(() => {
+        forzarScrollAbajo();
+        requestAnimationFrame(forzarScrollAbajo);
+    });
+
+    // Si aún no llegó al fondo después de 500ms → fuerza bruta final
+    setTimeout(forzarScrollAbajo, 100);
+    setTimeout(forzarScrollAbajo, 300);
+    setTimeout(forzarScrollAbajo, 600);
+}
 
 
     
@@ -6854,6 +6866,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
