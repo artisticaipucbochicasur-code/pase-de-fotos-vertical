@@ -1084,6 +1084,16 @@ body {
   100% { content: "..."; }
 }
 
+
+    /* Vibración ligera tipo WhatsApp */
+@keyframes vibrarWhatsapp {
+    0% { transform:translate(0,0); }
+    20% { transform:translate(-2px,1px); }
+    40% { transform:translate(2px,-1px); }
+    60% { transform:translate(-2px,1px); }
+    80% { transform:translate(2px,0); }
+    100% { transform:translate(0,0); }
+}
     
   </style>
 </head>
@@ -2055,28 +2065,60 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 </button>
   </div>
 
- <!-- 🔔 BOTÓN FLOTANTE DE NUEVOS MENSAJES (tipo WhatsApp) -->
-<div id="newMsgIndicator" style="
-    position: absolute;
-    bottom: 80px;
-    right: 20px;
-    width: 48px;
-    height: 48px;
-    background: #5A8DEE;
-    color: white;
-    border-radius: 50%;
-    display: none;
-    cursor: pointer;
-    z-index: 99999999;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:17px;
-    font-weight:700;
-">
-  ↓<span id="newMsgCount" style="margin-left:3px;font-size:14px;"></span>
+<!-- 🔔 BOTÓN FLOTANTE MEJORADO CON ANIMACIONES -->
+<div id="newMsgIndicator"
+     style="
+        position:absolute;
+        bottom:80px;
+        right:20px;
+        width:40px;
+        height:40px;
+        background:#00A2FF;
+        color:white;
+        border-radius:50%;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        box-shadow:0 4px 12px rgba(0,0,0,0.3);
+        cursor:pointer;
+        z-index:99999999;
+
+        /* 🔹 Animación de entrada/salida */
+        opacity:0;
+        transform:translateY(20px);
+        transition:opacity .35s ease, transform .35s ease;
+     "
+     onclick="bajarAlFinal()">
+
+    <!-- Flecha -->
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+        <path d="M12 5v14m-7-7l7 7 7-7"/>
+    </svg>
+
+    <!-- Contador con animación pop -->
+    <span id="newMsgCount"
+        style="
+            position:absolute;
+            top:-8px;
+            right:-8px;
+            background:red;
+            color:white;
+            font-size:11px;
+            min-width:18px;
+            height:18px;
+            border-radius:9px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+
+            /* Oculto por defecto */
+            transform:scale(0);
+            transition:transform .25s ease;
+        ">
+    </span>
 </div>
+
+
 
 
 </div>
@@ -2771,6 +2813,45 @@ document.getElementById("chatMensajes").addEventListener("scroll", () => {
 });
 
 
+// Mostrar botón con animaciones
+function mostrarNewMsgIndicator(count) {
+    const btn = document.getElementById("newMsgIndicator");
+    const cnt = document.getElementById("newMsgCount");
+
+    cnt.textContent = count;
+
+    // Mostrar contador con animación pop
+    cnt.style.transform = "scale(1)";
+
+    // Activar visualmente el botón
+    btn.style.display = "flex";
+    setTimeout(() => {
+        btn.style.opacity = "1";
+        btn.style.transform = "translateY(0)";
+    }, 20);
+
+    // Vibración tipo WhatsApp
+    btn.style.animation = "vibrarWhatsapp 0.45s ease";
+    setTimeout(() => btn.style.animation = "", 500);
+}
+
+// Ocultar botón con animación suave
+function ocultarNewMsgIndicator() {
+    const btn = document.getElementById("newMsgIndicator");
+    const cnt = document.getElementById("newMsgCount");
+
+    btn.style.opacity = "0";
+    btn.style.transform = "translateY(20px)";
+
+    cnt.style.transform = "scale(0)";
+
+    setTimeout(() => {
+        btn.style.display = "none";
+    }, 300);
+}
+
+
+    
     
 async function precargarTodosLosChats() {
     if (!usuarioActual) return;
@@ -6957,6 +7038,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
