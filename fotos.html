@@ -2863,6 +2863,9 @@ function abrirVentanaChat() {
     // Mostrar chat
     box.style.display = "flex";
 
+    // 🟦 Indicar que el chat acaba de abrirse
+    document.getElementById("chatMensajes").dataset.abierto = "1";
+
     // 🔄 Iniciar auto-refresh
     clearInterval(chatAutoRefresh);
     chatAutoRefresh = setInterval(() => {
@@ -2896,8 +2899,9 @@ function abrirVentanaChat() {
     // ✅ activar cierre afuera SIN bloquear apertura
     activarCerrarAfuera();
 
-  
+   
 }
+
 
 
 function cerrarChat() {
@@ -3137,16 +3141,26 @@ async function cargarConversacion() {
 
         // --- 5. SCROLL INTELIGENTE ---
         if (huboCambios) {
-            const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+
+            // 🟦 Si el chat acaba de abrirse, forzamos que "sí estaba abajo"
+            const estabaAbajo = (
+                cont.dataset.abierto === "1" ||
+                (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100)
+            );
+
             if (estabaAbajo) {
                 setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
             }
         }
 
+        // 🟩 Después del primer refresh, ya no forzamos
+        cont.dataset.abierto = "0";
+
     } catch (err) {
         console.warn("Error en refresh:", err);
     }
 }
+
 
 
     
@@ -6844,6 +6858,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
