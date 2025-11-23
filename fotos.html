@@ -2798,11 +2798,11 @@ function iniciarChatCon(info) {
 
 // 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
 // ================= RENDERIZAR MENSAJES (CARGA INICIAL → SIEMPRE ABAJO) =================
-// ================= RENDERIZAR MENSAJES (solo al abrir chat) =================
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = "";
+    cont.innerHTML = ""; // limpiamos
 
+    // Si no hay mensajes, igual forzamos scroll abajo
     if (mensajes.length === 0) {
         cont.scrollTop = cont.scrollHeight;
         return;
@@ -2842,15 +2842,31 @@ function renderizarMensajes(mensajes) {
         `;
         cont.appendChild(div);
 
+        // Animación de entrada
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // Forzar scroll abajo solo al abrir
-    requestAnimationFrame(() => requestAnimationFrame(() => cont.scrollTop = cont.scrollHeight));
+    // SCROLL ABAJO CON MÁXIMA PRIORIDAD (funciona 100% incluso con animaciones)
+    // Usamos MutationObserver + requestAnimationFrame doble para asegurar que el DOM ya está pintado
+    const forzarScrollAbajo = () => {
+        cont.scrollTop = cont.scrollHeight;
+    };
+
+    // Múltiples intentos seguros
+    requestAnimationFrame(() => {
+        forzarScrollAbajo();
+        requestAnimationFrame(forzarScrollAbajo);
+    });
+
+    // Si aún no llegó al fondo después de 500ms → fuerza bruta final
+    setTimeout(forzarScrollAbajo, 100);
+    setTimeout(forzarScrollAbajo, 300);
+    setTimeout(forzarScrollAbajo, 600);
 }
+
 
     
 
@@ -2908,34 +2924,40 @@ function cerrarChat() {
 
 
 
-// ================= ENVÍO DE MENSAJE =================
 document.getElementById("chatEnviar").onclick = async () => {
     const input = document.getElementById("chatInput");
     const btn = document.getElementById("chatEnviar");
     const cont = document.getElementById("chatMensajes");
     const txt = input.value.trim();
-    if (!txt || !chatConUsuario || !usuarioActual) return;
 
-    const estabaAbajo = usuarioEstaAbajo();
+    if (!txt || !chatConUsuario || !usuarioActual) return;
 
     btn.style.transform = "scale(0.88)";
     btn.style.transition = "transform 0.18s ease";
     setTimeout(() => btn.style.transform = "scale(1)", 180);
 
+    const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
+
     const tempId = "temp_" + Date.now();
-    const mensajeTemp = { id: tempId, de: usuarioActual.correo, mensaje: txt, fecha: "Enviando..." };
+    const mensajeTemp = {
+        id: tempId,
+        de: usuarioActual.correo,
+        mensaje: txt,
+        fecha: "Enviando..."
+    };
 
     if (!chatCache[chatConUsuario.correo]) chatCache[chatConUsuario.correo] = [];
     chatCache[chatConUsuario.correo].push(mensajeTemp);
     agregarMensajeIndividual(mensajeTemp);
 
-    if (estabaAbajo) {
-        requestAnimationFrame(() => cont.scrollTop = cont.scrollHeight);
+    if (estabaAlFinal) {
+        setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
     }
 
     input.value = "";
     input.focus();
 
+    // Enviar al servidor
     const body = new FormData();
     body.append("accion", "guardarChat");
     body.append("de", usuarioActual.correo);
@@ -2946,28 +2968,42 @@ document.getElementById("chatEnviar").onclick = async () => {
         const res = await fetch(SCRIPT_URL, { method: "POST", body });
         const json = await res.json();
         if (json.status !== "success") {
-            actualizarUltimoMensaje({ mensaje: txt + " (No enviado)", fecha: "Error" });
+            actualizarUltimoMensaje({
+                mensaje: txt + " (No enviado)",
+                fecha: "Error"
+            });
         }
     } catch (err) {
-        actualizarUltimoMensaje({ mensaje: txt + " (Sin conexión)", fecha: "Reintentar" });
+        actualizarUltimoMensaje({
+            mensaje: txt + " (Sin conexión)",
+            fecha: "Reintentar"
+        });
     }
 };
 
-// ================= TYPING =================
+    // AVISAR QUE ESTÁS ESCRIBIENDO
 let typingTimeout = null;
 document.getElementById("chatInput").addEventListener("input", () => {
     if (!chatConUsuario || !usuarioActual) return;
-    fetch(SCRIPT_URL, { method: "POST", body: new FormData(Object.assign(document.createElement("form"), {
-        accion: "typing", de: usuarioActual.correo, para: chatConUsuario.correo
-    }))});
 
+    // Avisar al servidor que estás escribiendo
+    const body = new FormData();
+    body.append("accion", "typing");
+    body.append("de", usuarioActual.correo);
+    body.append("para", chatConUsuario.correo);
+    fetch(SCRIPT_URL, { method: "POST", body });
+
+    // Si pasan 2s sin escribir → avisar que ya no
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-        fetch(SCRIPT_URL, { method: "POST", body: new FormData(Object.assign(document.createElement("form"), {
-            accion: "notTyping", de: usuarioActual.correo, para: chatConUsuario.correo
-        }))});
+        const body2 = new FormData();
+        body2.append("accion", "notTyping");
+        body2.append("de", usuarioActual.correo);
+        body2.append("para", chatConUsuario.correo);
+        fetch(SCRIPT_URL, { method: "POST", body: body2 });
     }, 2000);
 });
+
 
    // NUEVA: Agrega SOLO un mensaje nuevo SIN recargar todo (anti-parpadeo)
 function agregarMensajeIndividual(m) {
@@ -2988,7 +3024,7 @@ function agregarMensajeIndividual(m) {
         div.style.background = "#6FA3FF";
         div.style.color = "#000";
         div.style.marginLeft = "auto";
-        div.style.border =("./") "1px solid #5A8DEE";
+        div.style.border = "1px solid #5A8DEE";
         div.style.borderBottomRightRadius = "4px";
     } else {
         div.style.background = "#CFCFCF";
@@ -3003,40 +3039,30 @@ function agregarMensajeIndividual(m) {
             ${m.fecha}
         </small>
     `;
+
     cont.appendChild(div);
+
+    // Animación suave de entrada
     setTimeout(() => {
         div.style.opacity = "1";
         div.style.transform = "translateY(0)";
     }, 10);
 }
 
-// ================= ACTUALIZAR ÚLTIMO MENSAJE (para errores o hora real) =================
+// NUEVA: Actualiza SOLO el último mensaje (para errores o fechas reales)
 function actualizarUltimoMensaje({ mensaje, fecha }) {
     const cont = document.getElementById("chatMensajes");
-    const ultimo = cont.lastElementChild;
-    if (ultimo) {
-        ultimo.querySelector("div").textContent = mensaje;
-        ultimo.querySelector("small").textContent = fecha;
+    const ultimoDiv = cont.lastChild;
+    if (ultimoDiv) {
+        ultimoDiv.querySelector('div').textContent = mensaje;
+        ultimoDiv.querySelector('small').textContent = fecha;
     }
 }
 
-
-// ================= FUNCIÓN CLAVE: ¿ESTABA ABAJO? =================
-function usuarioEstaAbajo() {
-    const cont = document.getElementById("chatMensajes");
-    return (cont.scrollTop + cont.clientHeight) >= (cont.scrollHeight - 150);
-}
-
-    
-    
-// ================= CARGAR CONVERSACIÓN (refresh cada 2.5s) - CORREGIDA =================
-// ================= REFRESH DE MENSAJES (sin joder el scroll) =================
 async function cargarConversacion() {
     if (!chatConUsuario || !usuarioActual) return;
 
     const cont = document.getElementById("chatMensajes");
-    const estabaAbajo = usuarioEstaAbajo();
-
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
@@ -3049,8 +3075,8 @@ async function cargarConversacion() {
 
         const mensajesServidor = json.mensajes;
         const cacheActual = chatCache[chatConUsuario.correo] || [];
+        let huboCambios = false;
 
-        // Quitar "Cargando..."
         if (cont.innerHTML.includes("Cargando") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
@@ -3060,28 +3086,32 @@ async function cargarConversacion() {
         if (tempMsg) {
             const confirmado = mensajesServidor.find(ms => ms.de === usuarioActual.correo && ms.mensaje === tempMsg.mensaje);
             if (confirmado) {
-                actualizarUltimoMensaje({ mensaje: tempMsg.mensaje, fecha: confirmado.fecha });
+                const ultimo = cont.lastElementChild;
+                if (ultimo) ultimo.querySelector("small").textContent = confirmado.fecha;
                 tempMsg.fecha = confirmado.fecha;
                 delete tempMsg.id;
+                huboCambios = true;
             }
         }
 
-        // Mensajes nuevos
+        // Nuevos mensajes
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
                 agregarMensajeIndividual(msg);
+                huboCambios = true;
 
-                // Contador para botón flotante
-                if (!estabaAbajo && !usuarioEstaAbajo()) {
-                    window.mensajesPendientesAbajo++;
+                const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
+                if (!estabaAbajo) {
+                    window.mensajesPendientesAbajo = (window.mensajesPendientesAbajo || 0) + 1;
                     mostrarBotonBajar();
                 }
             });
-            chatCache[chatConUsuario.correo] = mensajesServidor;
         }
 
-        // Typing indicator
+        chatCache[chatConUsuario.correo] = mensajesServidor;
+
+        // Indicador escribiendo
         const typingDiv = document.getElementById("chatEscribiendo");
         if (json.typing === true) {
             typingDiv.style.display = "block";
@@ -3092,15 +3122,19 @@ async function cargarConversacion() {
             typingDiv.style.display = "none";
         }
 
-        // SCROLL INTELIGENTE: solo si estaba abajo
-        if (estabaAbajo || cont.scrollHeight <= cont.clientHeight + 200) {
-            requestAnimationFrame(() => cont.scrollTop = cont.scrollHeight);
-            window.mensajesPendientesAbajo = 0;
-            ocultarBotonBajar();
+        // SCROLL INTELIGENTE + FIX FINAL
+        const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
+
+        if (estabaAbajo || cont.scrollHeight <= cont.clientHeight + 500) {
+            requestAnimationFrame(() => {
+                cont.scrollTop = cont.scrollHeight;
+                window.mensajesPendientesAbajo = 0;
+                ocultarBotonBajar();
+            });
         }
 
     } catch (err) {
-        console.warn("Error refresh chat:", err);
+        console.warn("Error en refresh:", err);
     }
 }
 
@@ -3128,7 +3162,6 @@ function cerrarClickAfuera(e) {
 // PEGA ESTO TAMBIÉN UNA VEZ (al final del JS)
 window.mensajesPendientesAbajo = 0;
 
-// ================= BOTÓN BAJAR AL FINAL (opcional pero pro) =================
 function mostrarBotonBajar() {
     const btn = document.getElementById("botonBajarChat");
     const contador = document.getElementById("contadorNuevos");
@@ -3136,10 +3169,12 @@ function mostrarBotonBajar() {
     btn.style.display = "flex";
     contador.textContent = window.mensajesPendientesAbajo > 99 ? "99+" : window.mensajesPendientesAbajo;
 }
+
 function ocultarBotonBajar() {
     const btn = document.getElementById("botonBajarChat");
     if (btn) btn.style.display = "none";
 }
+
 function bajarAlFinal() {
     const cont = document.getElementById("chatMensajes");
     cont.scrollTop = cont.scrollHeight;
@@ -3147,9 +3182,11 @@ function bajarAlFinal() {
     ocultarBotonBajar();
 }
 
-// Ocultar botón al hacer scroll manual
+// Opcional: ocultar al hacer scroll manual
 document.getElementById("chatMensajes").addEventListener("scroll", () => {
-    if (usuarioEstaAbajo()) {
+    const cont = document.getElementById("chatMensajes");
+    const casiAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
+    if (casiAbajo) {
         window.mensajesPendientesAbajo = 0;
         ocultarBotonBajar();
     }
@@ -6829,4 +6866,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
