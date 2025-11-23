@@ -2054,6 +2054,26 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
   <i class="fas fa-paper-plane"></i>
 </button>
   </div>
+
+  <!-- 🔔 BOTÓN FLOTANTE DE NUEVOS MENSAJES (tipo WhatsApp) -->
+<div id="newMsgIndicator" style="
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    background: #5A8DEE;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    display: none;
+    cursor: pointer;
+    z-index: 99999999;
+">
+  ↓ Nuevos mensajes (<span id="newMsgCount">0</span>)
+</div>
+
 </div>
 
 <!-- Botón oculto que controla el chat (SOLO UNO EN TODA LA PÁGINA) -->
@@ -2702,11 +2722,39 @@ const perfilCache = {}; // clave: correo normalizado → datos completos del per
 
     
   // Cache de conversaciones completas: clave = correo del otro usuario
+
+    let nuevosMensajes = 0;
+let forzarBajarAlFinal = false; // evita conflicto cuando YO envío mensajes
+
 const chatCache = {};  
 let chatAutoRefresh = null;
 
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
 let chatConUsuario = null;
+
+
+
+    function estoyAbajo() {
+    const cont = document.getElementById("chatMensajes");
+    return cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 10;
+}
+
+
+
+document.getElementById("newMsgIndicator").addEventListener("click", () => {
+    const cont = document.getElementById("chatMensajes");
+
+    cont.scrollTop = cont.scrollHeight;
+
+    nuevosMensajes = 0;
+    document.getElementById("newMsgCount").innerText = 0;
+
+    document.getElementById("newMsgIndicator").style.display = "none";
+});
+
+
+
+    
 async function precargarTodosLosChats() {
     if (!usuarioActual) return;
 
@@ -2998,10 +3046,10 @@ document.getElementById("chatInput").addEventListener("input", () => {
 });
 
 
-   // NUEVA: Agrega SOLO un mensaje nuevo SIN recargar todo (anti-parpadeo)
-function agregarMensajeIndividual(m) {
+  function agregarMensajeIndividual(m) {
     const cont = document.getElementById("chatMensajes");
     const div = document.createElement("div");
+    
     div.style.maxWidth = "75%";
     div.style.margin = "6px 0";
     div.style.padding = "8px 12px";
@@ -3035,17 +3083,33 @@ function agregarMensajeIndividual(m) {
 
     cont.appendChild(div);
 
-    // Animación suave de entrada
+    // 🌟 Animación
     setTimeout(() => {
         div.style.opacity = "1";
         div.style.transform = "translateY(0)";
     }, 10);
 
-    // 🟦 Si YO envié el mensaje, SIEMPRE bajar al final
+    // 🟦 SI YO envié → siempre bajar
     if (m.de === usuarioActual.correo) {
+        forzarBajarAlFinal = true;
+        setTimeout(() => {
+            cont.scrollTop = cont.scrollHeight;
+            forzarBajarAlFinal = false;
+        }, 50);
+        return;
+    }
+
+    // 🟥 Si el mensaje ES DEL OTRO usuario:
+    if (!estoyAbajo()) {
+        nuevosMensajes++;
+        document.getElementById("newMsgCount").innerText = nuevosMensajes;
+        document.getElementById("newMsgIndicator").style.display = "block";
+    } else {
+        // Si estoy abajo → mantener comportamiento normal
         setTimeout(() => cont.scrollTop = cont.scrollHeight, 50);
     }
 }
+
 
 // NUEVA: Actualiza SOLO el último mensaje (para errores o fechas reales)
 function actualizarUltimoMensaje({ mensaje, fecha }) {
@@ -6863,6 +6927,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
