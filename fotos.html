@@ -2125,6 +2125,7 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 
 <!-- Botón oculto que controla el chat (SOLO UNO EN TODA LA PÁGINA) -->
 <div id="messagesBtn" style="display:none;"></div>
+<audio id="chatSound" src="./sonidos/newmsg.mp3" preload="auto"></audio>
 
 
 
@@ -2851,6 +2852,15 @@ function ocultarNewMsgIndicator() {
 }
 
 
+
+function reproducirSonidoNuevoMensaje() {
+    const audio = document.getElementById("chatSound");
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(e => {});
+}
+
+
     
     
 async function precargarTodosLosChats() {
@@ -3208,6 +3218,7 @@ if (m.de !== usuarioActual.correo) {
         nuevosMensajes++;
         document.getElementById("newMsgCount").innerText = nuevosMensajes;
         mostrarNewMsgIndicator(nuevosMensajes);
+      reproducirSonidoNuevoMensaje();  // 🔊 <-- SOLO SONIDO EN MENSAJE NUEVO
 
     }
 }
@@ -7039,6 +7050,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
