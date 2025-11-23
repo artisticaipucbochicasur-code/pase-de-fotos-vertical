@@ -2772,19 +2772,26 @@ function iniciarChatCon(info) {
     abrirVentanaChat();
 
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = ""; // ← Siempre limpiamos al abrir
+    cont.innerHTML = ""; // ← Limpieza total
 
-    // Reiniciamos contador de mensajes no leídos abajo
+    // Reiniciamos contador del botón flotante
     window.mensajesPendientesAbajo = 0;
-    ocultarBotonBajar();
+    if (document.getElementById("botonBajarChat")) {
+        document.getElementById("botonBajarChat").style.display = "none";
+    }
 
     if (chatCache[info.correo] && chatCache[info.correo].length > 0) {
         renderizarMensajes(chatCache[info.correo]);
     } else {
-        cont.innerHTML = "<div style='text-align:center;color:#999;padding:30px;font-size:14px;'>Cargando mensajes...</div>";
+        cont.innerHTML = "<div style='text-align:center;color:#999;padding:40px;font-size:14px;'>Cargando mensajes...</div>";
     }
 
-    cargarConversacion(); // ← Esto ya tiene scroll inteligente + botón flotante
+    // Forzamos scroll abajo después de la primera carga (sea del caché o del servidor)
+    setTimeout(() => {
+        cont.scrollTop = cont.scrollHeight;
+    }, 300);
+
+    cargarConversacion();
 }
 
 
@@ -2839,13 +2846,17 @@ function renderizarMensajes(mensajes) {
         }, index * 30);
     });
 
-    // SCROLL ABAJO EN CARGA INICIAL (SIEMPRE)
-    setTimeout(() => {
-        cont.scrollTop = cont.scrollHeight;
-        window.mensajesPendientesAbajo = 0;
-        ocultarBotonBajar();
-    }, 120 + mensajes.length * 30);
+    // SCROLL ABAJO CON FUERZA BRUTA (funciona siempre)
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            cont.scrollTop = cont.scrollHeight;
+        });
+    });
 }
+
+
+
+    
 
 function abrirVentanaChat() {
     const box = document.getElementById("chatBox");
@@ -3054,7 +3065,6 @@ async function cargarConversacion() {
         const cacheActual = chatCache[chatConUsuario.correo] || [];
         let huboCambios = false;
 
-        // Eliminar "Cargando..."
         if (cont.innerHTML.includes("Cargando") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
@@ -3072,15 +3082,14 @@ async function cargarConversacion() {
             }
         }
 
-        // Agregar mensajes nuevos
+        // Nuevos mensajes
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
                 agregarMensajeIndividual(msg);
                 huboCambios = true;
 
-                // Contar mensajes nuevos si no estamos abajo
-                const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 200;
+                const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
                 if (!estabaAbajo) {
                     window.mensajesPendientesAbajo = (window.mensajesPendientesAbajo || 0) + 1;
                     mostrarBotonBajar();
@@ -3088,7 +3097,6 @@ async function cargarConversacion() {
             });
         }
 
-        // Actualizar caché
         chatCache[chatConUsuario.correo] = mensajesServidor;
 
         // Indicador escribiendo
@@ -3100,18 +3108,17 @@ async function cargarConversacion() {
             window.typingTimeout = setTimeout(() => typingDiv.style.display = "none", 6000);
         } else {
             typingDiv.style.display = "none";
-            clearTimeout(window.typingTimeout);
         }
 
-        // SCROLL INTELIGENTE + RESETEAR CONTADOR SI ESTÁ ABAJO
-        const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 200;
+        // SCROLL INTELIGENTE + FIX FINAL
+        const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
 
-        if (estabaAbajo) {
-            setTimeout(() => {
+        if (estabaAbajo || cont.scrollHeight <= cont.clientHeight + 500) {
+            requestAnimationFrame(() => {
                 cont.scrollTop = cont.scrollHeight;
                 window.mensajesPendientesAbajo = 0;
                 ocultarBotonBajar();
-            }, 100);
+            });
         }
 
     } catch (err) {
@@ -6847,6 +6854,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
