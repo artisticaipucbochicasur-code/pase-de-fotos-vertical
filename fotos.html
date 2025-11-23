@@ -2055,24 +2055,29 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
 </button>
   </div>
 
-  <!-- 🔔 BOTÓN FLOTANTE DE NUEVOS MENSAJES (tipo WhatsApp) -->
+ <!-- 🔔 BOTÓN FLOTANTE DE NUEVOS MENSAJES (tipo WhatsApp) -->
 <div id="newMsgIndicator" style="
     position: absolute;
     bottom: 80px;
     right: 20px;
+    width: 48px;
+    height: 48px;
     background: #5A8DEE;
     color: white;
-    padding: 10px 14px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-radius: 50%;
     display: none;
     cursor: pointer;
     z-index: 99999999;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:700;
 ">
-  ↓ Nuevos mensajes (<span id="newMsgCount">0</span>)
+  ↓<span id="newMsgCount" style="margin-left:3px;font-size:14px;"></span>
 </div>
+
 
 </div>
 
@@ -2744,14 +2749,26 @@ let chatConUsuario = null;
 document.getElementById("newMsgIndicator").addEventListener("click", () => {
     const cont = document.getElementById("chatMensajes");
 
+    // Bajar al fondo
     cont.scrollTop = cont.scrollHeight;
 
     nuevosMensajes = 0;
-    document.getElementById("newMsgCount").innerText = 0;
+    document.getElementById("newMsgCount").innerText = "";
 
     document.getElementById("newMsgIndicator").style.display = "none";
 });
 
+
+document.getElementById("chatMensajes").addEventListener("scroll", () => {
+    const cont = document.getElementById("chatMensajes");
+
+    // Si ya estoy abajo → ocultar indicador
+    if (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 20) {
+        nuevosMensajes = 0;
+        document.getElementById("newMsgCount").innerText = "";
+        document.getElementById("newMsgIndicator").style.display = "none";
+    }
+});
 
 
     
@@ -3100,14 +3117,19 @@ document.getElementById("chatInput").addEventListener("input", () => {
     }
 
     // 🟥 Si el mensaje ES DEL OTRO usuario:
-    if (!estoyAbajo()) {
+   // 📌 Solo mostrar si el mensaje ES DEL OTRO usuario Y NO estoy abajo
+if (m.de !== usuarioActual.correo) {
+
+    const estabaAbajoPorApertura = cont.dataset.abierto === "1";
+
+    // ⛔ Al abrir el chat NO debe aparecer el indicador
+    if (!estabaAbajoPorApertura && !estoyAbajo()) {
         nuevosMensajes++;
         document.getElementById("newMsgCount").innerText = nuevosMensajes;
-        document.getElementById("newMsgIndicator").style.display = "block";
-    } else {
-        // Si estoy abajo → mantener comportamiento normal
-        setTimeout(() => cont.scrollTop = cont.scrollHeight, 50);
+        document.getElementById("newMsgIndicator").style.display = "flex";
     }
+}
+
 }
 
 
@@ -3224,6 +3246,14 @@ async function cargarConversacion() {
 
         // 🟩 Después del primer refresh, ya no forzamos
         cont.dataset.abierto = "0";
+
+      // Si estoy abajo después del primer refresh → ocultar indicador
+if (estoyAbajo()) {
+    nuevosMensajes = 0;
+    document.getElementById("newMsgCount").innerText = "";
+    document.getElementById("newMsgIndicator").style.display = "none";
+}
+
 
     } catch (err) {
         console.warn("Error en refresh:", err);
@@ -6927,6 +6957,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
