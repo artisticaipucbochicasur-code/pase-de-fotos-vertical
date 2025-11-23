@@ -2054,24 +2054,12 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
   <i class="fas fa-paper-plane"></i>
 </button>
   </div>
-
-  <!-- PEGA ESTO DENTRO DEL #chatBox, justo antes del cierre -->
-<div id="botonBajarChat" style="position:absolute; bottom:80px; right:20px; background:#00A2FF; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); cursor:pointer; z-index:99; display:none;" onclick="bajarAlFinal()">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 5v14m-7-7l7 7 7-7"/></svg>
-    <span id="contadorNuevos" style="position:absolute; top:-8px; right:-8px; background:red; color:white; font-size:11px; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center;"></span>
-</div>
-  
 </div>
 
 <!-- Botón oculto que controla el chat (SOLO UNO EN TODA LA PÁGINA) -->
 <div id="messagesBtn" style="display:none;"></div>
 
 
-  <!-- PEGA ESTO DENTRO DEL #chatBox, justo antes del cierre -->
-<div id="botonBajarChat" style="position:absolute; bottom:80px; right:20px; background:#00A2FF; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); cursor:pointer; z-index:99; display:none;" onclick="bajarAlFinal()">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 5v14m-7-7l7 7 7-7"/></svg>
-    <span id="contadorNuevos" style="position:absolute; top:-8px; right:-8px; background:red; color:white; font-size:11px; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center;"></span>
-</div>
 
 
   
@@ -2762,31 +2750,44 @@ async function precargarTodosLosChats() {
 
     
 function iniciarChatCon(info) {
-    const correoNorm = normalizeText(info.correo);
-    const fotoDesdePerfil = perfilCache[correoNorm]?.fotoPerfil || null;
-    const fotoUsuarioActual = usuarioActual?.correo === info.correo ? usuarioActual.fotoPerfil : null;
-    const fotoFinal = fotoDesdePerfil || fotoUsuarioActual || info.fotoPerfil || info.foto || "img/default-user.png";
 
-    chatConUsuario = { ...info, foto: fotoFinal };
+    const correoNorm = normalizeText(info.correo);
+
+    // ✅ 1) TOMAR FOTO DIRECTA DEL PERFIL CARGADO
+    const fotoDesdePerfil =
+        perfilCache[correoNorm]?.fotoPerfil ||
+        null;
+
+    // ✅ 2) FOTO DEL LOCALSTORAGE (si es el usuario actual)
+    const fotoUsuarioActual =
+        usuarioActual?.correo === info.correo
+            ? usuarioActual.fotoPerfil
+            : null;
+
+    // ✅ 3) ELEGIR FOTO FINAL EN ESTE ORDEN:
+    const fotoFinal =
+        fotoDesdePerfil ||
+        fotoUsuarioActual ||
+        info.fotoPerfil ||
+        info.foto ||
+        "img/default-user.png";
+
+    // ✅ guardar usuario activo con foto unificada
+    chatConUsuario = {
+        ...info,
+        foto: fotoFinal
+    };
+
+   
 
     abrirVentanaChat();
 
-    const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = ""; // ← Limpieza total
-
-    // Reiniciamos contador del botón flotante
-    window.mensajesPendientesAbajo = 0;
-    if (document.getElementById("botonBajarChat")) {
-        document.getElementById("botonBajarChat").style.display = "none";
-    }
-
-    if (chatCache[info.correo] && chatCache[info.correo].length > 0) {
+    if (chatCache[info.correo]) {
         renderizarMensajes(chatCache[info.correo]);
     } else {
-        cont.innerHTML = "<div style='text-align:center;color:#999;padding:40px;font-size:14px;'>Cargando mensajes...</div>";
+        document.getElementById("chatMensajes").innerHTML =
+            "<div style='text-align:center;color:#999;padding:20px;'>Cargando mensajes...</div>";
     }
-
-    
 
     cargarConversacion();
 }
@@ -2797,19 +2798,12 @@ function iniciarChatCon(info) {
 
 
 // 1. NUEVA FUNCIÓN: renderizar mensajes SIN perder scroll ni parpadear
-// ================= RENDERIZAR MENSAJES (CARGA INICIAL → SIEMPRE ABAJO) =================
 function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
-    cont.innerHTML = ""; // limpiamos
-
-    // Si no hay mensajes, igual forzamos scroll abajo
-    if (mensajes.length === 0) {
-        cont.scrollTop = cont.scrollHeight;
-        return;
-    }
-
+    cont.innerHTML = "";  // Solo se usa en carga inicial
     mensajes.forEach((m, index) => {
         const div = document.createElement("div");
+        // (todo el estilo igual que antes)
         div.style.maxWidth = "75%";
         div.style.margin = "6px 0";
         div.style.padding = "8px 12px";
@@ -2840,31 +2834,18 @@ function renderizarMensajes(mensajes) {
                 ${m.fecha}
             </small>
         `;
+
         cont.appendChild(div);
 
-        // Animación de entrada
+        // Animación cascada solo al inicio
         setTimeout(() => {
             div.style.opacity = "1";
             div.style.transform = "translateY(0)";
         }, index * 30);
     });
 
-    // SCROLL ABAJO CON MÁXIMA PRIORIDAD (funciona 100% incluso con animaciones)
-    // Usamos MutationObserver + requestAnimationFrame doble para asegurar que el DOM ya está pintado
-    const forzarScrollAbajo = () => {
-        cont.scrollTop = cont.scrollHeight;
-    };
-
-    // Múltiples intentos seguros
-    requestAnimationFrame(() => {
-        forzarScrollAbajo();
-        requestAnimationFrame(forzarScrollAbajo);
-    });
-
-    // Si aún no llegó al fondo después de 500ms → fuerza bruta final
-    setTimeout(forzarScrollAbajo, 100);
-    setTimeout(forzarScrollAbajo, 300);
-    setTimeout(forzarScrollAbajo, 600);
+    // Scroll al final solo en carga inicial
+    setTimeout(() => cont.scrollTop = cont.scrollHeight, 50 + mensajes.length * 30);
 }
 
 
@@ -2908,6 +2889,13 @@ function abrirVentanaChat() {
 
     // ✅ activar cierre afuera SIN bloquear apertura
     activarCerrarAfuera();
+// 🔽 Forzar scroll al fondo al abrir el chat
+setTimeout(() => {
+    const cont = document.getElementById("chatMensajes");
+    cont.scrollTop = cont.scrollHeight;
+}, 100);
+
+  
 }
 
 
@@ -3059,10 +3047,10 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
     }
 }
 
+// ================= CARGAR CONVERSACIÓN (CON INDICADOR "ESCRIBIENDO") =================
 async function cargarConversacion() {
     if (!chatConUsuario || !usuarioActual) return;
 
-    const cont = document.getElementById("chatMensajes");
     const body = new FormData();
     body.append("accion", "listarChat");
     body.append("user1", usuarioActual.correo);
@@ -3074,69 +3062,91 @@ async function cargarConversacion() {
         if (!json.mensajes) return;
 
         const mensajesServidor = json.mensajes;
+        const cont = document.getElementById("chatMensajes");
         const cacheActual = chatCache[chatConUsuario.correo] || [];
+
         let huboCambios = false;
 
-        if (cont.innerHTML.includes("Cargando") && mensajesServidor.length > 0) {
+        // --- 🔥 ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
+        if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
             cont.innerHTML = "";
         }
 
-        // Actualizar mensaje temporal
-        const tempMsg = cacheActual.find(m => m.id?.startsWith("temp_"));
+        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
+        const cache = chatCache[chatConUsuario.correo] || [];
+        const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
+
         if (tempMsg) {
-            const confirmado = mensajesServidor.find(ms => ms.de === usuarioActual.correo && ms.mensaje === tempMsg.mensaje);
+            const confirmado = mensajesServidor.find(ms =>
+                ms.de === usuarioActual.correo &&
+                ms.mensaje === tempMsg.mensaje
+            );
+
             if (confirmado) {
-                const ultimo = cont.lastElementChild;
-                if (ultimo) ultimo.querySelector("small").textContent = confirmado.fecha;
+                const ult = cont.lastElementChild;
+                if (ult) {
+                    const small = ult.querySelector("small");
+                    if (small) small.textContent = confirmado.fecha;
+                }
+
                 tempMsg.fecha = confirmado.fecha;
                 delete tempMsg.id;
+
                 huboCambios = true;
             }
         }
 
-        // Nuevos mensajes
+        // --- 2. AGREGAR MENSAJES NUEVOS ---
         if (mensajesServidor.length > cacheActual.length) {
             const nuevos = mensajesServidor.slice(cacheActual.length);
             nuevos.forEach(msg => {
                 agregarMensajeIndividual(msg);
                 huboCambios = true;
-
-                const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
-                if (!estabaAbajo) {
-                    window.mensajesPendientesAbajo = (window.mensajesPendientesAbajo || 0) + 1;
-                    mostrarBotonBajar();
-                }
             });
         }
 
-        chatCache[chatConUsuario.correo] = mensajesServidor;
+        // --- 3. ACTUALIZAR CACHE ---
+        if (mensajesServidor.length >= cacheActual.length) {
+            chatCache[chatConUsuario.correo] = mensajesServidor;
+        }
 
-        // Indicador escribiendo
+        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
         const typingDiv = document.getElementById("chatEscribiendo");
+
+        if (!window.typingTimeout) window.typingTimeout = null;
+
         if (json.typing === true) {
+
             typingDiv.style.display = "block";
             typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
+
             clearTimeout(window.typingTimeout);
-            window.typingTimeout = setTimeout(() => typingDiv.style.display = "none", 6000);
+            window.typingTimeout = setTimeout(() => {
+                typingDiv.style.display = "none";
+                typingDiv.innerHTML = "";
+            }, 6000);
+
         } else {
             typingDiv.style.display = "none";
+            typingDiv.innerHTML = "";
+
+            clearTimeout(window.typingTimeout);
+            window.typingTimeout = null;
         }
 
-        // SCROLL INTELIGENTE + FIX FINAL
-        const estabaAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
-
-        if (estabaAbajo || cont.scrollHeight <= cont.clientHeight + 500) {
-            requestAnimationFrame(() => {
-                cont.scrollTop = cont.scrollHeight;
-                window.mensajesPendientesAbajo = 0;
-                ocultarBotonBajar();
-            });
+        // --- 5. SCROLL INTELIGENTE ---
+        if (huboCambios) {
+            const estabaAbajo = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100);
+            if (estabaAbajo) {
+                setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+            }
         }
 
     } catch (err) {
         console.warn("Error en refresh:", err);
     }
 }
+
 
     
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
@@ -3159,39 +3169,6 @@ function cerrarClickAfuera(e) {
 }
 
 
-// PEGA ESTO TAMBIÉN UNA VEZ (al final del JS)
-window.mensajesPendientesAbajo = 0;
-
-function mostrarBotonBajar() {
-    const btn = document.getElementById("botonBajarChat");
-    const contador = document.getElementById("contadorNuevos");
-    if (!btn) return;
-    btn.style.display = "flex";
-    contador.textContent = window.mensajesPendientesAbajo > 99 ? "99+" : window.mensajesPendientesAbajo;
-}
-
-function ocultarBotonBajar() {
-    const btn = document.getElementById("botonBajarChat");
-    if (btn) btn.style.display = "none";
-}
-
-function bajarAlFinal() {
-    const cont = document.getElementById("chatMensajes");
-    cont.scrollTop = cont.scrollHeight;
-    window.mensajesPendientesAbajo = 0;
-    ocultarBotonBajar();
-}
-
-// Opcional: ocultar al hacer scroll manual
-document.getElementById("chatMensajes").addEventListener("scroll", () => {
-    const cont = document.getElementById("chatMensajes");
-    const casiAbajo = cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 300;
-    if (casiAbajo) {
-        window.mensajesPendientesAbajo = 0;
-        ocultarBotonBajar();
-    }
-});
-    
 
     
 const publishBtn = document.getElementById("publishBtn");
