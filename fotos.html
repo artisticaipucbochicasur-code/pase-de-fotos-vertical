@@ -26,20 +26,68 @@
 
   <title>DECOM - Fotos</title>
   <style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #111;
-        font-family: Arial, sans-serif;
-        color: white;
-        transition: transform 0.3s ease; /* Transición para el movimiento */
-    }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;                 /* ✅ bloquea scroll */
+  -webkit-overflow-scrolling: auto;
+  position: fixed;                  /* ✅ MUY importante en iOS */
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  font-family: Arial, sans-serif;
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+.swiper {
+  width: 100vw;
+  height: 100vh;
+
+  /* ✅ iOS: evita scroll/gesto del navegador dentro del swiper */
+  touch-action: pan-x;              /* o "none" si no necesitas nada, pero pan-x suele ir mejor */
+  overscroll-behavior: none;        /* ok, no estorba (Chrome/Android) */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ✅ el wrapper también debe ocupar toda la pantalla */
+.swiper-wrapper,
+.swiper-slide {
+  height: 100vh;
+}
+
+.swiper-slide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: #000;
+}
+
+.swiper-slide img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* loader igual */
+#loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 24px;
+  text-align: center;
+  z-index: 10;
+}
+
 
 #lblContador {
   position: absolute;
@@ -4647,16 +4695,12 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-    // Lógica para subir la barra de comentarios
-    commentInput.addEventListener('focus', () => {
-        // Mueve el cuerpo del documento para que el input sea visible
-        document.body.style.transform = `translateY(-58%)`;
-    });
-
-    commentInput.addEventListener('blur', () => {
-        // Vuelve el cuerpo del documento a su posición original
-        document.body.style.transform = 'translateY(0)';
-    });
+ commentInput.addEventListener("focus", () => {
+  commentInputContainer.style.transform = "translateY(-160px)";
+});
+commentInput.addEventListener("blur", () => {
+  commentInputContainer.style.transform = "translateY(0)";
+});
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -5269,55 +5313,90 @@ async function resolveFotoPerfil(correo, nombre="") {
 
 
 
-   function initSwiper(initialIndex = 0) {
-    if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+function initSwiper(initialIndex = 0) {
+  if (!swiperInstance) {
 
-        swiperInstance.on('slideChange', () => {
-            const activeIndex = swiperInstance.realIndex;
-            updateContentOverlay(activeIndex);
+    // ✅ (1) iOS: bloquear el scroll/refresh cuando el gesto viene del swiper
+    // importante: passive:false para que preventDefault funcione en iOS
+    const blockScrollOnSwiper = (e) => {
+      if (e.target.closest(".swiper")) e.preventDefault();
+    };
+    document.addEventListener("touchmove", blockScrollOnSwiper, { passive: false });
 
-            if(window.AppInventor && anunciosData.length > 0) {
-                const anuncioActual = anunciosData[activeIndex];
-                
-                if (!anuncioActual) return;
+    // ✅ (2) Si quieres ser más fino: solo bloquear si hay intención vertical
+    // (opcional, pero útil si en otros lados sí quieres scroll)
+    let startY = 0;
+    document.addEventListener("touchstart", (e) => {
+      if (e.target.closest(".swiper")) startY = e.touches[0].clientY;
+    }, { passive: true });
 
-                const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-                if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-                }
-                const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
-            }
-        });
-    }
+    document.addEventListener("touchmove", (e) => {
+      if (!e.target.closest(".swiper")) return;
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if (dy > 5) e.preventDefault(); // solo si realmente está arrastrando
+    }, { passive: false });
 
-    if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-        
-        if(window.AppInventor){
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
+    // ✅ (3) Swiper con flags iOS-friendly
+    swiperInstance = new Swiper(".swiper", {
+      loop: true,
+      direction: "vertical",
+      slidesPerView: 1,
+      spaceBetween: 10,
+      zoom: { maxRatio: 3, minRatio: 1 },
+
+      // ✅ claves para iOS
+      passiveListeners: false,
+      touchStartPreventDefault: true,
+      touchMoveStopPropagation: true
+    });
+
+    swiperInstance.on("slideChange", () => {
+      const activeIndex = swiperInstance.realIndex;
+      updateContentOverlay(activeIndex);
+
+      if (window.AppInventor && anunciosData.length > 0) {
+        const anuncioActual = anunciosData[activeIndex];
+        if (!anuncioActual) return;
+
+        const id = anuncioActual.id;
+        const hayServidor =
+          Array.isArray(comentariosPorAnuncio[id]) &&
+          comentariosPorAnuncio[id].length > 0;
+
+        if (hayServidor) {
+          anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
         }
+
+        const listaTitulos = anunciosData.map(a => a.titulo);
+        const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      }
+    });
+  }
+
+  if (anunciosData.length > 0) {
+    const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+    swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+    updateContentOverlay(initialSlideIndex);
+
+    if (window.AppInventor) {
+      const anuncioInicial = anunciosData[initialSlideIndex];
+      const id = anuncioInicial.id;
+      const hayServidor =
+        Array.isArray(comentariosPorAnuncio[id]) &&
+        comentariosPorAnuncio[id].length > 0;
+
+      if (hayServidor) {
+        anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+      }
+
+      const listaTitulos = anunciosData.map(a => a.titulo);
+      const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+      window.AppInventor.setWebViewString(JSON.stringify(payload));
     }
+  }
 }
+
 
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
