@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Swiper iOS test (DECOM)</title>
+  <title>Swiper iOS test con imágenes (DECOM)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <style>
     html, body { 
@@ -13,21 +13,6 @@
       -webkit-tap-highlight-color: transparent; 
       background: #000;
     }
-
-    /* ✅ iOS ScrollTrap: evita que la página esté en scrollTop=0 (y así no hay pull-to-refresh) */
-    #scrollTrap{
-      position: fixed;
-      inset: 0;
-      overflow-y: scroll;                 /* importante */
-      -webkit-overflow-scrolling: touch;
-      background: #000;
-    }
-    #app{
-      min-height: calc(100% + 2px);       /* crea scroll real */
-      padding-top: 1px;                   /* permite scrollTop=1 */
-      background: #000;
-    }
-
     .swiper { 
       width: 100vw; 
       height: 100vh; 
@@ -36,14 +21,12 @@
       -webkit-overflow-scrolling: touch; 
       background: #000; 
     }
-
     .swiper-slide { 
       display: flex; 
       align-items: center; 
       justify-content: center; 
       background: #000;
     }
-
     .swiper-slide img {
       width: 100%;
       height: auto;
@@ -69,13 +52,8 @@
 </head>
 
 <body>
-  <!-- ✅ WRAPPER anti pull-to-refresh -->
-  <div id="scrollTrap">
-    <div id="app">
-      <div class="swiper">
-        <div class="swiper-wrapper"></div>
-      </div>
-    </div>
+  <div class="swiper">
+    <div class="swiper-wrapper"></div>
   </div>
 
   <div id="loader">Cargando imágenes…</div>
@@ -86,38 +64,59 @@
 
     let swiper = null;
 
-    // ✅ iOS ScrollTrap: nunca dejar scrollTop=0 (evita pull-to-refresh en iOS/WebView)
-    (function iosScrollTrap(){
-      const trap = document.getElementById("scrollTrap");
-      if (!trap) return;
+    // ✅ Tu parche: evita pull-to-refresh solo si arranca cerca del top y es hacia abajo
+    (function(){
+      const swiperEl = document.querySelector('.swiper');
+      let startY = 0, startX = 0, isMoving = false;
 
-      function keepOffTop(){
-        if (trap.scrollTop === 0) trap.scrollTop = 1;
+      function onTouchStart(e) {
+        if (!e.touches || e.touches.length > 1) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isMoving = true;
       }
 
-      // iniciar en 1px
-      requestAnimationFrame(() => {
-        trap.scrollTop = 1;
-        keepOffTop();
-      });
+      function onTouchMove(e) {
+        if (!isMoving || !e.touches || e.touches.length > 1) return;
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const deltaY = currentY - startY;
+        const deltaX = currentX - startX;
 
-      trap.addEventListener("scroll", keepOffTop, { passive: true });
-      trap.addEventListener("touchstart", keepOffTop, { passive: true });
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // horizontal -> no interferir
+
+        const startedNearTop = (window.scrollY === 0 || startY < 60);
+        const draggingDown = deltaY > 0;
+
+        if (startedNearTop && draggingDown) {
+          e.preventDefault(); // requiere passive:false
+        }
+      }
+
+      function onTouchEnd() {
+        isMoving = false;
+      }
+
+      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+      swiperEl.addEventListener('touchmove',  onTouchMove,  { passive: false });
+      swiperEl.addEventListener('touchend',   onTouchEnd,   { passive: true });
     })();
 
-    async function cargarImagenesDesdeScript(){
+    async function cargarSlidesDesdeScript() {
       const loader = document.getElementById("loader");
       const wrapper = document.querySelector(".swiper-wrapper");
       loader.style.display = "flex";
 
       try {
+        // 1) Traer data
         const res = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`, { cache: "no-store" });
         if (!res.ok) throw new Error("HTTP " + res.status);
-
         const data = await res.json();
-        const urls = Array.isArray(data.url) ? data.url : [];
 
-        // Limpia slides anteriores
+        // 2) Tomar URLs (limpias)
+        const urls = Array.isArray(data.url) ? data.url.map(u => String(u || "").trim()).filter(Boolean) : [];
+
+        // 3) Render slides ANTES de crear Swiper (esto es lo que mantiene iOS estable)
         wrapper.innerHTML = "";
 
         if (!urls.length) {
@@ -131,27 +130,44 @@
           urls.forEach((url, i) => {
             const slide = document.createElement("div");
             slide.className = "swiper-slide";
-            slide.innerHTML = `<img src="${url}" alt="Imagen ${i+1}">`;
+
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = "Imagen " + (i + 1);
+
+            // ✅ evita selección/drag nativo en iOS
+            img.draggable = false;
+
+            slide.appendChild(img);
             wrapper.appendChild(slide);
           });
         }
 
-        // (Re)inicializar Swiper
-        if (swiper) {
-          swiper.destroy(true, true);
-          swiper = null;
-        }
+        // 4) Esperar 1 frame para que el DOM “asiente” (iOS WebView lo agradece)
+        await new Promise(requestAnimationFrame);
 
-        swiper = new Swiper(".swiper", {
-          direction: "vertical",
-          loop: true,
-          slidesPerView: 1,
-          spaceBetween: 8,
-          simulateTouch: true,
-          touchStartPreventDefault: false,
-          passiveListeners: false,
-          touchEventsTarget: "container"
-        });
+        // 5) Inicializar Swiper UNA SOLA VEZ (NO destroy/recreate)
+        if (!swiper) {
+          swiper = new Swiper('.swiper', {
+            direction: 'vertical',
+            loop: true,
+            slidesPerView: 1,
+            spaceBetween: 8,
+
+            simulateTouch: true,
+            touchStartPreventDefault: false,
+            passiveListeners: false,
+            touchEventsTarget: 'container',
+
+            // ✅ ayuda con imágenes remotas pesadas
+            preloadImages: false,
+            lazy: true,
+            watchSlidesProgress: true
+          });
+        } else {
+          // si ya existía (por ejemplo recargas internas), solo update
+          swiper.update();
+        }
 
       } catch (err) {
         console.error(err);
@@ -166,49 +182,8 @@
       }
     }
 
-    // ✅ (Opcional) Parche extra: solo bloquea si el gesto arranca cerca del top y es hacia abajo
-    // (lo dejamos porque no afecta, pero el ScrollTrap es el que manda)
-    (function(){
-      const swiperEl = document.querySelector('.swiper');
-      let startY = 0, startX = 0, isMoving = false;
-
-      function onTouchStart(e) {
-        if (!e.touches || e.touches.length > 1) return;
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        isMoving = true;
-      }
-
-      function onTouchMove(e) {
-        if (!isMoving || !e.touches || e.touches.length > 1) return;
-        if (!e.cancelable) return;
-
-        const currentY = e.touches[0].clientY;
-        const currentX = e.touches[0].clientX;
-        const deltaY = currentY - startY;
-        const deltaX = currentX - startX;
-
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-
-        const startedNearTop = (window.scrollY === 0 || startY < 60);
-        const draggingDown = deltaY > 0;
-
-        if (startedNearTop && draggingDown) {
-          e.preventDefault();
-        }
-      }
-
-      function onTouchEnd() {
-        isMoving = false;
-      }
-
-      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
-      swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
-      swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
-    })();
-
     // ✅ Cargar al iniciar
-    cargarImagenesDesdeScript();
+    cargarSlidesDesdeScript();
   </script>
 </body>
 </html>
