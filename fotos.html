@@ -13,11 +13,11 @@
       background: #000;
       -webkit-tap-highlight-color: transparent;
 
-      /* ✅ evita que iOS trate el body como scrollable */
+      /* evita scroll del documento */
       overflow: hidden;
       position: fixed;
-      width: 100%;
       inset: 0;
+      width: 100%;
     }
 
     .swiper {
@@ -25,10 +25,8 @@
       height: 100vh;
       background: #000;
 
-      /* iOS no lo respeta al 100%, pero ayuda */
+      overscroll-behavior: none;
       touch-action: pan-y;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
     }
 
     .swiper-slide {
@@ -38,15 +36,22 @@
       background: #000;
     }
 
+    /* Swiper lazy usa class swiper-lazy */
     .swiper-slide img {
       width: 100%;
       height: 100%;
       object-fit: contain;
+
       user-select: none;
       -webkit-user-drag: none;
 
-      /* ✅ importante: que el gesto se lo quede el swiper, no la imagen */
+      /* deja que el gesto lo maneje Swiper, no la img */
       pointer-events: none;
+    }
+
+    .swiper-lazy-preloader {
+      width: 32px;
+      height: 32px;
     }
 
     #loader{
@@ -74,18 +79,12 @@
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
-
     let swiper = null;
 
-    // -----------------------------------------
-    // ✅ NORMALIZAR LINKS GOOGLE DRIVE
-    // Acepta:
-    // - https://drive.google.com/uc?export=view&id=ID
-    // - https://drive.google.com/file/d/ID/view
-    // - ID directo
-    // Devuelve:
-    // - https://lh3.googleusercontent.com/d/ID=w1200  (más directo)
-    // -----------------------------------------
+    // -------------------------------
+    // 1) Normaliza links de Drive a THUMBNAIL (MUY importante para iOS)
+    //    Esto reduce memoria y evita el crash “se recargó por un problema”.
+    // -------------------------------
     function extractDriveId(u) {
       if (!u) return "";
       const s = String(u).trim();
@@ -107,58 +106,54 @@
     function normalizeImageUrl(u) {
       const s = String(u || "").trim();
       const id = extractDriveId(s);
-      if (id) return `https://lh3.googleusercontent.com/d/${id}=w1200`;
-      return s;
+      if (!id) return s;
+
+      // ✅ THUMBNAIL: mucho más liviano y estable en iOS
+      // Puedes bajar o subir el tamaño: w900, w1200, w1600
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1200`;
     }
 
-    // ---------------------------------------------------------
-    // ✅ BLOQUEO REAL ANTI-REFRESH EN iOS PWA
-    // - Bloquea scroll del documento solo dentro del swiper
-    // - NO bloquea pinch-zoom (2 dedos)
-    // ---------------------------------------------------------
-    (function iosHardBlockRefresh(){
-      const root = document; // capturamos global
-      let startY = 0, startX = 0, tracking = false;
+    // -----------------------------------------
+    // 2) BLOQUEAR “RECARGAR / BOUNCE” SOLO MIENTRAS SE DESLIZA
+    //    (esto es lo que me pediste: durante swipe se desactiva el gesto)
+    // -----------------------------------------
+    (function blockRefreshOnlyWhileSwiping(){
+      let swiping = false;
+      let startX = 0, startY = 0;
 
-      root.addEventListener("touchstart", (e) => {
-        // no tocamos gestos de 2 dedos (pinch)
+      function onStart(e){
         if (!e.touches || e.touches.length !== 1) return;
-
-        // solo si el gesto empieza dentro del swiper
         if (!e.target.closest(".swiper")) return;
 
-        tracking = true;
-        startY = e.touches[0].clientY;
+        swiping = true;
         startX = e.touches[0].clientX;
-      }, { passive: true, capture: true });
+        startY = e.touches[0].clientY;
+      }
 
-      root.addEventListener("touchmove", (e) => {
-        if (!tracking) return;
+      function onMove(e){
+        if (!swiping) return;
         if (!e.touches || e.touches.length !== 1) return;
         if (!e.cancelable) return;
 
-        // Solo dentro del swiper
-        if (!e.target.closest(".swiper")) return;
-
-        const y = e.touches[0].clientY;
         const x = e.touches[0].clientX;
-        const dy = y - startY;
+        const y = e.touches[0].clientY;
         const dx = x - startX;
+        const dy = y - startY;
 
-        // si es más horizontal, no meterse
-        if (Math.abs(dx) > Math.abs(dy)) return;
+        // solo si es más vertical que horizontal
+        if (Math.abs(dy) >= Math.abs(dx)) {
+          e.preventDefault(); // ✅ aquí se “mata” el gesto del navegador DURANTE el swipe
+        }
+      }
 
-        // ✅ Esta línea es la que corta el pull-to-refresh/bounce del documento
-        e.preventDefault();
-      }, { passive: false, capture: true });
+      function onEnd(){
+        swiping = false;
+      }
 
-      root.addEventListener("touchend", () => {
-        tracking = false;
-      }, { passive: true, capture: true });
-
-      root.addEventListener("touchcancel", () => {
-        tracking = false;
-      }, { passive: true, capture: true });
+      document.addEventListener("touchstart", onStart, { passive: true,  capture: true });
+      document.addEventListener("touchmove",  onMove,  { passive: false, capture: true });
+      document.addEventListener("touchend",   onEnd,   { passive: true,  capture: true });
+      document.addEventListener("touchcancel",onEnd,   { passive: true,  capture: true });
     })();
 
     async function cargarSlidesDesdeScript() {
@@ -172,10 +167,9 @@
         const data = await res.json();
 
         const urls = Array.isArray(data.url)
-          ? data.url.map(normalizeImageUrl).filter(Boolean)
+          ? data.url.map(u => normalizeImageUrl(u)).filter(Boolean)
           : [];
 
-        // Renderizar slides
         wrapper.innerHTML = "";
 
         if (!urls.length) {
@@ -189,30 +183,49 @@
           urls.forEach((url, i) => {
             const slide = document.createElement("div");
             slide.className = "swiper-slide";
-            slide.innerHTML = `<img src="${url}" alt="Imagen ${i+1}" draggable="false">`;
+
+            // ✅ Swiper Lazy REAL (no cargues todo de una)
+            slide.innerHTML = `
+              <img
+                class="swiper-lazy"
+                data-src="${url}"
+                alt="Imagen ${i+1}"
+                loading="lazy"
+                decoding="async"
+                draggable="false"
+              />
+              <div class="swiper-lazy-preloader"></div>
+            `;
+
             wrapper.appendChild(slide);
           });
         }
 
-        // Esperar un frame para iOS
+        // iOS agradece un frame antes de inicializar
         await new Promise(requestAnimationFrame);
 
-        // Inicializar Swiper (sin destroy/recreate)
         if (!swiper) {
           swiper = new Swiper(".swiper", {
-            direction: "horizontal",
+            direction: "vertical",
             loop: true,
             slidesPerView: 1,
             spaceBetween: 8,
 
             simulateTouch: true,
             touchStartPreventDefault: false,
-
-            // ✅ iOS-friendly
             passiveListeners: false,
             touchEventsTarget: "container",
 
-            // Zoom (si luego lo quieres activar con swiper-zoom-container)
+            // ✅ CLAVE anti-crash: no precargar todo
+            preloadImages: false,
+            watchSlidesProgress: true,
+            lazy: {
+              enabled: true,
+              loadPrevNext: true,
+              loadPrevNextAmount: 1
+            },
+
+            // zoom opcional
             zoom: { maxRatio: 3, minRatio: 1 }
           });
         } else {
@@ -236,4 +249,3 @@
   </script>
 </body>
 </html>
-
