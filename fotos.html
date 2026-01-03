@@ -44,13 +44,9 @@ body{
   width: 100vw;
   height: 100vh;
   background: #000;
-}
 
-.swiper-slide{
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
+  /* ✅ clave: que el browser NO tome el gesto vertical */
+  touch-action: none;
 }
 
 .swiper-slide img{
@@ -59,7 +55,11 @@ body{
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+
+  /* ✅ si quieres mantener pinch */
+  touch-action: pinch-zoom;
 }
+
 
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -7165,6 +7165,55 @@ function agregarEfectoRipple(boton) {
 });
 
 
+// ✅ iOS/PWA: bloquear pull-to-refresh SOLO cuando el gesto nace en el swiper
+(function preventPTRinSwiper(){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  if (!isIOS) return;
+
+  let startY = 0;
+  let startX = 0;
+  let tracking = false;
+  let startedInSwiper = false;
+
+  document.addEventListener("touchstart", (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+
+    const t = e.touches[0];
+    startY = t.clientY;
+    startX = t.clientX;
+    tracking = true;
+
+    // 👇 SOLO si el toque empezó dentro del swiper
+    startedInSwiper = !!(e.target && e.target.closest && e.target.closest(".swiper"));
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!tracking || !startedInSwiper) return;
+    if (!e.touches || e.touches.length !== 1) return;
+
+    const t = e.touches[0];
+    const dy = t.clientY - startY;
+    const dx = t.clientX - startX;
+
+    // si el gesto es más horizontal, no interferir
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    // ✅ bloquear el gesto vertical para que NO haga refresh
+    e.preventDefault();
+  }, { passive: false, capture: true });
+
+  document.addEventListener("touchend", () => {
+    tracking = false;
+    startedInSwiper = false;
+  }, { passive: true });
+
+  document.addEventListener("touchcancel", () => {
+    tracking = false;
+    startedInSwiper = false;
+  }, { passive: true });
+})();
 
     
     
@@ -7175,6 +7224,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
