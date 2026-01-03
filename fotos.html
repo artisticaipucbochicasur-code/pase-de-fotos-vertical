@@ -64,7 +64,26 @@
 
     let swiper = null;
 
-    // ✅ Tu parche: evita pull-to-refresh solo si arranca cerca del top y es hacia abajo
+    // ✅ (A) Normalizar links Google Drive -> link de imagen directa (evita recarga iOS)
+    function normalizarUrlDrive(url) {
+      if (!url) return "";
+      const s = String(url).trim();
+
+      // si ya viene en formato directo
+      if (s.includes("lh3.googleusercontent.com/d/")) return s;
+
+      // uc?export=view&id=XXXX
+      let m = s.match(/id=([^&]+)/);
+      if (m && m[1]) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+
+      // /file/d/XXXX/...
+      m = s.match(/\/d\/([^/]+)/);
+      if (m && m[1]) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+
+      return s; // no es drive
+    }
+
+    // ✅ (B) Tu parche: evita pull-to-refresh solo si arranca cerca del top y es hacia abajo
     (function(){
       const swiperEl = document.querySelector('.swiper');
       let startY = 0, startX = 0, isMoving = false;
@@ -78,6 +97,8 @@
 
       function onTouchMove(e) {
         if (!isMoving || !e.touches || e.touches.length > 1) return;
+        if (!e.cancelable) return;
+
         const currentY = e.touches[0].clientY;
         const currentX = e.touches[0].clientX;
         const deltaY = currentY - startY;
@@ -113,10 +134,15 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
 
-        // 2) Tomar URLs (limpias)
-        const urls = Array.isArray(data.url) ? data.url.map(u => String(u || "").trim()).filter(Boolean) : [];
+        // 2) Tomar URLs + normalizarlas (CLAVE)
+        const urls = Array.isArray(data.url)
+          ? data.url
+              .map(u => normalizarUrlDrive(u))
+              .map(u => String(u || "").trim())
+              .filter(Boolean)
+          : [];
 
-        // 3) Render slides ANTES de crear Swiper (esto es lo que mantiene iOS estable)
+        // 3) Render slides ANTES de crear Swiper
         wrapper.innerHTML = "";
 
         if (!urls.length) {
@@ -135,7 +161,7 @@
             img.src = url;
             img.alt = "Imagen " + (i + 1);
 
-            // ✅ evita selección/drag nativo en iOS
+            // ✅ evita drag nativo iOS
             img.draggable = false;
 
             slide.appendChild(img);
@@ -143,10 +169,10 @@
           });
         }
 
-        // 4) Esperar 1 frame para que el DOM “asiente” (iOS WebView lo agradece)
+        // 4) Esperar 1 frame para que el DOM asiente
         await new Promise(requestAnimationFrame);
 
-        // 5) Inicializar Swiper UNA SOLA VEZ (NO destroy/recreate)
+        // 5) Inicializar Swiper UNA SOLA VEZ (sin destroy/recreate)
         if (!swiper) {
           swiper = new Swiper('.swiper', {
             direction: 'vertical',
@@ -159,13 +185,12 @@
             passiveListeners: false,
             touchEventsTarget: 'container',
 
-            // ✅ ayuda con imágenes remotas pesadas
+            // ✅ optimiza imágenes remotas
             preloadImages: false,
             lazy: true,
             watchSlidesProgress: true
           });
         } else {
-          // si ya existía (por ejemplo recargas internas), solo update
           swiper.update();
         }
 
