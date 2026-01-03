@@ -29,32 +29,20 @@
 
 html, body {
   height: 100%;
-  margin: 0;
-  overflow: hidden;                 /* ✅ bloquea scroll */
-  -webkit-overflow-scrolling: auto;
-  position: fixed;                  /* ✅ MUY importante en iOS */
   width: 100%;
-}
-
-body {
   margin: 0;
-  padding: 0;
-  background: #111;
-  font-family: Arial, sans-serif;
-  color: white;
-  transition: transform 0.3s ease;
+  overflow: hidden;
+  position: fixed;      /* 🔥 clave iOS */
+  left: 0; top: 0;
+  background: #000;
 }
 
 .swiper {
   width: 100vw;
   height: 100vh;
-
-  /* ✅ iOS: evita scroll/gesto del navegador dentro del swiper */
-  touch-action: pan-x;              /* o "none" si no necesitas nada, pero pan-x suele ir mejor */
-  overscroll-behavior: none;        /* ok, no estorba (Chrome/Android) */
-  -webkit-user-select: none;
-  user-select: none;
+  touch-action: pan-y pinch-zoom; /* permite gesto vertical + zoom */
 }
+
 
 /* ✅ el wrapper también debe ocupar toda la pantalla */
 .swiper-wrapper,
@@ -5311,6 +5299,50 @@ async function resolveFotoPerfil(correo, nombre="") {
     }
 }
 
+(function blockIOSPullToRefresh(){
+  const el = document.querySelector('.swiper');
+  if (!el) return;
+
+  let startY = 0;
+  let startX = 0;
+  let tracking = false;
+
+  function onTouchStart(e){
+    if (!e.touches || e.touches.length !== 1) return;
+    tracking = true;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+  }
+
+  function onTouchMove(e){
+    if (!tracking) return;
+    if (!e.touches || e.touches.length !== 1) return;
+
+    const y = e.touches[0].clientY;
+    const x = e.touches[0].clientX;
+
+    const dy = y - startY;
+    const dx = x - startX;
+
+    // si es más horizontal, no molestamos
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    // IMPORTANTÍSIMO: solo si el evento es cancelable
+    if (!e.cancelable) return;
+
+    // ✅ Bloquea el gesto del navegador dentro del swiper
+    // (esto evita refresh/overscroll incluso si iOS cree que hay scroll)
+    e.preventDefault();
+  }
+
+  function onTouchEnd(){
+    tracking = false;
+  }
+
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('touchmove',  onTouchMove,  { passive: false });
+  el.addEventListener('touchend',   onTouchEnd,   { passive: true });
+})();
 
 
 function initSwiper(initialIndex = 0) {
@@ -7129,6 +7161,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
