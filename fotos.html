@@ -26,6 +26,19 @@
 
   <title>DECOM - Fotos</title>
   <style>
+html, body{
+  height: 100%;
+  margin: 0;
+  overflow: hidden !important;
+}
+
+body{
+  position: fixed;      /* ✅ clave iOS */
+  inset: 0;
+  width: 100%;
+}
+
+    
     body {
         margin: 0;
         padding: 0;
@@ -5306,24 +5319,70 @@ async function resolveFotoPerfil(correo, nombre="") {
 
 
 
-  function initSwiper(initialIndex = 0) {
-  // ✅ Crear Swiper SOLO una vez
+    (function iosNoPullToRefresh(){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+               (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  if (!isIOS) return;
+
+  let startY = 0;
+  let startX = 0;
+  let tracking = false;
+
+  // ✅ Solo bloqueamos si el gesto nació dentro del swiper
+  function startedInsideSwiper(target){
+    return !!(target && target.closest && target.closest(".swiper"));
+  }
+
+  document.addEventListener("touchstart", (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    if (!startedInsideSwiper(e.target)) return;
+
+    tracking = true;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+  }, { passive: true, capture: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!tracking) return;
+    if (!e.touches || e.touches.length !== 1) return;
+
+    const y = e.touches[0].clientY;
+    const x = e.touches[0].clientX;
+
+    const dy = y - startY;
+    const dx = x - startX;
+
+    // si es más horizontal que vertical, no tocamos
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    // ✅ Aquí está la magia: evitar el scroll/bounce del navegador
+    // iOS puede disparar refresh por "tirón" incluso mínimo
+    e.preventDefault();
+  }, { passive: false, capture: true });
+
+  document.addEventListener("touchend", () => {
+    tracking = false;
+  }, { passive: true, capture: true });
+
+  document.addEventListener("touchcancel", () => {
+    tracking = false;
+  }, { passive: true, capture: true });
+})();
+
+
+function initSwiper(initialIndex = 0) {
   if (!swiperInstance) {
     swiperInstance = new Swiper(".swiper", {
       direction: "vertical",
       loop: true,
       slidesPerView: 1,
-      spaceBetween: 8,
+      spaceBetween: 10,
+      zoom: { maxRatio: 3, minRatio: 1 },
       simulateTouch: true,
-
-      // ✅ iOS: igual que tu test
-      touchStartPreventDefault: false,
-
-      // (opcional) si usas zoom en tu app, déjalo:
-      zoom: { maxRatio: 3, minRatio: 1 }
+      touchStartPreventDefault: false
     });
 
-    // ✅ Tu evento original (sin cambios)
     swiperInstance.on("slideChange", () => {
       const activeIndex = swiperInstance.realIndex;
       updateContentOverlay(activeIndex);
@@ -7159,4 +7218,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
