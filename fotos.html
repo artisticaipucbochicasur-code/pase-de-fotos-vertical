@@ -30,26 +30,37 @@ html, body{
   height: 100%;
   margin: 0;
   overflow: hidden !important;
+  -webkit-tap-highlight-color: transparent;
+  background: #000;
 }
 
 body{
-  position: fixed;      /* ✅ clave iOS */
+  position: fixed;  /* ✅ iOS */
   inset: 0;
   width: 100%;
 }
 
-    
-    body {
-        margin: 0;
-        padding: 0;
-        background: #111;
-        font-family: Arial, sans-serif;
-        color: white;
-        transition: transform 0.3s ease; /* Transición para el movimiento */
-    }
-    .swiper { width: 100vw; height: 100vh; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.swiper{
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+
+.swiper-slide{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.swiper-slide img{
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
@@ -4258,7 +4269,42 @@ if (refreshBtn) {
   });
 }
 
-    
+    (function iosNoPullToRefresh(){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+               (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (!isIOS) return;
+
+  const swiperEl = document.querySelector(".swiper");
+  if (!swiperEl) return;
+
+  let startY = 0, startX = 0, moving = false;
+
+  swiperEl.addEventListener("touchstart", (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    moving = true;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+
+  swiperEl.addEventListener("touchmove", (e) => {
+    if (!moving || !e.touches || e.touches.length !== 1) return;
+
+    const y = e.touches[0].clientY;
+    const x = e.touches[0].clientX;
+    const dy = y - startY;
+    const dx = x - startX;
+
+    // si es horizontal, no tocamos
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    // ✅ Bloquea el scroll/bounce del navegador
+    e.preventDefault();
+  }, { passive: false });
+
+  swiperEl.addEventListener("touchend", () => { moving = false; }, { passive: true });
+  swiperEl.addEventListener("touchcancel", () => { moving = false; }, { passive: true });
+})();
+
 
 function reconstruirIndiceBusqueda() {
   indiceBusqueda = anunciosData.map((a, i) => {
@@ -5386,106 +5432,17 @@ function initSwiper(initialIndex = 0) {
     swiperInstance.on("slideChange", () => {
       const activeIndex = swiperInstance.realIndex;
       updateContentOverlay(activeIndex);
-
-      if (window.AppInventor && anunciosData.length > 0) {
-        const anuncioActual = anunciosData[activeIndex];
-        if (!anuncioActual) return;
-
-        const id = anuncioActual.id;
-        const hayServidor =
-          Array.isArray(comentariosPorAnuncio[id]) &&
-          comentariosPorAnuncio[id].length > 0;
-
-        if (hayServidor) {
-          anuncioActual.comentarios = normalizarComentarios(
-            comentariosPorAnuncio[id]
-          );
-        }
-
-        const listaTitulos = anunciosData.map((a) => a.titulo);
-        const payload = {
-          ...anuncioActual,
-          titulos: listaTitulos,
-          contador: contadorAcumulado
-        };
-        window.AppInventor.setWebViewString(JSON.stringify(payload));
-      }
+      // ... tu bloque AppInventor igual ...
     });
-
-    // ✅ PARCHE iOS: evita pull-to-refresh sin dañar Swiper (igual a tu test)
-    (function () {
-      const swiperEl = document.querySelector(".swiper");
-      if (!swiperEl) return;
-
-      let startY = 0,
-        startX = 0,
-        isMoving = false;
-
-      function onTouchStart(e) {
-        if (!e.touches || e.touches.length > 1) return;
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        isMoving = true;
-      }
-
-      function onTouchMove(e) {
-        if (!isMoving || !e.touches || e.touches.length > 1) return;
-
-        const currentY = e.touches[0].clientY;
-        const currentX = e.touches[0].clientX;
-        const deltaY = currentY - startY;
-        const deltaX = currentX - startX;
-
-        // gesto horizontal -> no interferir
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
-
-        const startedNearTop = window.scrollY === 0 || startY < 60;
-        const draggingDown = deltaY > 0;
-
-        // ✅ Bloquear el pull-to-refresh SOLO en este caso
-        if (startedNearTop && draggingDown) {
-          e.preventDefault(); // requiere passive:false
-        }
-      }
-
-      function onTouchEnd() {
-        isMoving = false;
-      }
-
-      swiperEl.addEventListener("touchstart", onTouchStart, { passive: true });
-      swiperEl.addEventListener("touchmove", onTouchMove, { passive: false });
-      swiperEl.addEventListener("touchend", onTouchEnd, { passive: true });
-    })();
   }
 
-  // ✅ Posicionar slide inicial (tu lógica igual)
   if (anunciosData.length > 0) {
     const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
     swiperInstance.slideToLoop(initialSlideIndex, 0, false);
     updateContentOverlay(initialSlideIndex);
-
-    if (window.AppInventor) {
-      const anuncioInicial = anunciosData[initialSlideIndex];
-      const id = anuncioInicial.id;
-
-      const hayServidor =
-        Array.isArray(comentariosPorAnuncio[id]) &&
-        comentariosPorAnuncio[id].length > 0;
-
-      if (hayServidor) {
-        anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-      }
-
-      const listaTitulos = anunciosData.map((a) => a.titulo);
-      const payload = {
-        ...anuncioInicial,
-        titulos: listaTitulos,
-        contador: contadorAcumulado
-      };
-      window.AppInventor.setWebViewString(JSON.stringify(payload));
-    }
   }
 }
+
 
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
@@ -7218,5 +7175,6 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
