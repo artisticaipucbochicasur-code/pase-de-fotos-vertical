@@ -29,19 +29,22 @@
 
 html, body {
   height: 100%;
-  width: 100%;
   margin: 0;
   overflow: hidden;
-  position: fixed;      /* 🔥 clave iOS */
-  left: 0; top: 0;
-  background: #000;
+  position: fixed;   /* 🔥 clave */
+  width: 100%;
+  left: 0;
+  top: 0;
+  background: #111;
+  -webkit-overflow-scrolling: auto;
 }
 
 .swiper {
   width: 100vw;
   height: 100vh;
-  touch-action: pan-y pinch-zoom; /* permite gesto vertical + zoom */
+  touch-action: pan-y pinch-zoom; /* ✅ NO touch-action:none */
 }
+
 
 
 /* ✅ el wrapper también debe ocupar toda la pantalla */
@@ -5344,6 +5347,48 @@ async function resolveFotoPerfil(correo, nombre="") {
   el.addEventListener('touchend',   onTouchEnd,   { passive: true });
 })();
 
+(function preventIOSRefreshOnSwipe(){
+  let startX = 0, startY = 0, tracking = false;
+
+  document.addEventListener('touchstart', (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    tracking = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true, capture: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!tracking) return;
+    if (!e.touches || e.touches.length !== 1) return;
+    if (!e.cancelable) return;
+
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+
+    // si el gesto es más horizontal, no bloqueamos
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    const t = e.target;
+
+    // ✅ NO bloquear inputs/textarea (para no romper teclado)
+    if (t.closest('input, textarea, [contenteditable="true"]')) return;
+
+    // ✅ si el gesto ocurre dentro del swiper o overlays que van encima, bloquea el scroll nativo
+    if (t.closest('.swiper') ||
+        t.closest('#contentOverlay') ||
+        t.closest('#commentsOverlay') ||
+        t.closest('.comment-input-container') ||
+        t.closest('#socialHeader')) {
+      e.preventDefault();
+    }
+  }, { passive: false, capture: true });
+
+  document.addEventListener('touchend', () => {
+    tracking = false;
+  }, { passive: true, capture: true });
+})();
 
 function initSwiper(initialIndex = 0) {
   if (!swiperInstance) {
@@ -5369,18 +5414,19 @@ function initSwiper(initialIndex = 0) {
     }, { passive: false });
 
     // ✅ (3) Swiper con flags iOS-friendly
-    swiperInstance = new Swiper(".swiper", {
-      loop: true,
-      direction: "vertical",
-      slidesPerView: 1,
-      spaceBetween: 10,
-      zoom: { maxRatio: 3, minRatio: 1 },
+swiperInstance = new Swiper('.swiper', {
+  loop: true,
+  direction: 'vertical',
+  slidesPerView: 1,
+  spaceBetween: 10,
+  zoom: { maxRatio: 3, minRatio: 1 },
 
-      // ✅ claves para iOS
-      passiveListeners: false,
-      touchStartPreventDefault: true,
-      touchMoveStopPropagation: true
-    });
+  simulateTouch: true,
+  touchStartPreventDefault: false,
+  passiveListeners: false,      // ✅ importante para iOS
+  touchEventsTarget: 'container'// ✅ importante con overlays
+});
+
 
     swiperInstance.on("slideChange", () => {
       const activeIndex = swiperInstance.realIndex;
@@ -7161,6 +7207,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
