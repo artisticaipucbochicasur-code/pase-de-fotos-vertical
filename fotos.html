@@ -2,38 +2,44 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Swiper iOS test con imágenes (DECOM)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <style>
-    html, body { 
-      height: 100%; 
-      margin: 0; 
-      overflow: hidden; 
-      -webkit-tap-highlight-color: transparent; 
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
       background: #000;
     }
-    .swiper { 
-      width: 100vw; 
-      height: 100vh; 
-      overscroll-behavior: contain; 
-      touch-action: pan-y; 
-      -webkit-overflow-scrolling: touch; 
-      background: #000; 
+
+    /* Contenedor fijo para que iOS no “rebote” el documento */
+    body { position: fixed; inset: 0; }
+
+    .swiper {
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
     }
-    .swiper-slide { 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
+
+    .swiper-slide {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: #000;
     }
+
+    /* Importante: limitar tamaño y evitar cosas raras de iOS */
     .swiper-slide img {
       width: 100%;
-      height: auto;
+      height: 100%;
       object-fit: contain;
       user-select: none;
       -webkit-user-drag: none;
-      touch-action: pan-y pinch-zoom;
+      pointer-events: none;
     }
 
     #loader{
@@ -64,26 +70,36 @@
 
     let swiper = null;
 
-    // ✅ (A) Normalizar links Google Drive -> link de imagen directa (evita recarga iOS)
-    function normalizarUrlDrive(url) {
+    // ✅ Extraer ID de Drive si viene como uc?export=view&id= o /d/
+    function getDriveId(url) {
       if (!url) return "";
       const s = String(url).trim();
 
-      // si ya viene en formato directo
-      if (s.includes("lh3.googleusercontent.com/d/")) return s;
-
-      // uc?export=view&id=XXXX
+      // id=XXXX
       let m = s.match(/id=([^&]+)/);
-      if (m && m[1]) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+      if (m && m[1]) return m[1];
 
-      // /file/d/XXXX/...
+      // /d/XXXX/
       m = s.match(/\/d\/([^/]+)/);
-      if (m && m[1]) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+      if (m && m[1]) return m[1];
 
-      return s; // no es drive
+      // si te mandan solo el ID
+      if (/^[A-Za-z0-9_-]{20,80}$/.test(s)) return s;
+
+      return "";
     }
 
-    // ✅ (B) Tu parche: evita pull-to-refresh solo si arranca cerca del top y es hacia abajo
+    // ✅ Normaliza a THUMBNAIL liviano (clave para evitar reload por memoria en iOS)
+    // sz=w1200 suele verse bien en pantalla y pesa mucho menos que el original
+    function normalizarUrlImagen(url) {
+      const id = getDriveId(url);
+      if (id) {
+        return `https://drive.google.com/thumbnail?sz=w1200&id=${id}`;
+      }
+      return String(url || "").trim();
+    }
+
+    // ✅ Tu parche anti pull-to-refresh (lo dejamos, pero el problema real suele ser memoria)
     (function(){
       const swiperEl = document.querySelector('.swiper');
       let startY = 0, startX = 0, isMoving = false;
@@ -104,19 +120,15 @@
         const deltaY = currentY - startY;
         const deltaX = currentX - startX;
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // horizontal -> no interferir
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return;
 
         const startedNearTop = (window.scrollY === 0 || startY < 60);
         const draggingDown = deltaY > 0;
 
-        if (startedNearTop && draggingDown) {
-          e.preventDefault(); // requiere passive:false
-        }
+        if (startedNearTop && draggingDown) e.preventDefault();
       }
 
-      function onTouchEnd() {
-        isMoving = false;
-      }
+      function onTouchEnd() { isMoving = false; }
 
       swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
       swiperEl.addEventListener('touchmove',  onTouchMove,  { passive: false });
@@ -129,20 +141,14 @@
       loader.style.display = "flex";
 
       try {
-        // 1) Traer data
         const res = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`, { cache: "no-store" });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
 
-        // 2) Tomar URLs + normalizarlas (CLAVE)
         const urls = Array.isArray(data.url)
-          ? data.url
-              .map(u => normalizarUrlDrive(u))
-              .map(u => String(u || "").trim())
-              .filter(Boolean)
+          ? data.url.map(normalizarUrlImagen).filter(Boolean)
           : [];
 
-        // 3) Render slides ANTES de crear Swiper
         wrapper.innerHTML = "";
 
         if (!urls.length) {
@@ -157,37 +163,42 @@
             const slide = document.createElement("div");
             slide.className = "swiper-slide";
 
+            // Swiper Lazy (usa data-src)
             const img = document.createElement("img");
-            img.src = url;
+            img.className = "swiper-lazy";
+            img.setAttribute("data-src", url);
             img.alt = "Imagen " + (i + 1);
+            img.loading = "lazy";
+            img.decoding = "async";
 
-            // ✅ evita drag nativo iOS
-            img.draggable = false;
+            const preloader = document.createElement("div");
+            preloader.className = "swiper-lazy-preloader";
 
             slide.appendChild(img);
+            slide.appendChild(preloader);
             wrapper.appendChild(slide);
           });
         }
 
-        // 4) Esperar 1 frame para que el DOM asiente
         await new Promise(requestAnimationFrame);
 
-        // 5) Inicializar Swiper UNA SOLA VEZ (sin destroy/recreate)
         if (!swiper) {
-          swiper = new Swiper('.swiper', {
-            direction: 'vertical',
-            loop: true,
+          swiper = new Swiper(".swiper", {
+            direction: "vertical",
+            loop: false,                  // ✅ IMPORTANTE en iOS para no duplicar slides/imágenes
             slidesPerView: 1,
             spaceBetween: 8,
 
             simulateTouch: true,
             touchStartPreventDefault: false,
             passiveListeners: false,
-            touchEventsTarget: 'container',
+            touchEventsTarget: "container",
 
-            // ✅ optimiza imágenes remotas
             preloadImages: false,
-            lazy: true,
+            lazy: {
+              loadPrevNext: true,         // ✅ solo carga vecinas
+              loadPrevNextAmount: 1
+            },
             watchSlidesProgress: true
           });
         } else {
@@ -207,7 +218,6 @@
       }
     }
 
-    // ✅ Cargar al iniciar
     cargarSlidesDesdeScript();
   </script>
 </body>
