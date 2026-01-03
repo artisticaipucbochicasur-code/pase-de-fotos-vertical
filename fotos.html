@@ -7083,9 +7083,32 @@ function agregarEfectoRipple(boton) {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
     }
+
+
+    (function bloquearPullToRefreshIOS() {
+  const swiperEl = document.querySelector('.swiper');
+  if (!swiperEl) return;
+
+  let startY = 0;
+
+  swiperEl.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  swiperEl.addEventListener('touchmove', (e) => {
+    // Si estás tocando/swipeando dentro del swiper, bloquea el scroll del browser
+    // (Swiper igual se mueve porque controla transform, no scroll)
+    e.preventDefault();
+  }, { passive: false });
+})();
+
+
+    
   </script>
 </body>
 </html>
+
 
 
 
