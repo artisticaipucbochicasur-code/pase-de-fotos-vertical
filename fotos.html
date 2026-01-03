@@ -1094,6 +1094,28 @@ body {
     80% { transform:translate(2px,0); }
     100% { transform:translate(0,0); }
 }
+
+
+
+
+html, body {
+  height: 100%;
+  overflow: hidden;       /* clave: no hay scroll => no hay pull-to-refresh */
+  position: fixed;        /* evita “bounce” que dispara refresh */
+  width: 100%;
+  -webkit-overflow-scrolling: auto;
+}
+
+/* Asegura que Swiper ocupe toda la pantalla */
+.swiper {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+
+
+
     
   </style>
 </head>
@@ -5317,6 +5339,20 @@ async function resolveFotoPerfil(correo, nombre="") {
             window.AppInventor.setWebViewString(JSON.stringify(payload));
         }
     }
+
+     swiperInstance = new Swiper('.swiper', {
+  loop: true,
+  direction: 'vertical',
+  slidesPerView: 1,
+  spaceBetween: 10,
+  zoom: { maxRatio: 3, minRatio: 1 },
+
+  // ✅ iOS: que Swiper capture el gesto y no el browser
+  passiveListeners: false,
+  touchStartPreventDefault: true,
+  touchMoveStopPropagation: true
+});
+
 }
 
 function aplicarTruncado(element, maxLength = 80) {
@@ -7050,6 +7086,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
