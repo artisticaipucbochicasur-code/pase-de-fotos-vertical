@@ -1,48 +1,116 @@
-<!DOCTYPE html>
-<html lang="es">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Subir video a ImageKit</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swiper iOS test con imágenes</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+  <style>
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      overflow: hidden; 
+      -webkit-tap-highlight-color: transparent; 
+      background: #000;
+    }
+    .swiper { 
+      width: 100vw; 
+      height: 100vh; 
+      overscroll-behavior: contain; 
+      touch-action: pan-y; 
+      -webkit-overflow-scrolling: touch; 
+      background: #000; 
+    }
+    .swiper-slide { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      background: #000;
+    }
+    .swiper-slide img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: pan-y pinch-zoom;
+    }
+  </style>
 </head>
 <body>
-  <h2>Subir Video a ImageKit</h2>
-  <input type="file" id="fileInput" accept="video/*">
-  <button onclick="uploadFile()">Subir</button>
-  <p id="status"></p>
+  <div class="swiper">
+    <div class="swiper-wrapper">
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800" alt="Paisaje 1">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1517816743773-6e0fd518b4a6?w=800" alt="Paisaje 2">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800" alt="Paisaje 3">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800" alt="Paisaje 4">
+      </div>
+      <div class="swiper-slide">
+        <img src="https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?w=800" alt="Paisaje 5">
+      </div>
+    </div>
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
-    async function uploadFile() {
-      const file = document.getElementById("fileInput").files[0];
-      if (!file) {
-        alert("Selecciona un video primero");
-        return;
+    // Inicializa Swiper
+    const swiper = new Swiper('.swiper', {
+      direction: 'vertical',
+      loop: true,
+      slidesPerView: 1,
+      spaceBetween: 8,
+      simulateTouch: true,
+      touchStartPreventDefault: false
+    });
+
+    // Parche que evita pull-to-refresh solo si el gesto arranca cerca del top y es hacia abajo
+    (function(){
+      const swiperEl = document.querySelector('.swiper');
+      let startY = 0, startX = 0, isMoving = false;
+
+      function onTouchStart(e) {
+        if (!e.touches || e.touches.length > 1) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isMoving = true;
       }
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("fileName", file.name);
+      function onTouchMove(e) {
+        if (!isMoving || !e.touches || e.touches.length > 1) return;
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const deltaY = currentY - startY;
+        const deltaX = currentX - startX;
 
-      try {
-        const res = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-          method: "POST",
-          headers: {
-            "Authorization": "Basic cHVibGljX0Z0WnVPRndGcFZ4cjBid09JV3puczNCektRST0="
-          },
-          body: formData
-        });
+        if (Math.abs(deltaX) > Math.abs(deltaY)) return; // gesto horizontal -> no interferir
 
-        const data = await res.json();
+        const startedNearTop = (window.scrollY === 0 || startY < 60); // umbral
+        const draggingDown = deltaY > 0;
 
-        // Construimos la URL final usando tu endpoint
-        const videoUrl = `https://ik.imagekit.io/decomdh/${data.name}`;
-
-        document.getElementById("status").innerHTML =
-          `✅ Subido: <a href="${videoUrl}" target="_blank">${videoUrl}</a>`;
-      } catch (err) {
-        console.error(err);
-        document.getElementById("status").innerText = "❌ Error al subir";
+        if (startedNearTop && draggingDown) {
+          e.preventDefault(); // requiere passive:false
+        }
       }
-    }
+
+      function onTouchEnd() {
+        isMoving = false;
+      }
+
+      swiperEl.removeEventListener('touchstart', onTouchStart);
+      swiperEl.removeEventListener('touchmove', onTouchMove);
+      swiperEl.removeEventListener('touchend', onTouchEnd);
+
+      swiperEl.addEventListener('touchstart', onTouchStart, { passive: true });
+      swiperEl.addEventListener('touchmove', onTouchMove, { passive: false });
+      swiperEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    })();
   </script>
 </body>
 </html>
