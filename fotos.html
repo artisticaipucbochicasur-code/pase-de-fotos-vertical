@@ -5291,68 +5291,75 @@ async function resolveFotoPerfil(correo, nombre="") {
 
 
 
-   function initSwiper(initialIndex = 0) {
-    if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+  function initSwiper(initialIndex = 0) {
+  if (!swiperInstance) {
+    const swiperEl = document.querySelector('.swiper');
 
-        swiperInstance.on('slideChange', () => {
-            const activeIndex = swiperInstance.realIndex;
-            updateContentOverlay(activeIndex);
-
-            if(window.AppInventor && anunciosData.length > 0) {
-                const anuncioActual = anunciosData[activeIndex];
-                
-                if (!anuncioActual) return;
-
-                const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-                if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-                }
-                const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
-            }
-        });
+    // ✅ Bloqueo iOS: evita que Safari/PWA interprete swipe como scroll/refresh
+    // (esto NO afecta el swipe de Swiper porque Swiper mueve por transform)
+    if (swiperEl) {
+      swiperEl.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+      }, { passive: false });
     }
 
-    if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
-        updateContentOverlay(initialSlideIndex);
-        
-        if(window.AppInventor){
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
+    swiperInstance = new Swiper('.swiper', {
+      loop: true,
+      direction: 'vertical',
+      slidesPerView: 1,
+      spaceBetween: 10,
+      zoom: { maxRatio: 3, minRatio: 1 },
+
+      // ✅ iOS: captura gesto
+      passiveListeners: false,
+      touchStartPreventDefault: true,
+      touchMoveStopPropagation: true,
+
+      // ✅ extra estabilidad
+      simulateTouch: true,
+      resistance: true,
+      resistanceRatio: 0.85,
+    });
+
+    swiperInstance.on('slideChange', () => {
+      const activeIndex = swiperInstance.realIndex;
+      updateContentOverlay(activeIndex);
+
+      if (window.AppInventor && anunciosData.length > 0) {
+        const anuncioActual = anunciosData[activeIndex];
+        if (!anuncioActual) return;
+
+        const id = anuncioActual.id;
+        const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+        if (hayServidor) {
+          anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
         }
+
+        const listaTitulos = anunciosData.map(a => a.titulo);
+        const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
+        window.AppInventor.setWebViewString(JSON.stringify(payload));
+      }
+    });
+  }
+
+  // Mantener tu comportamiento original
+  if (anunciosData.length > 0) {
+    const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
+    swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+    updateContentOverlay(initialSlideIndex);
+
+    if (window.AppInventor) {
+      const anuncioInicial = anunciosData[initialSlideIndex];
+      const id = anuncioInicial.id;
+      const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+      if (hayServidor) {
+        anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+      }
+      const listaTitulos = anunciosData.map(a => a.titulo);
+      const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
+      window.AppInventor.setWebViewString(JSON.stringify(payload));
     }
-
-     swiperInstance = new Swiper('.swiper', {
-  loop: true,
-  direction: 'vertical',
-  slidesPerView: 1,
-  spaceBetween: 10,
-  zoom: { maxRatio: 3, minRatio: 1 },
-
-  // ✅ iOS: que Swiper capture el gesto y no el browser
-  passiveListeners: false,
-  touchStartPreventDefault: true,
-  touchMoveStopPropagation: true
-});
-
+  }
 }
 
 function aplicarTruncado(element, maxLength = 80) {
@@ -7108,6 +7115,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
