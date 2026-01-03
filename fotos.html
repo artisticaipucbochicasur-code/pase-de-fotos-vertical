@@ -1126,6 +1126,7 @@ html, body {
   overflow: hidden; 
   -webkit-tap-highlight-color: transparent; 
   background: #000;
+    overscroll-behavior-y: none;
 }
 
 .swiper { 
@@ -4269,41 +4270,7 @@ if (refreshBtn) {
   });
 }
 
-    (function iosNoPullToRefresh(){
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-               (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (!isIOS) return;
 
-  const swiperEl = document.querySelector(".swiper");
-  if (!swiperEl) return;
-
-  let startY = 0, startX = 0, moving = false;
-
-  swiperEl.addEventListener("touchstart", (e) => {
-    if (!e.touches || e.touches.length !== 1) return;
-    moving = true;
-    startY = e.touches[0].clientY;
-    startX = e.touches[0].clientX;
-  }, { passive: true });
-
-  swiperEl.addEventListener("touchmove", (e) => {
-    if (!moving || !e.touches || e.touches.length !== 1) return;
-
-    const y = e.touches[0].clientY;
-    const x = e.touches[0].clientX;
-    const dy = y - startY;
-    const dx = x - startX;
-
-    // si es horizontal, no tocamos
-    if (Math.abs(dx) > Math.abs(dy)) return;
-
-    // ✅ Bloquea el scroll/bounce del navegador
-    e.preventDefault();
-  }, { passive: false });
-
-  swiperEl.addEventListener("touchend", () => { moving = false; }, { passive: true });
-  swiperEl.addEventListener("touchcancel", () => { moving = false; }, { passive: true });
-})();
 
 
 function reconstruirIndiceBusqueda() {
@@ -5419,15 +5386,20 @@ async function resolveFotoPerfil(correo, nombre="") {
 
 function initSwiper(initialIndex = 0) {
   if (!swiperInstance) {
-    swiperInstance = new Swiper(".swiper", {
-      direction: "vertical",
-      loop: true,
-      slidesPerView: 1,
-      spaceBetween: 10,
-      zoom: { maxRatio: 3, minRatio: 1 },
-      simulateTouch: true,
-      touchStartPreventDefault: false
-    });
+swiperInstance = new Swiper(".swiper", {
+  direction: "vertical",
+  loop: true,
+  slidesPerView: 1,
+  spaceBetween: 10,
+  zoom: { maxRatio: 3, minRatio: 1 },
+  simulateTouch: true,
+
+  // ✅ claves anti iOS refresh
+  passiveListeners: false,
+  touchStartPreventDefault: true,
+  touchMoveStopPropagation: true,
+});
+
 
     swiperInstance.on("slideChange", () => {
       const activeIndex = swiperInstance.realIndex;
@@ -5640,6 +5612,7 @@ if (imagesBtn) {
 }
 
  document.addEventListener("DOMContentLoaded", () => {
+   iosNoPullToRefresh();
  const notificationCount = document.getElementById("notificationCount");
   const imagesNotificationCount = document.getElementById("imagesNotificationCount");
 
@@ -7224,6 +7197,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
