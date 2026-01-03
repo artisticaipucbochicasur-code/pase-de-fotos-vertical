@@ -14,6 +14,20 @@
       background: #000;
     }
 
+    /* ✅ iOS ScrollTrap: evita que la página esté en scrollTop=0 (y así no hay pull-to-refresh) */
+    #scrollTrap{
+      position: fixed;
+      inset: 0;
+      overflow-y: scroll;                 /* importante */
+      -webkit-overflow-scrolling: touch;
+      background: #000;
+    }
+    #app{
+      min-height: calc(100% + 2px);       /* crea scroll real */
+      padding-top: 1px;                   /* permite scrollTop=1 */
+      background: #000;
+    }
+
     .swiper { 
       width: 100vw; 
       height: 100vh; 
@@ -55,8 +69,13 @@
 </head>
 
 <body>
-  <div class="swiper">
-    <div class="swiper-wrapper"></div>
+  <!-- ✅ WRAPPER anti pull-to-refresh -->
+  <div id="scrollTrap">
+    <div id="app">
+      <div class="swiper">
+        <div class="swiper-wrapper"></div>
+      </div>
+    </div>
   </div>
 
   <div id="loader">Cargando imágenes…</div>
@@ -66,6 +85,25 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
 
     let swiper = null;
+
+    // ✅ iOS ScrollTrap: nunca dejar scrollTop=0 (evita pull-to-refresh en iOS/WebView)
+    (function iosScrollTrap(){
+      const trap = document.getElementById("scrollTrap");
+      if (!trap) return;
+
+      function keepOffTop(){
+        if (trap.scrollTop === 0) trap.scrollTop = 1;
+      }
+
+      // iniciar en 1px
+      requestAnimationFrame(() => {
+        trap.scrollTop = 1;
+        keepOffTop();
+      });
+
+      trap.addEventListener("scroll", keepOffTop, { passive: true });
+      trap.addEventListener("touchstart", keepOffTop, { passive: true });
+    })();
 
     async function cargarImagenesDesdeScript(){
       const loader = document.getElementById("loader");
@@ -128,7 +166,8 @@
       }
     }
 
-    // ✅ Parche anti pull-to-refresh (el que te funciona)
+    // ✅ (Opcional) Parche extra: solo bloquea si el gesto arranca cerca del top y es hacia abajo
+    // (lo dejamos porque no afecta, pero el ScrollTrap es el que manda)
     (function(){
       const swiperEl = document.querySelector('.swiper');
       let startY = 0, startX = 0, isMoving = false;
