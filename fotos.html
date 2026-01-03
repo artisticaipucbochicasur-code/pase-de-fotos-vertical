@@ -27,23 +27,30 @@
   <title>DECOM - Fotos</title>
   <style>
 
-html, body {
+html, body{
   height: 100%;
   margin: 0;
-  overflow: hidden;
-  position: fixed;   /* 🔥 clave */
-  width: 100%;
-  left: 0;
-  top: 0;
+  overflow: auto;                  /* 👈 clave (no hidden) */
+  -webkit-overflow-scrolling: touch;
   background: #111;
-  -webkit-overflow-scrolling: auto;
 }
 
-.swiper {
+/* tu app real queda fija, no cambia tu layout */
+#app{
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* swiper sigue igual, pero ahora no dispara pull-to-refresh */
+.swiper{
   width: 100vw;
   height: 100vh;
-  touch-action: pan-y pinch-zoom; /* ✅ NO touch-action:none */
+  touch-action: pan-y;             /* 👈 clave */
 }
+
+
 
 
 
@@ -1648,10 +1655,16 @@ body {
 </div>
   
   
-  <div class="swiper"><div class="swiper-wrapper"></div></div>
- <div id="loader">
+<div id="app">
+  <div class="swiper">
+    <div class="swiper-wrapper"></div>
+  </div>
+</div>
+
+<div id="loader">
   <i class="fas fa-spinner fa-spin"></i>
 </div>
+
 
   
  <div id="lblContador">
@@ -5302,131 +5315,52 @@ async function resolveFotoPerfil(correo, nombre="") {
     }
 }
 
-(function blockIOSPullToRefresh(){
-  const el = document.querySelector('.swiper');
-  if (!el) return;
 
-  let startY = 0;
-  let startX = 0;
-  let tracking = false;
 
-  function onTouchStart(e){
-    if (!e.touches || e.touches.length !== 1) return;
-    tracking = true;
-    startY = e.touches[0].clientY;
-    startX = e.touches[0].clientX;
+(function lockScrollNotAtTop(){
+  function keepOffTop(){
+    if (window.scrollY === 0) window.scrollTo(0, 1);
   }
 
-  function onTouchMove(e){
-    if (!tracking) return;
-    if (!e.touches || e.touches.length !== 1) return;
+  // Apenas cargue
+  window.addEventListener('load', () => setTimeout(keepOffTop, 0));
 
-    const y = e.touches[0].clientY;
-    const x = e.touches[0].clientX;
+  // Si iOS intenta volver a 0, lo movemos a 1
+  window.addEventListener('scroll', keepOffTop, { passive: true });
 
-    const dy = y - startY;
-    const dx = x - startX;
+  // Al empezar gesto, asegurar que no esté en top
+  document.addEventListener('touchstart', keepOffTop, { passive: true, capture: true });
 
-    // si es más horizontal, no molestamos
-    if (Math.abs(dx) > Math.abs(dy)) return;
-
-    // IMPORTANTÍSIMO: solo si el evento es cancelable
-    if (!e.cancelable) return;
-
-    // ✅ Bloquea el gesto del navegador dentro del swiper
-    // (esto evita refresh/overscroll incluso si iOS cree que hay scroll)
-    e.preventDefault();
-  }
-
-  function onTouchEnd(){
-    tracking = false;
-  }
-
-  el.addEventListener('touchstart', onTouchStart, { passive: true });
-  el.addEventListener('touchmove',  onTouchMove,  { passive: false });
-  el.addEventListener('touchend',   onTouchEnd,   { passive: true });
-})();
-
-(function preventIOSRefreshOnSwipe(){
-  let startX = 0, startY = 0, tracking = false;
-
-  document.addEventListener('touchstart', (e) => {
-    if (!e.touches || e.touches.length !== 1) return;
-    tracking = true;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }, { passive: true, capture: true });
-
+  // Bloqueo extra cuando el gesto nace dentro del swiper
   document.addEventListener('touchmove', (e) => {
-    if (!tracking) return;
-    if (!e.touches || e.touches.length !== 1) return;
     if (!e.cancelable) return;
-
-    const x = e.touches[0].clientX;
-    const y = e.touches[0].clientY;
-    const dx = x - startX;
-    const dy = y - startY;
-
-    // si el gesto es más horizontal, no bloqueamos
-    if (Math.abs(dx) > Math.abs(dy)) return;
-
-    const t = e.target;
-
-    // ✅ NO bloquear inputs/textarea (para no romper teclado)
-    if (t.closest('input, textarea, [contenteditable="true"]')) return;
-
-    // ✅ si el gesto ocurre dentro del swiper o overlays que van encima, bloquea el scroll nativo
-    if (t.closest('.swiper') ||
-        t.closest('#contentOverlay') ||
-        t.closest('#commentsOverlay') ||
-        t.closest('.comment-input-container') ||
-        t.closest('#socialHeader')) {
-      e.preventDefault();
+    if (e.target.closest('.swiper')) {
+      // si iOS intenta “tirar” hacia abajo desde el top, evitamos
+      if (window.scrollY === 0) e.preventDefault();
     }
   }, { passive: false, capture: true });
-
-  document.addEventListener('touchend', () => {
-    tracking = false;
-  }, { passive: true, capture: true });
 })();
+
+
+
+    
 
 function initSwiper(initialIndex = 0) {
   if (!swiperInstance) {
 
-    // ✅ (1) iOS: bloquear el scroll/refresh cuando el gesto viene del swiper
-    // importante: passive:false para que preventDefault funcione en iOS
-    const blockScrollOnSwiper = (e) => {
-      if (e.target.closest(".swiper")) e.preventDefault();
-    };
-    document.addEventListener("touchmove", blockScrollOnSwiper, { passive: false });
+    // ✅ Swiper con flags iOS-friendly (SIN bloquear touchmove global)
+    swiperInstance = new Swiper(".swiper", {
+      loop: true,
+      direction: "vertical",
+      slidesPerView: 1,
+      spaceBetween: 10,
+      zoom: { maxRatio: 3, minRatio: 1 },
 
-    // ✅ (2) Si quieres ser más fino: solo bloquear si hay intención vertical
-    // (opcional, pero útil si en otros lados sí quieres scroll)
-    let startY = 0;
-    document.addEventListener("touchstart", (e) => {
-      if (e.target.closest(".swiper")) startY = e.touches[0].clientY;
-    }, { passive: true });
-
-    document.addEventListener("touchmove", (e) => {
-      if (!e.target.closest(".swiper")) return;
-      const dy = Math.abs(e.touches[0].clientY - startY);
-      if (dy > 5) e.preventDefault(); // solo si realmente está arrastrando
-    }, { passive: false });
-
-    // ✅ (3) Swiper con flags iOS-friendly
-swiperInstance = new Swiper('.swiper', {
-  loop: true,
-  direction: 'vertical',
-  slidesPerView: 1,
-  spaceBetween: 10,
-  zoom: { maxRatio: 3, minRatio: 1 },
-
-  simulateTouch: true,
-  touchStartPreventDefault: false,
-  passiveListeners: false,      // ✅ importante para iOS
-  touchEventsTarget: 'container'// ✅ importante con overlays
-});
-
+      simulateTouch: true,
+      touchStartPreventDefault: false,
+      passiveListeners: false,        // ✅ importante para iOS
+      touchEventsTarget: "container"  // ✅ importante con overlays
+    });
 
     swiperInstance.on("slideChange", () => {
       const activeIndex = swiperInstance.realIndex;
@@ -5474,6 +5408,7 @@ swiperInstance = new Swiper('.swiper', {
     }
   }
 }
+
 
 
 function aplicarTruncado(element, maxLength = 80) {
@@ -7207,6 +7142,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
