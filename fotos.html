@@ -5348,7 +5348,64 @@ async function resolveFotoPerfil(correo, nombre="") {
 function initSwiper(initialIndex = 0) {
   if (!swiperInstance) {
 
-    // ✅ Swiper con flags iOS-friendly (SIN bloquear touchmove global)
+    // ✅ (A) Parche iOS: evita pull-to-refresh / overscroll SOLO cuando el gesto nace dentro del swiper
+    // Se instala UNA sola vez para no duplicar listeners.
+    if (!window.__iosSwiperScrollLockInstalled) {
+      window.__iosSwiperScrollLockInstalled = true;
+
+      let startX = 0, startY = 0, tracking = false;
+
+      document.addEventListener("touchstart", (e) => {
+        const t = e.target;
+
+        // Solo si inicia dentro del swiper (o sus overlays encima)
+        if (!t.closest(".swiper")) return;
+
+        // No bloquear gestos de inputs/textarea
+        if (t.closest("input, textarea, [contenteditable='true']")) return;
+
+        if (!e.touches || e.touches.length !== 1) return;
+
+        tracking = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }, { passive: true, capture: true });
+
+      document.addEventListener("touchmove", (e) => {
+        if (!tracking) return;
+        if (!e.touches || e.touches.length !== 1) return;
+        if (!e.cancelable) return;
+
+        const t = e.target;
+
+        // Solo dentro del swiper
+        if (!t.closest(".swiper")) return;
+
+        // No bloquear si estás tocando inputs/textarea
+        if (t.closest("input, textarea, [contenteditable='true']")) return;
+
+        const x = e.touches[0].clientX;
+        const y = e.touches[0].clientY;
+        const dx = x - startX;
+        const dy = y - startY;
+
+        // Si el gesto es más horizontal, no interferimos
+        if (Math.abs(dx) > Math.abs(dy)) return;
+
+        // ✅ Bloquea el scroll/overscroll nativo (esto evita el refresh)
+        e.preventDefault();
+      }, { passive: false, capture: true });
+
+      document.addEventListener("touchend", () => {
+        tracking = false;
+      }, { passive: true, capture: true });
+
+      document.addEventListener("touchcancel", () => {
+        tracking = false;
+      }, { passive: true, capture: true });
+    }
+
+    // ✅ (B) Swiper con flags iOS-friendly
     swiperInstance = new Swiper(".swiper", {
       loop: true,
       direction: "vertical",
@@ -5358,8 +5415,8 @@ function initSwiper(initialIndex = 0) {
 
       simulateTouch: true,
       touchStartPreventDefault: false,
-      passiveListeners: false,        // ✅ importante para iOS
-      touchEventsTarget: "container"  // ✅ importante con overlays
+      passiveListeners: false,
+      touchEventsTarget: "container"
     });
 
     swiperInstance.on("slideChange", () => {
@@ -5394,6 +5451,7 @@ function initSwiper(initialIndex = 0) {
     if (window.AppInventor) {
       const anuncioInicial = anunciosData[initialSlideIndex];
       const id = anuncioInicial.id;
+
       const hayServidor =
         Array.isArray(comentariosPorAnuncio[id]) &&
         comentariosPorAnuncio[id].length > 0;
@@ -7142,6 +7200,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
