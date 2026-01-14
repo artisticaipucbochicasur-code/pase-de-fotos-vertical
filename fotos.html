@@ -605,14 +605,7 @@
     scroll-behavior: smooth;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background: #111;
-  font-family: Arial, sans-serif;
-  color: white;
-  transition: transform 0.3s ease;
-}
+
 
 /* Estilos para el encabezado */
 #socialHeader {
@@ -4195,17 +4188,17 @@ savedSearchInputEl.addEventListener("blur", () => {
 const refreshBtn = document.getElementById("refreshBtn");
 
 if (refreshBtn) {
-  refreshBtn.addEventListener("click", () => {
-    location.reload(); // 🔄 Recarga la página completamente
+refreshBtn.addEventListener("click", () => {
+  // 🧹 Limpiar caché RAM
+  for (const key in fotoCache) delete fotoCache[key];
 
-     // 🧹 Limpiar caché RAM de fotos
-    for (const key in fotoCache) {
-      delete fotoCache[key];
-    }
+  // 🧹 Limpiar caché local
+  localStorage.removeItem("fotoLocal");
 
-    // 🧹 Limpiar caché localStorage de fotos
-    localStorage.removeItem("fotoLocal");
-  });
+  // 🔄 Ahora sí
+  location.reload();
+});
+
 }
 
     
@@ -4387,13 +4380,6 @@ currentDescription.addEventListener("click", function () {
 });
 
 
-
-
-
-    function normalizeText(text) {
-        if (!text) return "";
-        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-    }
 
 
     
@@ -4647,16 +4633,14 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-    // Lógica para subir la barra de comentarios
-    commentInput.addEventListener('focus', () => {
-        // Mueve el cuerpo del documento para que el input sea visible
-        document.body.style.transform = `translateY(-58%)`;
-    });
+commentInput.addEventListener('focus', () => {
+  // ✅ sin desplazamiento
+});
 
-    commentInput.addEventListener('blur', () => {
-        // Vuelve el cuerpo del documento a su posición original
-        document.body.style.transform = 'translateY(0)';
-    });
+commentInput.addEventListener('blur', () => {
+  // ✅ sin desplazamiento
+});
+
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -5474,7 +5458,7 @@ function showCustommostrarAviso(title, titlesList) {
         overlay.style.display = 'flex';
     }
 
-    setInterval(actualizarContador, 5000);
+    //setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
     verificarComentarios().then(() => {
