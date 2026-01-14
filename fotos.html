@@ -4633,7 +4633,16 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
+    // Lógica para subir la barra de comentarios
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-58%)`;
+    });
 
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
+    });
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -7051,47 +7060,6 @@ function agregarEfectoRipple(boton) {
 });
 
 
-/* ✅ PEGAR AQUÍ EL FIX iOS */
-(function fixIOSKeyboardClose() {
-  const input = document.getElementById("commentInput");
-  if (!input) return;
-
-  const resetLayout = () => {
-    document.body.style.transform = "translateY(0)";
-    requestAnimationFrame(() => {
-      window.scrollTo(window.scrollX, window.scrollY);
-    });
-  };
-
-  if (window.visualViewport) {
-    let lastH = window.visualViewport.height;
-
-    const check = () => {
-      const h = window.visualViewport.height;
-      if (h > lastH + 10) resetLayout();
-      lastH = h;
-    };
-
-    window.visualViewport.addEventListener("resize", check);
-    window.visualViewport.addEventListener("scroll", check);
-  }
-
-  input.addEventListener("focusout", () => {
-    setTimeout(resetLayout, 50);
-  });
-
-  document.addEventListener("touchstart", (e) => {
-    if (e.target !== input && !input.contains(e.target)) {
-      input.blur?.();
-      setTimeout(resetLayout, 50);
-    }
-  }, { passive: true });
-
-  window.addEventListener("orientationchange", () => setTimeout(resetLayout, 150));
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) setTimeout(resetLayout, 150);
-  });
-})();
 
     
     
