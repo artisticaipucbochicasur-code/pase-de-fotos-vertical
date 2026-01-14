@@ -4627,11 +4627,44 @@ document.querySelector('.swiper').addEventListener('click', () => {
     }
 
     sendCommentBtn.addEventListener('click', enviarComentario);
-    commentInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            enviarComentario();
-        }
-    });
+
+commentInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    enviarComentario();
+  }
+});
+
+// ✅ NO tocar body con transform en iOS
+// (quitar focus/blur que cambian transform)
+
+// ✅ Pegar fix iOS una vez
+(function iosKeyboardNaturalFix() {
+  const input = document.getElementById("commentInput");
+  if (!input) return;
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (!isIOS) return;
+
+  const vv = window.visualViewport;
+  if (!vv) return;
+
+  let lastH = vv.height;
+
+  const resetIfKeyboardClosed = () => {
+    const h = vv.height;
+    if (h > lastH + 20) {
+      document.documentElement.style.height = "100%";
+      document.body.style.height = "100%";
+      void document.body.offsetHeight;
+      if (document.activeElement === input) input.blur();
+    }
+    lastH = h;
+  };
+
+  vv.addEventListener("resize", resetIfKeyboardClosed);
+})();
+
 
 
 
