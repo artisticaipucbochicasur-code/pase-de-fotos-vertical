@@ -34,12 +34,7 @@
         color: white;
         transition: transform 0.3s ease; /* Transición para el movimiento */
     }
-:root { --appH: 100vh; }
-
-.swiper { 
-  width: 100vw; 
-  height: var(--appH);
-}
+    .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
@@ -4638,7 +4633,16 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
+    // Lógica para subir la barra de comentarios
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-25%)`;
+    });
 
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
+    });
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -6610,22 +6614,6 @@ if (logoutBtn) {
       abrirPerfil();
     });
   }
-
-(function fixIOSViewportHeight() {
-  function setAppHeight() {
-    const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-    document.documentElement.style.setProperty("--appH", h + "px");
-  }
-
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", setAppHeight);
-    window.visualViewport.addEventListener("scroll", setAppHeight);
-  }
-  window.addEventListener("resize", setAppHeight);
-  setAppHeight();
-})();
-
-  
 
   });
 
