@@ -26,18 +26,31 @@
 
   <title>DECOM - Fotos</title>
   <style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #111;
-        font-family: Arial, sans-serif;
-        color: white;
-        transition: transform 0.3s ease; /* Transición para el movimiento */
-    }
-    .swiper { width: 100vw; height: 100vh; }
+  html, body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  font-family: Arial, sans-serif;
+  color: white;
+
+  /* evita scroll fantasma de iOS al abrir/cerrar teclado */
+  height: var(--app-height, 100vh);
+  overflow: hidden;
+}
+
+    .swiper { 
+  width: 100vw; 
+  height: var(--app-height, 100vh); 
+}
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    /* iOS: evita saltos raros al enfocar inputs */
+input, textarea {
+  font-size: 16px;
+}
+
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
+  
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
@@ -605,14 +618,7 @@
     scroll-behavior: smooth;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background: #111;
-  font-family: Arial, sans-serif;
-  color: white;
-  transition: transform 0.3s ease;
-}
+
 
 /* Estilos para el encabezado */
 #socialHeader {
@@ -5309,6 +5315,53 @@ async function resolveFotoPerfil(correo, nombre="") {
         }
     }
 }
+
+
+
+// ===============================
+// ✅ FIX iOS: evita “hueco negro” tras cerrar teclado (ajusta alto real)
+// ===============================
+(function fixIOSViewportHeight() {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  function setAppHeight() {
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty("--app-height", `${h}px`);
+  }
+
+  setAppHeight();
+
+  if (isIOS && window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      setAppHeight();
+      if (window.swiperInstance) swiperInstance.update();
+    });
+    window.visualViewport.addEventListener("scroll", setAppHeight);
+  }
+
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      setAppHeight();
+      if (window.swiperInstance) swiperInstance.update();
+    }, 200);
+  });
+
+  document.addEventListener("focusout", (e) => {
+    if (e.target && (e.target.id === "commentInput" || e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+      setTimeout(() => {
+        setAppHeight();
+        window.scrollTo(0, 0);
+        if (window.swiperInstance) swiperInstance.update();
+      }, 120);
+    }
+  });
+})();
+
+
+
+
+
+
 
 function aplicarTruncado(element, maxLength = 80) {
     const fullText = element.textContent.trim();
