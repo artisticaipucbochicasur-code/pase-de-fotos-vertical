@@ -491,9 +491,10 @@
 
 /* Barra de entrada de comentarios */
 .comment-input-container {
-  position: fixed;
-  bottom: 0px;
+    position: fixed;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   background: transparent;
   padding: 8px 12px;
@@ -4175,6 +4176,70 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
+
+
+
+// ===============================
+// ✅ FIX iOS teclado: subir SOLO la barra de comentarios (sin mover el body)
+// ===============================
+(function fixIOSKeyboardForCommentBar() {
+  const bar = commentInputContainer;
+  const input = commentInput;
+
+  if (!bar || !input) return;
+
+  // Detectar iOS Safari (iPhone/iPad)
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (!isIOS || !window.visualViewport) return;
+
+  // Guardamos el bottom original para restaurar
+  const originalBottom = getComputedStyle(bar).bottom || "0px";
+
+  // Asegurar que sea "fixed" para que el bottom funcione bien
+  // (si ya lo es, no afecta)
+  bar.style.position = "fixed";
+  bar.style.left = "0";
+  bar.style.right = "0";
+
+  const apply = () => {
+    const vv = window.visualViewport;
+
+    // “teclado” aproximado = diferencia entre window.innerHeight y viewport visible,
+    // más el offsetTop cuando Safari mueve el viewport
+    const keyboard = Math.max(0, (window.innerHeight - vv.height - vv.offsetTop));
+
+    // Pequeño margen para que no quede pegado al teclado
+    const extra = keyboard > 0 ? 8 : 0;
+
+    // Subimos la barra solo lo necesario
+    bar.style.bottom = keyboard > 0 ? (keyboard + extra) + "px" : originalBottom;
+  };
+
+  const reset = () => {
+    bar.style.bottom = originalBottom;
+  };
+
+  // Cuando cambia el viewport (teclado abre/cierra, rotación, etc.)
+  window.visualViewport.addEventListener("resize", apply);
+  window.visualViewport.addEventListener("scroll", apply);
+
+  // Cuando enfoca/desenfoca el input
+  input.addEventListener("focus", () => {
+    // pequeño delay para que Safari calcule bien el viewport
+    setTimeout(apply, 50);
+  });
+
+  input.addEventListener("blur", () => {
+    // Restaurar
+    setTimeout(reset, 50);
+  });
+
+  // Primera ejecución por si ya entra con teclado
+  apply();
+})();
+
+
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
