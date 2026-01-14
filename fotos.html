@@ -5271,13 +5271,19 @@ async function resolveFotoPerfil(correo, nombre="") {
 
    function initSwiper(initialIndex = 0) {
     if(!swiperInstance) {
-        swiperInstance = new Swiper('.swiper', {
-            loop: true,
-            direction: 'vertical',
-            slidesPerView: 1,
-            spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
-        });
+  swiperInstance = new Swiper('.swiper', {
+  loop: true,
+  direction: 'vertical',
+  slidesPerView: 1,
+  spaceBetween: 10,
+  zoom: { maxRatio: 3, minRatio: 1 },
+
+  // 🔥 claves para iOS
+  touchMoveStopPropagation: true,
+  touchStartPreventDefault: true,
+  preventInteractionOnTransition: true,
+});
+
 
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
@@ -7049,37 +7055,10 @@ function agregarEfectoRipple(boton) {
     }
 
 
-    (function bloquearPullToRefreshEnIOS() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-  if (!isIOS) return;
-
-  let startY = 0;
-  let swiping = false;
-
-  const swiperEl = document.querySelector(".swiper");
-  if (!swiperEl) return;
-
-  swiperEl.addEventListener("touchstart", (e) => {
-    startY = e.touches[0].clientY;
-    swiping = false;
-  }, { passive: true });
-
-  swiperEl.addEventListener("touchmove", (e) => {
-    const y = e.touches[0].clientY;
-    const diffY = y - startY;
-
-    // si hay intención clara de swipe vertical, bloquea el scroll del navegador
-    if (Math.abs(diffY) > 10) swiping = true;
-
-    if (swiping) {
-      e.preventDefault(); // 🔥 esto es lo que evita el pull-to-refresh en iOS
-    }
-  }, { passive: false });
-})();
 
   </script>
 </body>
 </html>
+
 
