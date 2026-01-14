@@ -5532,7 +5532,7 @@ setTimeout(() => {
   Object.assign(videoIntro, {
     src: "Ini.mp4",
     autoplay: true,
-    muted: true,
+    muted: true,        // ✅ se mantiene (iOS exige muted para autoplay)
     playsInline: true,
     preload: "auto",
   });
@@ -5550,41 +5550,39 @@ setTimeout(() => {
   });
   document.body.appendChild(videoIntro);
 
+  // 🔊 Botón "Activar sonido" (APARECE DE INMEDIATO y arriba a la derecha)
+  const soundBtn = document.createElement("button");
+  soundBtn.innerText = "🔊 Sonido";
+  Object.assign(soundBtn.style, {
+    position: "fixed",
+    top: "14px",
+    right: "14px",
+    padding: "10px 14px",
+    fontSize: "14px",
+    background: "rgba(0, 0, 0, 0.6)",
+    color: "white",
+    border: "1px solid rgba(255,255,255,0.3)",
+    borderRadius: "10px",
+    cursor: "pointer",
+    zIndex: "1000000",
+    opacity: "1",                 // ✅ visible desde ya
+    transition: "opacity 0.3s ease",
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)", // ✅ Safari
+  });
+  document.body.appendChild(soundBtn);
 
-  // 🔊 Botón "Activar sonido" (solo funciona con toque en iOS)
-const soundBtn = document.createElement("button");
-soundBtn.innerText = "🔊 Activar sonido";
-Object.assign(soundBtn.style, {
-  position: "fixed",
-  bottom: "80px",
-  left: "50%",
-  transform: "translateX(-50%)",
-  padding: "10px 20px",
-  fontSize: "16px",
-  background: "rgba(0, 0, 0, 0.6)",
-  color: "white",
-  border: "1px solid rgba(255,255,255,0.3)",
-  borderRadius: "10px",
-  cursor: "pointer",
-  zIndex: "1000000",
-  opacity: "0",
-  transition: "opacity 0.8s ease",
-  backdropFilter: "blur(6px)",
-});
-document.body.appendChild(soundBtn);
-
-soundBtn.addEventListener("click", async () => {
-  try {
-    videoIntro.muted = false;
-    videoIntro.volume = 1;
-    await videoIntro.play();
-    soundBtn.style.opacity = "0";
-    setTimeout(() => soundBtn.remove(), 500);
-  } catch (e) {
-    console.warn("No se pudo activar sonido:", e);
-  }
-});
-
+  soundBtn.addEventListener("click", async () => {
+    try {
+      videoIntro.muted = false;
+      videoIntro.volume = 1;
+      await videoIntro.play();         // ✅ en iOS solo funciona tras gesto del usuario
+      soundBtn.style.opacity = "0";
+      setTimeout(() => soundBtn.remove(), 300);
+    } catch (e) {
+      console.warn("No se pudo activar sonido:", e);
+    }
+  });
 
   // 🟡 Crear botón "Omitir intro" (inicialmente oculto)
   const skipBtn = document.createElement("button");
@@ -5608,17 +5606,16 @@ soundBtn.addEventListener("click", async () => {
   });
 
   // Acción del botón "Omitir"
-skipBtn.addEventListener("click", () => {
-  videoIntro.style.opacity = "0";
-  skipBtn.style.opacity = "0";
-  soundBtn.style.opacity = "0"; // ✅ AQUÍ
-  setTimeout(() => {
-    videoIntro.remove();
-    skipBtn.remove();
-    soundBtn.remove(); // ✅ AQUÍ
-  }, 700);
-});
-
+  skipBtn.addEventListener("click", () => {
+    videoIntro.style.opacity = "0";
+    skipBtn.style.opacity = "0";
+    soundBtn.style.opacity = "0";
+    setTimeout(() => {
+      videoIntro.remove();
+      skipBtn.remove();
+      soundBtn.remove();
+    }, 700);
+  });
 
   // Insertar el botón
   document.body.appendChild(skipBtn);
@@ -5630,37 +5627,36 @@ skipBtn.addEventListener("click", () => {
     videoIntro.play().catch(() => {});
 
     // 🔥 Mostrar el botón de "Omitir" después de 3 segundos
- setTimeout(() => {
-  skipBtn.style.opacity = "1";
-  soundBtn.style.opacity = "1"; // ✅ AQUÍ
-}, 3000);
-
+    setTimeout(() => {
+      skipBtn.style.opacity = "1";
+      // ✅ NO tocamos soundBtn: ya está visible desde el inicio
+    }, 3000);
   });
 
   // Al finalizar el video
-videoIntro.addEventListener("ended", () => {
-  videoIntro.style.opacity = "0";
-  skipBtn.style.opacity = "0";
-  soundBtn.style.opacity = "0"; // ✅ AQUÍ
-  setTimeout(() => {
-    videoIntro.remove();
-    skipBtn.remove();
-    soundBtn.remove(); // ✅ AQUÍ
-  }, 1000);
-});
-
+  videoIntro.addEventListener("ended", () => {
+    videoIntro.style.opacity = "0";
+    skipBtn.style.opacity = "0";
+    soundBtn.style.opacity = "0";
+    setTimeout(() => {
+      videoIntro.remove();
+      skipBtn.remove();
+      soundBtn.remove();
+    }, 1000);
+  });
 
   // Autocierre si autoplay falla
   setTimeout(() => {
- if (videoIntro.readyState < 3 || videoIntro.paused) {
-  videoIntro.remove();
-  skipBtn.remove();
-  soundBtn.remove(); // ✅ AQUÍ
-  if (loader) loader.style.display = "none";
-}
-
+    if (videoIntro.readyState < 3 || videoIntro.paused) {
+      console.warn("iOS bloqueó autoplay, omitiendo video...");
+      videoIntro.remove();
+      skipBtn.remove();
+      soundBtn.remove();
+      if (loader) loader.style.display = "none";
+    }
   }, 6000);
 }, 300);
+
 
 
   const imagesBtn = document.getElementById("imagesBtn");
