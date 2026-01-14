@@ -32,9 +32,14 @@
         background: #111;
         font-family: Arial, sans-serif;
         color: white;
-       /* transition: transform 0.3s ease; */ /* Transición para el movimiento */
+        transition: transform 0.3s ease; /* Transición para el movimiento */
     }
-    .swiper { width: 100vw; height: 100vh; }
+:root { --appH: 100vh; }
+
+.swiper { 
+  width: 100vw; 
+  height: var(--appH);
+}
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
@@ -4627,44 +4632,11 @@ document.querySelector('.swiper').addEventListener('click', () => {
     }
 
     sendCommentBtn.addEventListener('click', enviarComentario);
-
-commentInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    enviarComentario();
-  }
-});
-
-// ✅ NO tocar body con transform en iOS
-// (quitar focus/blur que cambian transform)
-
-// ✅ Pegar fix iOS una vez
-(function iosKeyboardNaturalFix() {
-  const input = document.getElementById("commentInput");
-  if (!input) return;
-
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (!isIOS) return;
-
-  const vv = window.visualViewport;
-  if (!vv) return;
-
-  let lastH = vv.height;
-
-  const resetIfKeyboardClosed = () => {
-    const h = vv.height;
-    if (h > lastH + 20) {
-      document.documentElement.style.height = "100%";
-      document.body.style.height = "100%";
-      void document.body.offsetHeight;
-      if (document.activeElement === input) input.blur();
-    }
-    lastH = h;
-  };
-
-  vv.addEventListener("resize", resetIfKeyboardClosed);
-})();
-
+    commentInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            enviarComentario();
+        }
+    });
 
 
 
@@ -6638,6 +6610,22 @@ if (logoutBtn) {
       abrirPerfil();
     });
   }
+
+(function fixIOSViewportHeight() {
+  function setAppHeight() {
+    const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    document.documentElement.style.setProperty("--appH", h + "px");
+  }
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", setAppHeight);
+    window.visualViewport.addEventListener("scroll", setAppHeight);
+  }
+  window.addEventListener("resize", setAppHeight);
+  setAppHeight();
+})();
+
+  
 
   });
 
