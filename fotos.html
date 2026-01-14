@@ -7051,39 +7051,49 @@ function agregarEfectoRipple(boton) {
 });
 
 
-
-    (function fixKeyboardCloseWithoutBlur() {
+/* ✅ PEGAR AQUÍ EL FIX iOS */
+(function fixIOSKeyboardClose() {
   const input = document.getElementById("commentInput");
   if (!input) return;
 
   const resetLayout = () => {
-    // si todavía tienes alguna transformación / clase en body por el teclado, la reseteas aquí
     document.body.style.transform = "translateY(0)";
+    requestAnimationFrame(() => {
+      window.scrollTo(window.scrollX, window.scrollY);
+    });
   };
 
-  // Caso Android/iOS modernos: el viewport cambia cuando se abre/cierra teclado
   if (window.visualViewport) {
-    let lastHeight = window.visualViewport.height;
+    let lastH = window.visualViewport.height;
 
-    window.visualViewport.addEventListener("resize", () => {
+    const check = () => {
       const h = window.visualViewport.height;
+      if (h > lastH + 10) resetLayout();
+      lastH = h;
+    };
 
-      // Si el viewport CRECE, normalmente es porque el teclado se cerró
-      if (h > lastHeight + 40) {
-        resetLayout();
-      }
-      lastHeight = h;
-    });
+    window.visualViewport.addEventListener("resize", check);
+    window.visualViewport.addEventListener("scroll", check);
   }
 
-  // Extra: si el usuario toca fuera, también resetea
+  input.addEventListener("focusout", () => {
+    setTimeout(resetLayout, 50);
+  });
+
   document.addEventListener("touchstart", (e) => {
     if (e.target !== input && !input.contains(e.target)) {
-      resetLayout();
+      input.blur?.();
+      setTimeout(resetLayout, 50);
     }
   }, { passive: true });
+
+  window.addEventListener("orientationchange", () => setTimeout(resetLayout, 150));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) setTimeout(resetLayout, 150);
+  });
 })();
 
+    
     
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
