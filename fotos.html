@@ -4633,13 +4633,6 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-commentInput.addEventListener('focus', () => {
-  // ✅ sin desplazamiento
-});
-
-commentInput.addEventListener('blur', () => {
-  // ✅ sin desplazamiento
-});
 
 
     function normalizarComentarios(lista) {
@@ -7059,7 +7052,38 @@ function agregarEfectoRipple(boton) {
 
 
 
-    
+    (function fixKeyboardCloseWithoutBlur() {
+  const input = document.getElementById("commentInput");
+  if (!input) return;
+
+  const resetLayout = () => {
+    // si todavía tienes alguna transformación / clase en body por el teclado, la reseteas aquí
+    document.body.style.transform = "translateY(0)";
+  };
+
+  // Caso Android/iOS modernos: el viewport cambia cuando se abre/cierra teclado
+  if (window.visualViewport) {
+    let lastHeight = window.visualViewport.height;
+
+    window.visualViewport.addEventListener("resize", () => {
+      const h = window.visualViewport.height;
+
+      // Si el viewport CRECE, normalmente es porque el teclado se cerró
+      if (h > lastHeight + 40) {
+        resetLayout();
+      }
+      lastHeight = h;
+    });
+  }
+
+  // Extra: si el usuario toca fuera, también resetea
+  document.addEventListener("touchstart", (e) => {
+    if (e.target !== input && !input.contains(e.target)) {
+      resetLayout();
+    }
+  }, { passive: true });
+})();
+
     
     function recargarDatos() {
       verificarComentarios().then(() => cargarImagenes());
