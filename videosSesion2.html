@@ -1101,13 +1101,17 @@ body {
     style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
     <i class="fas fa-video"></i>
   </button>
+</div>
 
-
-      <!-- ✅ Compresión opcional antes de subir (reduce peso para evitar cortes al reproducir) -->
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;color:#333;">
-        <input type="checkbox" id="compressBeforeUpload" checked>
-        Comprimir antes de subir (recomendado)
-      </label>
+<!-- ✅ Compresión opcional antes de subir (reduce peso para evitar cortes al reproducir) -->
+<div style="margin-top:10px;max-width:100%;">
+  <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;font-size:13px;color:#333;line-height:1.2;">
+    <input type="checkbox" id="compressBeforeUpload" checked style="margin:0;">
+    <span>Comprimir antes de subir (recomendado)</span>
+  </label>
+  <div style="font-size:12px;color:#555;margin-top:4px;line-height:1.2;">
+    Si tu celular es lento o el video es muy largo, puedes desactivar esta opción.
+  </div>
 </div>
 
 
@@ -1624,13 +1628,14 @@ body {
   let __ffmpegInstance = null;
 
   async function getFFmpegInstance() {
-    // Soporta el bundle UMD de @ffmpeg/ffmpeg (window.FFmpeg)
-    const FF = window.FFmpeg;
-    if (!FF || typeof FF.createFFmpeg !== 'function' || typeof FF.fetchFile !== 'function') {
+    if (__ffmpegInstance) return __ffmpegInstance;
+
+    // Detecta el global correcto (según el bundle UMD)
+    const FF = window.FFmpeg || (typeof FFmpeg !== 'undefined' ? FFmpeg : null);
+
+    if (!FF || typeof FF.createFFmpeg !== 'function') {
       throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js en el mismo nivel del HTML.');
     }
-
-    if (__ffmpegInstance) return __ffmpegInstance;
 
     const { createFFmpeg } = FF;
 
@@ -1640,23 +1645,25 @@ body {
       corePath: './ffmpeg-core.js',
     });
 
-    if (!__ffmpegInstance.isLoaded()) {
-      await __ffmpegInstance.load();
-    }
-
+    // load() intentará también traer ffmpeg-core.wasm desde la misma ruta del corePath
+    await __ffmpegInstance.load();
     return __ffmpegInstance;
   }
 
   async function compressVideoInBrowser(file, onStatus, onProgress) {
-    // Solo intentamos comprimir si es un video
     if (!file || !String(file.type || '').startsWith('video/')) {
       throw new Error('El archivo no es un video.');
     }
 
     const ffmpeg = await getFFmpegInstance();
-    const { fetchFile } = window.FFmpeg;
+    const FF = window.FFmpeg || (typeof FFmpeg !== 'undefined' ? FFmpeg : null);
+    const fetchFile = FF && typeof FF.fetchFile === 'function' ? FF.fetchFile : null;
+    if (!fetchFile) {
+      throw new Error('fetchFile no está disponible en el bundle de FFmpeg.');
+    }
 
-    const inName = 'input_' + Date.now() + (file.name.includes('.') ? ('.' + file.name.split('.').pop()) : '.mp4');
+    const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
+    const inName = 'input_' + Date.now() + '.' + ext;
     const outName = 'output_' + Date.now() + '.mp4';
 
     onStatus && onStatus('⏳ Comprimiendo video...');
@@ -1672,10 +1679,10 @@ body {
     ffmpeg.FS('writeFile', inName, await fetchFile(file));
 
     // Parámetros balanceados (calidad/peso/velocidad)
-    // -vf scale: 720p máximo (mantiene proporción)
-    // -crf 28: reduce tamaño sin destruir demasiado
-    // -preset veryfast: más rápido en celulares
-    // -movflags +faststart: mejor streaming
+    // - scale: asegura dimensiones pares (requisito frecuente de H264)
+    // - crf 28: reduce tamaño sin destruir demasiado
+    // - preset veryfast: más rápido en celulares
+    // - movflags +faststart: mejor reproducción/streaming
     await ffmpeg.run(
       '-i', inName,
       '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
@@ -1696,10 +1703,8 @@ body {
     try { ffmpeg.FS('unlink', outName); } catch (_) {}
 
     const blob = new Blob([data.buffer], { type: 'video/mp4' });
-
     const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
     const compressedName = baseName + '_compressed.mp4';
-
     return new File([blob], compressedName, { type: 'video/mp4' });
   }
 
@@ -1995,7 +2000,9 @@ btnUploadVideo.addEventListener("click", async () => {
       progressBar.style.width = '0%';
     } catch (err) {
       console.warn('Compresión falló, se sube el original:', err);
-      status.textContent = '⚠️ No se pudo comprimir. Subiendo original...';
+      const msg = (err && err.message) ? err.message : String(err);
+      status.textContent = '⚠️ No se pudo comprimir (' + msg + '). Subiendo original...';
+      console.error('Error compresión:', err);
     }
   }
 
