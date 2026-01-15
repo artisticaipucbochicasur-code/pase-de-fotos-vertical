@@ -1015,6 +1015,7 @@ body {
 }
         
     </style>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
 </head>
 <body>
 
@@ -1097,10 +1098,17 @@ body {
      <label style="font-weight:600;display:block;margin-top:10px;">Archivo de Video</label>
 <div style="display:flex;align-items:center;gap:10px;">
   <input type="file" id="fileInput" accept="video/*" style="flex:1;margin-top:5px;" />
-  <button id="abrirCamaraVideo" title="Grabar video" 
-    style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
+  <button id="abrirCamaraVideo" title="Grabar video" style="background:none;border:none;cursor:pointer;font-size:22px;color:#6b46c1;">
     <i class="fas fa-video"></i>
   </button>
+</div>
+
+<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#ddd;">
+  <input type="checkbox" id="compressBeforeUpload" checked style="transform:scale(1.1);">
+  Comprimir antes de subir (recomendado)
+</label>
+<div style="margin-top:6px;font-size:12px;color:#aaa;line-height:1.3;">
+  Nota: la compresión ocurre en tu celular/PC (puede tardar). Si tu dispositivo es lento, desmarca esta opción.
 </div>
 
 
@@ -1855,6 +1863,67 @@ tabVideo.addEventListener("click", () => {
 // =============================
 
 // 📤 Subida del video (mantiene compatibilidad con tu sistema)
+
+// =============================
+// 🗜️  COMPRESION OPCIONAL (cliente) ANTES DE SUBIR
+// =============================
+// Usa FFmpeg.wasm (se carga solo si activas el checkbox).
+// Nota: En celulares antiguos puede ser lento; por eso es opcional.
+async function compressVideoInBrowser(inputFile, onStatus = () => {}, onProgress = () => {}) {
+  if (!inputFile) throw new Error('No file');
+  // Si no existe la librería (por bloqueo de CDN), no comprimimos.
+  if (!window.FFmpeg || !window.FFmpeg.createFFmpeg) {
+    throw new Error('FFmpeg.wasm no disponible');
+  }
+
+  const { createFFmpeg, fetchFile } = window.FFmpeg;
+  // Cache global para no descargar/instanciar 2 veces
+  window.__ffmpegInstance = window.__ffmpegInstance || createFFmpeg({
+    log: false,
+    progress: ({ ratio }) => {
+      if (typeof ratio === 'number') onProgress(Math.max(0, Math.min(1, ratio)));
+    }
+  });
+
+  const ffmpeg = window.__ffmpegInstance;
+  if (!ffmpeg.isLoaded()) {
+    onStatus('⏳ Cargando compresor...');
+    await ffmpeg.load();
+  }
+
+  const inName = 'input_' + Date.now();
+  const outName = 'output_' + Date.now() + '.mp4';
+
+  onStatus('⏳ Preparando archivo...');
+  ffmpeg.FS('writeFile', inName, await fetchFile(inputFile));
+
+  // Ajustes pensados para web: H.264 + AAC, 720p max, 30fps, faststart
+  // -crf 28 suele dar buen balance (mas alto = mas compresion).
+  onStatus('⏳ Comprimiendo...');
+  await ffmpeg.run(
+    '-i', inName,
+    '-vf', "scale='min(1280,iw)':-2,fps=30",
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-crf', '28',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-movflags', '+faststart',
+    outName
+  );
+
+  const data = ffmpeg.FS('readFile', outName);
+
+  // Limpieza de FS para no acumular memoria
+  try { ffmpeg.FS('unlink', inName); } catch(e) {}
+  try { ffmpeg.FS('unlink', outName); } catch(e) {}
+
+  const blob = new Blob([data.buffer], { type: 'video/mp4' });
+  const originalBase = (inputFile.name || 'video').replace(/\.[^.]+$/, '');
+  const compressedName = originalBase + '_comprimido.mp4';
+  return new File([blob], compressedName, { type: 'video/mp4' });
+}
+
 btnUploadVideo.addEventListener("click", async () => {
   const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
@@ -1880,14 +1949,46 @@ btnUploadVideo.addEventListener("click", async () => {
   status.textContent = "";
   metrics.textContent = "";
 
+  let startTime = Date.now();
+
+  const doCompress = document.getElementById('compressBeforeUpload')?.checked;
+  let uploadFile = file;
+  if (doCompress) {
+    try {
+      // Progreso de compresion usando la misma barra
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      status.textContent = '⏳ Preparando compresión...';
+
+      uploadFile = await compressVideoInBrowser(
+        file,
+        (msg) => { status.textContent = msg; },
+        (ratio) => {
+          const pct = Math.round((ratio || 0) * 100);
+          progressBar.style.width = pct + '%';
+          metrics.textContent = 'Compresión: ' + pct + '%';
+        }
+      );
+
+      const origMB = (file.size / (1024*1024)).toFixed(2);
+      const compMB = (uploadFile.size / (1024*1024)).toFixed(2);
+      status.textContent = '✅ Compresión lista. Subiendo...';
+      metrics.textContent = 'Tamaño: ' + origMB + ' MB → ' + compMB + ' MB';
+
+      // Reiniciar barra para la subida real
+      progressBar.style.width = '0%';
+    } catch (err) {
+      console.warn('Compresión falló, se sube el original:', err);
+      status.textContent = '⚠️ No se pudo comprimir. Subiendo original...';
+    }
+  }
+
   const identifier = "artistica_bochica_" + Date.now();
-  const fileName = file.name;
+  const fileName = uploadFile.name;
   const accessKey = "KPJmAQCm1UyNJWqv";
   const secretKey = "9JkBrIGexGNOynyf";
   const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
   const xhr = new XMLHttpRequest();
-
-  let startTime = Date.now();
 
   xhr.upload.onprogress = (event) => {
     if (event.lengthComputable) {
@@ -1968,8 +2069,8 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.setRequestHeader("x-archive-meta-description", "Video subido desde la app DECOM");
   xhr.setRequestHeader("x-archive-meta-collection", "opensource_movies");
   xhr.setRequestHeader("x-archive-meta-creator", autor);
-  xhr.setRequestHeader("Content-Type", file.type);
-  xhr.send(file);
+  xhr.setRequestHeader("Content-Type", uploadFile.type || 'video/mp4');
+  xhr.send(uploadFile);
 });
 
 
@@ -5621,4 +5722,5 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
