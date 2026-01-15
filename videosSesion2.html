@@ -1872,25 +1872,36 @@ tabVideo.addEventListener("click", () => {
 // =============================
 // 🗜️  COMPRESION OPCIONAL (cliente) ANTES DE SUBIR
 // =============================
+// =============================
+// 🗜️  COMPRESION OPCIONAL (cliente) ANTES DE SUBIR
+// =============================
 async function compressVideoInBrowser(inputFile, onStatus = () => {}, onProgress = () => {}) {
   if (!inputFile) throw new Error('No file');
-  if (!window.FFmpeg || !window.FFmpeg.createFFmpeg) {
-    throw new Error('FFmpeg.wasm no disponible');
+
+  // ✅ En UMD normalmente el global es "FFmpeg" (no window.FFmpeg)
+  const FF = window.FFmpeg || (typeof FFmpeg !== 'undefined' ? FFmpeg : null);
+  if (!FF || !FF.createFFmpeg || !FF.fetchFile) {
+    throw new Error('Librería FFmpeg no cargó (FFmpeg global no disponible).');
   }
 
-  const { createFFmpeg, fetchFile } = window.FFmpeg;
+  const { createFFmpeg, fetchFile } = FF;
+
+  // ✅ Forzar core single-thread (mejor compatibilidad en hosting simple)
+  const CORE_PATH = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/ffmpeg-core.js";
 
   window.__ffmpegInstance = window.__ffmpegInstance || createFFmpeg({
     log: false,
+    corePath: CORE_PATH,
     progress: ({ ratio }) => {
       if (typeof ratio === 'number') onProgress(Math.max(0, Math.min(1, ratio)));
     }
   });
 
   const ffmpeg = window.__ffmpegInstance;
+
   if (!ffmpeg.isLoaded()) {
     onStatus('⏳ Cargando compresor...');
-    await ffmpeg.load();
+    await ffmpeg.load(); // <-- aquí es donde más suele fallar
   }
 
   const inName = 'input_' + Date.now();
@@ -1914,6 +1925,7 @@ async function compressVideoInBrowser(inputFile, onStatus = () => {}, onProgress
 
   const data = ffmpeg.FS('readFile', outName);
 
+  // Limpieza
   try { ffmpeg.FS('unlink', inName); } catch(e) {}
   try { ffmpeg.FS('unlink', outName); } catch(e) {}
 
@@ -1922,6 +1934,7 @@ async function compressVideoInBrowser(inputFile, onStatus = () => {}, onProgress
   const compressedName = originalBase + '_comprimido.mp4';
   return new File([blob], compressedName, { type: 'video/mp4' });
 }
+
 
 
 btnUploadVideo.addEventListener("click", async () => {
@@ -1977,11 +1990,13 @@ btnUploadVideo.addEventListener("click", async () => {
 
       progressBar.style.width = '0%';
       startTime = Date.now(); // reinicia medición para subida
-    } catch (err) {
-      console.warn('Compresión falló, se sube el original:', err);
-      status.textContent = '⚠️ No se pudo comprimir. Subiendo original...';
-      uploadFile = file;
-    }
+ } catch (err) {
+  console.warn('Compresión falló, se sube el original:', err);
+  const msg = (err && err.message) ? err.message : String(err);
+  status.textContent = '⚠️ No se pudo comprimir (' + msg + '). Subiendo original...';
+  uploadFile = file;
+}
+
   }
 
   const identifier = "artistica_bochica_" + Date.now();
