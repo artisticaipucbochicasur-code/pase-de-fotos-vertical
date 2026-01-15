@@ -4169,16 +4169,6 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
 
-
-// ✅ Detectar iOS (incluye iPadOS que a veces reporta "MacIntel")
-const isIOS = (() => {
-  const ua = navigator.userAgent || "";
-  const iOSUA = /iPad|iPhone|iPod/.test(ua);
-  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  return iOSUA || iPadOS;
-})();
-
-
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
@@ -4644,20 +4634,15 @@ document.querySelector('.swiper').addEventListener('click', () => {
     });
 
     // Lógica para subir la barra de comentarios
-  // Lógica para subir la barra de comentarios
-commentInput.addEventListener('focus', () => {
-  // ✅ En iOS NO forzamos translateY: dejamos que Safari haga el scroll natural con el teclado
-  if (isIOS) return;
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-40%)`;
+    });
 
-  // ✅ En otros (Android/WebView/etc) se mantiene tu comportamiento actual
-  document.body.style.transform = `translateY(-25%)`;
-});
-
-commentInput.addEventListener('blur', () => {
-  // ✅ Siempre volvemos a 0 por si quedó aplicado en no-iOS
-  document.body.style.transform = 'translateY(0)';
-});
-
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
+    });
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
