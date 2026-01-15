@@ -1858,25 +1858,36 @@ tabVideo.addEventListener("click", () => {
 
 
 async function ensureFfmpegLoaded() {
-  // Si ya existe, listo
-  if (window.FFmpeg || (typeof FFmpeg !== 'undefined')) return;
+  // Si ya está, listo
+  if (window.FFmpeg || (typeof FFmpeg !== "undefined")) return;
 
-  // Carga dinámica (por si el tag <script> fue bloqueado)
-  const src = "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js";
-  await new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("No se pudo cargar ffmpeg.min.js (CDN bloqueado o sin acceso)."));
-    document.head.appendChild(s);
-  });
+  const cdns = [
+    "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js",
+    "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"
+  ];
 
-  // Verifica que realmente exista el global
-  if (!(window.FFmpeg || (typeof FFmpeg !== 'undefined'))) {
-    throw new Error("Se cargó el script pero no expuso el objeto FFmpeg (bloqueo/CSP).");
+  let lastErr = null;
+
+  for (const src of cdns) {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("No se pudo cargar: " + src));
+        document.head.appendChild(s);
+      });
+
+      if (window.FFmpeg || (typeof FFmpeg !== "undefined")) return; // ya quedó
+    } catch (e) {
+      lastErr = e;
+    }
   }
+
+  throw lastErr || new Error("No se pudo cargar FFmpeg desde ningún CDN.");
 }
+
 
 // =============================
 // 🎥 MODAL DE SUBIDA DE VIDEOS
@@ -1896,6 +1907,9 @@ async function ensureFfmpegLoaded() {
 // 🗜️  COMPRESION OPCIONAL (cliente) ANTES DE SUBIR
 // =============================
 async function compressVideoInBrowser(inputFile, onStatus = () => {}, onProgress = () => {}) {
+await ensureFfmpegLoaded();
+
+
   if (!inputFile) throw new Error('No file');
 
   // ✅ En UMD normalmente el global es "FFmpeg" (no window.FFmpeg)
@@ -1903,8 +1917,9 @@ async function compressVideoInBrowser(inputFile, onStatus = () => {}, onProgress
 
 const FF = window.FFmpeg || (typeof FFmpeg !== 'undefined' ? FFmpeg : null);
 if (!FF || !FF.createFFmpeg || !FF.fetchFile) {
-  throw new Error("FFmpeg global no disponible tras cargar script.");
+  throw new Error("FFmpeg no disponible tras cargar.");
 }
+
 
 
   const { createFFmpeg, fetchFile } = FF;
