@@ -2007,47 +2007,46 @@ btnUploadVideo.addEventListener("click", async () => {
     }
   };
 
-  xhr.onload = async function () {
-    btnUploadVideo.disabled = false;
-    btnUploadVideo.textContent = originalText;
+xhr.onload = async function () {
+  btnUploadVideo.disabled = false;
+  btnUploadVideo.textContent = originalText;
 
-    if (xhr.status === 200) {
-      const fileEncoded = encodeURIComponent(fileName);
-      const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
-      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
+  // Importante: si CORS bloquea, a veces status puede venir 0
+  if (xhr.status === 200) {
+    // ... (DEJA TU CODIGO DE EXITO TAL CUAL LO TENIAS)
+  } else {
+    const s = xhr.status || 0;
+    status.textContent = `❌ Falló la subida. HTTP status: ${s}.`;
+    console.warn('Upload failed. status=', xhr.status, 'response=', xhr.responseText);
+  }
+};
 
-      await fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
-        + `&titulo=${encodeURIComponent(tituloUsuario)}`
-        + `&link=${encodeURIComponent(directLink)}`
-        + `&autor=${encodeURIComponent(autor)}`
-        + `&correo=${encodeURIComponent(correo)}`
-        + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
+xhr.onerror = () => {
+  btnUploadVideo.disabled = false;
+  btnUploadVideo.textContent = originalText;
 
-      await new Promise(res => setTimeout(res, 600));
+  // Esto suele ser CORS/bloqueo/extensión/servidor cerró conexión
+  status.textContent = "❌ Error de red (posible CORS, bloqueo del navegador, o el servidor cerró la conexión). Revisa Consola/Network.";
+  console.warn('XHR onerror fired. ReadyState=', xhr.readyState, 'Status=', xhr.status);
+};
 
-      document.getElementById("fileInput").value = "";
-      document.getElementById("videoTitle").value = "";
-      document.getElementById("videoDescripcion").value = "";
-      progressBar.style.width = "0%";
-      progressContainer.style.display = "none";
-      metrics.textContent = "";
-      status.textContent = "";
+xhr.onabort = () => {
+  btnUploadVideo.disabled = false;
+  btnUploadVideo.textContent = originalText;
+  status.textContent = "⚠️ Subida cancelada (abort). Puede pasar si cambias de app, se apaga pantalla o el navegador aborta.";
+  console.warn('XHR aborted.');
+};
 
-      setTimeout(() => {
-        publishModal.style.display = "none";
-        if (typeof cargarAnuncios === "function") {
-          cargarAnuncios();
-        }
-        const videoBtn = document.getElementById("videoBtn");
-        if (videoBtn) {
-          document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
-          videoBtn.classList.add('selected');
-        }
-      }, 1000);
-    } else {
-      status.textContent = "❌ Error al subir el video.";
-    }
-  };
+xhr.ontimeout = () => {
+  btnUploadVideo.disabled = false;
+  btnUploadVideo.textContent = originalText;
+  status.textContent = "⏱️ Tiempo de espera agotado (timeout). Intenta con un video más liviano o mejor compresión.";
+  console.warn('XHR timeout.');
+};
+
+// opcional pero recomendado: define un timeout largo (ej 20 min)
+xhr.timeout = 20 * 60 * 1000;
+
 
   xhr.onerror = () => {
     btnUploadVideo.disabled = false;
@@ -5717,6 +5716,5 @@ setInterval(() => {
     </script>
 </body>
 </html>
-
 
 
