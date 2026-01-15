@@ -504,7 +504,7 @@
 /* ❤️ Contador de Me gusta (mismo estilo que comentarios) */
 .likes-counter {
   position: fixed;
-  bottom: 105px;
+  bottom: 350px;
   right: 20px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -4240,19 +4240,20 @@ savedSearchInputEl.addEventListener("blur", () => {
     let likesPorAnuncio = {};     // { anuncioId: count }
     let likedPorAnuncio = {};     // { anuncioId: true/false } para el usuario actual
 
-    function actualizarLikeUI(anuncioId) {
-      const count = Number(likesPorAnuncio[anuncioId] || 0);
-      likeCountValue.textContent = count;
+function actualizarLikeUI(anuncioId) {
+  const count = Number(likesPorAnuncio[anuncioId] || 0);
+  likeCountValue.textContent = count;
 
-      // Mostrar/ocultar badge
-      likeCountValue.style.display = (count > 0) ? 'flex' : 'none';
+  // Mostrar/ocultar badge
+  likeCountValue.style.display = (count > 0) ? 'flex' : 'none';
 
-      // Estado del corazón
-      const liked = !!likedPorAnuncio[anuncioId];
-      if (likeIcon) {
-        likeIcon.className = liked ? 'fas fa-heart' : 'far fa-heart';
-      }
-    }
+  // Estado del corazón
+  const liked = !!likedPorAnuncio[anuncioId];
+  if (likeIcon) {
+    likeIcon.className = liked ? 'fas fa-heart' : 'far fa-heart';
+  }
+}
+
 
     async function toggleLikeAnuncioActual() {
       if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
@@ -5232,11 +5233,16 @@ function updateContentOverlay(index) {
                 commentsList.appendChild(li);
             });
             commentCountValue.textContent = anuncio.comentarios.length;
+
+// Mostrar/ocultar badge de comentarios (por defecto viene oculto en CSS)
+commentCountValue.style.display = (ccount > 0) ? 'flex' : 'none';
+
         } else {
             const li = document.createElement('li');
             li.textContent = "No hay comentarios aún.";
             commentsList.appendChild(li);
             commentCountValue.textContent = 0;
+commentCountValue.style.display = 'none';
         }
 
         // ===============================
@@ -5446,6 +5452,14 @@ async function resolveFotoPerfil(correo, nombre="") {
         swiperInstance.on('slideChange', () => {
             const activeIndex = swiperInstance.realIndex;
             updateContentOverlay(activeIndex);
+
+
+    // ✅ Actualizar contador/estado de likes INMEDIATO al cambiar de slide
+    const anuncioSlide = anunciosData[activeIndex];
+    if (anuncioSlide && anuncioSlide.id) {
+      actualizarLikeUI(anuncioSlide.id);
+    }
+
 
             if(window.AppInventor && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
