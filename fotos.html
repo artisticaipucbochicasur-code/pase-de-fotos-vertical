@@ -4640,39 +4640,7 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-// ✅ Detectar iOS (incluye iPadOS)
-const isIOS = (() => {
-  const ua = navigator.userAgent || "";
-  const iOSUA = /iPad|iPhone|iPod/.test(ua);
-  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  return iOSUA || iPadOS;
-})();
 
-let iosScrollYBeforeFocus = 0;
-
-// Lógica teclado/comentarios
-commentInput.addEventListener("focus", () => {
-  if (isIOS) {
-    // ✅ iOS: dejamos que Safari haga el scroll natural
-    iosScrollYBeforeFocus = window.scrollY || 0;
-    return;
-  }
-
-  // ✅ otros: mantienes tu comportamiento actual
-  document.body.style.transform = "translateY(-58%)";
-});
-
-commentInput.addEventListener("blur", () => {
-  // ✅ siempre resetea el transform (por si venías de Android/otros)
-  document.body.style.transform = "translateY(0)";
-
-  if (isIOS) {
-    // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
-    setTimeout(() => {
-      window.scrollTo(0, iosScrollYBeforeFocus);
-    }, 50);
-  }
-});
 
 
     function normalizarComentarios(lista) {
@@ -7101,3 +7069,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
