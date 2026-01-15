@@ -2393,105 +2393,7 @@ function mostrarAviso(mensaje, tipo = "info") {
         
         
 document.addEventListener("DOMContentLoaded", () => {
- // Intro de video 100% compatible con iOS / Android / PC + botón "Omitir" después de 3s
-setTimeout(() => {
-  const loader = document.getElementById("loader");
-  if (loader) loader.style.display = "flex";
 
-  // 🎬 Crear video de introducción
-  const videoIntro = document.createElement("video");
-  Object.assign(videoIntro, {
-    src: "Ini.mp4",
-    autoplay: true,
-    muted: true,
-    playsInline: true,
-    preload: "auto",
-  });
-  Object.assign(videoIntro.style, {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    objectFit: "cover",
-    zIndex: "999999",
-    backgroundColor: "black",
-    opacity: "0",
-    transition: "opacity 1s ease",
-  });
-  document.body.appendChild(videoIntro);
-
-  // 🟡 Crear botón "Omitir intro" (inicialmente oculto)
-  const skipBtn = document.createElement("button");
-  skipBtn.innerText = "Omitir intro";
-  Object.assign(skipBtn.style, {
-    position: "fixed",
-    bottom: "30px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    padding: "10px 20px",
-    fontSize: "16px",
-    background: "rgba(0, 0, 0, 0.6)",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.3)",
-    borderRadius: "10px",
-    cursor: "pointer",
-    zIndex: "1000000",
-    opacity: "0",
-    transition: "opacity 0.8s ease",
-    backdropFilter: "blur(6px)",
-  });
-
-  // Acción del botón "Omitir"
-  skipBtn.addEventListener("click", () => {
-    videoIntro.style.opacity = "0";
-    skipBtn.style.opacity = "0";
-    setTimeout(() => {
-      videoIntro.remove();
-      skipBtn.remove();
-    }, 700);
-  });
-
-  // Insertar el botón
-  document.body.appendChild(skipBtn);
-
-  // Cuando el video puede reproducirse
-  videoIntro.addEventListener("canplaythrough", () => {
-    if (loader) loader.style.display = "none";
-    videoIntro.style.opacity = "1";
-    videoIntro.play().catch(() => {});
-
-    // 🔥 Mostrar el botón de "Omitir" después de 3 segundos
-    setTimeout(() => {
-      skipBtn.style.opacity = "1";
-    }, 3000);
-  });
-
-  // Al finalizar el video
-  videoIntro.addEventListener("ended", () => {
-    videoIntro.style.opacity = "0";
-    skipBtn.style.opacity = "0";
-    setTimeout(() => {
-      videoIntro.remove();
-      skipBtn.remove();
-    }, 1000);
-  });
-
-  // Autocierre si autoplay falla
-  setTimeout(() => {
-    if (videoIntro.readyState < 3 || videoIntro.paused) {
-      console.warn("iOS bloqueó autoplay, omitiendo video...");
-      videoIntro.remove();
-      skipBtn.remove();
-      if (loader) loader.style.display = "none";
-    }
-  }, 6000);
-}, 300);
-
-  const videoBtn = document.getElementById("videoBtn");
-    if (videoBtn) {
-      videoBtn.classList.add("selected");
-    }
     
   // ======================================================================================
   // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
@@ -3778,6 +3680,13 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
       floatingButtons.classList.toggle("hidden-overlay");
     }
 
+// ❤️ Ocultar/mostrar botón de Like
+if (likesCounter) {
+  likesCounter.classList.toggle('hidden-overlay');
+}
+
+
+
     // 🆕 Alternar el encabezado DECOM y botones
     const socialHeader = document.getElementById("socialHeader");
     if (socialHeader) {
@@ -3846,42 +3755,6 @@ const comentariosCache = {}; // { videoId: [comentarios] }
 
 // 🗂️ Caché de likes
 const likesCache = {}; // { videoId: { count, liked } }
-
-// ⚡ Evita que al cambiar de video se quede mostrando el contador del video anterior
-// (mientras llega el fetch). Pinta algo inmediato (caché si existe, si no, 0 y corazón vacío).
-function resetLikeUIFor(videoId) {
-  if (!videoId) return;
-
-  // Si hay caché, pintamos instantáneo desde caché.
-  if (likesCache[videoId]) {
-    likesPorVideo[videoId] = likesCache[videoId].count || 0;
-    likedPorVideo[videoId] = !!likesCache[videoId].liked;
-  } else {
-    likesPorVideo[videoId] = 0;
-    likedPorVideo[videoId] = false;
-  }
-  actualizarLikeUI(videoId);
-}
-
-// ⚡ Prefetch de likes (para que al deslizar ya esté en caché y sea “instantáneo”)
-function prefetchLikesBySlideIndex(idx) {
-  if (!swiper || !swiper.slides || !swiper.slides[idx]) return;
-  const id = swiper.slides[idx].dataset.videoid;
-  if (!id) return;
-  // Si no está en caché, disparamos fetch en segundo plano
-  if (!likesCache[id]) {
-    cargarLikes(id).catch(() => {});
-  }
-}
-
-function prefetchLikesAroundActive() {
-  if (!swiper || !swiper.slides || swiper.slides.length === 0) return;
-  const activeIndex = swiper.activeIndex;
-  const prevIndex = (activeIndex - 1 + swiper.slides.length) % swiper.slides.length;
-  const nextIndex = (activeIndex + 1) % swiper.slides.length;
-  prefetchLikesBySlideIndex(prevIndex);
-  prefetchLikesBySlideIndex(nextIndex);
-}
 
 function actualizarLikeUI(videoId) {
   if (!videoId) return;
@@ -3989,12 +3862,8 @@ async function toggleLikeVideoActual() {
       likesPorVideo[videoId] = serverLikes;
       likesCache[videoId] = { count: serverLikes, liked: serverLiked };
       actualizarLikeUI(videoId);
+      notificarCambioLikesVideos();
 
-      // ⚡ Disparar sync inmediato (por si hay más vistas abiertas en este dispositivo)
-      // y para no depender solo del intervalo.
-      if (typeof notificarCambioLikesVideos === 'function') {
-        notificarCambioLikesVideos();
-      }
     } else {
       // rollback si error
       likedPorVideo[videoId] = prevLiked;
@@ -4207,18 +4076,34 @@ commentInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') enviarComentario();
 });
 
-commentInput.addEventListener('focus', () => {
-  document.body.style.transform = `translateY(-50%)`;
+// ✅ Detectar iOS (incluye iPadOS)
+const isIOS = (() => {
+  const ua = navigator.userAgent || "";
+  const iOSUA = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return iOSUA || iPadOS;
+})();
+
+let iosScrollYBeforeFocus = 0;
+
+// Lógica teclado/comentarios
+commentInput.addEventListener("focus", () => {
+  if (isIOS) {
+    // ✅ iOS: dejamos que Safari haga el scroll natural
+    iosScrollYBeforeFocus = window.scrollY || 0;
+    return;
+  }
+
 });
 
-// 🔹 Cuando el input baja (pierde foco), se envía automáticamente si tiene texto
-commentInput.addEventListener('blur', () => {
-  document.body.style.transform = `translateY(0)`;
+commentInput.addEventListener("blur", () => {
+  
 
-  // Verificar si hay texto para enviar
-  const comentarioTexto = commentInput.value.trim();
-  if (comentarioTexto !== "") {
-    enviarComentario();
+  if (isIOS) {
+    // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
+    setTimeout(() => {
+      window.scrollTo(0, iosScrollYBeforeFocus);
+    }, 50);
   }
 });
 
@@ -4313,19 +4198,11 @@ async function verificarComentariosVideos() {
 // Cada 5 segundos verificamos si hubo cambios
 setInterval(verificarComentariosVideos, 5000);
 
-// --- HOOK para disparar verificación inmediata tras alta/baja ---
-function notificarCambioComentarios() {
-  // 🔥 FIX2: Pequeño delay para asegurar que el servidor actualice el timestamp antes del chequeo
-  setTimeout(verificarComentariosVideos, 0);
-}
 
-
-// === ❤️ Sincronización de likes en tiempo casi real (multi-dispositivo) ===
-// Objetivo:
-// 1) Si otro teléfono da like, este teléfono lo ve sin recargar.
-// 2) Mantener cache fresca para TODOS los videos (como comentarios), pero sin congelar la UI.
+// === ❤️ Sincronización de likes en tiempo casi real ===
 let ultimaActualizacionLikesVideos = "";
 
+// Inicializa el timestamp al cargar (evita primer “false positive”)
 async function initSyncLikesVideos() {
   try {
     const res = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionLikesVideos&_=${Date.now()}`);
@@ -4337,27 +4214,7 @@ async function initSyncLikesVideos() {
 }
 document.addEventListener('DOMContentLoaded', initSyncLikesVideos);
 
-// 🔥 Refresca likes de TODOS los videos en background (con límite de concurrencia)
-async function refrescarTodosLosLikesEnBackground() {
-  if (!Array.isArray(lastVideos) || lastVideos.length === 0) return;
-
-  const ids = lastVideos.map(v => v.id).filter(Boolean);
-  const CONCURRENCY = 4;
-  let i = 0;
-
-  async function worker() {
-    while (i < ids.length) {
-      const id = ids[i++];
-      try {
-        await cargarLikes(id, { force: true });
-      } catch (_) {}
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(CONCURRENCY, ids.length) }, () => worker());
-  await Promise.allSettled(workers);
-}
-
+// Verifica en el servidor si hubo cambios (con cache-buster)
 async function verificarLikesVideos() {
   try {
     const res = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionLikesVideos&_=${Date.now()}`);
@@ -4366,10 +4223,7 @@ async function verificarLikesVideos() {
     if (data.timestamp && data.timestamp !== ultimaActualizacionLikesVideos) {
       ultimaActualizacionLikesVideos = data.timestamp;
 
-      // 1) Refrescamos cache de todos los videos en background
-      refrescarTodosLosLikesEnBackground();
-
-      // 2) Y repintamos INMEDIATO el activo (para que se vea al instante)
+      // 🔥 Recargar likes del video activo (FORZADO, saltando caché)
       const videoIdActivo = getActiveVideoId();
       if (videoIdActivo) {
         await cargarLikes(videoIdActivo, { force: true });
@@ -4380,12 +4234,19 @@ async function verificarLikesVideos() {
   }
 }
 
-// Más rápido que comentarios (cada 1.2s)
-setInterval(verificarLikesVideos, 1200);
+// Cada 2 segundos verificamos si hubo cambios (ajusta a tu gusto)
+setInterval(verificarLikesVideos, 2000);
 
 // Hook: disparar verificación inmediata tras dar like/unlike en ESTE dispositivo
 function notificarCambioLikesVideos() {
   setTimeout(verificarLikesVideos, 0);
+}
+
+
+// --- HOOK para disparar verificación inmediata tras alta/baja ---
+function notificarCambioComentarios() {
+  // 🔥 FIX2: Pequeño delay para asegurar que el servidor actualice el timestamp antes del chequeo
+  setTimeout(verificarComentariosVideos, 0);
 }
 
 
@@ -4990,7 +4851,7 @@ function formatTime(seconds) {
                 clearTimeout(timeoutId);
                 controls.style.opacity = 1;
                 centerPlayPauseBtn.style.opacity = 1;
-                timeoutId = setTimeout(hideControls, 3000);
+                timeoutId = setTimeout(hideControls, 1000);
             };
 
             const updateTime = () => {
@@ -5345,18 +5206,7 @@ if (!checkNew) {
                 activarSwipeParaBorrar();
                 const videoId = getActiveVideoId();
                 if (videoId) renderComentarios(videoId);
-                if (videoId) {
-                    // ⚡ Pintar likes rápido y pedir dato fresco
-                    resetLikeUIFor(videoId);
-                    cargarLikes(videoId, { force: true });
-
-                    // ⚡ Prefetch adyacentes para el primer swipe
-                    const activeIndex = this.activeIndex;
-                    const prevIndex = (activeIndex - 1 + this.slides.length) % this.slides.length;
-                    const nextIndex = (activeIndex + 1) % this.slides.length;
-                    prefetchLikesBySlideIndex(prevIndex);
-                    prefetchLikesBySlideIndex(nextIndex);
-                }
+                if (videoId) cargarLikes(videoId);
                 console.log("✅ Swiper inicializado");
                 // Inicializar el primer video con reproducción automática
                 const activeCard = this.slides[this.activeIndex].querySelector('.player-card');
@@ -5370,19 +5220,7 @@ if (!checkNew) {
                 activarSwipeParaBorrar();
                 const videoId = getActiveVideoId();
                 if (videoId) {
-                    // ⚡ Pintar UI de likes INMEDIATO al deslizar (evita que quede el contador anterior)
-                    resetLikeUIFor(videoId);
-
-                    // 🔄 Traer dato fresco (multi-dispositivo) sin depender del caché
-                    cargarLikes(videoId, { force: true });
-
-                    // ⚡ Prefetch de likes de los adyacentes para que el próximo swipe sea instantáneo
-                    const activeIndex = this.activeIndex;
-                    const prevIndex = (activeIndex - 1 + this.slides.length) % this.slides.length;
-                    const nextIndex = (activeIndex + 1) % this.slides.length;
-                    prefetchLikesBySlideIndex(prevIndex);
-                    prefetchLikesBySlideIndex(nextIndex);
-
+                    cargarLikes(videoId);
                     if (!comentariosPorVideo[videoId]) {
                         cargarComentarios(videoId, true);
                     } else {
@@ -5725,7 +5563,6 @@ setInterval(() => {
     </script>
 </body>
 </html>
-
 
 
 
