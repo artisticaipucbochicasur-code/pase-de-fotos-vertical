@@ -597,6 +597,7 @@
 
 .refresh-btn {
     position: fixed;
+    /* 👇 Para que quede ANTES (más arriba) que el botón de guardar */
     bottom: 250px;
     right: 18px;
     width: 40px;
@@ -1715,12 +1716,7 @@ body {
   <span class="count" id="commentCountValue">0</span>
 </div>
 
-<div class="comment-input-container" id="commentInputContainer">
-  <div class="comment-input-wrapper">
-    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
-  </div>
-</div>
+
 
 
 
@@ -4240,20 +4236,19 @@ savedSearchInputEl.addEventListener("blur", () => {
     let likesPorAnuncio = {};     // { anuncioId: count }
     let likedPorAnuncio = {};     // { anuncioId: true/false } para el usuario actual
 
-function actualizarLikeUI(anuncioId) {
-  const count = Number(likesPorAnuncio[anuncioId] || 0);
-  likeCountValue.textContent = count;
+    function actualizarLikeUI(anuncioId) {
+      const count = Number(likesPorAnuncio[anuncioId] || 0);
+      likeCountValue.textContent = count;
 
-  // Mostrar/ocultar badge
-  likeCountValue.style.display = (count > 0) ? 'flex' : 'none';
+      // Mostrar/ocultar badge
+      likeCountValue.style.display = (count > 0) ? 'flex' : 'none';
 
-  // Estado del corazón
-  const liked = !!likedPorAnuncio[anuncioId];
-  if (likeIcon) {
-    likeIcon.className = liked ? 'fas fa-heart' : 'far fa-heart';
-  }
-}
-
+      // Estado del corazón
+      const liked = !!likedPorAnuncio[anuncioId];
+      if (likeIcon) {
+        likeIcon.className = liked ? 'fas fa-heart' : 'far fa-heart';
+      }
+    }
 
     async function toggleLikeAnuncioActual() {
       if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
@@ -5232,17 +5227,16 @@ function updateContentOverlay(index) {
 
                 commentsList.appendChild(li);
             });
-            commentCountValue.textContent = anuncio.comentarios.length;
-
-// Mostrar/ocultar badge de comentarios (por defecto viene oculto en CSS)
-commentCountValue.style.display = (ccount > 0) ? 'flex' : 'none';
-
+            const ccount = anuncio.comentarios.length;
+            commentCountValue.textContent = ccount;
+            // Mostrar/ocultar badge de comentarios (por defecto viene oculto en CSS)
+            commentCountValue.style.display = (ccount > 0) ? 'flex' : 'none';
         } else {
             const li = document.createElement('li');
             li.textContent = "No hay comentarios aún.";
             commentsList.appendChild(li);
             commentCountValue.textContent = 0;
-commentCountValue.style.display = 'none';
+            commentCountValue.style.display = 'none';
         }
 
         // ===============================
@@ -5453,13 +5447,11 @@ async function resolveFotoPerfil(correo, nombre="") {
             const activeIndex = swiperInstance.realIndex;
             updateContentOverlay(activeIndex);
 
-
-    // ✅ Actualizar contador/estado de likes INMEDIATO al cambiar de slide
-    const anuncioSlide = anunciosData[activeIndex];
-    if (anuncioSlide && anuncioSlide.id) {
-      actualizarLikeUI(anuncioSlide.id);
-    }
-
+            // ✅ Actualizar contador/estado de likes INMEDIATO al cambiar de slide
+            const anuncioSlide = anunciosData[activeIndex];
+            if (anuncioSlide && anuncioSlide.id) {
+              actualizarLikeUI(anuncioSlide.id);
+            }
 
             if(window.AppInventor && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
