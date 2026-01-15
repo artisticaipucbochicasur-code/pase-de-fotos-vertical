@@ -42,7 +42,7 @@
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
 #lblContador {
-  position: absolute;
+  position: fixed;
   bottom: 195px; /* un poco arriba del icono de comentarios */
   right: 20px;
   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
@@ -443,7 +443,7 @@
     /* Estilos del nuevo contador de comentarios */
 .comments-counter {
   position: fixed;
-  bottom: 140px;
+  bottom: 150px;
   right: 20px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -459,7 +459,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-  z-index: 999;
+  z-index: 5001; 
 }
 
 .comments-counter .icon {
@@ -504,7 +504,7 @@
 /* ❤️ Contador de Me gusta (mismo estilo que comentarios) */
 .likes-counter {
   position: fixed;
-  bottom: 170px;
+  bottom: 105px;
   right: 20px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -520,7 +520,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-  z-index: 999;
+  z-index: 5001; 
 }
 
 .likes-counter .icon {
@@ -546,8 +546,6 @@
   align-items: center;
   justify-content: center;
 }
-
-
 
     
     .comment-input-container .send-comment-btn:hover {
@@ -651,7 +649,14 @@
     scroll-behavior: smooth;
 }
 
-
+body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  font-family: Arial, sans-serif;
+  color: white;
+  transition: transform 0.3s ease;
+}
 
 /* Estilos para el encabezado */
 #socialHeader {
@@ -1716,6 +1721,16 @@
     <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
 </div>
+
+
+<div class="comments-counter" id="commentsCounter">
+  <span class="icon">
+    <i class="fa-regular fa-comment"></i>
+  </span>
+  <span class="count" id="commentCountValue">0</span>
+</div>
+
+
 
 
 
@@ -4222,6 +4237,8 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
+
+
     // ❤️ Me gusta
     const likesCounter = document.getElementById('likesCounter');
     const likeCountValue = document.getElementById('likeCountValue');
@@ -4278,41 +4295,38 @@ savedSearchInputEl.addEventListener("blur", () => {
       }
     }
 
-    async function verificarLikes() {
-      try {
-        // Pedimos conteos + estado del usuario (si el backend lo envía)
-        const url = `${SCRIPT_URL}?accion=obtenerContadorLikes&correo=${encodeURIComponent(currentAuthorEmail || '')}`;
-        const response = await fetch(url);
-        const data = await response.json();
+  async function verificarLikes() {
+  try {
+    const url = `${SCRIPT_URL}?accion=obtenerContadorLikes&correo=${encodeURIComponent(currentAuthorEmail || '')}`;
+    const response = await fetch(url);
+    const data = await response.json();
 
-        const totalLikesActual = Number(data.totalLikes || 0);
+    // Guardar data
+    const totalLikesActual = Number(data.totalLikes || 0);
+    if (data.likesPorAnuncio) likesPorAnuncio = data.likesPorAnuncio;
+    if (data.likedPorAnuncio) likedPorAnuncio = data.likedPorAnuncio;
 
-        if (data.likesPorAnuncio) likesPorAnuncio = data.likesPorAnuncio;
-        if (data.likedPorAnuncio) likedPorAnuncio = data.likedPorAnuncio;
-
-        if (contadorLikesAnterior === -1) {
-          contadorLikesAnterior = totalLikesActual;
-        } else if (totalLikesActual !== contadorLikesAnterior) {
-          contadorLikesAnterior = totalLikesActual;
-          // refrescar UI del anuncio actual
-          if (swiperInstance && anunciosData.length > 0) {
-            const activeIndex = swiperInstance.realIndex;
-            const anuncioActual = anunciosData[activeIndex];
-            if (anuncioActual && anuncioActual.id) {
-              actualizarLikeUI(anuncioActual.id);
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Error al verificar likes:', e);
+    // ✅ SIEMPRE actualizar UI del anuncio actual (incluye primera carga)
+    if (swiperInstance && anunciosData && anunciosData.length > 0) {
+      const activeIndex = swiperInstance.realIndex;
+      const anuncioActual = anunciosData[activeIndex];
+      if (anuncioActual && anuncioActual.id) {
+        actualizarLikeUI(anuncioActual.id);
       }
     }
+
+    // Mantener tracking por si lo usas para debug
+    contadorLikesAnterior = totalLikesActual;
+
+  } catch (e) {
+    console.error('Error al verificar likes:', e);
+  }
+}
+
 
     if (likesCounter) {
       likesCounter.addEventListener('click', toggleLikeAnuncioActual);
     }
-
-
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -4778,16 +4792,37 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-    // Lógica para subir la barra de comentarios
-    commentInput.addEventListener('focus', () => {
-        // Mueve el cuerpo del documento para que el input sea visible
-        document.body.style.transform = `translateY(-58%)`;
-    });
+// ✅ Detectar iOS (incluye iPadOS)
+const isIOS = (() => {
+  const ua = navigator.userAgent || "";
+  const iOSUA = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return iOSUA || iPadOS;
+})();
 
-    commentInput.addEventListener('blur', () => {
-        // Vuelve el cuerpo del documento a su posición original
-        document.body.style.transform = 'translateY(0)';
-    });
+let iosScrollYBeforeFocus = 0;
+
+// Lógica teclado/comentarios
+commentInput.addEventListener("focus", () => {
+  if (isIOS) {
+    // ✅ iOS: dejamos que Safari haga el scroll natural
+    iosScrollYBeforeFocus = window.scrollY || 0;
+    return;
+  }
+
+});
+
+commentInput.addEventListener("blur", () => {
+  
+
+  if (isIOS) {
+    // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
+    setTimeout(() => {
+      window.scrollTo(0, iosScrollYBeforeFocus);
+    }, 50);
+  }
+});
+
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -4923,12 +4958,12 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
         anuncioActual.comentarios = normalizarComentarios(comentarios);
         updateContentOverlay(activeIndex);
-            // ❤️ Actualizar Me gusta del anuncio actual
+
+        // ❤️ Actualizar Me gusta del anuncio actual
             if (anunciosData && anunciosData.length > 0) {
               const anuncioActual = anunciosData[activeIndex];
               if (anuncioActual && anuncioActual.id) actualizarLikeUI(anuncioActual.id);
             }
-
         
         console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
         
@@ -5613,14 +5648,17 @@ function showCustommostrarAviso(title, titlesList) {
 
     //setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
+
     setInterval(verificarLikes, 5000);
 
 
     verificarLikes();
 
-    verificarComentarios().then(() => {
-        cargarImagenes();
-    });
+   verificarComentarios().then(() => {
+  cargarImagenes();
+  verificarLikes(); // ✅ fuerza primera carga visible
+});
+
 
     if (lblContador) {
         lblContador.addEventListener('click', () => {
