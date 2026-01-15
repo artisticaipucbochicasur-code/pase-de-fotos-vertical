@@ -3753,6 +3753,39 @@ window.addEventListener("load", () => {
 // 🗂️ Caché de comentarios
 const comentariosCache = {}; // { videoId: [comentarios] }
 
+// ✅ Actualización instantánea del contador (sin esperar fetch)
+function actualizarContadorComentariosUI(videoId, opts = {}) {
+  const { loading = false } = opts;
+  const el = document.getElementById('commentCountValue');
+  if (!el) return;
+
+  // Siempre mostrar el badge (incluye 0) para evitar “parpadeo”/demoras
+  el.style.display = 'flex';
+
+  // Si ya hay caché/memoria, mostramos el número al instante
+  const lista = (comentariosPorVideo && comentariosPorVideo[videoId]) || (comentariosCache && comentariosCache[videoId]) || null;
+  if (Array.isArray(lista)) {
+    el.textContent = String(lista.length);
+    return;
+  }
+
+  // Si aún no hay datos, mostramos 0 (instantáneo) y opcionalmente un estado “loading”
+  el.textContent = '0';
+  if (loading) {
+    // Marca ligera para depuración; no afecta UI visible
+    el.dataset.loading = '1';
+  } else {
+    delete el.dataset.loading;
+  }
+}
+
+function precargarComentarios(videoId) {
+  if (!videoId) return;
+  // No bloquear UI: si está en caché, cargarComentarios retorna inmediato.
+  // Si no, hace fetch en background para que el swipe siguiente sea instantáneo.
+  Promise.resolve(cargarComentarios(videoId, false)).catch(() => {});
+}
+
 // 🗂️ Caché de likes
 const likesCache = {}; // { videoId: { count, liked } }
 
@@ -3954,6 +3987,10 @@ function renderComentarios(videoId) {
     console.error("❌ Error: Contenedor de comentarios o contador no encontrado en el DOM");
     return;
   }
+
+  // ✅ Asegurar que el badge sea visible y limpiar estado de carga
+  commentCountValue.style.display = 'flex';
+  delete commentCountValue.dataset.loading;
 
   // --- Guardar el texto y correo del comentario swiped actual ---
   let swipedData = null;
@@ -5205,7 +5242,10 @@ if (!checkNew) {
                 updateFixedTitle(this);
                 activarSwipeParaBorrar();
                 const videoId = getActiveVideoId();
-                if (videoId) renderComentarios(videoId);
+                if (videoId) {
+                  actualizarContadorComentariosUI(videoId, { loading: !comentariosPorVideo[videoId] && !comentariosCache[videoId] });
+                  renderComentarios(videoId);
+                }
                 if (videoId) cargarLikes(videoId);
                 console.log("✅ Swiper inicializado");
                 // Inicializar el primer video con reproducción automática
@@ -5220,11 +5260,23 @@ if (!checkNew) {
                 activarSwipeParaBorrar();
                 const videoId = getActiveVideoId();
                 if (videoId) {
+                    // ✅ Contador instantáneo (usa caché si existe)
+                    actualizarContadorComentariosUI(videoId, { loading: !comentariosPorVideo[videoId] && !comentariosCache[videoId] });
+
                     cargarLikes(videoId);
-                    if (!comentariosPorVideo[videoId]) {
-                        cargarComentarios(videoId, true);
-                    } else {
+
+                    // ✅ Render rápido si ya hay datos, y en paralelo precarga/actualiza si falta
+                    if (comentariosPorVideo[videoId] || comentariosCache[videoId]) {
+                        // Asegura que memoria y caché estén alineadas
+                        if (!comentariosPorVideo[videoId] && comentariosCache[videoId]) {
+                          comentariosPorVideo[videoId] = comentariosCache[videoId];
+                        }
                         renderComentarios(videoId);
+                        // Opcional: refresco silencioso si deseas, pero SIN forzar.
+                        // precargarComentarios(videoId);
+                    } else {
+                        // Cargar y renderizar cuando llegue, pero ya dejamos el contador en 0
+                        cargarComentarios(videoId, true);
                     }
                 }
             },
@@ -5282,6 +5334,12 @@ if (!checkNew) {
                         centerPlayPauseBtn.style.opacity = 1;
                     }
                 }
+
+                // ✅ Precargar comentarios del prev/next para que el contador sea instantáneo al deslizar
+                const prevVideoId = this.slides[prevIndex]?.dataset?.videoid || null;
+                const nextVideoId = this.slides[nextIndex]?.dataset?.videoid || null;
+                precargarComentarios(prevVideoId);
+                precargarComentarios(nextVideoId);
 
                 const videoId = getActiveVideoId();
                 if (videoId && comentariosPorVideo[videoId]) {
@@ -5563,6 +5621,4 @@ setInterval(() => {
     </script>
 </body>
 </html>
-
-
 
