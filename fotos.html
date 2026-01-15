@@ -26,14 +26,14 @@
 
   <title>DECOM - Fotos</title>
   <style>
-   @supports (-webkit-touch-callout: none) { body {
+    body {
         margin: 0;
         padding: 0;
         background: #111;
         font-family: Arial, sans-serif;
         color: white;
-        transition: none !important;
-    }}
+        transition: transform 0.3s ease; /* Transición para el movimiento */
+    }
     .swiper { width: 100vw; height: 100vh; }
     .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
     .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -42,7 +42,7 @@
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
 #lblContador {
-  position: absolute;
+  position: fixed;
   bottom: 195px; /* un poco arriba del icono de comentarios */
   right: 20px;
   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
@@ -4640,39 +4640,38 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-// ✅ Detectar iOS (incluye iPadOS y un fallback por CSS)
+// ✅ Detectar iOS (incluye iPadOS)
 const isIOS = (() => {
   const ua = navigator.userAgent || "";
   const iOSUA = /iPad|iPhone|iPod/.test(ua);
   const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  const iOSCSS = typeof CSS !== "undefined" && CSS.supports && CSS.supports("-webkit-touch-callout", "none");
-  return iOSUA || iPadOS || iOSCSS;
+  return iOSUA || iPadOS;
 })();
 
-// 🔁 (Opcional pero recomendado) guardar el estado previo por si algo ya movió el body
-let prevBodyTransform = "";
+let iosScrollYBeforeFocus = 0;
 
+// Lógica teclado/comentarios
 commentInput.addEventListener("focus", () => {
-  // ✅ iOS: NO tocar el body. Dejar que Safari haga el scroll/teclado “natural”.
   if (isIOS) {
-    // pequeño empujón suave por si el input queda tapado dentro de overlays
-    setTimeout(() => {
-      commentInput.scrollIntoView({ block: "nearest", inline: "nearest" });
-    }, 50);
+    // ✅ iOS: dejamos que Safari haga el scroll natural
+    iosScrollYBeforeFocus = window.scrollY || 0;
     return;
   }
 
-  // ✅ Otros (Android/WebView/etc): mantienes tu comportamiento actual
-  prevBodyTransform = document.body.style.transform || "";
+  // ✅ otros: mantienes tu comportamiento actual
   document.body.style.transform = "translateY(-58%)";
 });
 
 commentInput.addEventListener("blur", () => {
-  // ✅ iOS: no revertimos nada porque no movimos nada
-  if (isIOS) return;
+  // ✅ siempre resetea el transform (por si venías de Android/otros)
+  document.body.style.transform = "translateY(0)";
 
-  // ✅ Otros: volver exactamente a como estaba
-  document.body.style.transform = prevBodyTransform || "translateY(0)";
+  if (isIOS) {
+    // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
+    setTimeout(() => {
+      window.scrollTo(0, iosScrollYBeforeFocus);
+    }, 50);
+  }
 });
 
 
