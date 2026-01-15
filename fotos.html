@@ -4299,17 +4299,26 @@ async function toggleLikeAnuncioActual() {
 
     const data = await resp.json();
 
-    if (data && data.status === 'success') {
-      // ✅ Reconciliar con el servidor (por si el conteo real cambió)
-      likedPorAnuncio[anuncioId] = !!data.liked;
-      likesPorAnuncio[anuncioId] = Number(data.likes || 0);
-      actualizarLikeUI(anuncioId);
-    } else {
-      // 🔁 Rollback si el servidor responde error
-      likedPorAnuncio[anuncioId] = prevLiked;
-      likesPorAnuncio[anuncioId] = prevCount;
-      actualizarLikeUI(anuncioId);
-    }
+if (data && data.status === 'success') {
+  const serverLiked = !!data.liked;
+  const serverLikes = Number(data.likes || 0);
+
+  // ✅ Solo reconciliar si el servidor difiere del estado optimista actual
+  const currentLiked = !!likedPorAnuncio[anuncioId];
+  const currentLikes = Number(likesPorAnuncio[anuncioId] || 0);
+
+  if (serverLiked !== currentLiked || serverLikes !== currentLikes) {
+    likedPorAnuncio[anuncioId] = serverLiked;
+    likesPorAnuncio[anuncioId] = serverLikes;
+    actualizarLikeUI(anuncioId);
+  }
+} else {
+  // 🔁 Rollback si servidor responde error
+  likedPorAnuncio[anuncioId] = prevLiked;
+  likesPorAnuncio[anuncioId] = prevCount;
+  actualizarLikeUI(anuncioId);
+}
+
   } catch (e) {
     console.error('Error toggleLike:', e);
 
