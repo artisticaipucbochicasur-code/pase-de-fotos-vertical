@@ -4254,38 +4254,68 @@ savedSearchInputEl.addEventListener("blur", () => {
       }
     }
 
-    async function toggleLikeAnuncioActual() {
-      if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
-      const activeIndex = swiperInstance.realIndex;
-      const anuncioActual = anunciosData[activeIndex];
-      if (!anuncioActual || !anuncioActual.id) return;
+async function toggleLikeAnuncioActual() {
+  if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
+  const activeIndex = swiperInstance.realIndex;
+  const anuncioActual = anunciosData[activeIndex];
+  if (!anuncioActual || !anuncioActual.id) return;
 
-      try {
-        const params = new URLSearchParams({
-          accion: 'toggleLike',
-          anuncioId: anuncioActual.id,
-          correo: currentAuthorEmail || '',
-          autor: currentAuthorName || ''
-        });
+  const anuncioId = anuncioActual.id;
 
-        const resp = await fetch(`${SCRIPT_URL}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString()
-        });
+  // ✅ Evitar spam/doble click si ya hay una petición en curso
+  if (likePendingPorAnuncio[anuncioId]) return;
+  likePendingPorAnuncio[anuncioId] = true;
 
-        const data = await resp.json();
+  // ✅ UI optimista: actualizar INMEDIATO (sin esperar fetch)
+  const prevLiked = !!likedPorAnuncio[anuncioId];
+  const prevCount = Number(likesPorAnuncio[anuncioId] || 0);
 
-        if (data && data.status === 'success') {
-          // Actualizar estado local inmediato
-          likedPorAnuncio[anuncioActual.id] = !!data.liked;
-          likesPorAnuncio[anuncioActual.id] = Number(data.likes || 0);
-          actualizarLikeUI(anuncioActual.id);
-        }
-      } catch (e) {
-        console.error('Error toggleLike:', e);
-      }
+  const nextLiked = !prevLiked;
+  const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+
+  likedPorAnuncio[anuncioId] = nextLiked;
+  likesPorAnuncio[anuncioId] = nextCount;
+  actualizarLikeUI(anuncioId);
+
+  try {
+    const params = new URLSearchParams({
+      accion: 'toggleLike',
+      anuncioId,
+      correo: currentAuthorEmail || '',
+      autor: currentAuthorName || ''
+    });
+
+    const resp = await fetch(`${SCRIPT_URL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+
+    const data = await resp.json();
+
+    if (data && data.status === 'success') {
+      // ✅ Reconciliar con el servidor (por si el conteo real cambió)
+      likedPorAnuncio[anuncioId] = !!data.liked;
+      likesPorAnuncio[anuncioId] = Number(data.likes || 0);
+      actualizarLikeUI(anuncioId);
+    } else {
+      // 🔁 Rollback si el servidor responde error
+      likedPorAnuncio[anuncioId] = prevLiked;
+      likesPorAnuncio[anuncioId] = prevCount;
+      actualizarLikeUI(anuncioId);
     }
+  } catch (e) {
+    console.error('Error toggleLike:', e);
+
+    // 🔁 Rollback si falla la red
+    likedPorAnuncio[anuncioId] = prevLiked;
+    likesPorAnuncio[anuncioId] = prevCount;
+    actualizarLikeUI(anuncioId);
+  } finally {
+    likePendingPorAnuncio[anuncioId] = false;
+  }
+}
+
 
   async function verificarLikes() {
   try {
