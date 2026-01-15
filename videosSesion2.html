@@ -3864,6 +3864,12 @@ async function toggleLikeVideoActual() {
       actualizarLikeUI(videoId);
       notificarCambioLikesVideos();
 
+       // ⚡ Disparar sync inmediato (por si hay más vistas abiertas en este dispositivo)
+      // y para no depender solo del intervalo.
+      if (typeof notificarCambioLikesVideos === 'function') {
+        notificarCambioLikesVideos();
+      }
+
     } else {
       // rollback si error
       likedPorVideo[videoId] = prevLiked;
@@ -5575,4 +5581,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
+
+
 
