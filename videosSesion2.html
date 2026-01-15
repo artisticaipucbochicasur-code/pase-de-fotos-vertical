@@ -3862,6 +3862,8 @@ async function toggleLikeVideoActual() {
       likesPorVideo[videoId] = serverLikes;
       likesCache[videoId] = { count: serverLikes, liked: serverLiked };
       actualizarLikeUI(videoId);
+      notificarCambioLikesVideos();
+
     } else {
       // rollback si error
       likedPorVideo[videoId] = prevLiked;
@@ -4195,6 +4197,51 @@ async function verificarComentariosVideos() {
 
 // Cada 5 segundos verificamos si hubo cambios
 setInterval(verificarComentariosVideos, 5000);
+
+
+// === ❤️ Sincronización de likes en tiempo casi real ===
+let ultimaActualizacionLikesVideos = "";
+
+// Inicializa el timestamp al cargar (evita primer “false positive”)
+async function initSyncLikesVideos() {
+  try {
+    const res = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionLikesVideos&_=${Date.now()}`);
+    const data = await res.json();
+    ultimaActualizacionLikesVideos = data.timestamp || "";
+  } catch (e) {
+    console.warn("No se pudo inicializar sync de likes:", e);
+  }
+}
+document.addEventListener('DOMContentLoaded', initSyncLikesVideos);
+
+// Verifica en el servidor si hubo cambios (con cache-buster)
+async function verificarLikesVideos() {
+  try {
+    const res = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionLikesVideos&_=${Date.now()}`);
+    const data = await res.json();
+
+    if (data.timestamp && data.timestamp !== ultimaActualizacionLikesVideos) {
+      ultimaActualizacionLikesVideos = data.timestamp;
+
+      // 🔥 Recargar likes del video activo (FORZADO, saltando caché)
+      const videoIdActivo = getActiveVideoId();
+      if (videoIdActivo) {
+        await cargarLikes(videoIdActivo, { force: true });
+      }
+    }
+  } catch (err) {
+    console.warn("No se pudo verificar likes:", err);
+  }
+}
+
+// Cada 2 segundos verificamos si hubo cambios (ajusta a tu gusto)
+setInterval(verificarLikesVideos, 2000);
+
+// Hook: disparar verificación inmediata tras dar like/unlike en ESTE dispositivo
+function notificarCambioLikesVideos() {
+  setTimeout(verificarLikesVideos, 0);
+}
+
 
 // --- HOOK para disparar verificación inmediata tras alta/baja ---
 function notificarCambioComentarios() {
@@ -5516,4 +5563,5 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
