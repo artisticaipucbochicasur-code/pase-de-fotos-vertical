@@ -5214,13 +5214,25 @@ if (!checkNew) {
                     mountIframe(activeCard, true);
                 }
             },
-            slideChange() {
+         slideChange() {
                 cleanupIframesExceptActiveAndAdjacent();
                 updateFixedTitle(this);
                 activarSwipeParaBorrar();
                 const videoId = getActiveVideoId();
                 if (videoId) {
-                    cargarLikes(videoId);
+                    // ⚡ Pintar UI de likes INMEDIATO al deslizar (evita que quede el contador anterior)
+                    resetLikeUIFor(videoId);
+
+                    // 🔄 Traer dato fresco (multi-dispositivo) sin depender del caché
+                    cargarLikes(videoId, { force: true });
+
+                    // ⚡ Prefetch de likes de los adyacentes para que el próximo swipe sea instantáneo
+                    const activeIndex = this.activeIndex;
+                    const prevIndex = (activeIndex - 1 + this.slides.length) % this.slides.length;
+                    const nextIndex = (activeIndex + 1) % this.slides.length;
+                    prefetchLikesBySlideIndex(prevIndex);
+                    prefetchLikesBySlideIndex(nextIndex);
+
                     if (!comentariosPorVideo[videoId]) {
                         cargarComentarios(videoId, true);
                     } else {
@@ -5563,5 +5575,4 @@ setInterval(() => {
     </script>
 </body>
 </html>
-
 
