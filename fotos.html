@@ -42,7 +42,7 @@
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
 #lblContador {
-  position: fixed;
+  position: absolute;
   bottom: 195px; /* un poco arriba del icono de comentarios */
   right: 20px;
   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
@@ -547,6 +547,8 @@
   justify-content: center;
 }
 
+
+
     
     .comment-input-container .send-comment-btn:hover {
         background: transparent;
@@ -649,14 +651,7 @@
     scroll-behavior: smooth;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background: #111;
-  font-family: Arial, sans-serif;
-  color: white;
-  transition: transform 0.3s ease;
-}
+
 
 /* Estilos para el encabezado */
 #socialHeader {
@@ -1707,21 +1702,6 @@ body {
   </span>
   <span class="count" id="likeCountValue">0</span>
 </div>
-
-<div class="comments-counter" id="commentsCounter">
-  <span class="icon">
-    <i class="fa-regular fa-comment"></i>
-  </span>
-  <span class="count" id="commentCountValue">0</span>
-</div>
-
-<div class="comment-input-container" id="commentInputContainer">
-  <div class="comment-input-wrapper">
-    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
-  </div>
-</div>
-
 
 <div class="comments-counter" id="commentsCounter">
   <span class="icon">
@@ -4242,8 +4222,6 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
-
-
     // ❤️ Me gusta
     const likesCounter = document.getElementById('likesCounter');
     const likeCountValue = document.getElementById('likeCountValue');
@@ -4333,6 +4311,8 @@ savedSearchInputEl.addEventListener("blur", () => {
     if (likesCounter) {
       likesCounter.addEventListener('click', toggleLikeAnuncioActual);
     }
+
+
 
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
@@ -4798,37 +4778,16 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-// ✅ Detectar iOS (incluye iPadOS)
-const isIOS = (() => {
-  const ua = navigator.userAgent || "";
-  const iOSUA = /iPad|iPhone|iPod/.test(ua);
-  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  return iOSUA || iPadOS;
-})();
+    // Lógica para subir la barra de comentarios
+    commentInput.addEventListener('focus', () => {
+        // Mueve el cuerpo del documento para que el input sea visible
+        document.body.style.transform = `translateY(-58%)`;
+    });
 
-let iosScrollYBeforeFocus = 0;
-
-// Lógica teclado/comentarios
-commentInput.addEventListener("focus", () => {
-  if (isIOS) {
-    // ✅ iOS: dejamos que Safari haga el scroll natural
-    iosScrollYBeforeFocus = window.scrollY || 0;
-    return;
-  }
-
-});
-
-commentInput.addEventListener("blur", () => {
-  
-
-  if (isIOS) {
-    // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
-    setTimeout(() => {
-      window.scrollTo(0, iosScrollYBeforeFocus);
-    }, 50);
-  }
-});
-
+    commentInput.addEventListener('blur', () => {
+        // Vuelve el cuerpo del documento a su posición original
+        document.body.style.transform = 'translateY(0)';
+    });
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -4964,12 +4923,12 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
         anuncioActual.comentarios = normalizarComentarios(comentarios);
         updateContentOverlay(activeIndex);
-
-        // ❤️ Actualizar Me gusta del anuncio actual
+            // ❤️ Actualizar Me gusta del anuncio actual
             if (anunciosData && anunciosData.length > 0) {
               const anuncioActual = anunciosData[activeIndex];
               if (anuncioActual && anuncioActual.id) actualizarLikeUI(anuncioActual.id);
             }
+
         
         console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
         
@@ -5654,7 +5613,6 @@ function showCustommostrarAviso(title, titlesList) {
 
     //setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
-
     setInterval(verificarLikes, 5000);
 
 
