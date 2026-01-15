@@ -2331,105 +2331,7 @@ function mostrarAviso(mensaje, tipo = "info") {
         
         
 document.addEventListener("DOMContentLoaded", () => {
- // Intro de video 100% compatible con iOS / Android / PC + botón "Omitir" después de 3s
-setTimeout(() => {
-  const loader = document.getElementById("loader");
-  if (loader) loader.style.display = "flex";
 
-  // 🎬 Crear video de introducción
-  const videoIntro = document.createElement("video");
-  Object.assign(videoIntro, {
-    src: "Ini.mp4",
-    autoplay: true,
-    muted: true,
-    playsInline: true,
-    preload: "auto",
-  });
-  Object.assign(videoIntro.style, {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    objectFit: "cover",
-    zIndex: "999999",
-    backgroundColor: "black",
-    opacity: "0",
-    transition: "opacity 1s ease",
-  });
-  document.body.appendChild(videoIntro);
-
-  // 🟡 Crear botón "Omitir intro" (inicialmente oculto)
-  const skipBtn = document.createElement("button");
-  skipBtn.innerText = "Omitir intro";
-  Object.assign(skipBtn.style, {
-    position: "fixed",
-    bottom: "30px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    padding: "10px 20px",
-    fontSize: "16px",
-    background: "rgba(0, 0, 0, 0.6)",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.3)",
-    borderRadius: "10px",
-    cursor: "pointer",
-    zIndex: "1000000",
-    opacity: "0",
-    transition: "opacity 0.8s ease",
-    backdropFilter: "blur(6px)",
-  });
-
-  // Acción del botón "Omitir"
-  skipBtn.addEventListener("click", () => {
-    videoIntro.style.opacity = "0";
-    skipBtn.style.opacity = "0";
-    setTimeout(() => {
-      videoIntro.remove();
-      skipBtn.remove();
-    }, 700);
-  });
-
-  // Insertar el botón
-  document.body.appendChild(skipBtn);
-
-  // Cuando el video puede reproducirse
-  videoIntro.addEventListener("canplaythrough", () => {
-    if (loader) loader.style.display = "none";
-    videoIntro.style.opacity = "1";
-    videoIntro.play().catch(() => {});
-
-    // 🔥 Mostrar el botón de "Omitir" después de 3 segundos
-    setTimeout(() => {
-      skipBtn.style.opacity = "1";
-    }, 3000);
-  });
-
-  // Al finalizar el video
-  videoIntro.addEventListener("ended", () => {
-    videoIntro.style.opacity = "0";
-    skipBtn.style.opacity = "0";
-    setTimeout(() => {
-      videoIntro.remove();
-      skipBtn.remove();
-    }, 1000);
-  });
-
-  // Autocierre si autoplay falla
-  setTimeout(() => {
-    if (videoIntro.readyState < 3 || videoIntro.paused) {
-      console.warn("iOS bloqueó autoplay, omitiendo video...");
-      videoIntro.remove();
-      skipBtn.remove();
-      if (loader) loader.style.display = "none";
-    }
-  }, 6000);
-}, 300);
-
-  const videoBtn = document.getElementById("videoBtn");
-    if (videoBtn) {
-      videoBtn.classList.add("selected");
-    }
     
   // ======================================================================================
   // BLOQUEO Y MOSTRAR MODAL SI NO HAY SESIÓN ACTIVA
@@ -5383,6 +5285,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
