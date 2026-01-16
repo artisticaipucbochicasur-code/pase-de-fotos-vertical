@@ -1689,47 +1689,48 @@ await ffmpeg.load({
 
   const ffmpeg = await getFFmpegInstance();
 
+  // ... lo demás igual ...
+
   const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
   const inName = 'input_' + Date.now() + '.' + ext;
   const outName = 'output_' + Date.now() + '.mp4';
 
   onStatus && onStatus('⏳ Comprimiendo video...');
 
-  // ✅ Progreso real de FFmpeg (0..1) -> lo pasamos al callback (solo UI)
-  window.__onCompressProgress = (p) => {
-    if (typeof onProgress === 'function') onProgress(p);
-  };
+  // ✅ Usa el progreso real de FFmpeg (0..1) para pintar la misma barra (solo UI)
+window.__onCompressProgress = (p) => {
+  if (typeof onProgress === 'function') onProgress(p);
+};
 
-  // Intentar limpiar archivos previos (si existen)
-  try { await ffmpeg.deleteFile(inName); } catch (e) {}
-  try { await ffmpeg.deleteFile(outName); } catch (e) {}
 
-  try {
-    await ffmpeg.writeFile(inName, data);
+  try { await ffmpeg.deleteFile(inName); } catch {}
+  try { await ffmpeg.deleteFile(outName); } catch {}
 
-    await ffmpeg.exec([
-      '-i', inName,
-      '-vf', 'scale=-2:720',
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
-      '-crf', '28',
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      outName
-    ]);
+  await ffmpeg.writeFile(inName, data);
 
-    const outData = await ffmpeg.readFile(outName);
+  await ffmpeg.exec([
+    '-i', inName,
+    '-vf', 'scale=-2:720',
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-crf', '28',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    outName
+  ]);
 
-    const blob = new Blob([outData.buffer], { type: 'video/mp4' });
-    const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
+  const outData = await ffmpeg.readFile(outName);
 
-    return new File([blob], baseName + '_compressed.mp4', { type: 'video/mp4' });
-  } finally {
-    // ✅ SIEMPRE limpiar el callback y borrar temporales (haya éxito o error)
-    window.__onCompressProgress = null;
-    try { await ffmpeg.deleteFile(inName); } catch (e) {}
-    try { await ffmpeg.deleteFile(outName); } catch (e) {}
-  }
+  try { await ffmpeg.deleteFile(inName); } catch {}
+  try { await ffmpeg.deleteFile(outName); } catch {}
+
+  const blob = new Blob([outData.buffer], { type: 'video/mp4' });
+  const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
+
+window.__onCompressProgress = null;
+
+
+  return new File([blob], baseName + '_compressed.mp4', { type: 'video/mp4' });
 }
 
 
