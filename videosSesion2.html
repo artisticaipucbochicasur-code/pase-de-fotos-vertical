@@ -1627,26 +1627,31 @@ body {
   // ============================================================================
   let __ffmpegInstance = null;
 
+  function _pickFFmpegGlobal() {
+    // UMD de @ffmpeg/ffmpeg expone FFmpegWASM
+    return window.FFmpegWASM || (typeof FFmpegWASM !== 'undefined' ? FFmpegWASM : null);
+  }
+
   async function getFFmpegInstance() {
     if (__ffmpegInstance) return __ffmpegInstance;
 
-    // Detecta el global correcto (según el bundle UMD)
-    const FF = window.FFmpeg || (typeof FFmpeg !== 'undefined' ? FFmpeg : null);
-
-    if (!FF || typeof FF.createFFmpeg !== 'function') {
-      throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js en el mismo nivel del HTML.');
+    const FF = _pickFFmpegGlobal();
+    if (!FF || !FF.FFmpeg) {
+      throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js (UMD) y que se cargue antes del script principal.');
     }
 
-    const { createFFmpeg } = FF;
+    const ffmpeg = new FF.FFmpeg();
 
-    // corePath debe apuntar al archivo local (misma carpeta)
-    __ffmpegInstance = createFFmpeg({
-      log: false,
-      corePath: './ffmpeg-core.js',
+    // IMPORTANTE: @ffmpeg/ffmpeg (UMD) crea un worker llamado "814.ffmpeg.js" por defecto.
+    // Debe existir en el mismo nivel del HTML.
+    // Si lo pones en la raíz junto a ffmpeg.js, esta ruta funciona.
+    await ffmpeg.load({
+      coreURL: './ffmpeg-core.js',
+      wasmURL: './ffmpeg-core.wasm',
+      classWorkerURL: './814.ffmpeg.js'
     });
 
-    // load() intentará también traer ffmpeg-core.wasm desde la misma ruta del corePath
-    await __ffmpegInstance.load();
+    __ffmpegInstance = ffmpeg;
     return __ffmpegInstance;
   }
 
@@ -1656,10 +1661,19 @@ body {
     }
 
     const ffmpeg = await getFFmpegInstance();
-    const FF = window.FFmpeg || (typeof FFmpeg !== 'undefined' ? FFmpeg : null);
-    const fetchFile = FF && typeof FF.fetchFile === 'function' ? FF.fetchFile : null;
-    if (!fetchFile) {
-      throw new Error('fetchFile no está disponible en el bundle de FFmpeg.');
+
+    // Hook de progreso (si el engine lo emite)
+    if (typeof ffmpeg.on === 'function') {
+      try {
+        ffmpeg.off && ffmpeg.off('progress', ffmpeg.___progressHandler);
+      } catch {}
+      const handler = (p) => {
+        // p suele venir como { progress: 0..1, time: ... }
+        const ratio = typeof p?.progress === 'number' ? p.progress : null;
+        if (typeof ratio === 'number') onProgress && onProgress(Math.max(0, Math.min(1, ratio)));
+      };
+      ffmpeg.___progressHandler = handler;
+      try { ffmpeg.on('progress', handler); } catch {}
     }
 
     const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
@@ -1668,45 +1682,38 @@ body {
 
     onStatus && onStatus('⏳ Comprimiendo video...');
 
-    // Progreso (si el build expone setProgress)
-    if (typeof ffmpeg.setProgress === 'function') {
-      ffmpeg.setProgress(({ ratio }) => {
-        try { onProgress && onProgress(ratio); } catch (_) {}
-      });
-    }
+    const data = new Uint8Array(await file.arrayBuffer());
 
-    // Escribir archivo de entrada
-    ffmpeg.FS('writeFile', inName, await fetchFile(file));
+    // Limpiar (por si acaso)
+    try { await ffmpeg.deleteFile(inName); } catch {}
+    try { await ffmpeg.deleteFile(outName); } catch {}
 
-    // Parámetros balanceados (calidad/peso/velocidad)
-    // - scale: asegura dimensiones pares (requisito frecuente de H264)
-    // - crf 28: reduce tamaño sin destruir demasiado
-    // - preset veryfast: más rápido en celulares
-    // - movflags +faststart: mejor reproducción/streaming
-    await ffmpeg.run(
+    await ffmpeg.writeFile(inName, data);
+
+    // Comando balanceado (720p, H264, AAC)
+    await ffmpeg.exec([
       '-i', inName,
-      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+      '-vf', 'scale=-2:720',
       '-c:v', 'libx264',
       '-preset', 'veryfast',
       '-crf', '28',
       '-c:a', 'aac',
-      '-b:a', '96k',
-      '-movflags', '+faststart',
+      '-b:a', '128k',
       outName
-    );
+    ]);
 
-    // Leer salida
-    const data = ffmpeg.FS('readFile', outName);
+    const outData = await ffmpeg.readFile(outName);
 
     // Limpieza
-    try { ffmpeg.FS('unlink', inName); } catch (_) {}
-    try { ffmpeg.FS('unlink', outName); } catch (_) {}
+    try { await ffmpeg.deleteFile(inName); } catch {}
+    try { await ffmpeg.deleteFile(outName); } catch {}
 
-    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+    const blob = new Blob([outData.buffer], { type: 'video/mp4' });
     const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
     const compressedName = baseName + '_compressed.mp4';
     return new File([blob], compressedName, { type: 'video/mp4' });
   }
+
 
 
   document.querySelectorAll('.toggle-pin').forEach(btn => {
