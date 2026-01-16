@@ -1014,6 +1014,15 @@ body {
   text-shadow: 0 0 6px rgba(0,162,255,0.6);
 }
         
+
+
+#statusText, #progressText {
+  color: #111 !important;
+  font-weight: 600;
+}
+
+
+
     </style>
 </head>
 <body>
@@ -1118,6 +1127,12 @@ body {
       <div id="progressContainerVideo" style="width:100%;background:#eee;border-radius:8px;margin-top:15px;height:10px;display:none;">
         <div id="progressVideo" style="width:0%;height:10px;background:#6b46c1;border-radius:8px;transition:width 0.3s;"></div>
       </div>
+
+<!-- ✅ PEGAR AQUÍ (entre progressContainerVideo y uploadMetricsVideo) -->
+<div id="progressText" style="margin-top:8px;text-align:center;font-size:13px;color:#111;font-weight:600;display:none;">
+  Progreso: 0%
+</div>
+
 
       <div id="uploadMetricsVideo" style="margin-top:10px;text-align:center;font-size:13px;color:#555;"></div>
 
@@ -1632,37 +1647,39 @@ body {
     return window.FFmpegWASM || (typeof FFmpegWASM !== 'undefined' ? FFmpegWASM : null);
   }
 
-  async function getFFmpegInstance() {
-    if (__ffmpegInstance) return __ffmpegInstance;
+async function getFFmpegInstance() { 
+  if (__ffmpegInstance) return __ffmpegInstance;
 
-    const FF = _pickFFmpegGlobal();
-    if (!FF || !FF.FFmpeg) {
-      throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js (UMD) y que se cargue antes del script principal.');
-    }
-
-    const ffmpeg = new FF.FFmpeg();
-
-    // IMPORTANTE: @ffmpeg/ffmpeg (UMD) crea un worker llamado "814.ffmpeg.js" por defecto.
-    // Debe existir en el mismo nivel del HTML.
-    // Si lo pones en la raíz junto a ffmpeg.js, esta ruta funciona.
-const base = new URL('.', window.location.href);
-
-
-
-await ffmpeg.load({
-  coreURL: new URL('ffmpeg-core.js', base).href,
-  wasmURL: new URL('ffmpeg-core.wasm', base).href,
-  workerURL: new URL('814.ffmpeg.js', base).href,
-});
-
-
-
-
-    __ffmpegInstance = ffmpeg;
-    return __ffmpegInstance;
+  const FF = _pickFFmpegGlobal();
+  if (!FF || !FF.FFmpeg) {
+    throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js (UMD) y que se cargue antes del script principal.');
   }
 
- async function compressVideoInBrowser(file, onStatus, onProgress) {
+  const ffmpeg = new FF.FFmpeg();
+
+  // ✅ Hook de progreso (solo UI). Se conecta una sola vez y no cambia la lógica.
+  // Usamos una función global temporal para no tocar tu arquitectura.
+  ffmpeg.on('progress', ({ progress }) => {
+    if (typeof window.__onCompressProgress === "function") {
+      window.__onCompressProgress(progress);
+    }
+  });
+
+  // IMPORTANTE: @ffmpeg/ffmpeg (UMD) crea un worker llamado "814.ffmpeg.js" por defecto.
+  // Debe existir en el mismo nivel del HTML.
+  const base = new URL('.', window.location.href);
+
+  await ffmpeg.load({
+    coreURL: new URL('ffmpeg-core.js', base).href,
+    wasmURL: new URL('ffmpeg-core.wasm', base).href,
+    workerURL: new URL('814.ffmpeg.js', base).href,
+  });
+
+  __ffmpegInstance = ffmpeg;
+  return __ffmpegInstance;
+}
+
+async function compressVideoInBrowser(file, onStatus, onProgress) {
   if (!file || !String(file.type || '').startsWith('video/')) {
     throw new Error('El archivo no es un video.');
   }
@@ -1672,13 +1689,41 @@ await ffmpeg.load({
 
   const ffmpeg = await getFFmpegInstance();
 
-  // ... lo demás igual ...
-
   const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
   const inName = 'input_' + Date.now() + '.' + ext;
   const outName = 'output_' + Date.now() + '.mp4';
 
   onStatus && onStatus('⏳ Comprimiendo video...');
+
+  // ✅ Progreso UI (sin afectar lógica)
+  // - Actualiza callback del progreso
+  // - Actualiza barra y texto si existen en el DOM
+window.__onCompressProgress = (p) => {
+  const percent = Math.max(0, Math.min(100, Math.round(p * 100)));
+
+  if (typeof onProgress === "function") onProgress(percent);
+
+  // ✅ ACTUALIZA TU BARRA MORADA + TEXTO
+  const progressContainer = document.getElementById("progressContainerVideo");
+  const progressFill = document.getElementById("progressVideo");
+  const progressText = document.getElementById("progressText");
+
+  if (progressContainer) progressContainer.style.display = "block";
+  if (progressText) progressText.style.display = "block";
+
+  if (progressFill) progressFill.style.width = percent + "%";
+  if (progressText) progressText.textContent = `Progreso: ${percent}%`;
+};
+
+
+  // ✅ También asegura visibilidad del status (letras oscuras)
+  try {
+    const statusEl = document.getElementById("statusText") || document.getElementById("status");
+    if (statusEl) {
+      statusEl.style.color = "#111";
+      statusEl.style.fontWeight = "600";
+    }
+  } catch {}
 
   try { await ffmpeg.deleteFile(inName); } catch {}
   try { await ffmpeg.deleteFile(outName); } catch {}
@@ -1700,6 +1745,9 @@ await ffmpeg.load({
 
   try { await ffmpeg.deleteFile(inName); } catch {}
   try { await ffmpeg.deleteFile(outName); } catch {}
+
+  // ✅ Limpia callback de progreso (solo UI)
+  window.__onCompressProgress = null;
 
   const blob = new Blob([outData.buffer], { type: 'video/mp4' });
   const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
