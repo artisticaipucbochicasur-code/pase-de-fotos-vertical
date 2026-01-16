@@ -1641,45 +1641,38 @@ body {
     return window.FFmpegWASM || (typeof FFmpegWASM !== 'undefined' ? FFmpegWASM : null);
   }
 
-  async function getFFmpegInstance() {
-    if (__ffmpegInstance) return __ffmpegInstance;
+async function getFFmpegInstance() {
+  if (__ffmpegInstance) return __ffmpegInstance;
 
-    const FF = _pickFFmpegGlobal();
-    if (!FF || !FF.FFmpeg) {
-      throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js (UMD) y que se cargue antes del script principal.');
+  const FF = _pickFFmpegGlobal();
+  if (!FF || !FF.FFmpeg) {
+    throw new Error('FFmpeg no está cargado. Verifica que exista ./ffmpeg.js (UMD) y que se cargue antes del script principal.');
+  }
+
+  const ffmpeg = new FF.FFmpeg();
+
+  // ✅ Hook de progreso de FFmpeg (solo UI)
+  // Este listener NO cambia la lógica: solo reporta progreso 0..1
+  ffmpeg.on('progress', ({ progress }) => {
+    if (typeof window.__onCompressProgress === "function") {
+      window.__onCompressProgress(progress);
     }
+  });
 
-    const ffmpeg = new FF.FFmpeg();
+  const base = new URL('.', window.location.href);
 
+  await ffmpeg.load({
+    coreURL: new URL('ffmpeg-core.js', base).href,
+    wasmURL: new URL('ffmpeg-core.wasm', base).href,
+    workerURL: new URL('814.ffmpeg.js', base).href,
+  });
 
-    // ✅ Hook de progreso de FFmpeg (solo UI)
-ffmpeg.on('progress', ({ progress }) => {
-  if (typeof window.__onCompressProgress === "function") {
-    window.__onCompressProgress(progress); // progress es 0..1
-  }
-});
-
-
-    // IMPORTANTE: @ffmpeg/ffmpeg (UMD) crea un worker llamado "814.ffmpeg.js" por defecto.
-    // Debe existir en el mismo nivel del HTML.
-    // Si lo pones en la raíz junto a ffmpeg.js, esta ruta funciona.
-const base = new URL('.', window.location.href);
-
-await ffmpeg.load({
-  coreURL: new URL('ffmpeg-core.js', base).href,
-  wasmURL: new URL('ffmpeg-core.wasm', base).href,
-  workerURL: new URL('814.ffmpeg.js', base).href,
-});
+  __ffmpegInstance = ffmpeg;
+  return __ffmpegInstance;
+}
 
 
-
-
-
-    __ffmpegInstance = ffmpeg;
-    return __ffmpegInstance;
-  }
-
- async function compressVideoInBrowser(file, onStatus, onProgress) {
+async function compressVideoInBrowser(file, onStatus, onProgress) {
   if (!file || !String(file.type || '').startsWith('video/')) {
     throw new Error('El archivo no es un video.');
   }
@@ -1689,48 +1682,47 @@ await ffmpeg.load({
 
   const ffmpeg = await getFFmpegInstance();
 
-  // ... lo demás igual ...
-
   const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
   const inName = 'input_' + Date.now() + '.' + ext;
   const outName = 'output_' + Date.now() + '.mp4';
 
   onStatus && onStatus('⏳ Comprimiendo video...');
 
-  // ✅ Usa el progreso real de FFmpeg (0..1) para pintar la misma barra (solo UI)
-window.__onCompressProgress = (p) => {
-  if (typeof onProgress === 'function') onProgress(p);
-};
+  // ✅ Progreso real de FFmpeg (0..1) -> lo mandamos al callback (solo UI)
+  window.__onCompressProgress = (p) => {
+    if (typeof onProgress === 'function') onProgress(p);
+  };
 
+  // Limpieza previa (si existieran)
+  try { await ffmpeg.deleteFile(inName); } catch (e) {}
+  try { await ffmpeg.deleteFile(outName); } catch (e) {}
 
-  try { await ffmpeg.deleteFile(inName); } catch {}
-  try { await ffmpeg.deleteFile(outName); } catch {}
+  try {
+    await ffmpeg.writeFile(inName, data);
 
-  await ffmpeg.writeFile(inName, data);
+    await ffmpeg.exec([
+      '-i', inName,
+      '-vf', 'scale=-2:720',
+      '-c:v', 'libx264',
+      '-preset', 'veryfast',
+      '-crf', '28',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      outName
+    ]);
 
-  await ffmpeg.exec([
-    '-i', inName,
-    '-vf', 'scale=-2:720',
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-crf', '28',
-    '-c:a', 'aac',
-    '-b:a', '128k',
-    outName
-  ]);
+    const outData = await ffmpeg.readFile(outName);
 
-  const outData = await ffmpeg.readFile(outName);
+    const blob = new Blob([outData.buffer], { type: 'video/mp4' });
+    const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
+    return new File([blob], baseName + '_compressed.mp4', { type: 'video/mp4' });
 
-  try { await ffmpeg.deleteFile(inName); } catch {}
-  try { await ffmpeg.deleteFile(outName); } catch {}
-
-  const blob = new Blob([outData.buffer], { type: 'video/mp4' });
-  const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
-
-window.__onCompressProgress = null;
-
-
-  return new File([blob], baseName + '_compressed.mp4', { type: 'video/mp4' });
+  } finally {
+    // ✅ Siempre limpiar (haya éxito o error)
+    window.__onCompressProgress = null;
+    try { await ffmpeg.deleteFile(inName); } catch (e) {}
+    try { await ffmpeg.deleteFile(outName); } catch (e) {}
+  }
 }
 
 
@@ -1988,17 +1980,16 @@ btnUploadVideo.addEventListener("click", async () => {
   const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
   const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
-  const progressBar = document.getElementById("progressVideo");
+  const progressBar = document.getElementById("progressVideo");            // ✅ este es el DIV que crece en %
   const progressContainer = document.getElementById("progressContainerVideo");
   const metrics = document.getElementById("uploadMetricsVideo");
   const status = document.getElementById("statusVideo");
 
   // ✅ Asegurar que los avisos se vean (texto negro)
-if (status) {
-  status.style.color = "#111";
-  status.style.fontWeight = "700";
-}
-
+  if (status) {
+    status.style.color = "#111";
+    status.style.fontWeight = "700";
+  }
 
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
@@ -2009,35 +2000,33 @@ if (status) {
   // ✅ Compresión opcional (si el checkbox está activado)
   const doCompress = document.getElementById('compressBeforeUpload')?.checked;
   let uploadFile = file;
+
   if (doCompress) {
     try {
-    progressContainer.style.display = 'block';
-progressBar.style.width = '0%';
-status.textContent = '⏳ Preparando compresión...';
-metrics.textContent = 'Compresión: 0%';
-
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      status.textContent = '⏳ Preparando compresión...';
+      metrics.textContent = 'Compresión: 0%';
 
       uploadFile = await compressVideoInBrowser(
         file,
         (msg) => { status.textContent = msg; },
-      (progressValue) => {
-  // progressValue puede venir como 0..1 o como 0..100 (según cómo lo mandes)
-  let pct = 0;
+        (progressValue) => {
+          // progressValue puede ser 0..1 (FFmpeg) o 0..100 (por si cambia)
+          let pct = 0;
+          if (typeof progressValue === 'number') {
+            pct = (progressValue <= 1) ? Math.round(progressValue * 100) : Math.round(progressValue);
+          }
+          pct = Math.max(0, Math.min(100, pct));
 
-  if (typeof progressValue === 'number') {
-    pct = (progressValue <= 1) ? Math.round(progressValue * 100) : Math.round(progressValue);
-  }
-
-  pct = Math.max(0, Math.min(100, pct));
-
-  progressBar.style.width = pct + '%';
-  metrics.textContent = 'Compresión: ' + pct + '%';
-}
-
+          progressBar.style.width = pct + '%';
+          metrics.textContent = 'Compresión: ' + pct + '%';
+        }
       );
 
-      const origMB = (file.size / (1024*1024)).toFixed(2);
-      const compMB = (uploadFile.size / (1024*1024)).toFixed(2);
+      const origMB = (file.size / (1024 * 1024)).toFixed(2);
+      const compMB = (uploadFile.size / (1024 * 1024)).toFixed(2);
+
       status.textContent = '✅ Compresión lista. Subiendo...';
       metrics.textContent = 'Tamaño: ' + origMB + ' MB → ' + compMB + ' MB';
 
@@ -2048,6 +2037,10 @@ metrics.textContent = 'Compresión: 0%';
       const msg = (err && err.message) ? err.message : String(err);
       status.textContent = '⚠️ No se pudo comprimir (' + msg + '). Subiendo original...';
       console.error('Error compresión:', err);
+
+      // Asegura que la barra quede lista para la subida
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
     }
   }
 
@@ -2155,6 +2148,7 @@ metrics.textContent = 'Compresión: 0%';
   xhr.setRequestHeader("Content-Type", uploadFile.type);
   xhr.send(uploadFile);
 });
+
 
 
     // =============================
