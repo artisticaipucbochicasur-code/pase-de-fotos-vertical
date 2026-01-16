@@ -1647,6 +1647,8 @@ body {
     // Si lo pones en la raíz junto a ffmpeg.js, esta ruta funciona.
 const base = new URL('.', window.location.href);
 
+
+
 await ffmpeg.load({
   coreURL: new URL('ffmpeg-core.js', base).href,
   wasmURL: new URL('ffmpeg-core.wasm', base).href,
@@ -1655,68 +1657,55 @@ await ffmpeg.load({
 
 
 
+
     __ffmpegInstance = ffmpeg;
     return __ffmpegInstance;
   }
 
-  async function compressVideoInBrowser(file, onStatus, onProgress) {
-    if (!file || !String(file.type || '').startsWith('video/')) {
-      throw new Error('El archivo no es un video.');
-    }
-
-    const ffmpeg = await getFFmpegInstance();
-
-    // Hook de progreso (si el engine lo emite)
-    if (typeof ffmpeg.on === 'function') {
-      try {
-        ffmpeg.off && ffmpeg.off('progress', ffmpeg.___progressHandler);
-      } catch {}
-      const handler = (p) => {
-        // p suele venir como { progress: 0..1, time: ... }
-        const ratio = typeof p?.progress === 'number' ? p.progress : null;
-        if (typeof ratio === 'number') onProgress && onProgress(Math.max(0, Math.min(1, ratio)));
-      };
-      ffmpeg.___progressHandler = handler;
-      try { ffmpeg.on('progress', handler); } catch {}
-    }
-
-    const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
-    const inName = 'input_' + Date.now() + '.' + ext;
-    const outName = 'output_' + Date.now() + '.mp4';
-
-    onStatus && onStatus('⏳ Comprimiendo video...');
-
-    const data = new Uint8Array(await file.arrayBuffer());
-
-    // Limpiar (por si acaso)
-    try { await ffmpeg.deleteFile(inName); } catch {}
-    try { await ffmpeg.deleteFile(outName); } catch {}
-
-    await ffmpeg.writeFile(inName, data);
-
-    // Comando balanceado (720p, H264, AAC)
-    await ffmpeg.exec([
-      '-i', inName,
-      '-vf', 'scale=-2:720',
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
-      '-crf', '28',
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      outName
-    ]);
-
-    const outData = await ffmpeg.readFile(outName);
-
-    // Limpieza
-    try { await ffmpeg.deleteFile(inName); } catch {}
-    try { await ffmpeg.deleteFile(outName); } catch {}
-
-    const blob = new Blob([outData.buffer], { type: 'video/mp4' });
-    const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
-    const compressedName = baseName + '_compressed.mp4';
-    return new File([blob], compressedName, { type: 'video/mp4' });
+ async function compressVideoInBrowser(file, onStatus, onProgress) {
+  if (!file || !String(file.type || '').startsWith('video/')) {
+    throw new Error('El archivo no es un video.');
   }
+
+  // ✅ LEE EL ARCHIVO ANTES (evita NotReadableError / permisos)
+  const data = new Uint8Array(await file.arrayBuffer());
+
+  const ffmpeg = await getFFmpegInstance();
+
+  // ... lo demás igual ...
+
+  const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'mp4';
+  const inName = 'input_' + Date.now() + '.' + ext;
+  const outName = 'output_' + Date.now() + '.mp4';
+
+  onStatus && onStatus('⏳ Comprimiendo video...');
+
+  try { await ffmpeg.deleteFile(inName); } catch {}
+  try { await ffmpeg.deleteFile(outName); } catch {}
+
+  await ffmpeg.writeFile(inName, data);
+
+  await ffmpeg.exec([
+    '-i', inName,
+    '-vf', 'scale=-2:720',
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-crf', '28',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    outName
+  ]);
+
+  const outData = await ffmpeg.readFile(outName);
+
+  try { await ffmpeg.deleteFile(inName); } catch {}
+  try { await ffmpeg.deleteFile(outName); } catch {}
+
+  const blob = new Blob([outData.buffer], { type: 'video/mp4' });
+  const baseName = (file.name || 'video').replace(/\.[^/.]+$/, '');
+  return new File([blob], baseName + '_compressed.mp4', { type: 'video/mp4' });
+}
+
 
 
 
