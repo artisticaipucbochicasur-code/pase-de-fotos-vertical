@@ -5813,39 +5813,80 @@ setInterval(() => {
 
 
   // Guarda cuáles estaban reproduciéndose para reanudarlos
-  let decomWasPlaying = [];
+// Guarda cuáles estaban reproduciéndose para reanudarlos
+let decomWasPlaying = [];
+let decomWasPlayingHtml5 = [];
 
-  function decomPauseAllPlayers() {
-    try {
-      decomWasPlaying = [];
-      if (typeof players === "object" && players) {
-        for (const key of Object.keys(players)) {
-          const p = players[key];
-          if (!p || typeof p.getPlayerState !== "function") continue;
+// Pausa TODO: YouTube + videos MP4
+function decomPauseAllPlayers() {
+  try {
+    decomWasPlaying = [];
+    decomWasPlayingHtml5 = [];
 
+    // 1) Pausar lo que esté registrado en "players"
+    if (typeof players === "object" && players) {
+      for (const key of Object.keys(players)) {
+        const p = players[key];
+        if (!p) continue;
+
+        // YouTube Player
+        if (typeof p.getPlayerState === "function") {
           const st = p.getPlayerState();
           if (st === YT.PlayerState.PLAYING) {
             decomWasPlaying.push(key);
             if (typeof p.pauseVideo === "function") p.pauseVideo();
           }
+          continue;
+        }
+
+        // HTML5 <video> guardado en players
+        if (typeof p.pause === "function") {
+          // estaba sonando?
+          const isPlaying = (typeof p.paused !== "undefined") ? !p.paused : false;
+          if (isPlaying) decomWasPlayingHtml5.push(key);
+          try { p.pause(); } catch(e) {}
         }
       }
-    } catch (e) {}
-  }
+    }
 
-  function decomResumePlayers() {
-    try {
-      if (!decomWasPlaying || decomWasPlaying.length === 0) return;
+    // 2) Fallback: pausar cualquier <video> del DOM (por si no quedó en players)
+    document.querySelectorAll("video").forEach((v, idx) => {
+      try {
+        const isPlaying = !v.paused;
+        if (isPlaying) decomWasPlayingHtml5.push("__domvideo__" + idx);
+        v.pause();
+        // opcional: bajar volumen momentáneamente
+        // v.muted = true;
+      } catch(e) {}
+    });
 
-      // Reanuda solo los que estaban sonando (en orden)
+  } catch (e) {}
+}
+
+// Reanuda solo lo que estaba sonando
+function decomResumePlayers() {
+  try {
+    // YouTube: reanudar solo los que estaban sonando
+    if (decomWasPlaying && decomWasPlaying.length) {
       for (const key of decomWasPlaying) {
         const p = players?.[key];
-        if (p && typeof p.playVideo === "function") {
-          p.playVideo();
+        if (p && typeof p.playVideo === "function") p.playVideo();
+      }
+    }
+
+    // HTML5: reanudar solo los que estaban sonando
+    if (decomWasPlayingHtml5 && decomWasPlayingHtml5.length) {
+      for (const key of decomWasPlayingHtml5) {
+        const p = players?.[key];
+        if (p && typeof p.play === "function") {
+          p.play().catch(()=>{});
         }
       }
-    } catch (e) {}
-  }
+    }
+
+  } catch (e) {}
+}
+
 
   window.addEventListener("message", (e) => {
     const t = e?.data?.type;
@@ -5878,6 +5919,7 @@ setInterval(() => {
     </script>
 </body>
 </html>
+
 
 
 
