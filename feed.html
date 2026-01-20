@@ -273,6 +273,19 @@ function show(which){
 const saved = localStorage.getItem('decom_tab');
 show(saved === 'videos' ? 'videos' : 'fotos');
 
+    // ✅ Evita audio al inicio: cuando el iframe de videos termine de cargar,
+// si estás en fotos, forzamos el pause (por si el primer postMessage se perdió).
+frameVideos.addEventListener('load', () => {
+  try {
+    const isFotosNow = !frameFotos.classList.contains('hidden');
+    if (isFotosNow) {
+      frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
+    }
+  } catch (e) {}
+});
+
+    
+
   </script>
 </body>
 </html>
