@@ -5813,9 +5813,8 @@ setInterval(() => {
 
 
   // Guarda cuáles estaban reproduciéndose para reanudarlos
-// Guarda cuáles estaban reproduciéndose para reanudarlos
-let decomWasPlaying = [];
-let decomWasPlayingHtml5 = [];
+let decomWasPlaying = [];        // keys de players YT que estaban PLAYING
+let decomWasPlayingHtml5 = [];   // mezcla: keys de players HTML5 o elementos <video> del DOM
 
 // Pausa TODO: YouTube + videos MP4
 function decomPauseAllPlayers() {
@@ -5831,17 +5830,18 @@ function decomPauseAllPlayers() {
 
         // YouTube Player
         if (typeof p.getPlayerState === "function") {
-          const st = p.getPlayerState();
-          if (st === YT.PlayerState.PLAYING) {
+          let st;
+          try { st = p.getPlayerState(); } catch (e) { st = null; }
+
+          if (typeof YT !== "undefined" && YT.PlayerState && st === YT.PlayerState.PLAYING) {
             decomWasPlaying.push(key);
-            if (typeof p.pauseVideo === "function") p.pauseVideo();
           }
+          try { if (typeof p.pauseVideo === "function") p.pauseVideo(); } catch(e) {}
           continue;
         }
 
         // HTML5 <video> guardado en players
         if (typeof p.pause === "function") {
-          // estaba sonando?
           const isPlaying = (typeof p.paused !== "undefined") ? !p.paused : false;
           if (isPlaying) decomWasPlayingHtml5.push(key);
           try { p.pause(); } catch(e) {}
@@ -5850,13 +5850,11 @@ function decomPauseAllPlayers() {
     }
 
     // 2) Fallback: pausar cualquier <video> del DOM (por si no quedó en players)
-    document.querySelectorAll("video").forEach((v, idx) => {
+    document.querySelectorAll("video").forEach((v) => {
       try {
         const isPlaying = !v.paused;
-        if (isPlaying) decomWasPlayingHtml5.push("__domvideo__" + idx);
+        if (isPlaying) decomWasPlayingHtml5.push(v); // guardamos el elemento real
         v.pause();
-        // opcional: bajar volumen momentáneamente
-        // v.muted = true;
       } catch(e) {}
     });
 
@@ -5870,16 +5868,25 @@ function decomResumePlayers() {
     if (decomWasPlaying && decomWasPlaying.length) {
       for (const key of decomWasPlaying) {
         const p = players?.[key];
-        if (p && typeof p.playVideo === "function") p.playVideo();
+        if (p && typeof p.playVideo === "function") {
+          try { p.playVideo(); } catch(e) {}
+        }
       }
     }
 
-    // HTML5: reanudar solo los que estaban sonando
+    // HTML5: reanudar solo los que estaban sonando (keys o <video>)
     if (decomWasPlayingHtml5 && decomWasPlayingHtml5.length) {
-      for (const key of decomWasPlayingHtml5) {
-        const p = players?.[key];
-        if (p && typeof p.play === "function") {
-          p.play().catch(()=>{});
+      for (const item of decomWasPlayingHtml5) {
+        // Si es key en players
+        if (typeof item === "string") {
+          const p = players?.[item];
+          if (p && typeof p.play === "function") {
+            p.play().catch(()=>{});
+          }
+        }
+        // Si es un <video> del DOM
+        else if (item && typeof item.play === "function") {
+          item.play().catch(()=>{});
         }
       }
     }
@@ -5887,38 +5894,96 @@ function decomResumePlayers() {
   } catch (e) {}
 }
 
+window.addEventListener("message", (e) => {
+  const t = e?.data?.type;
 
-  window.addEventListener("message", (e) => {
-    const t = e?.data?.type;
+  // Perfil (lo que ya tenías)
+  if (t === "DECOM_OPEN_PROFILE_MODAL") {
+    if (typeof abrirPerfil === "function") abrirPerfil();
+    else {
+      const modal = document.getElementById("modalPerfil");
+      if (modal) modal.style.display = "flex";
+    }
+    return;
+  }
 
-    // Perfil (lo que ya tenías)
-    if (t === "DECOM_OPEN_PROFILE_MODAL") {
-      if (typeof abrirPerfil === "function") abrirPerfil();
-      else {
-        const modal = document.getElementById("modalPerfil");
-        if (modal) modal.style.display = "flex";
+  // cuando el feed oculta Videos
+  if (t === "DECOM_HIDE_VIDEOS") {
+    decomPauseAllPlayers();
+    return;
+  }
+
+  // cuando el feed vuelve a mostrar Videos
+  if (t === "DECOM_SHOW_VIDEOS") {
+    // desmutear al volver a ver videos
+    try {
+      document.querySelectorAll("video").forEach(v => { v.muted = false; v.volume = 1; });
+    } catch(e){}
+    try {
+      if (typeof players === "object" && players) {
+        for (const k of Object.keys(players)) {
+          const p = players[k];
+          if (p && typeof p.unMute === "function") p.unMute();
+        }
       }
-      return;
-    }
+    } catch(e){}
 
-    // ✅ NUEVO: cuando el feed oculta Videos
-    if (t === "DECOM_HIDE_VIDEOS") {
+    decomResumePlayers();
+    return;
+  }
+});
+
+// ✅ ARRANQUE EN SILENCIO cuando está embebido en feed (embed=1)
+// Evita que cualquier autoplay suene antes de que existan players/videos.
+(function(){
+  const params = new URLSearchParams(location.search);
+  const isEmbedded = params.get("embed") === "1" || (window.self !== window.top);
+  if (!isEmbedded) return;
+
+  // 1) Mutear todo inmediatamente (aunque todavía no haya players)
+  function hardMuteNow(){
+    try {
+      // Mutea videos HTML5 existentes
+      document.querySelectorAll("video").forEach(v => { v.muted = true; v.volume = 0; });
+    } catch(e){}
+    try {
+      // Si ya existen players (YT), los mutea
+      if (typeof players === "object" && players) {
+        for (const k of Object.keys(players)) {
+          const p = players[k];
+          if (p && typeof p.mute === "function") p.mute();
+        }
+      }
+    } catch(e){}
+  }
+
+  // 2) Pausar cuando ya estén montados (reintentos cortos)
+  let tries = 0;
+  const timer = setInterval(() => {
+    tries++;
+    hardMuteNow();
+    decomPauseAllPlayers();
+
+    // después de ~2.5s dejamos de insistir (ya deberían estar montados)
+    if (tries >= 10) clearInterval(timer);
+  }, 250);
+
+  // 3) Al terminar de cargar DOM, hacemos un pause extra
+  window.addEventListener("load", () => {
+    hardMuteNow();
+    setTimeout(() => {
+      hardMuteNow();
       decomPauseAllPlayers();
-      return;
-    }
-
-    // ✅ NUEVO: cuando el feed vuelve a mostrar Videos
-    if (t === "DECOM_SHOW_VIDEOS") {
-      decomResumePlayers();
-      return;
-    }
+    }, 300);
   });
+})();
 
 
         
     </script>
 </body>
 </html>
+
 
 
 
