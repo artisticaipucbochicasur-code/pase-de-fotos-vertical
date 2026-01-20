@@ -1138,6 +1138,12 @@ body {
     80% { transform:translate(2px,0); }
     100% { transform:translate(0,0); }
 }
+
+
+
+
+      /* Si fotos.html está dentro de un iframe (feed), ocultamos SOLO el header visualmente */
+  body.embedded #socialHeader { display: none !important; }
     
   </style>
 </head>
@@ -2330,6 +2336,9 @@ if (autorFoto) {
         }
     });
 }
+
+
+    
 
 function mostrarDatosAutor(u) {
   const cont = document.getElementById("autorDatosContainer");
@@ -7331,6 +7340,16 @@ function agregarEfectoRipple(boton) {
       verificarComentarios().then(() => cargarImagenes());
       console.log("Datos recargados por solicitud externa.");
     }
+
+
+     (function () {
+    const params = new URLSearchParams(location.search);
+    const isEmbedded = params.get("embed") === "1" || (window.self !== window.top);
+    if (isEmbedded) document.body.classList.add("embedded");
+  })();
+
+    
   </script>
 </body>
 </html>
+
