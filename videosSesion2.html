@@ -5843,8 +5843,7 @@ setInterval(() => {
 
 
 
-
-  // Guarda cuáles estaban reproduciéndose para reanudarlos
+// Guarda cuáles estaban reproduciéndose para reanudarlos
 let decomWasPlaying = [];        // keys de players YT que estaban PLAYING
 let decomWasPlayingHtml5 = [];   // mezcla: keys de players HTML5 o elementos <video> del DOM
 
@@ -5926,6 +5925,43 @@ function decomResumePlayers() {
   } catch (e) {}
 }
 
+// ▶️ Forzar reproducción del video ACTIVO (sin afectar prev/next)
+function decomPlayActiveNow() {
+  try {
+    if (!swiper) return;
+
+    const activeSlide = swiper.slides?.[swiper.activeIndex];
+    const activeCard = activeSlide?.querySelector?.('.player-card');
+    if (!activeCard) return;
+
+    const src = activeCard.dataset?.embed;
+    if (!src) return;
+
+    // Si aún no está montado, montarlo con autoplay=true
+    if (!activeCard.querySelector("iframe") && !activeCard.querySelector("video")) {
+      mountIframe(activeCard, true);
+      return;
+    }
+
+    // Si ya está montado, reproducirlo
+    const player = players?.[src];
+    if (player) {
+      if (typeof player.playVideo === "function") {
+        try { player.playVideo(); } catch (e) {}
+      } else if (typeof player.play === "function") {
+        player.play().catch(()=>{});
+      }
+    }
+
+    // Actualizar botón central a "pause" y ocultarlo
+    const centerBtn = activeCard.querySelector('.center-play-pause-btn');
+    if (centerBtn) {
+      centerBtn.innerHTML = '<i class="fas fa-pause"></i>';
+      centerBtn.style.opacity = 0;
+    }
+  } catch (e) {}
+}
+
 window.addEventListener("message", (e) => {
   const t = e?.data?.type;
 
@@ -5960,10 +5996,18 @@ window.addEventListener("message", (e) => {
       }
     } catch(e){}
 
+    // ✅ Mantiene tu lógica: reanudar solo lo que estaba sonando
     decomResumePlayers();
+
+    // ✅ NUEVO: al entrar a "Videos", asegurar que el ACTIVO se reproduzca
+    setTimeout(() => {
+      decomPlayActiveNow();
+    }, 80);
+
     return;
   }
 });
+
 
 // ✅ ARRANQUE EN SILENCIO cuando está embebido en feed (embed=1)
 // Evita que cualquier autoplay suene antes de que existan players/videos.
@@ -6015,6 +6059,7 @@ window.addEventListener("message", (e) => {
     </script>
 </body>
 </html>
+
 
 
 
