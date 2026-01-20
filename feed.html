@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DECOM</title>
+
+  <!-- FontAwesome (igual que tus páginas) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    html, body { height: 100%; margin: 0; background:#000; overflow:hidden; font-family: Arial, sans-serif; }
+    #socialHeader {
+      position: fixed; top: 0; left: 0; width: 100%;
+      background: linear-gradient(135deg,
+        rgba(10,10,20,.98) 0%,
+        rgba(20,10,35,.92) 50%,
+        rgba(5,15,25,.95) 100%);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 999999;
+      padding: 8px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,.4);
+    }
+    .header-content{
+      display:flex; justify-content:space-between; align-items:center;
+      max-width:1200px; margin:0 auto; padding:0 12px;
+    }
+    .header-content h1{ color:#fff; font-size:1.4rem; margin:0; letter-spacing:1px; }
+    .header-buttons{ display:flex; gap:8px; align-items:center; }
+    .header-btn{
+      background: rgba(255,255,255,.1);
+      color:#fff; border:none; border-radius:50%;
+      width:36px; height:36px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      cursor:pointer;
+    }
+    .header-btn:hover{ background: rgba(255,255,255,.2); transform: scale(1.06); box-shadow:0 0 8px rgba(255,255,255,.2); }
+    .header-btn.selected{
+      background:#fff; color:#111;
+      box-shadow:0 0 6px rgba(255,255,255,.5);
+    }
+
+    /* Zona de contenido debajo del header */
+    #content {
+      position: fixed;
+      top: 54px; /* altura header aproximada */
+      left: 0; right: 0; bottom: 0;
+      background:#000;
+    }
+
+    .viewframe{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      border:0;
+      background:#000;
+    }
+    .hidden{ display:none; }
+  </style>
+</head>
+
+<body>
+  <header id="socialHeader">
+    <div class="header-content">
+      <h1>DECOM</h1>
+
+      <div class="header-buttons">
+        <button id="tabFotos" class="header-btn selected" title="Imágenes">
+          <i class="fas fa-image"></i>
+        </button>
+
+        <button id="tabVideos" class="header-btn" title="Videos">
+          <i class="fas fa-video"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="content">
+    <!-- Se cargan UNA sola vez. Luego solo se ocultan/muestran -->
+    <iframe id="frameFotos" class="viewframe" src="./fotos.html"></iframe>
+    <iframe id="frameVideos" class="viewframe hidden" src="./videosSesion2.html"></iframe>
+  </div>
+
+  <script>
+    const tabFotos = document.getElementById('tabFotos');
+    const tabVideos = document.getElementById('tabVideos');
+    const frameFotos = document.getElementById('frameFotos');
+    const frameVideos = document.getElementById('frameVideos');
+
+    function show(which){
+      const isFotos = which === 'fotos';
+
+      frameFotos.classList.toggle('hidden', !isFotos);
+      frameVideos.classList.toggle('hidden', isFotos);
+
+      tabFotos.classList.toggle('selected', isFotos);
+      tabVideos.classList.toggle('selected', !isFotos);
+
+      // recuerda la pestaña para cuando recargues
+      localStorage.setItem('decom_tab', which);
+
+      // opcional: si vienes de videos, intenta pausar algo (sin romper nada)
+      // (si luego quieres, lo mejoramos con una función dentro de videosSesion2.html)
+      if (isFotos) {
+        try { frameVideos.contentWindow.postMessage({ type:'DECOM_HIDE_VIDEOS' }, '*'); } catch(e){}
+      }
+    }
+
+    tabFotos.addEventListener('click', () => show('fotos'));
+    tabVideos.addEventListener('click', () => show('videos'));
+
+    // restaurar pestaña
+    const saved = localStorage.getItem('decom_tab');
+    if (saved === 'videos') show('videos');
+  </script>
+</body>
+</html>
