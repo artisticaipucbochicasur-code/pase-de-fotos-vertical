@@ -183,22 +183,19 @@
 function show(which){
   const isFotos = which === 'fotos';
 
-  // Iframes (NO se recargan)
   frameFotos.classList.toggle('hidden', !isFotos);
   frameVideos.classList.toggle('hidden', isFotos);
 
-  // Tabs
   tabFotos.classList.toggle('selected', isFotos);
   tabVideos.classList.toggle('selected', !isFotos);
 
-  // Header “dinámico”
   actionsFotos.style.display  = isFotos ? 'flex' : 'none';
   actionsVideos.style.display = isFotos ? 'none' : 'flex';
 
   feedTitle.textContent = 'DECOM';
   localStorage.setItem('decom_tab', which);
 
-  // ✅ NUEVO: pausar / reanudar videos al cambiar de pestaña
+  // ✅ Pausar / reanudar videos cuando cambias de pestaña
   try {
     if (isFotos) {
       frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
@@ -207,6 +204,7 @@ function show(which){
     }
   } catch (e) {}
 }
+
 
 
     // ===== Buttons: publicar/buscar delegan al iframe =====
