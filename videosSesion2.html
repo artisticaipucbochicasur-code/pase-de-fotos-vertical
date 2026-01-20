@@ -4902,7 +4902,7 @@ deleteConfirm.onclick = async () => {
 
 
 
-        function mountIframe(cardEl, autoplay = true) {
+function mountIframe(cardEl, autoplay = true) {
   // 🔥 Antes de montar, desmonta todo lo demás
   cleanupIframesExceptActiveAndAdjacent();
 
@@ -4913,15 +4913,21 @@ deleteConfirm.onclick = async () => {
 
   const poster = cardEl.querySelector(".poster");
   if (poster) poster.remove();
-  
+
   const controls = createControls();
   cardEl.appendChild(controls);
 
   const centerPlayPauseBtn = document.createElement("div");
   centerPlayPauseBtn.className = "center-play-pause-btn";
-  centerPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+
+  // ✅ IMPORTANTE: si NO hay autoplay, arrancar mostrando PLAY (no PAUSE)
+  centerPlayPauseBtn.innerHTML = autoplay
+    ? '<i class="fas fa-pause"></i>'
+    : '<i class="fas fa-play"></i>';
+  centerPlayPauseBtn.style.opacity = 1;
+
   cardEl.appendChild(centerPlayPauseBtn);
-  
+
   let player;
 
   if (info.type === "youtube") {
@@ -4931,9 +4937,16 @@ deleteConfirm.onclick = async () => {
 
     player = new YT.Player(container, {
       videoId: info.videoId,
-      playerVars: { autoplay: autoplay ? 1 : 0, rel: 0, playsinline: 1, controls: 0, modestbranding: 1 },
+      playerVars: {
+        autoplay: autoplay ? 1 : 0,
+        rel: 0,
+        playsinline: 1,
+        controls: 0,
+        modestbranding: 1
+      },
       events: {
         onReady: (event) => {
+          // Si autoplay=true, reproduce. Si no, se queda listo pero pausado.
           if (autoplay) event.target.playVideo();
           setupControls(event.target, 'youtube', controls, centerPlayPauseBtn, cardEl);
         },
@@ -4946,12 +4959,16 @@ deleteConfirm.onclick = async () => {
             centerPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
             centerPlayPauseBtn.style.opacity = 1;
           } else {
+            // UNSTARTED / ENDED / BUFFERING: mostrar play
             centerPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            centerPlayPauseBtn.style.opacity = 1;
           }
         }
       }
     });
+
     players[src] = player;
+
   } else if (info.type === "mp4") {
     const video = document.createElement("video");
     video.className = "player-iframe";
@@ -4965,36 +4982,25 @@ deleteConfirm.onclick = async () => {
     source.src = src;
     source.type = "video/mp4";
     video.appendChild(source);
+
+    // ✅ Si NO hay autoplay, asegúrate de que quede en pausa al quedar listo
+    if (!autoplay) {
+      try { video.pause(); } catch (e) {}
+      video.addEventListener("loadedmetadata", () => {
+        try { video.pause(); } catch (e) {}
+      }, { once: true });
+    }
+
     cardEl.appendChild(video);
+    players[src] = video;
 
-    player = video;
-    players[src] = player;
+    setupControls(video, 'mp4', controls, centerPlayPauseBtn, cardEl);
 
-    video.addEventListener('loadedmetadata', () => {
-      setupControls(video, 'mp4', controls, centerPlayPauseBtn, cardEl);
-      if (!autoplay) video.pause();
-    });
-    video.addEventListener('play', () => {
-      centerPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-      centerPlayPauseBtn.style.opacity = 0;
-    });
-    video.addEventListener('pause', () => {
-      centerPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-      centerPlayPauseBtn.style.opacity = 1;
-    });
-    video.addEventListener('ended', () => {
-      centerPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-      centerPlayPauseBtn.style.opacity = 1;
-    });
-  } else {
-    const iframe = document.createElement("iframe");
-    iframe.className = "player-iframe";
-    iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
-    iframe.setAttribute("allowfullscreen", "true");
-    iframe.src = src + (src.includes("?") ? "&" : "?") + (autoplay ? "autoplay=1" : "");
-    cardEl.appendChild(iframe);
+    // Si autoplay=true, algunos navegadores no disparan "playing" inmediato; dejamos icono como pausa
+    // Si autoplay=false, dejamos icono como play (ya se setea arriba)
   }
 }
+
 
         
         function createControls() {
@@ -5420,21 +5426,24 @@ if (!checkNew) {
         spaceBetween: 10,
         pagination: false,
         on: {
-            init() {
-                updateFixedTitle(this);
-                activarSwipeParaBorrar();
-                const videoId = getActiveVideoId();
-                if (videoId) {
-                  actualizarContadorComentariosUI(videoId, { loading: !comentariosPorVideo[videoId] && !comentariosCache[videoId] });
-                  renderComentarios(videoId);
-                }
-                if (videoId) cargarLikes(videoId);
-                console.log("✅ Swiper inicializado");
-                // Inicializar el primer video con reproducción automática
-                const activeCard = this.slides[this.activeIndex].querySelector('.player-card');
-                if (activeCard && !activeCard.querySelector("iframe") && !activeCard.querySelector("video")) {
-                    mountIframe(activeCard, true);
-                }
+    init() {
+  updateFixedTitle(this);
+  activarSwipeParaBorrar();
+  const videoId = getActiveVideoId();
+  if (videoId) {
+    actualizarContadorComentariosUI(videoId, { loading: !comentariosPorVideo[videoId] && !comentariosCache[videoId] });
+    renderComentarios(videoId);
+  }
+  if (videoId) cargarLikes(videoId);
+  console.log("✅ Swiper inicializado");
+
+  // ✅ Inicializar el primer video PERO PAUSADO (sin autoplay)
+  const activeCard = this.slides[this.activeIndex].querySelector('.player-card');
+  if (activeCard && !activeCard.querySelector("iframe") && !activeCard.querySelector("video")) {
+    mountIframe(activeCard, false); // <-- antes estaba true
+  }
+}
+
             },
             slideChange() {
                 cleanupIframesExceptActiveAndAdjacent();
@@ -5983,6 +5992,7 @@ window.addEventListener("message", (e) => {
     </script>
 </body>
 </html>
+
 
 
 
