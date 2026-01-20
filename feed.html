@@ -146,6 +146,50 @@ function clickInsideFrame(frameEl, selectors) {
   return false;
 }
 
+
+function getUserDataFromStorage() {
+  try { return JSON.parse(localStorage.getItem("usuario") || "{}"); }
+  catch { return {}; }
+}
+
+function getProfilePhotoSrc() {
+  const u = getUserDataFromStorage();
+
+  // prioridad: fotoPerfil guardada (fotos/videos la usan como fallback) :contentReference[oaicite:2]{index=2}
+  let src = (localStorage.getItem("fotoPerfil") || "").trim();
+
+  // luego buscar en el objeto usuario (fotos/videos también lo usan) :contentReference[oaicite:3]{index=3}
+  if (!src) src = (u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "").toString().trim();
+
+  if (!src || src === "null" || src === "undefined") return "";
+  return src;
+}
+
+function getInitials() {
+  const u = getUserDataFromStorage();
+  const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").trim();
+  const ini = name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
+  return ini || "U";
+}
+
+function renderUserBadge(el) {
+  if (!el) return;
+
+  const src = getProfilePhotoSrc();
+  if (src) {
+    el.innerHTML = `<img src="${src}" alt="Perfil" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+  } else {
+    el.textContent = getInitials();
+  }
+}
+
+/* refresca ambos (fotos y videos) */
+function syncUserBadge() {
+  renderUserBadge(document.getElementById("feedUserBtnFotos"));
+  renderUserBadge(document.getElementById("feedUserBtnVideos"));
+}
+
+    
 /* Iniciales del usuario (solo visual) */
 function syncInitials() {
   const getInitials = () => {
@@ -185,17 +229,36 @@ function show(which){
   }
 }
 
-syncInitials();
+syncUserBadge();
+
+// importante: storage NO se dispara en la misma pestaña cuando el iframe escribe.
+// entonces hacemos un refresco ligero cada 1.5s (no afecta lógica)
+setInterval(syncUserBadge, 1500);
 window.addEventListener('storage', syncInitials);
 
 
-    tabFotos.addEventListener('click', () => show('fotos'));
-    tabVideos.addEventListener('click', () => show('videos'));
+ tabFotos.addEventListener('click', () => show('fotos'));
+tabVideos.addEventListener('click', () => show('videos'));
 
-    // ---- BOTONES FOTOS (delegan a botones reales dentro de fotos.html) ----
+// ==============================
+// BOTONES FOTOS + VIDEOS (FEED)
+// ==============================
+
+function openUserMenuInIframe(frameEl) {
+  // 1) Intento click directo dentro del iframe
+  const ok = clickInsideFrame(frameEl, ['#userBtn', '[id="userBtn"]', '.user-btn']);
+
+  // 2) Fallback robusto por postMessage (por si el botón está oculto o no clickea)
+  if (!ok) {
+    try {
+      frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*");
+    } catch (e) {}
+  }
+}
+
+// ---- BOTONES FOTOS (delegan a botones reales dentro de fotos.html) ----
 document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
   e.preventDefault();
-  // intenta id primero y luego fallback por selector
   clickInsideFrame(frameFotos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
 });
 
@@ -206,7 +269,7 @@ document.getElementById('feedBuscarBtnFotos').addEventListener('click', (e) => {
 
 document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
   e.preventDefault();
-  clickInsideFrame(frameFotos, ['#userBtn', '[id="userBtn"]', '.user-btn']);
+  openUserMenuInIframe(frameFotos);
 });
 
 
@@ -223,7 +286,7 @@ document.getElementById('feedBuscarBtnVideos').addEventListener('click', (e) => 
 
 document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
   e.preventDefault();
-  clickInsideFrame(frameVideos, ['#userBtn', '[id="userBtn"]', '.user-btn']);
+  openUserMenuInIframe(frameVideos);
 });
 
 
