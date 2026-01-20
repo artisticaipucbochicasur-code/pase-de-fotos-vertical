@@ -60,22 +60,59 @@
   </style>
 </head>
 
-<body>
-  <header id="socialHeader">
-    <div class="header-content">
-      <h1>DECOM</h1>
+<header id="socialHeader">
+  <div class="header-content">
+    <h1 id="feedTitle">DECOM</h1>
 
-      <div class="header-buttons">
-        <button id="tabFotos" class="header-btn selected" title="Imágenes">
-          <i class="fas fa-image"></i>
+    <div class="header-buttons">
+      <!-- Tabs -->
+      <button id="tabFotos" class="header-btn selected" title="Imágenes">
+        <i class="fas fa-image"></i>
+      </button>
+
+      <button id="tabVideos" class="header-btn" title="Videos">
+        <i class="fas fa-video"></i>
+      </button>
+
+      <!-- Acciones de FOTOS (se ven solo en modo fotos) -->
+      <div id="actionsFotos" style="display:flex; gap:10px; align-items:center;">
+        <button id="feedPublishBtnFotos" class="header-btn" title="Publicar">
+          <i class="fas fa-plus-circle"></i>
         </button>
 
-        <button id="tabVideos" class="header-btn" title="Videos">
-          <i class="fas fa-video"></i>
+        <button id="feedBuscarBtnFotos" class="header-btn" title="Buscar">
+          <i class="fas fa-search"></i>
         </button>
+
+        <div id="feedUserBtnFotos"
+             title="Usuario"
+             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;user-select:none;">
+          U
+        </div>
+      </div>
+
+      <!-- Acciones de VIDEOS (se ven solo en modo videos) -->
+      <div id="actionsVideos" style="display:none; gap:10px; align-items:center;">
+        <button id="feedPublishBtnVideos" class="header-btn" title="Publicar">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+
+        <button id="feedBuscarBtnVideos" class="header-btn" title="Buscar">
+          <i class="fas fa-search"></i>
+        </button>
+
+        <div id="feedUserBtnVideos"
+             title="Usuario"
+             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;user-select:none;">
+          U
+        </div>
       </div>
     </div>
-  </header>
+  </div>
+</header>
+
 
   <div id="content">
     <!-- Se cargan UNA sola vez. Luego solo se ocultan/muestran -->
@@ -89,26 +126,106 @@
     const frameFotos = document.getElementById('frameFotos');
     const frameVideos = document.getElementById('frameVideos');
 
-    function show(which){
-      const isFotos = which === 'fotos';
+ const actionsFotos  = document.getElementById('actionsFotos');
+const actionsVideos = document.getElementById('actionsVideos');
+const feedTitle = document.getElementById('feedTitle');
 
-      frameFotos.classList.toggle('hidden', !isFotos);
-      frameVideos.classList.toggle('hidden', isFotos);
+function activeFrame(which){
+  return which === 'videos' ? frameVideos : frameFotos;
+}
 
-      tabFotos.classList.toggle('selected', isFotos);
-      tabVideos.classList.toggle('selected', !isFotos);
-
-      // recuerda la pestaña para cuando recargues
-      localStorage.setItem('decom_tab', which);
-
-      // opcional: si vienes de videos, intenta pausar algo (sin romper nada)
-      if (isFotos) {
-        try { frameVideos.contentWindow.postMessage({ type:'DECOM_HIDE_VIDEOS' }, '*'); } catch(e){}
-      }
+/* Hace click dentro del iframe (sin romper la lógica interna) */
+function clickInsideFrame(frameEl, selectors) {
+  try {
+    const doc = frameEl.contentWindow.document;
+    for (const sel of selectors) {
+      const el = doc.querySelector(sel);
+      if (el) { el.click(); return true; }
     }
+  } catch (e) {}
+  return false;
+}
+
+/* Iniciales del usuario (solo visual) */
+function syncInitials() {
+  const getInitials = () => {
+    const name =
+      (localStorage.getItem("autor") ||
+       localStorage.getItem("userName") ||
+       "Usuario").trim();
+    const ini = name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+    return ini || "U";
+  };
+  const ini = getInitials();
+  document.getElementById('feedUserBtnFotos').textContent = ini;
+  document.getElementById('feedUserBtnVideos').textContent = ini;
+}
+
+function show(which){
+  const isFotos = which === 'fotos';
+
+  // Iframes (NO se recargan)
+  frameFotos.classList.toggle('hidden', !isFotos);
+  frameVideos.classList.toggle('hidden', isFotos);
+
+  // Tabs
+  tabFotos.classList.toggle('selected', isFotos);
+  tabVideos.classList.toggle('selected', !isFotos);
+
+  // Header “dinámico”
+  actionsFotos.style.display  = isFotos ? 'flex' : 'none';
+  actionsVideos.style.display = isFotos ? 'none' : 'flex';
+  feedTitle.textContent = 'DECOM';
+
+  localStorage.setItem('decom_tab', which);
+
+  // Opcional: al ir a fotos, manda mensaje para que videos pause si tienes listener
+  if (isFotos) {
+    try { frameVideos.contentWindow.postMessage({ type:'DECOM_HIDE_VIDEOS' }, '*'); } catch(e){}
+  }
+}
+
+syncInitials();
+window.addEventListener('storage', syncInitials);
+
 
     tabFotos.addEventListener('click', () => show('fotos'));
     tabVideos.addEventListener('click', () => show('videos'));
+
+    // ---- BOTONES FOTOS (delegan a botones reales dentro de fotos.html) ----
+document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
+  e.preventDefault();
+  // intenta id primero y luego fallback por selector
+  clickInsideFrame(frameFotos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
+});
+
+document.getElementById('feedBuscarBtnFotos').addEventListener('click', (e) => {
+  e.preventDefault();
+  clickInsideFrame(frameFotos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
+});
+
+document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+  e.preventDefault();
+  clickInsideFrame(frameFotos, ['#userBtn', '[id="userBtn"]', '.user-btn']);
+});
+
+
+// ---- BOTONES VIDEOS (delegan a botones reales dentro de videosSesion2.html) ----
+document.getElementById('feedPublishBtnVideos').addEventListener('click', (e) => {
+  e.preventDefault();
+  clickInsideFrame(frameVideos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
+});
+
+document.getElementById('feedBuscarBtnVideos').addEventListener('click', (e) => {
+  e.preventDefault();
+  clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
+});
+
+document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
+  e.preventDefault();
+  clickInsideFrame(frameVideos, ['#userBtn', '[id="userBtn"]', '.user-btn']);
+});
+
 
     // restaurar pestaña
     const saved = localStorage.getItem('decom_tab');
