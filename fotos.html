@@ -7348,16 +7348,35 @@ function agregarEfectoRipple(boton) {
     if (isEmbedded) document.body.classList.add("embedded");
   })();
 
+
   window.addEventListener("message", (e) => {
-    if (e?.data?.type === "DECOM_OPEN_USER_MENU") {
-      const btn = document.getElementById("userBtn");
-      if (btn) btn.click(); // usa tu lógica original (abre/cierra menú) :contentReference[oaicite:4]{index=4}
+    const t = e?.data?.type;
+
+    // Abre modal de perfil (NO depende del header)
+    if (t === "DECOM_OPEN_PROFILE_MODAL") {
+      // si tu app tiene función, la usa
+      if (typeof abrirPerfil === "function") abrirPerfil();
+      else {
+        const modal = document.getElementById("modalPerfil");
+        if (modal) modal.style.display = "flex";
+      }
+      return;
+    }
+
+    // (Opcional) abrir selector directo
+    if (t === "DECOM_PICK_PROFILE_PHOTO") {
+      const input = document.getElementById("inputFotoPerfil");
+      if (input) input.click();
+      return;
     }
   });
+
+
     
     
   </script>
 </body>
 </html>
+
 
 
