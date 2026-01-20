@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DECOM</title>
 
-  <!-- FontAwesome (igual que tus páginas) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -26,7 +25,9 @@
       max-width:1200px; margin:0 auto; padding:0 12px;
     }
     .header-content h1{ color:#fff; font-size:1.4rem; margin:0; letter-spacing:1px; }
-    .header-buttons{ display:flex; gap:8px; align-items:center; }
+
+    .header-buttons{ display:flex; gap:10px; align-items:center; }
+
     .header-btn{
       background: rgba(255,255,255,.1);
       color:#fff; border:none; border-radius:50%;
@@ -42,10 +43,22 @@
       box-shadow:0 0 6px rgba(255,255,255,.5);
     }
 
-    /* Zona de contenido debajo del header */
+    /* Avatar en header */
+    .feed-user-btn{
+      background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:bold;cursor:pointer;user-select:none;
+      overflow:hidden;
+    }
+    .feed-user-btn img{
+      width:40px;height:40px;border-radius:50%;
+      object-fit:cover;border:2px solid #0077cc;
+      display:block;
+    }
+
     #content {
       position: fixed;
-      top: 54px; /* altura header aproximada */
+      top: 54px;
       left: 0; right: 0; bottom: 0;
       background:#000;
     }
@@ -60,237 +73,173 @@
   </style>
 </head>
 
-<header id="socialHeader">
-  <div class="header-content">
-    <h1 id="feedTitle">DECOM</h1>
+<body>
+  <header id="socialHeader">
+    <div class="header-content">
+      <h1 id="feedTitle">DECOM</h1>
 
-    <div class="header-buttons">
-      <!-- Tabs -->
-      <button id="tabFotos" class="header-btn selected" title="Imágenes">
-        <i class="fas fa-image"></i>
-      </button>
-
-      <button id="tabVideos" class="header-btn" title="Videos">
-        <i class="fas fa-video"></i>
-      </button>
-
-      <!-- Acciones de FOTOS (se ven solo en modo fotos) -->
-      <div id="actionsFotos" style="display:flex; gap:10px; align-items:center;">
-        <button id="feedPublishBtnFotos" class="header-btn" title="Publicar">
-          <i class="fas fa-plus-circle"></i>
+      <div class="header-buttons">
+        <!-- Tabs -->
+        <button id="tabFotos" class="header-btn selected" title="Imágenes">
+          <i class="fas fa-image"></i>
         </button>
 
-        <button id="feedBuscarBtnFotos" class="header-btn" title="Buscar">
-          <i class="fas fa-search"></i>
+        <button id="tabVideos" class="header-btn" title="Videos">
+          <i class="fas fa-video"></i>
         </button>
 
-        <div id="feedUserBtnFotos"
-             title="Usuario"
-             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;user-select:none;">
-          U
+        <!-- Acciones FOTOS -->
+        <div id="actionsFotos" style="display:flex; gap:10px; align-items:center;">
+          <button id="feedPublishBtnFotos" class="header-btn" title="Publicar">
+            <i class="fas fa-plus-circle"></i>
+          </button>
+
+          <button id="feedBuscarBtnFotos" class="header-btn" title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
+
+          <div id="feedUserBtnFotos" class="feed-user-btn" title="Usuario">U</div>
         </div>
-      </div>
 
-      <!-- Acciones de VIDEOS (se ven solo en modo videos) -->
-      <div id="actionsVideos" style="display:none; gap:10px; align-items:center;">
-        <button id="feedPublishBtnVideos" class="header-btn" title="Publicar">
-          <i class="fas fa-plus-circle"></i>
-        </button>
+        <!-- Acciones VIDEOS -->
+        <div id="actionsVideos" style="display:none; gap:10px; align-items:center;">
+          <button id="feedPublishBtnVideos" class="header-btn" title="Publicar">
+            <i class="fas fa-plus-circle"></i>
+          </button>
 
-        <button id="feedBuscarBtnVideos" class="header-btn" title="Buscar">
-          <i class="fas fa-search"></i>
-        </button>
+          <button id="feedBuscarBtnVideos" class="header-btn" title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
 
-        <div id="feedUserBtnVideos"
-             title="Usuario"
-             style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;user-select:none;">
-          U
+          <div id="feedUserBtnVideos" class="feed-user-btn" title="Usuario">U</div>
         </div>
       </div>
     </div>
-  </div>
-</header>
-
+  </header>
 
   <div id="content">
-    <!-- Se cargan UNA sola vez. Luego solo se ocultan/muestran -->
-    <iframe id="frameFotos" class="viewframe" src="./fotos.html"></iframe>
-    <iframe id="frameVideos" class="viewframe hidden" src="./videosSesion2.html"></iframe>
+    <!-- IMPORTANTE: embed=1 para ocultar headers internos -->
+    <iframe id="frameFotos" class="viewframe" src="./fotos.html?embed=1"></iframe>
+    <iframe id="frameVideos" class="viewframe hidden" src="./videos.html?embed=1"></iframe>
   </div>
 
   <script>
+    // ===== refs =====
     const tabFotos = document.getElementById('tabFotos');
     const tabVideos = document.getElementById('tabVideos');
     const frameFotos = document.getElementById('frameFotos');
     const frameVideos = document.getElementById('frameVideos');
 
- const actionsFotos  = document.getElementById('actionsFotos');
-const actionsVideos = document.getElementById('actionsVideos');
-const feedTitle = document.getElementById('feedTitle');
+    const actionsFotos  = document.getElementById('actionsFotos');
+    const actionsVideos = document.getElementById('actionsVideos');
+    const feedTitle = document.getElementById('feedTitle');
 
-function activeFrame(which){
-  return which === 'videos' ? frameVideos : frameFotos;
-}
-
-/* Hace click dentro del iframe (sin romper la lógica interna) */
-function clickInsideFrame(frameEl, selectors) {
-  try {
-    const doc = frameEl.contentWindow.document;
-    for (const sel of selectors) {
-      const el = doc.querySelector(sel);
-      if (el) { el.click(); return true; }
+    // ===== helpers =====
+    function clickInsideFrame(frameEl, selectors) {
+      try {
+        const doc = frameEl.contentWindow.document;
+        for (const sel of selectors) {
+          const el = doc.querySelector(sel);
+          if (el) { el.click(); return true; }
+        }
+      } catch (e) {}
+      return false;
     }
-  } catch (e) {}
-  return false;
-}
 
+    // ===== user badge (foto o iniciales) =====
+    function getUserDataFromStorage() {
+      try { return JSON.parse(localStorage.getItem("usuario") || "{}"); }
+      catch { return {}; }
+    }
 
-function getUserDataFromStorage() {
-  try { return JSON.parse(localStorage.getItem("usuario") || "{}"); }
-  catch { return {}; }
-}
+    function getProfilePhotoSrc() {
+      const u = getUserDataFromStorage();
+      let src = (localStorage.getItem("fotoPerfil") || "").trim();
+      if (!src) src = (u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "").toString().trim();
+      if (!src || src === "null" || src === "undefined") return "";
+      return src;
+    }
 
-function getProfilePhotoSrc() {
-  const u = getUserDataFromStorage();
+    function getInitials() {
+      const u = getUserDataFromStorage();
+      const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").trim();
+      const ini = name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
+      return ini || "U";
+    }
 
-  // prioridad: fotoPerfil guardada (fotos/videos la usan como fallback) :contentReference[oaicite:2]{index=2}
-  let src = (localStorage.getItem("fotoPerfil") || "").trim();
+    function renderUserBadge(el) {
+      if (!el) return;
+      const src = getProfilePhotoSrc();
+      if (src) el.innerHTML = `<img src="${src}" alt="Perfil">`;
+      else { el.textContent = getInitials(); el.innerHTML = ""; el.textContent = getInitials(); }
+    }
 
-  // luego buscar en el objeto usuario (fotos/videos también lo usan) :contentReference[oaicite:3]{index=3}
-  if (!src) src = (u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "").toString().trim();
+    function syncUserBadge() {
+      renderUserBadge(document.getElementById("feedUserBtnFotos"));
+      renderUserBadge(document.getElementById("feedUserBtnVideos"));
+    }
 
-  if (!src || src === "null" || src === "undefined") return "";
-  return src;
-}
+    // ===== view switching =====
+    function show(which){
+      const isFotos = which === 'fotos';
 
-function getInitials() {
-  const u = getUserDataFromStorage();
-  const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").trim();
-  const ini = name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
-  return ini || "U";
-}
+      frameFotos.classList.toggle('hidden', !isFotos);
+      frameVideos.classList.toggle('hidden', isFotos);
 
-function renderUserBadge(el) {
-  if (!el) return;
+      tabFotos.classList.toggle('selected', isFotos);
+      tabVideos.classList.toggle('selected', !isFotos);
 
-  const src = getProfilePhotoSrc();
-  if (src) {
-    el.innerHTML = `<img src="${src}" alt="Perfil" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-  } else {
-    el.textContent = getInitials();
-  }
-}
+      actionsFotos.style.display  = isFotos ? 'flex' : 'none';
+      actionsVideos.style.display = isFotos ? 'none' : 'flex';
 
-/* refresca ambos (fotos y videos) */
-function syncUserBadge() {
-  renderUserBadge(document.getElementById("feedUserBtnFotos"));
-  renderUserBadge(document.getElementById("feedUserBtnVideos"));
-}
+      feedTitle.textContent = 'DECOM';
+      localStorage.setItem('decom_tab', which);
+    }
 
-    
-/* Iniciales del usuario (solo visual) */
-function syncInitials() {
-  const getInitials = () => {
-    const name =
-      (localStorage.getItem("autor") ||
-       localStorage.getItem("userName") ||
-       "Usuario").trim();
-    const ini = name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
-    return ini || "U";
-  };
-  const ini = getInitials();
-  document.getElementById('feedUserBtnFotos').textContent = ini;
-  document.getElementById('feedUserBtnVideos').textContent = ini;
-}
+    // ===== Buttons: publicar/buscar delegan al iframe =====
+    document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
+      e.preventDefault();
+      clickInsideFrame(frameFotos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
+    });
 
-function show(which){
-  const isFotos = which === 'fotos';
+    document.getElementById('feedBuscarBtnFotos').addEventListener('click', (e) => {
+      e.preventDefault();
+      clickInsideFrame(frameFotos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
+    });
 
-  // Iframes (NO se recargan)
-  frameFotos.classList.toggle('hidden', !isFotos);
-  frameVideos.classList.toggle('hidden', isFotos);
+    document.getElementById('feedPublishBtnVideos').addEventListener('click', (e) => {
+      e.preventDefault();
+      clickInsideFrame(frameVideos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
+    });
 
-  // Tabs
-  tabFotos.classList.toggle('selected', isFotos);
-  tabVideos.classList.toggle('selected', !isFotos);
+    document.getElementById('feedBuscarBtnVideos').addEventListener('click', (e) => {
+      e.preventDefault();
+      clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
+    });
 
-  // Header “dinámico”
-  actionsFotos.style.display  = isFotos ? 'flex' : 'none';
-  actionsVideos.style.display = isFotos ? 'none' : 'flex';
-  feedTitle.textContent = 'DECOM';
+    // ===== Avatar: abre modal perfil dentro del iframe (NO header, porque está oculto) =====
+    function openProfileModalInIframe(frameEl) {
+      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*"); } catch(e){}
+    }
 
-  localStorage.setItem('decom_tab', which);
+    document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+      e.preventDefault();
+      openProfileModalInIframe(frameFotos);
+    });
 
-  // Opcional: al ir a fotos, manda mensaje para que videos pause si tienes listener
-  if (isFotos) {
-    try { frameVideos.contentWindow.postMessage({ type:'DECOM_HIDE_VIDEOS' }, '*'); } catch(e){}
-  }
-}
+    document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
+      e.preventDefault();
+      openProfileModalInIframe(frameVideos);
+    });
 
-syncUserBadge();
+    // ===== Tabs =====
+    tabFotos.addEventListener('click', () => show('fotos'));
+    tabVideos.addEventListener('click', () => show('videos'));
 
-// importante: storage NO se dispara en la misma pestaña cuando el iframe escribe.
-// entonces hacemos un refresco ligero cada 1.5s (no afecta lógica)
-setInterval(syncUserBadge, 1500);
-window.addEventListener('storage', syncInitials);
+    // ===== init =====
+    syncUserBadge();
+    setInterval(syncUserBadge, 1500);
 
-
- tabFotos.addEventListener('click', () => show('fotos'));
-tabVideos.addEventListener('click', () => show('videos'));
-
-// ==============================
-// BOTONES FOTOS + VIDEOS (FEED)
-// ==============================
-
-function openUserMenuInIframe(frameEl) {
-  // 1) Intento click directo dentro del iframe
-  const ok = clickInsideFrame(frameEl, ['#userBtn', '[id="userBtn"]', '.user-btn']);
-
-  // 2) Fallback robusto por postMessage (por si el botón está oculto o no clickea)
-  if (!ok) {
-    try {
-      frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*");
-    } catch (e) {}
-  }
-}
-
-// ---- BOTONES FOTOS (delegan a botones reales dentro de fotos.html) ----
-document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
-  e.preventDefault();
-  clickInsideFrame(frameFotos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
-});
-
-document.getElementById('feedBuscarBtnFotos').addEventListener('click', (e) => {
-  e.preventDefault();
-  clickInsideFrame(frameFotos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
-});
-
-document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
-  e.preventDefault();
-  openUserMenuInIframe(frameFotos);
-});
-
-
-// ---- BOTONES VIDEOS (delegan a botones reales dentro de videosSesion2.html) ----
-document.getElementById('feedPublishBtnVideos').addEventListener('click', (e) => {
-  e.preventDefault();
-  clickInsideFrame(frameVideos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
-});
-
-document.getElementById('feedBuscarBtnVideos').addEventListener('click', (e) => {
-  e.preventDefault();
-  clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
-});
-
-document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
-  e.preventDefault();
-  openUserMenuInIframe(frameVideos);
-});
-
-
-    // restaurar pestaña
     const saved = localStorage.getItem('decom_tab');
     if (saved === 'videos') show('videos');
   </script>
