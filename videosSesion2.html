@@ -1021,6 +1021,10 @@ body {
 }
 
 
+        body.embedded #socialHeader { display: none !important; }
+
+  /* Ajuste: overlays que estaban calculados para header */
+  body.embedded .content-overlay { top: 10px !important; }
 
 
     </style>
@@ -5796,6 +5800,16 @@ setInterval(() => {
 }, 3000);
 
         cargarVideos();
+
+
+         (function () {
+    const params = new URLSearchParams(location.search);
+    const isEmbedded = params.get("embed") === "1" || (window.self !== window.top);
+    if (isEmbedded) document.body.classList.add("embedded");
+  })();
+
+        
     </script>
 </body>
 </html>
+
