@@ -5809,15 +5809,28 @@ setInterval(() => {
   })();
 
 
-  window.addEventListener("message", (e) => {
-    if (e?.data?.type === "DECOM_OPEN_USER_MENU") {
-      const btn = document.getElementById("userBtn");
-      if (btn) btn.click(); // abre/cierra userMenu :contentReference[oaicite:5]{index=5}
+window.addEventListener("message", (e) => {
+    const t = e?.data?.type;
+
+    if (t === "DECOM_OPEN_PROFILE_MODAL") {
+      if (typeof abrirPerfil === "function") abrirPerfil();
+      else {
+        const modal = document.getElementById("modalPerfil");
+        if (modal) modal.style.display = "flex";
+      }
+      return;
+    }
+
+    if (t === "DECOM_PICK_PROFILE_PHOTO") {
+      const input = document.getElementById("inputFotoPerfil");
+      if (input) input.click();
+      return;
     }
   });
         
     </script>
 </body>
 </html>
+
 
 
