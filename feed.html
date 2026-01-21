@@ -246,54 +246,20 @@ function show(which){
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-    // ===== Avatar: abre el MENÚ lateral (#userMenu) dentro del iframe =====
-    function openUserMenuInIframe(frameEl) {
-      // Intento 1: tocar directamente el DOM del iframe (más confiable)
-      try {
-        const doc = frameEl.contentWindow && frameEl.contentWindow.document;
-        const userMenu = doc && doc.getElementById('userMenu');
-        if (userMenu) {
-          // cerrar modal de perfil si existe (para que no “tape” el menú)
-          const modalPerfil = doc.getElementById('modalPerfil');
-          if (modalPerfil) modalPerfil.style.display = 'none';
-          userMenu.style.display = 'block';
-          return true;
-        }
-      } catch (e) {}
-
-      // Intento 2: por postMessage (por si en el futuro cambias a otro origen)
-      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*"); } catch(e){}
-
-      // Si el iframe todavía no está listo, marcamos pendiente
-      try { frameEl.dataset.openMenuPending = "1"; } catch(e){}
-      return false;
+    // ===== Avatar: abre modal perfil dentro del iframe (NO header, porque está oculto) =====
+    function openProfileModalInIframe(frameEl) {
+      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*"); } catch(e){}
     }
 
-    function bindAvatarToMenu(btnId, frameEl){
-      const btn = document.getElementById(btnId);
-      if (!btn) return;
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openUserMenuInIframe(frameEl);
-      });
-    }
+    document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+      e.preventDefault();
+      try { frameFotos.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*"); } catch(e){}
+    });
 
-    bindAvatarToMenu('feedUserBtnFotos', frameFotos);
-    bindAvatarToMenu('feedUserBtnVideos', frameVideos);
-
-    // Si el click ocurrió antes de que cargue el iframe, lo abrimos al terminar de cargar
-    function openPendingMenuOnLoad(frameEl){
-      frameEl.addEventListener('load', () => {
-        try {
-          if (frameEl.dataset.openMenuPending === "1") {
-            frameEl.dataset.openMenuPending = "";
-            openUserMenuInIframe(frameEl);
-          }
-        } catch(e){}
-      });
-    }
-    openPendingMenuOnLoad(frameFotos);
-    openPendingMenuOnLoad(frameVideos);
+    document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
+      e.preventDefault();
+      openProfileModalInIframe(frameVideos);
+    });
 
     // ===== Tabs =====
     tabFotos.addEventListener('click', () => show('fotos'));
