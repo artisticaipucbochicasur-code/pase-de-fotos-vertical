@@ -246,20 +246,32 @@ function show(which){
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-    // ===== Avatar: abre modal perfil dentro del iframe (NO header, porque está oculto) =====
-    function openProfileModalInIframe(frameEl) {
-      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*"); } catch(e){}
-    }
+// ===== Avatar: abre MENÚ de usuario dentro del iframe (NO modal), porque el header interno está oculto =====
+function openUserMenuInIframe(frameEl) {
+  // 1) Intentar abrir/cerrar el menú existente (userBtn suele abrir #userMenu)
+  const ok = clickInsideFrame(frameEl, [
+    '#userBtn',        // botón de usuario del header interno (aunque el header esté oculto, el botón existe)
+    '#userMenuPhoto'   // fallback: click en la foto del menú si aplica
+  ]);
 
-    document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
-      e.preventDefault();
-      openProfileModalInIframe(frameFotos);
-    });
+  if (ok) return;
 
-    document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
-      e.preventDefault();
-      openProfileModalInIframe(frameVideos);
-    });
+  // 2) Fallback (por si en algún iframe no existe userBtn): deja el comportamiento anterior
+  try {
+    frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*");
+  } catch (e) {}
+}
+
+document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+  e.preventDefault();
+  openUserMenuInIframe(frameFotos);
+});
+
+document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
+  e.preventDefault();
+  openUserMenuInIframe(frameVideos);
+});
+
 
     // ===== Tabs =====
     tabFotos.addEventListener('click', () => show('fotos'));
