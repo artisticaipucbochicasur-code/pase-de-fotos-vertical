@@ -260,37 +260,25 @@
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-    // ===== Avatar: abrir menú REAL dentro del iframe (aunque el header interno esté oculto) =====
-    function openUserMenuInIframe(frameEl) {
-      withFrameReady(frameEl, () => {
-        let doc;
-        try { doc = frameEl.contentWindow.document; } catch(e) { doc = null; }
-        if (!doc) return;
+// ===== Avatar: abre MENÚ correcto dentro del iframe usando postMessage (100% fiable) =====
+function openUserMenuInIframe(frameEl) {
+  try {
+    frameEl.contentWindow.postMessage({ type: "DECOM_TOGGLE_USER_MENU" }, "*");
+  } catch (e) {
+    // fallback: si algo raro pasa, abre el modal viejo
+    try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*"); } catch (_) {}
+  }
+}
 
-        const menu = doc.getElementById("userMenu");
-        if (menu) {
-          // toggle
-          const isOpen = (menu.style.display === "block");
-          menu.style.display = isOpen ? "none" : "block";
-          return;
-        }
+document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+  e.preventDefault();
+  openUserMenuInIframe(frameFotos);
+});
 
-        // Fallback (si algún iframe no usa userMenu)
-        try {
-          frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*");
-        } catch (e) {}
-      });
-    }
-
-    document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
-      e.preventDefault();
-      openUserMenuInIframe(frameFotos);
-    });
-
-    document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
-      e.preventDefault();
-      openUserMenuInIframe(frameVideos);
-    });
+document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
+  e.preventDefault();
+  openUserMenuInIframe(frameVideos);
+});
 
     // ===== Tabs =====
     tabFotos.addEventListener('click', () => show('fotos'));
