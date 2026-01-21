@@ -246,19 +246,36 @@ function show(which){
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-    // ===== Avatar: abre modal perfil dentro del iframe (NO header, porque está oculto) =====
-    function openProfileModalInIframe(frameEl) {
-      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*"); } catch(e){}
+    // ===== Avatar: abre menú lateral (#userMenu) dentro del iframe =====
+    // Nota: en embed=1 el header interno puede estar oculto, pero el menú existe.
+    // Para hacerlo robusto, enviamos el mensaje y reintentamos por si el iframe aún no terminó de cargar.
+    const __menuPending = new WeakMap();
+
+    function postToFrame(frameEl, payload){
+      try { frameEl.contentWindow.postMessage(payload, "*"); return true; } catch(e){ return false; }
     }
 
-    document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+    function openUserMenuInIframe(frameEl) {
+      if (!frameEl) return;
+
+      // Si el iframe no ha cargado aún, dejamos la solicitud pendiente
+      if (!frameEl.dataset || frameEl.dataset.loaded !== "1") {
+        __menuPending.set(frameEl, true);
+      }
+
+      // Enviamos ahora y reintentamos un par de veces (por timing)
+      postToFrame(frameEl, { type: "DECOM_OPEN_USER_MENU" });
+      setTimeout(() => postToFrame(frameEl, { type: "DECOM_OPEN_USER_MENU" }), 80);
+      setTimeout(() => postToFrame(frameEl, { type: "DECOM_OPEN_USER_MENU" }), 300);
+    }
+document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
       e.preventDefault();
-      openProfileModalInIframe(frameFotos);
+      openUserMenuInIframe(frameFotos);
     });
 
     document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
       e.preventDefault();
-      openProfileModalInIframe(frameVideos);
+      openUserMenuInIframe(frameVideos);
     });
 
     // ===== Tabs =====
@@ -285,6 +302,17 @@ frameVideos.addEventListener('load', () => {
 });
 
     
+    // Marcar iframes como cargados y reenviar solicitud pendiente de menú (si hubo click antes del load)
+    [frameFotos, frameVideos].forEach(fr => {
+      fr.addEventListener('load', () => {
+        fr.dataset.loaded = "1";
+        if (__menuPending.get(fr)) {
+          __menuPending.delete(fr);
+          openUserMenuInIframe(fr);
+        }
+      });
+    });
+
 
   </script>
 </body>
