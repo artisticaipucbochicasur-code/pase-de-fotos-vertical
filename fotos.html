@@ -6830,18 +6830,6 @@ if (userBtn && userMenu) {
   });
 }
 
-// ===== Permitir que el feed (iframe padre) abra/cierre este menú =====
-window.addEventListener("message", (event) => {
-  try {
-    if (!event || !event.data) return;
-    if (event.data.type === "DECOM_TOGGLE_USER_MENU") {
-      if (userMenu) {
-        userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-      }
-    }
-  } catch (e) {}
-});
-
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("usuario");
@@ -7362,7 +7350,16 @@ function agregarEfectoRipple(boton) {
 
 
   window.addEventListener("message", (e) => {
-    const t = e?.data?.type;
+    const t = e?.data?.type ?? e?.data;
+
+    // Abre menú lateral del usuario
+    if (t === "DECOM_OPEN_USER_MENU") {
+      const userMenu = document.getElementById("userMenu");
+      if (userMenu) userMenu.style.display = "block";
+      const modal = document.getElementById("modalPerfil");
+      if (modal) modal.style.display = "none";
+      return;
+    }
 
     // Abre modal de perfil (NO depende del header)
     if (t === "DECOM_OPEN_PROFILE_MODAL") {
