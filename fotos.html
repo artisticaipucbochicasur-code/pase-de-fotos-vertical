@@ -6830,6 +6830,35 @@ if (userBtn && userMenu) {
   });
 }
 
+/* =========================================================
+   FIX: cuando fotos.html está embebido (feed en iframe),
+   el header se oculta (body.embedded #socialHeader {display:none}),
+   y como #userMenu estaba dentro del header, también quedaba oculto.
+   Movemos #userMenu (y #userOverlay) al <body> para que se pueda ver.
+   No afecta cuando se abre fotos.html normal.
+========================================================= */
+(function ensureUserMenuOutsideHeader(){
+  try {
+    const embedded = (window.self !== window.top);
+    if (!embedded) return;
+
+    document.body.classList.add("embedded");
+
+    const menu = document.getElementById("userMenu");
+    const overlay = document.getElementById("userOverlay");
+
+    if (overlay && overlay.parentElement !== document.body) {
+      document.body.appendChild(overlay);
+    }
+    if (menu && menu.parentElement !== document.body) {
+      document.body.appendChild(menu);
+    }
+  } catch (e) {
+    // si el navegador bloquea window.top por seguridad, asumimos embebido
+    try { document.body.classList.add("embedded"); } catch(_) {}
+  }
+})();
+
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("usuario");
@@ -7351,6 +7380,17 @@ function agregarEfectoRipple(boton) {
 
   window.addEventListener("message", (e) => {
     const t = e?.data?.type;
+    // Abre menú lateral de usuario (para el botón del feed)
+    if (t === "DECOM_OPEN_USER_MENU") {
+      const menu = document.getElementById("userMenu");
+      if (menu) menu.style.display = "block";
+      // por si el modal de perfil estuviera abierto
+      const modalPerfil = document.getElementById("modalPerfil");
+      if (modalPerfil) modalPerfil.style.display = "none";
+      return;
+    }
+
+
 
     // Abre modal de perfil (NO depende del header)
     if (t === "DECOM_OPEN_PROFILE_MODAL") {
@@ -7360,17 +7400,6 @@ function agregarEfectoRipple(boton) {
         const modal = document.getElementById("modalPerfil");
         if (modal) modal.style.display = "flex";
       }
-      return;
-    }
-
-
-    // Abre el menú lateral (NO depende del header)
-    if (t === "DECOM_OPEN_USER_MENU") {
-      const userMenu = document.getElementById("userMenu");
-      if (userMenu) userMenu.style.display = "block";
-      // cerrar modal de perfil si estuviera abierto
-      const modal = document.getElementById("modalPerfil");
-      if (modal) modal.style.display = "none";
       return;
     }
 
