@@ -7,15 +7,6 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- PWA y Iconos para Android e iOS --><!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DECOM</title>
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <!-- PWA y Iconos para Android e iOS -->
   <link rel="manifest" href="manifest.json">
 
@@ -172,6 +163,17 @@
       return false;
     }
 
+    function withFrameReady(frameEl, cb) {
+      try {
+        const doc = frameEl.contentWindow && frameEl.contentWindow.document;
+        if (doc && doc.readyState && doc.readyState !== "loading") {
+          cb();
+          return;
+        }
+      } catch(e) {}
+      frameEl.addEventListener('load', () => { try { cb(); } catch(e){} }, { once:true });
+    }
+
     // ===== user badge (foto o iniciales) =====
     function getUserDataFromStorage() {
       try { return JSON.parse(localStorage.getItem("usuario") || "{}"); }
@@ -188,16 +190,22 @@
 
     function getInitials() {
       const u = getUserDataFromStorage();
-      const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").trim();
-      const ini = name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
+      const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").toString().trim();
+      const ini = name.split(" ").filter(Boolean).map(w => (w[0] || "")).join("").slice(0,2).toUpperCase();
       return ini || "U";
     }
 
     function renderUserBadge(el) {
       if (!el) return;
       const src = getProfilePhotoSrc();
-      if (src) el.innerHTML = `<img src="${src}" alt="Perfil">`;
-      else { el.textContent = getInitials(); el.innerHTML = ""; el.textContent = getInitials(); }
+
+      if (src) {
+        el.textContent = "";
+        el.innerHTML = `<img src="${src}" alt="Perfil" />`;
+      } else {
+        el.innerHTML = "";
+        el.textContent = getInitials();
+      }
     }
 
     function syncUserBadge() {
@@ -252,53 +260,26 @@
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-    // ===== Avatar: abre MENÚ de usuario dentro del iframe (NO modal), porque el header interno está oculto =====
+    // ===== Avatar: abrir menú REAL dentro del iframe (aunque el header interno esté oculto) =====
     function openUserMenuInIframe(frameEl) {
-      if (!frameEl) return;
+      withFrameReady(frameEl, () => {
+        let doc;
+        try { doc = frameEl.contentWindow.document; } catch(e) { doc = null; }
+        if (!doc) return;
 
-      // Reintentos cortos por si el iframe aún está cargando
-      let tries = 0;
-
-      const tryOpen = () => {
-        tries++;
-
-        try {
-          const doc = frameEl.contentWindow && frameEl.contentWindow.document;
-
-          // 0) Si el iframe aún no está listo, reintentar
-          if (!doc || doc.readyState !== "complete") {
-            if (tries < 10) return setTimeout(tryOpen, 120);
-            // fallback final
-            frameEl.contentWindow?.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*");
-            return;
-          }
-
-          // 1) ✅ Mejor opción: llamar directo a la función del iframe (no depende del DOM visible)
-          if (typeof frameEl.contentWindow.toggleUserMenu === "function") {
-            frameEl.contentWindow.toggleUserMenu();
-            return;
-          }
-
-          // 2) Si no existe la función, intentamos click programático al botón real
-          if (clickInsideFrame(frameEl, ['#userBtn'])) return;
-
-          // 3) Fallback: mostrar/ocultar #userMenu directamente
-          const menu = doc.querySelector("#userMenu");
-          if (menu) {
-            const isHidden = window.getComputedStyle(menu).display === "none";
-            menu.style.display = isHidden ? "block" : "none";
-            return;
-          }
-
-          // 4) Último fallback: abre modal de perfil
-          frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*");
-        } catch (e) {
-          if (tries < 10) return setTimeout(tryOpen, 120);
-          try { frameEl.contentWindow?.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*"); } catch (_) {}
+        const menu = doc.getElementById("userMenu");
+        if (menu) {
+          // toggle
+          const isOpen = (menu.style.display === "block");
+          menu.style.display = isOpen ? "none" : "block";
+          return;
         }
-      };
 
-      tryOpen();
+        // Fallback (si algún iframe no usa userMenu)
+        try {
+          frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*");
+        } catch (e) {}
+      });
     }
 
     document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
@@ -317,9 +298,9 @@
 
     // ===== init =====
     syncUserBadge();
-    setInterval(syncUserBadge, 1500);
+    setInterval(syncUserBadge, 1200);
 
-    // ===== init (SIEMPRE ejecutar show) =====
+    // ✅ init (SIEMPRE ejecutar show)
     const saved = localStorage.getItem('decom_tab');
     show(saved === 'videos' ? 'videos' : 'fotos');
 
@@ -333,300 +314,6 @@
         }
       } catch (e) {}
     });
-  </script>
-</body>
-</html>
-
-<link rel="manifest" href="manifest.json">
-
-<!-- Iconos para Android (Chrome) -->
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-
-<!-- Meta tags para iOS (Safari) -->
-<link rel="apple-touch-icon" href="apple-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="DECOM">
-
-<!-- Meta para color de barra de estado en Android/iOS -->
-<meta name="theme-color" content="#111111">
-<meta name="mobile-web-app-capable" content="yes">
-
-
-  <style>
-    html, body { height: 100%; margin: 0; background:#000; overflow:hidden; font-family: Arial, sans-serif; }
-    #socialHeader {
-      position: fixed; top: 0; left: 0; width: 100%;
-      background: linear-gradient(135deg,
-        rgba(10,10,20,.98) 0%,
-        rgba(20,10,35,.92) 50%,
-        rgba(5,15,25,.95) 100%);
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 999999;
-      padding: 8px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,.4);
-    }
-    .header-content{
-      display:flex; justify-content:space-between; align-items:center;
-      max-width:1200px; margin:0 auto; padding:0 12px;
-    }
-    .header-content h1{ color:#fff; font-size:1.4rem; margin:0; letter-spacing:1px; }
-
-    .header-buttons{ display:flex; gap:10px; align-items:center; }
-
-    .header-btn{
-      background: rgba(255,255,255,.1);
-      color:#fff; border:none; border-radius:50%;
-      width:36px; height:36px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:1.1rem;
-      transition: background .2s, transform .15s, box-shadow .2s;
-      cursor:pointer;
-    }
-    .header-btn:hover{ background: rgba(255,255,255,.2); transform: scale(1.06); box-shadow:0 0 8px rgba(255,255,255,.2); }
-    .header-btn.selected{
-      background:#fff; color:#111;
-      box-shadow:0 0 6px rgba(255,255,255,.5);
-    }
-
-    /* Avatar en header */
-    .feed-user-btn{
-      background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-weight:bold;cursor:pointer;user-select:none;
-      overflow:hidden;
-    }
-    .feed-user-btn img{
-      width:40px;height:40px;border-radius:50%;
-      object-fit:cover;border:2px solid #0077cc;
-      display:block;
-    }
-
-    #content {
-      position: fixed;
-      top: 54px;
-      left: 0; right: 0; bottom: 0;
-      background:#000;
-    }
-
-    .viewframe{
-      position:absolute; inset:0;
-      width:100%; height:100%;
-      border:0;
-      background:#000;
-    }
-    .hidden{ display:none; }
-  </style>
-</head>
-
-<body>
-  <header id="socialHeader">
-    <div class="header-content">
-      <h1 id="feedTitle">DECOM</h1>
-
-      <div class="header-buttons">
-        <!-- Tabs -->
-        <button id="tabFotos" class="header-btn selected" title="Imágenes">
-          <i class="fas fa-image"></i>
-        </button>
-
-        <button id="tabVideos" class="header-btn" title="Videos">
-          <i class="fas fa-video"></i>
-        </button>
-
-        <!-- Acciones FOTOS -->
-        <div id="actionsFotos" style="display:flex; gap:10px; align-items:center;">
-          <button id="feedPublishBtnFotos" class="header-btn" title="Publicar">
-            <i class="fas fa-plus-circle"></i>
-          </button>
-
-          <button id="feedBuscarBtnFotos" class="header-btn" title="Buscar">
-            <i class="fas fa-search"></i>
-          </button>
-
-          <div id="feedUserBtnFotos" class="feed-user-btn" title="Usuario">U</div>
-        </div>
-
-        <!-- Acciones VIDEOS -->
-        <div id="actionsVideos" style="display:none; gap:10px; align-items:center;">
-          <button id="feedPublishBtnVideos" class="header-btn" title="Publicar">
-            <i class="fas fa-plus-circle"></i>
-          </button>
-
-          <button id="feedBuscarBtnVideos" class="header-btn" title="Buscar">
-            <i class="fas fa-search"></i>
-          </button>
-
-          <div id="feedUserBtnVideos" class="feed-user-btn" title="Usuario">U</div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <div id="content">
-    <!-- IMPORTANTE: embed=1 para ocultar headers internos -->
-    <iframe id="frameFotos" class="viewframe" src="./fotos.html?embed=1"></iframe>
-    <iframe id="frameVideos" class="viewframe hidden" src="./videosSesion2.html?embed=1"></iframe>
-  </div>
-
-  <script>
-    // ===== refs =====
-    const tabFotos = document.getElementById('tabFotos');
-    const tabVideos = document.getElementById('tabVideos');
-    const frameFotos = document.getElementById('frameFotos');
-    const frameVideos = document.getElementById('frameVideos');
-
-    const actionsFotos  = document.getElementById('actionsFotos');
-    const actionsVideos = document.getElementById('actionsVideos');
-    const feedTitle = document.getElementById('feedTitle');
-
-    // ===== helpers =====
-    function clickInsideFrame(frameEl, selectors) {
-      try {
-        const doc = frameEl.contentWindow.document;
-        for (const sel of selectors) {
-          const el = doc.querySelector(sel);
-          if (el) { el.click(); return true; }
-        }
-      } catch (e) {}
-      return false;
-    }
-
-    // ===== user badge (foto o iniciales) =====
-    function getUserDataFromStorage() {
-      try { return JSON.parse(localStorage.getItem("usuario") || "{}"); }
-      catch { return {}; }
-    }
-
-    function getProfilePhotoSrc() {
-      const u = getUserDataFromStorage();
-      let src = (localStorage.getItem("fotoPerfil") || "").trim();
-      if (!src) src = (u.fotoPerfil || u.foto || u.fotoUrl || u.avatar || "").toString().trim();
-      if (!src || src === "null" || src === "undefined") return "";
-      return src;
-    }
-
-    function getInitials() {
-      const u = getUserDataFromStorage();
-      const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").trim();
-      const ini = name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
-      return ini || "U";
-    }
-
-    function renderUserBadge(el) {
-      if (!el) return;
-      const src = getProfilePhotoSrc();
-      if (src) el.innerHTML = `<img src="${src}" alt="Perfil">`;
-      else { el.textContent = getInitials(); el.innerHTML = ""; el.textContent = getInitials(); }
-    }
-
-    function syncUserBadge() {
-      renderUserBadge(document.getElementById("feedUserBtnFotos"));
-      renderUserBadge(document.getElementById("feedUserBtnVideos"));
-    }
-
-    // ===== view switching =====
-function show(which){
-  const isFotos = which === 'fotos';
-
-  frameFotos.classList.toggle('hidden', !isFotos);
-  frameVideos.classList.toggle('hidden', isFotos);
-
-  tabFotos.classList.toggle('selected', isFotos);
-  tabVideos.classList.toggle('selected', !isFotos);
-
-  actionsFotos.style.display  = isFotos ? 'flex' : 'none';
-  actionsVideos.style.display = isFotos ? 'none' : 'flex';
-
-  feedTitle.textContent = 'DECOM';
-  localStorage.setItem('decom_tab', which);
-
-  // ✅ Pausar / reanudar videos cuando cambias de pestaña
-  try {
-    if (isFotos) {
-      frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
-    } else {
-      frameVideos.contentWindow.postMessage({ type: "DECOM_SHOW_VIDEOS" }, "*");
-    }
-  } catch (e) {}
-}
-
-
-
-    // ===== Buttons: publicar/buscar delegan al iframe =====
-    document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
-      e.preventDefault();
-      clickInsideFrame(frameFotos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
-    });
-
-    document.getElementById('feedBuscarBtnFotos').addEventListener('click', (e) => {
-      e.preventDefault();
-      clickInsideFrame(frameFotos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
-    });
-
-    document.getElementById('feedPublishBtnVideos').addEventListener('click', (e) => {
-      e.preventDefault();
-      clickInsideFrame(frameVideos, ['#publishBtn', '[id="publishBtn"]', '.publish-btn', 'button[title*="Public"]']);
-    });
-
-    document.getElementById('feedBuscarBtnVideos').addEventListener('click', (e) => {
-      e.preventDefault();
-      clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
-    });
-
-// ===== Avatar: abre MENÚ de usuario dentro del iframe (NO modal), porque el header interno está oculto =====
-function openUserMenuInIframe(frameEl) {
-  // 1) Intentar abrir/cerrar el menú existente (userBtn suele abrir #userMenu)
-  const ok = clickInsideFrame(frameEl, [
-    '#userBtn',        // botón de usuario del header interno (aunque el header esté oculto, el botón existe)
-    '#userMenuPhoto'   // fallback: click en la foto del menú si aplica
-  ]);
-
-  if (ok) return;
-
-  // 2) Fallback (por si en algún iframe no existe userBtn): deja el comportamiento anterior
-  try {
-    frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*");
-  } catch (e) {}
-}
-
-document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
-  e.preventDefault();
-  openUserMenuInIframe(frameFotos);
-});
-
-document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
-  e.preventDefault();
-  openUserMenuInIframe(frameVideos);
-});
-
-
-    // ===== Tabs =====
-    tabFotos.addEventListener('click', () => show('fotos'));
-    tabVideos.addEventListener('click', () => show('videos'));
-
-    // ===== init =====
-    syncUserBadge();
-    setInterval(syncUserBadge, 1500);
-
- // ===== init (SIEMPRE ejecutar show) =====
-const saved = localStorage.getItem('decom_tab');
-show(saved === 'videos' ? 'videos' : 'fotos');
-
-    // ✅ Evita audio al inicio: cuando el iframe de videos termine de cargar,
-// si estás en fotos, forzamos el pause (por si el primer postMessage se perdió).
-frameVideos.addEventListener('load', () => {
-  try {
-    const isFotosNow = !frameFotos.classList.contains('hidden');
-    if (isFotosNow) {
-      frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
-    }
-  } catch (e) {}
-});
-
-    
-
   </script>
 </body>
 </html>
