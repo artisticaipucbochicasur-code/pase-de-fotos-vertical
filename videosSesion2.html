@@ -6292,11 +6292,44 @@ window.addEventListener("message", (e) => {
   });
 })();
 
+// =========================================================
+// Recibe órdenes desde el FEED (iframe) - sin afectar nada más
+// =========================================================
+window.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (!data.type) return;
+
+  // Abrir menú lateral de usuario (el nuevo diseño)
+  if (data.type === "DECOM_OPEN_USER_MENU") {
+    const userMenu = document.getElementById("userMenu");
+    if (userMenu) userMenu.style.display = "block";
+    return;
+  }
+
+  // (Opcional) si aún quieres soportar el mensaje antiguo de abrir perfil
+  if (data.type === "DECOM_OPEN_PROFILE_MODAL") {
+    if (typeof abrirPerfil === "function") abrirPerfil();
+    return;
+  }
+
+  // Pausar/reanudar (si ya lo tienes, no pasa nada; esto no rompe)
+  if (data.type === "DECOM_HIDE_VIDEOS") {
+    try {
+      document.querySelectorAll("video").forEach(v => { v.pause(); v.currentTime = v.currentTime; });
+    } catch(e){}
+    return;
+  }
+  if (data.type === "DECOM_SHOW_VIDEOS") {
+    // no forzamos play (solo dejas que el usuario reproduzca)
+    return;
+  }
+});
 
         
     </script>
 </body>
 </html>
+
 
 
 
