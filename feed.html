@@ -106,6 +106,11 @@
           <i class="fas fa-video"></i>
         </button>
 
+        <button id="btnEnablePush" class="header-btn" title="Activar notificaciones">
+  <i class="fas fa-bell"></i>
+</button>
+
+
         <!-- Acciones FOTOS -->
         <div id="actionsFotos" style="display:flex; gap:10px; align-items:center;">
           <button id="feedPublishBtnFotos" class="header-btn" title="Publicar">
@@ -286,6 +291,118 @@ frameVideos.addEventListener('load', () => {
 });
 
     
+  // ===========================
+  // 🔔 PUSH: registrar SW + suscribir + guardar en Supabase
+  // ===========================
+
+  // 1) Datos de tu Supabase
+  const SUPABASE_URL = "https://ipqfccltdzoipcnnppxf.supabase.co";
+  const SUPABASE_ANON_KEY = "PEGA_AQUI_TU_ANON_KEY"; // <-- Settings > API > anon public
+
+  // 2) Tu VAPID PUBLIC KEY (la que te salió: "your application server key is: ...")
+  //    Esta ES la PUBLICA (BM_qYc-....)
+  const VAPID_PUBLIC_KEY = "BM_qYc-W756cy3UWSr3JGTlm-Sh7_Lshxn5_wUaH0SlwiVDV-xjZIQi5nWxZVbClaLgbrR7HNobNL4NDRXU2Kpk";
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  async function registerSW() {
+    if (!("serviceWorker" in navigator)) throw new Error("No soporta Service Worker");
+    // OJO: en GitHub Pages, usar ruta relativa funciona si sw.js está al lado de feed.html
+    const reg = await navigator.serviceWorker.register("./sw.js");
+    return reg;
+  }
+
+  async function askPermission() {
+    if (!("Notification" in window)) throw new Error("No soporta Notification API");
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") throw new Error("Permiso denegado");
+    return perm;
+  }
+
+  async function subscribePush(reg) {
+    if (!("PushManager" in window)) throw new Error("No soporta Push API");
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return existing;
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    return sub;
+  }
+
+  function getUserEmailForPush() {
+    // En tu app ya guardas cosas en localStorage como "correo" (lo vi en tu lógica)
+    // Si no existe, igual guardamos "anon"
+    return (localStorage.getItem("correo") || localStorage.getItem("email") || "anon").trim();
+  }
+
+  async function saveSubscriptionToSupabase(sub) {
+    const json = sub.toJSON();
+
+    const payload = {
+      endpoint: json.endpoint,
+      p256dh: json.keys?.p256dh || "",
+      auth: json.keys?.auth || "",
+      user_email: getUserEmailForPush(),
+      user_agent: navigator.userAgent,
+      updated_at: new Date().toISOString(),
+    };
+
+    // UPSERT por endpoint (si ya existe, lo actualiza)
+    const url = `${SUPABASE_URL}/rest/v1/push_subscriptions?on_conflict=endpoint`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Supabase REST error ${res.status}: ${text}`);
+    return text;
+  }
+
+  async function enablePushFlow() {
+    const btn = document.getElementById("btnEnablePush");
+    if (btn) btn.disabled = true;
+
+    try {
+      const reg = await registerSW();
+      await askPermission();
+      const sub = await subscribePush(reg);
+      await saveSubscriptionToSupabase(sub);
+
+      alert("✅ Notificaciones activadas. Ya guardé tu suscripción.");
+      console.log("✅ Push subscription guardada");
+    } catch (e) {
+      console.error(e);
+      alert("❌ No se pudo activar push: " + (e?.message || e));
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  // Hook del botón
+  const btnEnablePush = document.getElementById("btnEnablePush");
+  if (btnEnablePush) {
+    btnEnablePush.addEventListener("click", (e) => {
+      e.preventDefault();
+      enablePushFlow();
+    });
+  }
+
 
   </script>
 </body>
