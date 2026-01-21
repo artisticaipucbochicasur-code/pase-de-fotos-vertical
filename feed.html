@@ -246,15 +246,12 @@ function show(which){
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-    // ===== Avatar: abre el menú lateral de usuario dentro del iframe =====
+    // ===== Avatar: abre menú usuario dentro del iframe =====
     function openUserMenuInIframe(frameEl) {
-      // ✅ Abrir el menú de usuario (panel lateral) dentro del iframe
-      // 1) Intentamos hacer click en el botón real de usuario del iframe (#userBtn).
-      //    Aunque el header esté oculto por embed=1, el elemento existe en el DOM.
-      if (clickInsideFrame(frameEl, ["#userBtn", "#userMenuContainer #userBtn"])) return;
+      try { frameEl.contentWindow.postMessage({ type: "DECOM_TOGGLE_USER_MENU" }, "*"); } catch(e){}
+    }
 
-      // 2) Fallback: por si alguna vista maneja apertura por postMessage
-      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*"); } catch(e){}
+, "*"); } catch(e){}
     }
 
     document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
