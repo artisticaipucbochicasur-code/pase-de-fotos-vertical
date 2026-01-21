@@ -5963,16 +5963,7 @@ function decomPlayActiveNow() {
 }
 
 window.addEventListener("message", (e) => {
-  const t = e?.data?.type ?? e?.data;
-
-    // Abre menú lateral del usuario
-    if (t === "DECOM_OPEN_USER_MENU") {
-      const userMenu = document.getElementById("userMenu");
-      if (userMenu) userMenu.style.display = "block";
-      const modal = document.getElementById("modalPerfil");
-      if (modal) modal.style.display = "none";
-      return;
-    }
+  const t = e?.data?.type;
 
   // Perfil (lo que ya tenías)
   if (t === "DECOM_OPEN_PROFILE_MODAL") {
@@ -5984,7 +5975,19 @@ window.addEventListener("message", (e) => {
     return;
   }
 
-  // cuando el feed oculta Videos
+  
+    // Abre menú lateral de usuario
+    if (t === "DECOM_OPEN_USER_MENU") {
+      const userMenu = document.getElementById("userMenu");
+      if (userMenu) userMenu.style.display = "block";
+
+      // Si está abierto el modal de perfil, lo cerramos para evitar superposición
+      const modal = document.getElementById("modalPerfil");
+      if (modal) modal.style.display = "none";
+      return;
+    }
+
+// cuando el feed oculta Videos
   if (t === "DECOM_HIDE_VIDEOS") {
     decomPauseAllPlayers();
     return;
