@@ -8,21 +8,22 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- PWA y Iconos para Android e iOS -->
-  <link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json">
 
-  <!-- Iconos para Android (Chrome) -->
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<!-- Iconos para Android (Chrome) -->
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-  <!-- Meta tags para iOS (Safari) -->
-  <link rel="apple-touch-icon" href="apple-icon.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DECOM">
+<!-- Meta tags para iOS (Safari) -->
+<link rel="apple-touch-icon" href="apple-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DECOM">
 
-  <!-- Meta para color de barra de estado en Android/iOS -->
-  <meta name="theme-color" content="#111111">
-  <meta name="mobile-web-app-capable" content="yes">
+<!-- Meta para color de barra de estado en Android/iOS -->
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+
 
   <style>
     html, body { height: 100%; margin: 0; background:#000; overflow:hidden; font-family: Arial, sans-serif; }
@@ -163,17 +164,6 @@
       return false;
     }
 
-    function withFrameReady(frameEl, cb) {
-      try {
-        const doc = frameEl.contentWindow && frameEl.contentWindow.document;
-        if (doc && doc.readyState && doc.readyState !== "loading") {
-          cb();
-          return;
-        }
-      } catch(e) {}
-      frameEl.addEventListener('load', () => { try { cb(); } catch(e){} }, { once:true });
-    }
-
     // ===== user badge (foto o iniciales) =====
     function getUserDataFromStorage() {
       try { return JSON.parse(localStorage.getItem("usuario") || "{}"); }
@@ -190,22 +180,16 @@
 
     function getInitials() {
       const u = getUserDataFromStorage();
-      const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").toString().trim();
-      const ini = name.split(" ").filter(Boolean).map(w => (w[0] || "")).join("").slice(0,2).toUpperCase();
+      const name = (u.nombre || u.name || localStorage.getItem("autor") || "Usuario").trim();
+      const ini = name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
       return ini || "U";
     }
 
     function renderUserBadge(el) {
       if (!el) return;
       const src = getProfilePhotoSrc();
-
-      if (src) {
-        el.textContent = "";
-        el.innerHTML = `<img src="${src}" alt="Perfil" />`;
-      } else {
-        el.innerHTML = "";
-        el.textContent = getInitials();
-      }
+      if (src) el.innerHTML = `<img src="${src}" alt="Perfil">`;
+      else { el.textContent = getInitials(); el.innerHTML = ""; el.textContent = getInitials(); }
     }
 
     function syncUserBadge() {
@@ -214,30 +198,32 @@
     }
 
     // ===== view switching =====
-    function show(which){
-      const isFotos = which === 'fotos';
+function show(which){
+  const isFotos = which === 'fotos';
 
-      frameFotos.classList.toggle('hidden', !isFotos);
-      frameVideos.classList.toggle('hidden', isFotos);
+  frameFotos.classList.toggle('hidden', !isFotos);
+  frameVideos.classList.toggle('hidden', isFotos);
 
-      tabFotos.classList.toggle('selected', isFotos);
-      tabVideos.classList.toggle('selected', !isFotos);
+  tabFotos.classList.toggle('selected', isFotos);
+  tabVideos.classList.toggle('selected', !isFotos);
 
-      actionsFotos.style.display  = isFotos ? 'flex' : 'none';
-      actionsVideos.style.display = isFotos ? 'none' : 'flex';
+  actionsFotos.style.display  = isFotos ? 'flex' : 'none';
+  actionsVideos.style.display = isFotos ? 'none' : 'flex';
 
-      feedTitle.textContent = 'DECOM';
-      localStorage.setItem('decom_tab', which);
+  feedTitle.textContent = 'DECOM';
+  localStorage.setItem('decom_tab', which);
 
-      // ✅ Pausar / reanudar videos cuando cambias de pestaña
-      try {
-        if (isFotos) {
-          frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
-        } else {
-          frameVideos.contentWindow.postMessage({ type: "DECOM_SHOW_VIDEOS" }, "*");
-        }
-      } catch (e) {}
+  // ✅ Pausar / reanudar videos cuando cambias de pestaña
+  try {
+    if (isFotos) {
+      frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
+    } else {
+      frameVideos.contentWindow.postMessage({ type: "DECOM_SHOW_VIDEOS" }, "*");
     }
+  } catch (e) {}
+}
+
+
 
     // ===== Buttons: publicar/buscar delegan al iframe =====
     document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
@@ -260,25 +246,26 @@
       clickInsideFrame(frameVideos, ['#btnBuscar', '[id="btnBuscar"]', '.search-btn', 'button[title*="Buscar"]']);
     });
 
-// ===== Avatar: abre MENÚ correcto dentro del iframe usando postMessage (100% fiable) =====
-function openUserMenuInIframe(frameEl) {
-  try {
-    frameEl.contentWindow.postMessage({ type: "DECOM_TOGGLE_USER_MENU" }, "*");
-  } catch (e) {
-    // fallback: si algo raro pasa, abre el modal viejo
-    try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_PROFILE_MODAL" }, "*"); } catch (_) {}
-  }
-}
+    // ===== Avatar: abre el menú lateral de usuario dentro del iframe =====
+    function openUserMenuInIframe(frameEl) {
+      // ✅ Abrir el menú de usuario (panel lateral) dentro del iframe
+      // 1) Intentamos hacer click en el botón real de usuario del iframe (#userBtn).
+      //    Aunque el header esté oculto por embed=1, el elemento existe en el DOM.
+      if (clickInsideFrame(frameEl, ["#userBtn", "#userMenuContainer #userBtn"])) return;
 
-document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
-  e.preventDefault();
-  openUserMenuInIframe(frameFotos);
-});
+      // 2) Fallback: por si alguna vista maneja apertura por postMessage
+      try { frameEl.contentWindow.postMessage({ type: "DECOM_OPEN_USER_MENU" }, "*"); } catch(e){}
+    }
 
-document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
-  e.preventDefault();
-  openUserMenuInIframe(frameVideos);
-});
+    document.getElementById('feedUserBtnFotos').addEventListener('click', (e) => {
+      e.preventDefault();
+      openUserMenuInIframe(frameFotos);
+    });
+
+    document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
+      e.preventDefault();
+      openUserMenuInIframe(frameVideos);
+    });
 
     // ===== Tabs =====
     tabFotos.addEventListener('click', () => show('fotos'));
@@ -286,22 +273,25 @@ document.getElementById('feedUserBtnVideos').addEventListener('click', (e) => {
 
     // ===== init =====
     syncUserBadge();
-    setInterval(syncUserBadge, 1200);
+    setInterval(syncUserBadge, 1500);
 
-    // ✅ init (SIEMPRE ejecutar show)
-    const saved = localStorage.getItem('decom_tab');
-    show(saved === 'videos' ? 'videos' : 'fotos');
+ // ===== init (SIEMPRE ejecutar show) =====
+const saved = localStorage.getItem('decom_tab');
+show(saved === 'videos' ? 'videos' : 'fotos');
 
     // ✅ Evita audio al inicio: cuando el iframe de videos termine de cargar,
-    // si estás en fotos, forzamos el pause (por si el primer postMessage se perdió).
-    frameVideos.addEventListener('load', () => {
-      try {
-        const isFotosNow = !frameFotos.classList.contains('hidden');
-        if (isFotosNow) {
-          frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
-        }
-      } catch (e) {}
-    });
+// si estás en fotos, forzamos el pause (por si el primer postMessage se perdió).
+frameVideos.addEventListener('load', () => {
+  try {
+    const isFotosNow = !frameFotos.classList.contains('hidden');
+    if (isFotosNow) {
+      frameVideos.contentWindow.postMessage({ type: "DECOM_HIDE_VIDEOS" }, "*");
+    }
+  } catch (e) {}
+});
+
+    
+
   </script>
 </body>
 </html>
