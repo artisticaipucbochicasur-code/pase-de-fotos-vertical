@@ -7350,16 +7350,7 @@ function agregarEfectoRipple(boton) {
 
 
   window.addEventListener("message", (e) => {
-    const t = e?.data?.type ?? e?.data;
-
-    // Abre menú lateral del usuario
-    if (t === "DECOM_OPEN_USER_MENU") {
-      const userMenu = document.getElementById("userMenu");
-      if (userMenu) userMenu.style.display = "block";
-      const modal = document.getElementById("modalPerfil");
-      if (modal) modal.style.display = "none";
-      return;
-    }
+    const t = e?.data?.type;
 
     // Abre modal de perfil (NO depende del header)
     if (t === "DECOM_OPEN_PROFILE_MODAL") {
@@ -7372,7 +7363,19 @@ function agregarEfectoRipple(boton) {
       return;
     }
 
-    // (Opcional) abrir selector directo
+    
+    // Abre menú lateral de usuario
+    if (t === "DECOM_OPEN_USER_MENU") {
+      const userMenu = document.getElementById("userMenu");
+      if (userMenu) userMenu.style.display = "block";
+
+      // Si está abierto el modal de perfil, lo cerramos para evitar superposición
+      const modal = document.getElementById("modalPerfil");
+      if (modal) modal.style.display = "none";
+      return;
+    }
+
+// (Opcional) abrir selector directo
     if (t === "DECOM_PICK_PROFILE_PHOTO") {
       const input = document.getElementById("inputFotoPerfil");
       if (input) input.click();
