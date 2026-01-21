@@ -6206,6 +6206,11 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
         btnLogin.disabled = false;
         btnLogin.classList.remove("btn-loading");
         cerrarModalYContinuar();
+
+if (window.DEComAuthApply) window.DEComAuthApply();
+if (window.DEComAuthPing)  window.DEComAuthPing();
+
+
         mostrarAviso("Bienvenido, " + data.nombre, "success");
       } else {
         cerrarLoader(loader);
@@ -6386,6 +6391,9 @@ function mostrarLoader(texto = "Procesando...") {
     <span>${texto}</span>
   `;
   document.body.appendChild(overlay);
+
+  overlay.id = "decomAuthOverlay";
+
   return overlay;
 }
 
@@ -6861,9 +6869,16 @@ if (userBtn && userMenu) {
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("autor");
-    localStorage.removeItem("correo");
+   localStorage.removeItem("usuario");
+localStorage.removeItem("autor");
+localStorage.removeItem("correo");
+
+if (window.DEComAuthApply) window.DEComAuthApply();
+if (window.DEComAuthPing)  window.DEComAuthPing();
+
+// si quieres mantener tu reload, déjalo:
+//location.reload();
+
 
     // 🧹 Limpiar caché RAM de fotos
     for (const key in fotoCache) {
@@ -7411,11 +7426,161 @@ function agregarEfectoRipple(boton) {
     }
   });
 
+/* =========================================================
+   🔄 SYNC INSTANTÁNEO DE SESIÓN ENTRE FOTOS ↔ VIDEOS (IFRAMES)
+   - Sin recargar
+   - No afecta nada más
+========================================================= */
+(function initDecomAuthSync() {
+  const OVERLAY_ID = "decomAuthOverlay";
+  const AUTH_KEYS = new Set(["usuario", "autor", "correo", "fotoPerfil"]);
 
+  // Fallback extra (por si algún navegador no dispara storage bien en iframes)
+  const bc = ("BroadcastChannel" in window) ? new BroadcastChannel("decom-auth") : null;
+
+  function safeUser() {
+    try { return JSON.parse(localStorage.getItem("usuario") || "null"); }
+    catch { return null; }
+  }
+
+  function getInitials(name) {
+    const n = (name || "Usuario").trim();
+    const ini = n.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    return ini || "U";
+  }
+
+  function removeOverlay() {
+    const old = document.getElementById(OVERLAY_ID);
+    if (old) old.remove();
+  }
+
+  function ensureOverlay(modal) {
+    let overlay = document.getElementById(OVERLAY_ID);
+    if (overlay) return overlay;
+
+    overlay = document.createElement("div");
+    overlay.id = OVERLAY_ID;
+
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100%",
+      height: "100%",
+      background: "linear-gradient(180deg, #000, #222)",
+      color: "white",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "99998",
+      fontFamily: "Poppins, sans-serif",
+      textAlign: "center",
+      opacity: "0",
+      transition: "opacity 0.4s ease",
+    });
+
+    overlay.innerHTML = `
+      <h2 style="margin-bottom:12px; font-size:22px;">🔒 Acceso restringido</h2>
+      <p style="color:#ccc; max-width:80%; line-height:1.5;">
+        Debes iniciar sesión para acceder al contenido.
+      </p>
+    `;
+
+    document.body.appendChild(overlay);
+    if (modal) {
+      modal.style.display = "flex";
+      modal.style.zIndex = "99999";
+    }
+    setTimeout(() => (overlay.style.opacity = "1"), 50);
+
+    return overlay;
+  }
+
+  function updateUserUI(u) {
+    // Si tu archivo ya tiene mostrarUsuario(), lo usamos (NO rompe nada)
+    if (typeof window.mostrarUsuario === "function") {
+      try { window.mostrarUsuario(u); } catch (e) {}
+      return;
+    }
+
+    // Fallback mínimo (por si un archivo no tiene mostrarUsuario)
+    const userBtn = document.getElementById("userBtn");
+    const userName = document.getElementById("userName");
+    const userEmail = document.getElementById("userEmail");
+    const userMenuPhoto = document.getElementById("userMenuPhoto");
+
+    const fotoSrc = (localStorage.getItem("fotoPerfil") || u?.fotoPerfil || "").trim();
+    const initials = getInitials(u?.nombre);
+
+    if (userBtn) {
+      if (fotoSrc) {
+        userBtn.innerHTML = `<img src="${fotoSrc}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
+      } else {
+        userBtn.textContent = initials;
+      }
+    }
+
+    if (userName) userName.textContent = u?.nombre || "Usuario";
+    if (userEmail) userEmail.textContent = u?.correo || "";
+
+    if (userMenuPhoto) {
+      if (fotoSrc) {
+        userMenuPhoto.innerHTML = `<img src="${fotoSrc}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else {
+        userMenuPhoto.innerHTML = "";
+        userMenuPhoto.textContent = initials;
+      }
+    }
+  }
+
+  function applyAuthUI() {
+    const u = safeUser();
+    const modal = document.getElementById("loginModal");
+
+    if (!u) {
+      ensureOverlay(modal);
+      // si había menú abierto, lo cerramos (seguro)
+      const menu = document.getElementById("userMenu");
+      if (menu) menu.style.display = "none";
+      return;
+    }
+
+    // ✅ hay sesión
+    removeOverlay();
+    if (modal) modal.style.display = "none";
+    updateUserUI(u);
+  }
+
+  function pingOthers() {
+    // BroadcastChannel
+    try { if (bc) bc.postMessage({ type: "AUTH_CHANGED", ts: Date.now() }); } catch(e){}
+    // storage (touch) — opcional, pero ayuda en algunos casos raros
+    try { localStorage.setItem("__decom_auth_ping__", String(Date.now())); } catch(e){}
+  }
+
+  // 🔔 Escucha cambios de storage (cuando el otro iframe hace setItem/removeItem)
+  window.addEventListener("storage", (e) => {
+    if (!e.key || AUTH_KEYS.has(e.key) || e.key === "__decom_auth_ping__") {
+      applyAuthUI();
+    }
+  });
+
+  // 🔔 Escucha broadcast directo (fallback)
+  if (bc) {
+    bc.onmessage = () => applyAuthUI();
+  }
+
+  // ✅ correr al inicio
+  applyAuthUI();
+
+  // ✅ expone helpers (para llamar desde login/logout SIN romper flujo)
+  window.DEComAuthApply = applyAuthUI;
+  window.DEComAuthPing = pingOthers;
+})();
     
     
   </script>
 </body>
 </html>
-
 
