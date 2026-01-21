@@ -3307,6 +3307,65 @@ function cerrarModalYContinuar() {
   const userEmail = document.getElementById("userEmail");
   const logoutBtn = document.getElementById("logoutBtn");
 
+
+
+  // =========================================================
+//  Conectar botones del menú lateral (Mi perfil, Notificaciones)
+//  SIN cambiar el HTML ni afectar otras funciones
+// =========================================================
+function initUserMenuSideButtons() {
+  const userMenu = document.getElementById("userMenu");
+  if (!userMenu) return;
+
+  // Cierra menú al tocar el fondo oscuro (overlay)
+  userMenu.addEventListener("click", (e) => {
+    if (e.target === userMenu) userMenu.style.display = "none";
+  });
+
+  // Buscar botón por texto (para no modificar tu HTML)
+  const menuButtons = Array.from(userMenu.querySelectorAll("button.menu-btn"));
+
+  const profileBtn = menuButtons.find(btn =>
+    btn.textContent.toLowerCase().includes("mi perfil")
+  );
+
+  const notifBtn = menuButtons.find(btn =>
+    btn.textContent.toLowerCase().includes("notificaciones")
+  );
+
+  // ---- MI PERFIL ----
+  if (profileBtn) {
+    profileBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      userMenu.style.display = "none";
+
+      if (typeof abrirPerfil === "function") {
+        abrirPerfil(); // ✅ esta función ya existe en tu archivo
+      } else {
+        console.warn("No existe la función abrirPerfil() en este archivo.");
+      }
+    });
+  }
+
+  // ---- NOTIFICACIONES (solo si tienes función) ----
+  if (notifBtn) {
+    notifBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      userMenu.style.display = "none";
+
+      // Si tienes alguna función existente para notificaciones, ponla aquí:
+      if (typeof abrirNotificaciones === "function") {
+        abrirNotificaciones();
+      } else if (typeof mostrarNotificaciones === "function") {
+        mostrarNotificaciones();
+      } else {
+        console.warn("No hay función de notificaciones definida (abrirNotificaciones/mostrarNotificaciones).");
+      }
+    });
+  }
+}
+
+
 // 🟢 Botón de contacto por WhatsApp
 const whatsappBtn = document.getElementById("whatsappBtn");
 
@@ -3583,6 +3642,10 @@ if (menuPhoto) {
 
   // Inicializar usuario al cargar página
   if (usuarioGuardado) mostrarUsuario(usuarioGuardado);
+
+  // Conectar acciones del menú lateral (Mi perfil / Notificaciones)
+initUserMenuSideButtons();
+
 
   if (userBtn && userMenu) {
     userBtn.addEventListener("click", () => {
