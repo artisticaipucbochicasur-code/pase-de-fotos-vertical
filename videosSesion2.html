@@ -1174,34 +1174,108 @@ body {
                     font-weight:bold;cursor:pointer;">
         </div>
 
-      <div id="userMenu" 
-     style="display:none;position:absolute;top:50px;right:0;background:white;
-            border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);
-            padding:10px;min-width:180px;text-align:left;z-index:999;">
-  <!-- FOTO GRANDE EN EL MENÚ DE USUARIO -->
-  <div id="userMenuPhoto" 
-       style="width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
-              background:#ddd;display:flex;align-items:center;justify-content:center;
-              font-size:26px;font-weight:bold;color:white;">
-  </div>
+      
+      <!-- 🔹 Fondo oscuro (WhatsApp/Facebook) -->
+      <div id="userOverlay"
+          style="display:none;position:fixed;top:0;left:0;width:100%;height:100vh;
+                background:rgba(0,0,0,0.45);z-index:2000;">
+      </div>
 
-  <p id="userName" style="margin:5px 0;font-weight:bold;"></p>
-  <p id="userEmail" style="margin:5px 0;font-size:14px;color:#555;"></p>
+      <!-- Panel lateral moderno 2025 - VERSIÓN FINAL MINIMALISTA -->
+      <div id="userMenu" style="
+          display:none;
+          position:fixed;
+          top:0; left:0; right:0; bottom:0;
+          background: rgba(15, 23, 42, 0.70);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          z-index:9999;
+          animation: fadeIn 0.25s ease-out;
+      ">
+        <div style="
+          position:absolute;
+          top:70px; right:0;
+          width:340px; max-width:90vw;
+          height:calc(100vh - 90px);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-radius: 20px 0 0 20px;
+          box-shadow: -10px 0 40px rgba(0,0,0,0.3);
+          padding:30px 24px;
+          overflow-y:auto;
+          animation: slideInRight 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+        ">
+          <!-- Botón cerrar (X) -->
+          <button onclick="document.getElementById('userMenu').style.display='none'"
+                  style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#64748b; padding:8px; border-radius:50%;">
+            <i class="fas fa-xmark"></i>
+          </button>
 
-  <!-- 🆕 Nuevo botón WhatsApp -->
-  <button id="whatsappBtn"
-          style="margin-top:8px;width:100%;padding:8px;border:none;
-                 background:#25D366;color:white;border-radius:6px;
-                 display:flex;align-items:center;justify-content:center;gap:6px;">
-    <i class="fab fa-whatsapp"></i> Soporte
-  </button>
+          <!-- Cerrar sesión arriba a la izquierda -->
+          <button id="logoutBtn" style="position:absolute; top:16px; left:16px; background:none !important; border:none !important; color:#ef4444; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+            <span>Cerrar sesión</span>
+          </button>
 
-  <button id="logoutBtn" 
-          style="margin-top:8px;width:100%;padding:8px;border:none;
-                 background:#e74c3c;color:white;border-radius:6px;">
-    🚪 Cerrar sesión
-  </button>
-</div>
+          <!-- Foto y datos -->
+          <div style="text-align:center; margin:60px 0 30px;">
+            <div id="userMenuPhoto" style="width:96px; height:96px; border-radius:50%; margin:0 auto 16px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; color:white; box-shadow:0 8px 25px rgba(102,126,234,0.4); overflow:hidden; border:4px solid rgba(255,255,255,0.3);">
+              <img src="ruta-de-tu-foto.jpg" style="width:100%; height:100%; object-fit:cover;" alt="Foto">
+            </div>
+            <p id="userName" style="margin:0; font-weight:700; font-size:20px; color:#1e293b;"></p>
+            <p id="userEmail" style="margin:6px 0 0; font-size:14px; color:#64748b;"></p>
+          </div>
+
+          <style>
+            #userMenu button.menu-btn,
+            #userMenu button:not(#logoutBtn):not([onclick*="display='none'"]) {
+              background: transparent !important;
+              border: none !important;
+              padding: 10px 0 !important;
+              margin-bottom: 16px !important;
+              display: flex !important;
+              align-items: center !important;
+              gap: 14px !important;
+              font-size: 15px !important;
+              font-weight: 500 !important;
+              color: #475569 !important;
+              width: 100% !important;
+            }
+            #userMenu button.menu-btn i {
+              width: 20px !important;
+              text-align: center !important;
+              font-size: 18px !important;
+              color: #64748b !important;
+            }
+          </style>
+
+          <!-- Botones -->
+          <button class="menu-btn">
+            <i class="fas fa-user-circle"></i>
+            <span>Mi perfil</span>
+          </button>
+
+          <button class="menu-btn">
+            <i class="fas fa-bell"></i>
+            <span>Notificaciones</span>
+          </button>
+
+          <button id="themeToggle" class="menu-btn">
+            <i class="fas fa-sun" id="themeIcon"></i>
+            <span id="themeText">Tema claro</span>
+          </button>
+
+          <button id="whatsappBtn" class="menu-btn">
+            <i class="fab fa-whatsapp"></i>
+            <span>Soporte</span>
+          </button>
+
+          <div style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px; padding-top:20px; border-top:1px solid #e2e8f0;">
+            v2.4.1 • © 2025 DECOM
+          </div>
+        </div>
+      </div></div>
 
       </div>
     </div>
@@ -3430,13 +3504,56 @@ if (menuPhoto) {
   // Inicializar usuario al cargar página
   if (usuarioGuardado) mostrarUsuario(usuarioGuardado);
 
+    const userOverlay = document.getElementById("userOverlay");
+
+  function ensureMenuOutsideHeaderIfEmbedded() {
+    const isEmbedded = document.body.classList.contains("embedded");
+    if (!isEmbedded) return;
+
+    // Si el menú vive dentro del header (que se oculta en embed), lo movemos al <body>
+    if (userMenu && userMenu.parentElement !== document.body) document.body.appendChild(userMenu);
+    if (userOverlay && userOverlay.parentElement !== document.body) document.body.appendChild(userOverlay);
+  }
+
+  function openUserMenu() {
+    ensureMenuOutsideHeaderIfEmbedded();
+    if (userOverlay) userOverlay.style.display = "block";
+    if (userMenu) userMenu.style.display = "block";
+
+    // Si está abierto el modal de perfil, lo cerramos (evita “no pasa nada”)
+    const modalPerfil = document.getElementById("modalPerfil");
+    if (modalPerfil) modalPerfil.style.display = "none";
+  }
+
+  function closeUserMenu() {
+    if (userMenu) userMenu.style.display = "none";
+    if (userOverlay) userOverlay.style.display = "none";
+  }
+
+  function toggleUserMenu() {
+    const open = userMenu && userMenu.style.display === "block";
+    if (open) closeUserMenu();
+    else openUserMenu();
+  }
+
   if (userBtn && userMenu) {
-    userBtn.addEventListener("click", () => {
-      userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
+    userBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleUserMenu();
     });
   }
 
-  if (logoutBtn) {
+  if (userOverlay) {
+    userOverlay.addEventListener("click", closeUserMenu);
+  }
+
+  // Permitir abrir el menú desde el FEED embebido
+  window.addEventListener("message", (event) => {
+    const data = event && event.data ? event.data : {};
+    if (data && data.type === "DECOM_OPEN_USER_MENU") openUserMenu();
+  });
+if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("usuario");
       localStorage.removeItem("autor");
