@@ -5963,7 +5963,16 @@ function decomPlayActiveNow() {
 }
 
 window.addEventListener("message", (e) => {
-  const t = e?.data?.type;
+  const t = e?.data?.type ?? e?.data;
+
+    // Abre menú lateral del usuario
+    if (t === "DECOM_OPEN_USER_MENU") {
+      const userMenu = document.getElementById("userMenu");
+      if (userMenu) userMenu.style.display = "block";
+      const modal = document.getElementById("modalPerfil");
+      if (modal) modal.style.display = "none";
+      return;
+    }
 
   // Perfil (lo que ya tenías)
   if (t === "DECOM_OPEN_PROFILE_MODAL") {
@@ -6056,18 +6065,7 @@ window.addEventListener("message", (e) => {
 
 
         
-    
-// ===== Permitir que el feed (iframe padre) abra/cierre este menú =====
-window.addEventListener("message", (event) => {
-  try {
-    if (!event || !event.data) return;
-    if (event.data.type === "DECOM_TOGGLE_USER_MENU") {
-      const userMenu = document.getElementById("userMenu");
-      if (userMenu) userMenu.style.display = userMenu.style.display === "block" ? "none" : "block";
-    }
-  } catch (e) {}
-});
-</script>
+    </script>
 </body>
 </html>
 
