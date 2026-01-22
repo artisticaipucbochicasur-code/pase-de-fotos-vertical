@@ -1139,6 +1139,30 @@ body {
   filter: none !important;
 }
 
+ /* ✅ Ocultar header interno de videos */
+  body.embedded #socialHeader{
+    display: none !important;
+  }
+
+  /* ✅ Evita dejar espacio por el header */
+  body.embedded{
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  /* ✅ En videos tienes un titulo fijo arriba (#video-title-fixed)
+     que normalmente arranca en top:60px
+     si se oculta el header, lo subimos para que quede bien */
+  body.embedded #video-title-fixed{
+    top: 10px !important;
+  }
+
+  /* ✅ También el overlay (por si lo usas) */
+  body.embedded .content-overlay{
+    top: 10px !important;
+  }
+
+        
 </style>
 </head>
 <body>
@@ -6559,15 +6583,20 @@ window.addEventListener("message", (event) => {
 })();
 
 
+  // ✅ Detecta si está embebido dentro de feed.html (iframe)
   (function () {
-    const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
-    if (isEmbed) document.documentElement.classList.add("embed");
+    const isEmbed = new URLSearchParams(window.location.search).get("embed") === "1";
+    if (isEmbed) {
+      window.addEventListener("DOMContentLoaded", () => {
+        document.body.classList.add("embedded");
+      });
+    }
   })();
-
         
     </script>
 </body>
 </html>
+
 
 
 
