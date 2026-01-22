@@ -550,6 +550,27 @@ async function subscribePush(reg) {
   }
 
 
+  function applyDeepLinkFromUrl(u) {
+  try {
+    const url = new URL(u, location.origin);
+    const tab = url.searchParams.get("tab");
+    if (tab === "videos" || tab === "fotos") show(tab);
+  } catch {}
+}
+
+// Si llega un mensaje desde el Service Worker al tocar una notificación
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data?.type === "DECOM_PUSH_OPEN" && event.data?.url) {
+      applyDeepLinkFromUrl(event.data.url);
+    }
+  });
+}
+
+// Si la app se abrió desde cero con ?tab=...
+applyDeepLinkFromUrl(location.href);
+
+
   </script>
 </body>
 </html>
