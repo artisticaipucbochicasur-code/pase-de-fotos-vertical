@@ -37,43 +37,39 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  // ✅ Si no viene url, mandamos al feed para evitar abrir páginas internas con header
+  // Si no viene url, mandamos al feed
   const raw = (event.notification.data && event.notification.data.url) || "/feed.html";
-  const targetUrl = new URL(raw, self.location.origin).href;
+  const targetUrl = new URL(raw, self.location.origin);
 
   event.waitUntil((async () => {
-    // ✅ Busca ventanas de tu PWA (aunque estén "uncontrolled")
     const allClients = await self.clients.matchAll({
       type: "window",
       includeUncontrolled: true,
     });
 
-    // 1) Si existe una ventana abierta, la enfocamos y le mandamos el deep-link
-    //    (NO abrimos otra ventana => evita doble header y reinicios)
+    // ✅ Si ya hay una ventana abierta: SOLO focus + postMessage
+    // ❌ NO navigate (esto es lo que te genera el "doble header")
     for (const client of allClients) {
       try {
         const clientUrl = new URL(client.url);
-        const tUrl = new URL(targetUrl);
 
-        if (clientUrl.origin === tUrl.origin) {
+        if (clientUrl.origin === targetUrl.origin) {
           await client.focus();
 
-          // ✅ En vez de abrir otra ventana, le decimos a la app a dónde ir
-          // (tu feed debe escuchar este mensaje para navegar/tab)
-          client.postMessage({ type: "DECOM_PUSH_OPEN", url: targetUrl });
+          // Le decimos al FEED qué abrir (tab/deeplink)
+          client.postMessage({
+            type: "DECOM_PUSH_OPEN",
+            url: targetUrl.href,
+          });
 
-          // ✅ Fallback: si el cliente no navega por postMessage, forzamos navigate
-          // (Esto NO crea una segunda instancia, solo navega la existente)
-          try {
-            await client.navigate(targetUrl);
-          } catch (e) {}
-
-          return;
+          return; // ✅ importante: no abrir otra ni navegar
         }
       } catch (e) {}
     }
 
-    // 2) Si no hay ninguna abierta, abrimos UNA sola
-    await self.clients.openWindow(targetUrl);
+    // ✅ Si NO hay ventana: abrimos UNA sola vez feed.html con "open"
+    const openParam = encodeURIComponent(targetUrl.href);
+    await self.clients.openWindow(`/feed.html?open=${openParam}`);
   })());
 });
+
