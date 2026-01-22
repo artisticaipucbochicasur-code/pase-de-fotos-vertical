@@ -462,13 +462,13 @@ async function registerSW() {
 async function subscribePush(reg) {
   if (!("PushManager" in window)) throw new Error("No soporta Push API");
 
-  // ✅ Si existe una suscripción vieja (creada con otra VAPID), la eliminamos
+  // ✅ Si hay suscripción vieja (VAPID vieja), la eliminamos
   const existing = await reg.pushManager.getSubscription();
   if (existing) {
     try { await existing.unsubscribe(); } catch (e) {}
   }
 
-  // ✅ Creamos una nueva con la VAPID actual
+  // ✅ Crear una nueva con la VAPID actual
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -476,6 +476,7 @@ async function subscribePush(reg) {
 
   return sub;
 }
+
 
 
   function getUserEmailForPush() {
