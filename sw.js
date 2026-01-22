@@ -16,7 +16,7 @@ self.addEventListener("push", (event) => {
 
   // ✅ Normalizamos a URL absoluta
   const rawUrl = (data.url || "/feed.html");
-  const targetUrl = new URL(rawUrl, self.location.origin).href;
+const targetUrl = new URL(rawUrl, self.registration.scope).href;
 
   const options = {
     body: data.body || "",
@@ -68,8 +68,11 @@ self.addEventListener("notificationclick", (event) => {
     }
 
     // ✅ Si NO hay ventana: abrimos UNA sola vez feed.html con "open"
-    const openParam = encodeURIComponent(targetUrl.href);
-    await self.clients.openWindow(`/feed.html?open=${openParam}`);
+  const openParam = encodeURIComponent(targetUrl.href);
+const openUrl = new URL(`feed.html?open=${openParam}`, self.registration.scope).href;
+await self.clients.openWindow(openUrl);
+
   })());
 });
+
 
