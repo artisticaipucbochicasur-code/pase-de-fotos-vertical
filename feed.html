@@ -354,48 +354,94 @@ function show(which){
 
 
 
-    // ===========================
-// ✅ DEEP LINK desde PUSH (evita doble header)
 // ===========================
-function handlePushOpenUrl(url) {
+// ✅ DEEP LINK desde PUSH -> abre TAB + ID exacto (anuncio/video)
+// ===========================
+
+// Envía mensaje al iframe cuando esté listo
+function postToFrameWhenReady(frameEl, msg) {
+  try {
+    // intento inmediato
+    frameEl.contentWindow.postMessage(msg, "*");
+    return;
+  } catch (e) {}
+
+  // fallback: cuando cargue
+  const once = () => {
+    try { frameEl.contentWindow.postMessage(msg, "*"); } catch (e) {}
+    frameEl.removeEventListener("load", once);
+  };
+  frameEl.addEventListener("load", once);
+}
+
+// Decide tab y manda el ID al iframe correcto
+function handlePushOpen(payload) {
+  const url = payload?.url || "";
+  const id  = payload?.id  || "";   // 👈 ID exacto (anuncio/video)
+  const type = (payload?.type || "").toString().toLowerCase();
+
+  let tab = "fotos";
+
   try {
     const u = new URL(url, location.origin);
     const path = (u.pathname || "").toLowerCase();
 
-    // Decide tab por la url que llegó en la notificación
-    if (path.includes("videossesion2.html") || path.includes("videos")) {
-      show("videos");
-    } else {
-      show("fotos");
-    }
-  } catch (e) {
-    // fallback
-    show("fotos");
+    // 1) Por URL
+    if (path.includes("videossesion2.html") || path.includes("videos")) tab = "videos";
+    if (path.includes("fotos.html") || path.includes("feed.html")) tab = "fotos";
+
+    // 2) Por type (si lo mandas en push)
+    if (type.includes("video")) tab = "videos";
+    if (type.includes("ad") || type.includes("anuncio") || type.includes("comment")) tab = "fotos";
+  } catch (e) {}
+
+  // Cambia tab
+  show(tab);
+
+  // Si no hay ID, solo abrimos tab
+  if (!id) return;
+
+  // Manda el ID al iframe correspondiente
+  if (tab === "videos") {
+    postToFrameWhenReady(frameVideos, { type: "DECOM_GOTO_VIDEO", id });
+  } else {
+    postToFrameWhenReady(frameFotos, { type: "DECOM_GOTO_ANUNCIO", id });
   }
 }
 
 // ✅ Recibe el postMessage que manda el Service Worker
 window.addEventListener("message", (event) => {
   const data = event.data || {};
-  if (data.type === "DECOM_PUSH_OPEN" && data.url) {
-    handlePushOpenUrl(data.url);
+  if (data.type === "DECOM_PUSH_OPEN") {
+    handlePushOpen({
+      url: data.url || "",
+      id: data.id || data.anuncioId || data.videoId || "",
+      type: data.pushType || data.type || ""
+    });
   }
 });
 
-// ✅ Si el SW abrió la app con ?open=...
+// ✅ Si el SW abrió la app con query params
 (function bootstrapOpenFromQuery() {
   const sp = new URLSearchParams(location.search);
 
+  // Nuevo formato: ?open=...&id=...&type=...
   const open = sp.get("open");
+  const id   = sp.get("id") || sp.get("anuncioId") || sp.get("videoId") || "";
+  const type = sp.get("type") || sp.get("pushType") || "";
+
   if (open) {
-    handlePushOpenUrl(decodeURIComponent(open));
+    handlePushOpen({
+      url: decodeURIComponent(open),
+      id,
+      type
+    });
     return;
   }
 
+  // fallback viejo: ?tab=videos o ?tab=fotos
   const tab = sp.get("tab");
-  if (tab === "videos" || tab === "fotos") {
-    show(tab);
-  }
+  if (tab === "videos" || tab === "fotos") show(tab);
 })();
 
 
