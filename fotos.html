@@ -4418,19 +4418,45 @@ async function toggleLikeAnuncioActual() {
 
 const refreshBtn = document.getElementById("refreshBtn");
 
-if (refreshBtn) {
-refreshBtn.addEventListener("click", () => {
-  // 🧹 Limpiar caché RAM
-  for (const key in fotoCache) delete fotoCache[key];
+async function hardRefresh() {
+  try {
+    // 1) 🧹 Tu caché en memoria
+    if (typeof fotoCache === "object" && fotoCache) {
+      for (const k of Object.keys(fotoCache)) delete fotoCache[k];
+    }
 
-  // 🧹 Limpiar caché local
-  localStorage.removeItem("fotoLocal");
+    // 2) 🧹 LocalStorage (solo lo que te interesa)
+    localStorage.removeItem("fotoLocal");
 
-  // 🔄 Ahora sí
-  location.reload();
-});
+    // 3) 🧹 Cache Storage (PWA / SW caches)
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
 
+    // 4) 🧹 Desregistrar Service Workers (para forzar HTML nuevo)
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+
+    // 5) 🔄 Recarga “fuerte” evitando cache HTTP
+    const url = new URL(window.location.href);
+    url.searchParams.set("_v", Date.now().toString()); // cache-buster real
+    window.location.replace(url.toString());
+  } catch (e) {
+    console.error("Hard refresh error:", e);
+    // fallback
+    window.location.reload(true);
+  }
 }
+
+if (refreshBtn) {
+  refreshBtn.addEventListener("click", () => {
+    hardRefresh();
+  });
+}
+
 
     
 
@@ -7598,4 +7624,5 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
