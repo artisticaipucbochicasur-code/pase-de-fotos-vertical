@@ -2206,6 +2206,35 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+    // ===========================
+// ✅ PUSH: ir a anuncio exacto por ID
+// ===========================
+function decomGoToAnuncioById(id) {
+  try {
+    if (!id || !Array.isArray(anunciosData) || anunciosData.length === 0) return;
+    const idx = anunciosData.findIndex(a => String(a.id) === String(id));
+    if (idx < 0) return;
+
+    if (swiperInstance && typeof swiperInstance.slideToLoop === "function") {
+      swiperInstance.slideToLoop(idx, 0, false);
+    } else if (swiperInstance && typeof swiperInstance.slideTo === "function") {
+      swiperInstance.slideTo(idx, 0, false);
+    }
+
+    // highlight bonito (opcional)
+    setTimeout(() => {
+      const slide = document.querySelector(`.swiper-slide[data-id="${CSS.escape(String(id))}"]`);
+      const titulo = slide?.querySelector(".content-overlay h3") || document.querySelector(".content-overlay h3");
+      if (titulo) {
+        titulo.classList.add("highlight-title-zoom");
+        titulo.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => titulo.classList.remove("highlight-title-zoom"), 2000);
+      }
+    }, 350);
+  } catch (e) {}
+}
+
+
 async function abrirPerfilPorCorreo(correo) {
   if (!correo || correo.trim() === "") {
     console.warn("abrirPerfilPorCorreo → correo vacío");
@@ -7411,6 +7440,13 @@ function agregarEfectoRipple(boton) {
 
   window.addEventListener("message", (e) => {
     const t = e?.data?.type;
+// ✅ desde FEED: ir a anuncio exacto
+if (t === "DECOM_GOTO_ANUNCIO") {
+  decomGoToAnuncioById(e?.data?.id);
+  return;
+}
+
+    
     // Abre menú lateral de usuario (para el botón del feed)
     if (t === "DECOM_OPEN_USER_MENU") {
       const menu = document.getElementById("userMenu");
@@ -7605,6 +7641,7 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
+
 
 
 
