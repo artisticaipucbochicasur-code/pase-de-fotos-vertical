@@ -5180,6 +5180,31 @@ deleteConfirm.onclick = async () => {
         let swiper = null;
         let players = {};
 
+        // ===========================
+// ✅ PUSH: ir a video exacto por ID
+// ===========================
+function decomGoToVideoById(id) {
+  try {
+    if (!id || !swiper || !swiper.slides) return;
+
+    const slides = Array.from(swiper.slides);
+    const idx = slides.findIndex(s => String(s.dataset.videoid) === String(id));
+    if (idx < 0) return;
+
+    if (typeof swiper.slideToLoop === "function") {
+      swiper.slideToLoop(idx, 0, false);
+    } else {
+      swiper.slideTo(idx, 0, false);
+    }
+
+    // opcional: asegurar play del activo
+    setTimeout(() => {
+      try { if (typeof decomPlayActiveNow === "function") decomPlayActiveNow(); } catch(e){}
+    }, 120);
+  } catch (e) {}
+}
+
+
         function getEmbedInfo(link) {
             const url = new URL(link, location.href);
             if (url.hostname.includes("youtube.com") || url.hostname.includes("youtu.be")) {
@@ -6306,6 +6331,13 @@ function decomPlayActiveNow() {
 window.addEventListener("message", (e) => {
   const t = e?.data?.type;
 
+    // ✅ desde FEED: ir a video exacto
+if (t === "DECOM_GOTO_VIDEO") {
+  decomGoToVideoById(e?.data?.id);
+  return;
+}
+
+
   // Perfil (lo que ya tenías)
   if (t === "DECOM_OPEN_PROFILE_MODAL") {
     if (typeof abrirPerfil === "function") abrirPerfil();
@@ -6601,6 +6633,7 @@ window.addEventListener("message", (event) => {
     </script>
 </body>
 </html>
+
 
 
 
