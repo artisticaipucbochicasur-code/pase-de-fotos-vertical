@@ -14,16 +14,19 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "DECOM";
 
-  // ✅ Siempre resolvemos URL absoluta
-  const targetUrl = new URL((data.url || "/"), self.location.origin).href;
+  // ✅ Normalizamos a URL absoluta
+  const rawUrl = (data.url || "/feed.html");
+  const targetUrl = new URL(rawUrl, self.location.origin).href;
 
   const options = {
     body: data.body || "",
     icon: data.icon || "/icon-192.png",
     badge: data.badge || "/icon-192.png",
+
+    // ✅ Guardamos destino para el click
     data: { url: targetUrl },
 
-    // (Opcional) evita que se apilen muchas notis iguales
+    // Opcional: agrupa notificaciones por tipo (si quieres)
     // tag: data.type || "decom",
     // renotify: true,
   };
@@ -34,35 +37,43 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url = (event.notification.data && event.notification.data.url) || (new URL("/", self.location.origin)).href;
+  // ✅ Si no viene url, mandamos al feed para evitar abrir páginas internas con header
+  const raw = (event.notification.data && event.notification.data.url) || "/feed.html";
+  const targetUrl = new URL(raw, self.location.origin).href;
 
   event.waitUntil((async () => {
-    // ✅ Busca si ya hay una ventana abierta de tu PWA
+    // ✅ Busca ventanas de tu PWA (aunque estén "uncontrolled")
     const allClients = await self.clients.matchAll({
       type: "window",
       includeUncontrolled: true,
     });
 
-    // 1) Si existe una ventana, la enfocamos y navegamos ahí (NO abre otra)
+    // 1) Si existe una ventana abierta, la enfocamos y le mandamos el deep-link
+    //    (NO abrimos otra ventana => evita doble header y reinicios)
     for (const client of allClients) {
-      // Nos aseguramos que sea del mismo origen
       try {
         const clientUrl = new URL(client.url);
-        const targetUrl = new URL(url);
+        const tUrl = new URL(targetUrl);
 
-        if (clientUrl.origin === targetUrl.origin) {
+        if (clientUrl.origin === tUrl.origin) {
           await client.focus();
 
-          // Si no está en la misma URL, navegamos sin abrir nueva instancia
-          if (client.url !== url) {
-            await client.navigate(url);
-          }
+          // ✅ En vez de abrir otra ventana, le decimos a la app a dónde ir
+          // (tu feed debe escuchar este mensaje para navegar/tab)
+          client.postMessage({ type: "DECOM_PUSH_OPEN", url: targetUrl });
+
+          // ✅ Fallback: si el cliente no navega por postMessage, forzamos navigate
+          // (Esto NO crea una segunda instancia, solo navega la existente)
+          try {
+            await client.navigate(targetUrl);
+          } catch (e) {}
+
           return;
         }
       } catch (e) {}
     }
 
-    // 2) Si no hay ninguna abierta, abrimos UNA
-    await self.clients.openWindow(url);
+    // 2) Si no hay ninguna abierta, abrimos UNA sola
+    await self.clients.openWindow(targetUrl);
   })());
 });
