@@ -436,12 +436,21 @@ frameVideos.addEventListener('load', () => {
     return outputArray;
   }
 
-  async function registerSW() {
-    if (!("serviceWorker" in navigator)) throw new Error("No soporta Service Worker");
-    // OJO: en GitHub Pages, usar ruta relativa funciona si sw.js está al lado de feed.html
-    const reg = await navigator.serviceWorker.register("./sw.js");
-    return reg;
-  }
+async function registerSW() {
+  if (!("serviceWorker" in navigator)) throw new Error("No soporta Service Worker");
+
+  // 1) Registrar (misma ruta que ya usas)
+  const reg = await navigator.serviceWorker.register("./sw.js");
+
+  // 2) Esperar a que quede listo y controlando la página
+  await navigator.serviceWorker.ready;
+
+  // 3) Forzar update suave (no rompe nada)
+  try { await reg.update(); } catch(e) {}
+
+  return reg;
+}
+
 
   async function askPermission() {
     if (!("Notification" in window)) throw new Error("No soporta Notification API");
