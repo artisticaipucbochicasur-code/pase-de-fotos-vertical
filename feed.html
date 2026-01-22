@@ -354,6 +354,53 @@ function show(which){
 
 
 
+    // ===========================
+// ✅ DEEP LINK desde PUSH (evita doble header)
+// ===========================
+function handlePushOpenUrl(url) {
+  try {
+    const u = new URL(url, location.origin);
+    const path = (u.pathname || "").toLowerCase();
+
+    // Decide tab por la url que llegó en la notificación
+    if (path.includes("videossesion2.html") || path.includes("videos")) {
+      show("videos");
+    } else {
+      show("fotos");
+    }
+  } catch (e) {
+    // fallback
+    show("fotos");
+  }
+}
+
+// ✅ Recibe el postMessage que manda el Service Worker
+window.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type === "DECOM_PUSH_OPEN" && data.url) {
+    handlePushOpenUrl(data.url);
+  }
+});
+
+// ✅ Si el SW abrió la app con ?open=...
+(function bootstrapOpenFromQuery() {
+  const sp = new URLSearchParams(location.search);
+
+  const open = sp.get("open");
+  if (open) {
+    handlePushOpenUrl(decodeURIComponent(open));
+    return;
+  }
+
+  const tab = sp.get("tab");
+  if (tab === "videos" || tab === "fotos") {
+    show(tab);
+  }
+})();
+
+
+
+
     // ===== Buttons: publicar/buscar delegan al iframe =====
     document.getElementById('feedPublishBtnFotos').addEventListener('click', (e) => {
       e.preventDefault();
