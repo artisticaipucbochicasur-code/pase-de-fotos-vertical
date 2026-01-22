@@ -440,7 +440,12 @@ async function registerSW() {
   if (!("serviceWorker" in navigator)) throw new Error("No soporta Service Worker");
 
   // 1) Registrar (misma ruta que ya usas)
-  const reg = await navigator.serviceWorker.register("./sw.js");
+  let reg;
+try {
+  reg = await navigator.serviceWorker.register("/sw.js");
+} catch (e) {
+  reg = await navigator.serviceWorker.register("./sw.js");
+}
 
   // 2) Esperar a que quede listo y controlando la página
   await navigator.serviceWorker.ready;
