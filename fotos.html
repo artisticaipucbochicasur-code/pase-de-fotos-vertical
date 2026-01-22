@@ -1141,9 +1141,21 @@ body {
 
 
 
+ /* ✅ Si está embebido, ocultamos el header interno */
+  body.embedded #socialHeader{
+    display: none !important;
+  }
 
-      /* Si fotos.html está dentro de un iframe (feed), ocultamos SOLO el header visualmente */
-  body.embedded #socialHeader { display: none !important; }
+  /* ✅ Si tu contenido baja por el header, eliminamos el espacio */
+  body.embedded{
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  /* ✅ Ajuste del overlay que tienes en top:60px (para que no quede bajito) */
+  body.embedded .content-overlay{
+    top: 10px !important;
+  }
     
   </style>
 </head>
@@ -7581,14 +7593,21 @@ function agregarEfectoRipple(boton) {
     
 
 
-      (function () {
-    const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
-    if (isEmbed) document.documentElement.classList.add("embed");
-  })(); 
+   // ✅ Detecta si está embebido dentro de feed.html (iframe)
+  (function () {
+    const isEmbed = new URLSearchParams(window.location.search).get("embed") === "1";
+    if (isEmbed) docuif (isEmbed) {
+  window.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("embedded");
+  });
+}
+ment.body.classList.add("embedded");
+  })();
     
   </script>
 </body>
 </html>
+
 
 
 
