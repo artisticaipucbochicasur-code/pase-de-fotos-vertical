@@ -14,20 +14,17 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "DECOM";
 
-  // ✅ Normalizamos a URL dentro del scope del repo (GitHub Pages project)
-  const rawUrl = (data.url || "feed.html");
-  const targetUrl = new URL(rawUrl, self.registration.scope).href;
-
-  // ✅ NUEVO: id para abrir el anuncio/video exacto
-  const openId = (data.id ?? null);
+  // ✅ Normalizamos a URL absoluta
+  const rawUrl = (data.url || "/feed.html");
+const targetUrl = new URL(rawUrl, self.registration.scope).href;
 
   const options = {
     body: data.body || "",
     icon: data.icon || "/icon-192.png",
     badge: data.badge || "/icon-192.png",
 
-    // ✅ Guardamos destino + id para el click
-    data: { url: targetUrl, id: openId },
+    // ✅ Guardamos destino para el click
+    data: { url: targetUrl },
 
     // Opcional: agrupa notificaciones por tipo (si quieres)
     // tag: data.type || "decom",
@@ -40,12 +37,9 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  // ✅ Lee url + id desde la notificación
-  const raw = (event.notification.data && event.notification.data.url) || "feed.html";
-  const openId = (event.notification.data && event.notification.data.id) || "";
-
-  // ✅ Resolver dentro del scope del repo (evita 404 de GitHub Pages)
-  const targetUrl = new URL(raw, self.registration.scope);
+  // Si no viene url, mandamos al feed
+  const raw = (event.notification.data && event.notification.data.url) || "/feed.html";
+  const targetUrl = new URL(raw, self.location.origin);
 
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({
@@ -53,7 +47,8 @@ self.addEventListener("notificationclick", (event) => {
       includeUncontrolled: true,
     });
 
-    // ✅ Si ya hay una ventana abierta: SOLO focus + postMessage (sin navigate)
+    // ✅ Si ya hay una ventana abierta: SOLO focus + postMessage
+    // ❌ NO navigate (esto es lo que te genera el "doble header")
     for (const client of allClients) {
       try {
         const clientUrl = new URL(client.url);
@@ -61,23 +56,22 @@ self.addEventListener("notificationclick", (event) => {
         if (clientUrl.origin === targetUrl.origin) {
           await client.focus();
 
-          // ✅ Mandamos url + id (para que el feed salte al item exacto)
+          // Le decimos al FEED qué abrir (tab/deeplink)
           client.postMessage({
             type: "DECOM_PUSH_OPEN",
             url: targetUrl.href,
-            id: openId || ""
           });
 
-          return; // ✅ no abrir otra ni navegar
+          return; // ✅ importante: no abrir otra ni navegar
         }
       } catch (e) {}
     }
 
-    // ✅ Si NO hay ventana: abrir UNA sola vez feed.html con ?open=...&id=...
-    const openParam = encodeURIComponent(targetUrl.href);
-    const idParam = encodeURIComponent(openId || "");
-    const openUrl = new URL(`feed.html?open=${openParam}&id=${idParam}`, self.registration.scope).href;
+    // ✅ Si NO hay ventana: abrimos UNA sola vez feed.html con "open"
+  const openParam = encodeURIComponent(targetUrl.href);
+const openUrl = new URL(`feed.html?open=${openParam}`, self.registration.scope).href;
+await self.clients.openWindow(openUrl);
 
-    await self.clients.openWindow(openUrl);
   })());
 });
+
