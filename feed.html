@@ -459,17 +459,24 @@ async function registerSW() {
     return perm;
   }
 
-  async function subscribePush(reg) {
-    if (!("PushManager" in window)) throw new Error("No soporta Push API");
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) return existing;
+async function subscribePush(reg) {
+  if (!("PushManager" in window)) throw new Error("No soporta Push API");
 
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
-    return sub;
+  // ✅ Si existe una suscripción vieja (creada con otra VAPID), la eliminamos
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) {
+    try { await existing.unsubscribe(); } catch (e) {}
   }
+
+  // ✅ Creamos una nueva con la VAPID actual
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+  });
+
+  return sub;
+}
+
 
   function getUserEmailForPush() {
     // En tu app ya guardas cosas en localStorage como "correo" (lo vi en tu lógica)
