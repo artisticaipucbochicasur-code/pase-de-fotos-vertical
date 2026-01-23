@@ -5086,6 +5086,41 @@ localStorage.setItem("nuevosAnunciosCount", contadorAcumulado);
 setInterval(actualizarContador, INTERVALO_VERIFICACION);
 
 
+
+// ✅ Polling: detectar cambios por edición de anuncios (timestamp global)
+let ultimaActualizacionAnunciosAnterior = "";
+
+// ✅ Saber si hubo cambios (edición/actualización) y refrescar en segundo plano
+async function verificarActualizacionAnuncios() {
+  try {
+    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionAnuncios`);
+    const json = await resp.json();
+    const ts = (json.timestamp || "").toString();
+
+    // Primera vez: solo guardar
+    if (!ultimaActualizacionAnunciosAnterior) {
+      ultimaActualizacionAnunciosAnterior = ts;
+      return;
+    }
+
+    // Si cambió: recargar anuncios manteniendo el slide actual (tu cargarImagenes ya lo hace)
+    if (ts && ts !== ultimaActualizacionAnunciosAnterior) {
+      console.log("📝 Cambio detectado en anuncios (edición), recargando en segundo plano...");
+      ultimaActualizacionAnunciosAnterior = ts;
+
+      // Recarga lista + overlay sin cerrar app
+      await cargarImagenes(true);
+    }
+  } catch (e) {
+    console.error("Error verificando ultimaActualizacionAnuncios:", e);
+  }
+}
+
+// ⏱️ Usa el mismo intervalo que ya manejas (5s)
+setInterval(verificarActualizacionAnuncios, INTERVALO_VERIFICACION);
+
+
+
     async function verificarComentarios() {
       try {
         const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
