@@ -4294,59 +4294,10 @@ savedSearchInputEl.addEventListener("blur", () => {
 });
 
 
-// ================================
-// 🔄 Polling anuncios (timestamp)
-// ================================
-let lastAnunciosTimestamp = "";
-let pollingAnunciosStarted = false;
 
 
-async function checkAnunciosUpdates() {
-  try {
-    const formData = new FormData();
-    formData.append("accion", "ultimaActualizacionAnuncios");
 
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: formData });
-    const json = await res.json();
-
-    const ts = json.timestamp || "";
-    if (!ts) return;
-
-    // Primera vez solo guarda y ya
-    if (!lastAnunciosTimestamp) {
-      lastAnunciosTimestamp = ts;
-      return;
-    }
-
-    // Si cambió, recargar anuncios
-    if (ts !== lastAnunciosTimestamp) {
-      lastAnunciosTimestamp = ts;
-
-      // Mantener el anuncio actual visible (si tienes índice global)
-      const idx = (swiperInstance && typeof swiperInstance.realIndex === "number")
-  ? swiperInstance.realIndex
-  : 0;
-
-      if (typeof cargarAnuncios === "function") {
-        await cargarAnuncios();
-      }
-
-      if (typeof updateContentOverlay === "function") {
-        updateContentOverlay(idx);
-      }
-    }
-  } catch (e) {
-    console.error("Polling anuncios error:", e);
-  }
-}
-
-    function startAnunciosPolling() {
-  if (pollingAnunciosStarted) return;
-  pollingAnunciosStarted = true;
-  setInterval(checkAnunciosUpdates, 4000);
-}
-
-startAnunciosPolling();
+    
     
 
     let swiperInstance = null;
