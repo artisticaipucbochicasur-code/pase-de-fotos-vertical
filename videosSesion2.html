@@ -1803,9 +1803,16 @@ body {
 
     
         <!-- BOTONES flotantes -->
-   <div class="floating-buttons">
-  <button id="btn-delete" class="fab danger"><i class="fas fa-trash"></i></button>
+ <div class="floating-buttons">
+  <button id="btn-delete" class="fab danger">
+    <i class="fas fa-trash-alt"></i>
+  </button>
+
+  <button id="btn-edit-video" class="fab">
+    <i class="fas fa-pen"></i>
+  </button>
 </div>
+
 
   
 
@@ -2147,6 +2154,59 @@ setTimeout(() => {
 });
 
 
+// =============================
+// ✏️ MODO EDICIÓN DE VIDEO
+// =============================
+let editingVideoId = null;
+
+// Botón editar (FAB)
+const editVideoBtn = document.getElementById("btn-edit-video");
+
+// Mostrar/ocultar botones según dueño
+function updateVideoOwnerButtons() {
+  const deleteBtn = document.getElementById("btn-delete");
+  const editBtn = document.getElementById("btn-edit-video");
+  if (!deleteBtn || !editBtn) return;
+
+  const activeSlide = swiper?.slides?.[swiper.activeIndex];
+  const correoDelSlide = activeSlide?.dataset?.correo || "";
+
+  const esMio = normalizeText(correoDelSlide) === normalizeText(currentAuthorEmail);
+
+  deleteBtn.style.display = esMio ? "flex" : "none";
+  editBtn.style.display   = esMio ? "flex" : "none";
+}
+
+// Abrir modal y precargar campos para editar
+function openEditVideoFromActive() {
+  const activeSlide = swiper?.slides?.[swiper.activeIndex];
+  if (!activeSlide) return;
+
+  editingVideoId = activeSlide.dataset.videoid || "";
+
+  // Abrir modal
+  publishModal.style.display = "flex";
+
+  // Forzar pestaña Video
+  tabVideo.click();
+
+  // Precargar campos
+  document.getElementById("videoTitle").value = activeSlide.dataset.titulo || "";
+  document.getElementById("videoDescripcion").value = activeSlide.dataset.descripcion || "";
+
+  // No obligar archivo al editar
+  document.getElementById("fileInput").value = "";
+
+  // Cambiar texto del botón de subir
+  const btn = document.getElementById("btnUploadVideo");
+  if (btn) btn.textContent = "💾 Guardar cambios";
+}
+
+if (editVideoBtn) {
+  editVideoBtn.addEventListener("click", openEditVideoFromActive);
+}
+
+
 
 // =============================
 // 🎬 CONTROL DE SECCIONES EN MODAL PUBLICAR
@@ -2184,6 +2244,11 @@ tabVideo.addEventListener("click", () => {
 
 // 📤 Subida del video (mantiene compatibilidad con tu sistema)
 btnUploadVideo.addEventListener("click", async () => {
+    // ✅ Si estamos editando, NO subimos archivo: actualizamos título/descr
+  if (editingVideoId) {
+    return await guardarEdicionVideo();
+  }
+
   const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
   const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
@@ -2355,6 +2420,54 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.setRequestHeader("Content-Type", uploadFile.type);
   xhr.send(uploadFile);
 });
+
+
+async function guardarEdicionVideo() {
+  try {
+    const titulo = document.getElementById("videoTitle").value.trim();
+    const descripcion = document.getElementById("videoDescripcion").value.trim();
+
+    const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
+    const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
+
+    if (!editingVideoId) return mostrarAviso("No hay video en edición.");
+    if (!titulo) return mostrarAviso("Escribe un título.");
+
+    const formData = new FormData();
+    formData.append("accion", "editarVideo");     // 👈 backend nuevo
+    formData.append("tipo", "videos");           // 👈 para tu hoja Videos
+    formData.append("idVideo", editingVideoId);
+    formData.append("titulo", titulo);
+    formData.append("descripcion", descripcion);
+    formData.append("autor", autor);
+    formData.append("correo", correo);
+
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: formData });
+    const json = await res.json();
+
+    if (json.status && json.status.toLowerCase().includes("success")) {
+      mostrarAviso("✅ Video actualizado");
+
+      // salir modo edición
+      editingVideoId = null;
+
+      // restaurar texto botón
+      const btn = document.getElementById("btnUploadVideo");
+      if (btn) btn.textContent = "📤 Subir video";
+
+      // cerrar modal
+      publishModal.style.display = "none";
+
+      // fuerza verificación (sin esperar al siguiente intervalo)
+      setTimeout(verificarActualizacionVideos, 0);
+    } else {
+      mostrarAviso(json.message || "No se pudo actualizar el video.");
+    }
+  } catch (e) {
+    console.error("guardarEdicionVideo error:", e);
+    mostrarAviso("❌ Error guardando edición.");
+  }
+}
 
 
 
@@ -4302,6 +4415,50 @@ function actualizarContadorComentariosUI(videoId, opts = {}) {
   }
 }
 
+
+
+// ✅ Polling: detectar cambios por edición de videos (timestamp global)
+let ultimaActualizacionVideosAnterior = "";
+
+// Inicializa (evita falso positivo)
+async function initSyncVideos() {
+  try {
+    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionVideos&_=${Date.now()}`);
+    const json = await resp.json();
+    ultimaActualizacionVideosAnterior = (json.timestamp || "").toString();
+  } catch (e) {
+    console.warn("No se pudo inicializar sync videos:", e);
+  }
+}
+document.addEventListener("DOMContentLoaded", initSyncVideos);
+
+// Verifica cambios y refresca en segundo plano
+async function verificarActualizacionVideos() {
+  try {
+    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionVideos&_=${Date.now()}`);
+    const json = await resp.json();
+    const ts = (json.timestamp || "").toString();
+
+    if (!ultimaActualizacionVideosAnterior) {
+      ultimaActualizacionVideosAnterior = ts;
+      return;
+    }
+
+    if (ts && ts !== ultimaActualizacionVideosAnterior) {
+      console.log("🎬 Cambio detectado en videos, refrescando en segundo plano...");
+      ultimaActualizacionVideosAnterior = ts;
+
+      // refresca sin destruir todo
+      await cargarVideos(true);
+    }
+  } catch (e) {
+    console.error("Error verificando ultimaActualizacionVideos:", e);
+  }
+}
+
+
+
+
 function precargarComentarios(videoId) {
   if (!videoId) return;
   // No bloquear UI: si está en caché, cargarComentarios retorna inmediato.
@@ -4922,11 +5079,20 @@ function renderNotifications() {
           console.log("🔹 Loop desactivado temporalmente (pocos slides)");
         }
 
-        const nuevoSlide = createSlide(notif.title, notif.link, notif.desc, notif.id);
-        swiper.appendSlide(nuevoSlide);
-        swiper.update(); // Actualizar estructura
-        swiper.loopFix(); // Reparar clones y loop mode
-        console.log("✅ Nuevo slide añadido, loopFix aplicado, ID:", notif.id);
+      const nuevoSlide = createSlide(
+  notif.title,
+  notif.link,
+  notif.desc,
+  notif.id,
+  notif.autor || "",
+  notif.correo || ""
+);
+
+swiper.appendSlide(nuevoSlide);
+swiper.update(); // Actualizar estructura
+swiper.loopFix(); // Reparar clones y loop mode
+console.log("✅ Nuevo slide añadido, loopFix aplicado, ID:", notif.id);
+
 
         // Reactivar loop si se desactivó
         if (swiper.slides.length < 3 && originalLoop) {
@@ -5210,13 +5376,16 @@ deleteConfirm.onclick = async () => {
             return { type: "other", embedSrc: link, poster: "" };
         }
 
-    function createSlide(titulo, link, descripcion, id) {
+ function createSlide(titulo, link, descripcion, id, autor = "", correo = "") { 
     const { embedSrc, poster } = getEmbedInfo(link);
     const slide = document.createElement("div");
     slide.className = "swiper-slide";
+
     slide.dataset.title = titulo || "Video";
     slide.dataset.descripcion = descripcion || "";
-    slide.dataset.videoid = id || ""; // ← AGREGA EL ID ÚNICO AQUÍ
+    slide.dataset.videoid = id || "";          // ID único
+    slide.dataset.autor = autor || "";         // ✅ NUEVO
+    slide.dataset.correo = correo || "";       // ✅ NUEVO
 
     const card = document.createElement("div");
     card.className = "player-card";
@@ -5240,6 +5409,7 @@ deleteConfirm.onclick = async () => {
 
     return slide;
 }
+
 
 
 
@@ -5695,20 +5865,24 @@ async function cargarVideos(checkNew = false) {
     }
     if (!checkNew) wrapper.innerHTML = "";
 
-    let newVideos = [];
-    if (Array.isArray(data.data)) {
-      data.data.forEach((row) => {
-        const titulo = row[0];
-        const link = row[1];
-        const descripcion = row[4] || "";
-        const id = row[5];
-        if (titulo && link && id) { // 🔥 FIX8: Validar datos para evitar videos inválidos
-          newVideos.push({ title: titulo, link, desc: descripcion, id });
-        }
-      });
-    } else {
-      console.warn("⚠️ Advertencia: No se recibieron datos válidos de videos");
+let newVideos = [];
+if (Array.isArray(data.data)) {
+  data.data.forEach((row) => {
+    const titulo = row[0];
+    const link = row[1];
+    const autor = row[2] || "";     // ✅ NUEVO
+    const correo = row[3] || "";    // ✅ NUEVO
+    const descripcion = row[4] || "";
+    const id = row[5];
+
+    if (titulo && link && id) { // 🔥 FIX8: Validar datos para evitar videos inválidos
+      newVideos.push({ title: titulo, link, desc: descripcion, id, autor, correo });
     }
+  });
+} else {
+  console.warn("⚠️ Advertencia: No se recibieron datos válidos de videos");
+}
+
 
     // ⚡ Precargamos primero los comentarios del PRIMER video
     if (!checkNew && newVideos.length > 0) {
@@ -5731,34 +5905,59 @@ async function cargarVideos(checkNew = false) {
     }
 
     // 🔥 FIX8: Eliminación silenciosa sin afectar slide activo
-    if (checkNew) {
-      const linksActivos = newVideos.map(v => v.link);
-      const activeSlide = document.querySelector('.swiper-slide-active');
-      const activeLink = activeSlide ? activeSlide.querySelector('.player-card')?.dataset.embed : null;
-      
-      Array.from(wrapper.children).forEach(slide => {
-        const card = slide.querySelector(".player-card");
-        if (card && !linksActivos.includes(card.dataset.embed)) {
-          if (slide === activeSlide) {
-            // 🔥 FIX8: Si el slide eliminado es el activo, pasar al siguiente slide
-            if (swiper) {
-              swiper.removeSlide(swiper.activeIndex);
-              console.log("✅ Slide activo eliminado, pasando al siguiente");
-              swiper.slideNext(0); // Transición inmediata al siguiente slide
-            }
-          } else {
-            // 🔥 FIX8: Eliminar solo slides no activos, sin actualizar Swiper inmediatamente
-            wrapper.removeChild(slide);
-            console.log("✅ Slide no activo eliminado silenciosamente");
-          }
+if (checkNew) {
+  const linksActivos = newVideos.map(v => v.link);
+  const activeSlide = document.querySelector('.swiper-slide-active');
+
+  Array.from(wrapper.children).forEach(slide => {
+    const card = slide.querySelector(".player-card");
+    if (card && !linksActivos.includes(card.dataset.embed)) {
+      if (slide === activeSlide) {
+        // 🔥 FIX8: Si el slide eliminado es el activo, pasar al siguiente slide
+        if (swiper) {
+          swiper.removeSlide(swiper.activeIndex);
+          console.log("✅ Slide activo eliminado, pasando al siguiente");
+          swiper.slideNext(0); // Transición inmediata al siguiente slide
         }
-      });
-      // 🔥 FIX8: Actualizar Swiper solo después de todas las eliminaciones
-      if (swiper) {
-        swiper.update();
-        console.log("✅ Swiper actualizado tras eliminación");
+      } else {
+        // 🔥 FIX8: Eliminar solo slides no activos, sin actualizar Swiper inmediatamente
+        wrapper.removeChild(slide);
+        console.log("✅ Slide no activo eliminado silenciosamente");
       }
     }
+  });
+
+  // ✅ NUEVO: refrescar info de slides existentes (EDICIONES) sin reconstruir slides
+  // Mapa por ID (más estable que link)
+  const mapById = new Map(newVideos.map(v => [String(v.id), v]));
+
+  Array.from(wrapper.children).forEach(slide => {
+    const id = String(slide.dataset.videoid || "");
+    const v = mapById.get(id);
+    if (!v) return;
+
+    // Actualiza dataset (para overlay, permisos, botón editar, etc.)
+    slide.dataset.title = v.title || "Video";
+    slide.dataset.descripcion = v.desc || "";
+    slide.dataset.autor = v.autor || "";
+    slide.dataset.correo = v.correo || "";
+
+    // Si tu UI usa updateFixedTitle() para el título superior, la llamamos después
+  });
+
+  // 🔥 FIX8: Actualizar Swiper solo después de todas las eliminaciones
+  if (swiper) {
+    swiper.update();
+    console.log("✅ Swiper actualizado tras eliminación");
+  }
+
+  // ✅ Si hay título fijo/overlay, refrescarlo (no rompe nada si existe)
+  if (typeof updateFixedTitle === "function") updateFixedTitle();
+
+  // ✅ Si tienes lógica de mostrar/ocultar botones por dueño, refresca aquí si existe
+  if (typeof updateVideoOwnerButtons === "function") updateVideoOwnerButtons();
+}
+
 
     // 🛎️ Notificaciones de nuevos videos
     if (checkNew && lastVideos.length > 0) { 
@@ -6168,9 +6367,8 @@ setTimeout(() => {
 }
 
 // === AUTO REFRESCO EN SEGUNDO PLANO ===
-setInterval(() => {
-  cargarVideos(true); // solo refresca notificaciones, no toca el sliderF
-}, 3000);
+setInterval(verificarActualizacionVideos, 5000);
+
 
         cargarVideos();
 
@@ -6601,7 +6799,6 @@ window.addEventListener("message", (event) => {
     </script>
 </body>
 </html>
-
 
 
 
