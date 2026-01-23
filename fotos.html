@@ -128,6 +128,37 @@
   visibility: visible;
 }
 
+
+/* Botón de editar anuncio */
+.edit-announcement-btn {
+  width: 40px;
+  height: 40px;
+  position: fixed;
+  bottom: 140px; /* arriba del delete */
+  right: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: none;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 22px;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.edit-announcement-btn.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+
+
 /* Asegura que el overlay de búsqueda quede arriba y pegado al top */
 #searchOverlay {
   position: fixed;
@@ -1744,6 +1775,12 @@ body {
   <!-- Botón fijo para eliminar anuncio -->
 <button id="deleteAnnouncementBtn" class="delete-announcement-btn">
   <i class="fas fa-trash"></i>
+</button>
+
+
+<!-- Botón fijo para EDITAR anuncio -->
+<button id="editAnnouncementBtn" class="edit-announcement-btn">
+  <i class="fas fa-pen"></i>
 </button>
 
 
@@ -3496,6 +3533,13 @@ closePublishModal.addEventListener("click", () => {
     document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
     imagesBtn.classList.add('selected');
   }
+
+  editingAnuncioId = null;
+editingAnuncioDeleteUrl = null;
+const h2 = document.querySelector("#publishModal h2");
+if (h2) h2.textContent = "Publicar Contenido";
+btnPublicar.textContent = "📢 Publicar anuncio";
+
 });
 
 // 🔹 Cerrar modal
@@ -3581,19 +3625,38 @@ btnPublicar.addEventListener("click", async () => {
   const autor = localStorage.getItem("autor") || window.currentAuthorName || "";
   const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "";
 
-  if (!titulo || !descripcion || !base64Imagen || !autor || !correo) {
-    mensaje.textContent = "⚠️ Por favor completa todos los campos o inicia sesión.";
+  const isEditing = !!editingAnuncioId;   // ✅ AQUÍ (antes de validaciones)
+
+  if (!titulo || !descripcion || !autor || !correo) {
+    mensaje.textContent = "⚠️ Por favor completa título/descripcion o inicia sesión.";
+    mensaje.style.color = "red";
+    return;
+  }
+
+  // En creación SÍ exiges imagen; en edición NO
+  if (!isEditing && !base64Imagen) {
+    mensaje.textContent = "⚠️ Selecciona una imagen para el anuncio.";
     mensaje.style.color = "red";
     return;
   }
 
   btnPublicar.disabled = true;
-  mensaje.textContent = "⏳ Subiendo anuncio...";
+  mensaje.textContent = isEditing ? "⏳ Guardando cambios..." : "⏳ Subiendo anuncio...";
   mensaje.style.color = "#0077cc";
 
   const formData = new FormData();
-  formData.append("accion", "guardar");
-  formData.append("tipo", "anuncio");
+
+
+
+formData.append("accion", isEditing ? "editarAnuncio" : "guardar");
+formData.append("tipo", "anuncio");
+
+// Si está editando, mandamos el ID (y deleteurl por si cambia imagen)
+if (isEditing) {
+  formData.append("idAnuncio", editingAnuncioId);
+  formData.append("deleteurl", editingAnuncioDeleteUrl || "");
+}
+
   formData.append("titulo", titulo);
   formData.append("descripcion", descripcion);
   formData.append("imagen", base64Imagen);
@@ -3637,6 +3700,13 @@ btnPublicar.addEventListener("click", async () => {
     previewImg.src = "";
     previewImg.style.display = "none";
     base64Imagen = "";
+
+    editingAnuncioId = null;
+editingAnuncioDeleteUrl = null;
+const h2 = document.querySelector("#publishModal h2");
+if (h2) h2.textContent = "Publicar Contenido";
+btnPublicar.textContent = "📢 Publicar anuncio";
+
 
     // 🔹 Ocultar barra y cerrar modal
     progressBar.style.width = "0%";
@@ -5268,6 +5338,49 @@ function fallbackName(nombre="") {
 
 
 
+// =============================
+// ✏️ MODO EDICIÓN DE ANUNCIO
+// =============================
+let editingAnuncioId = null;
+let editingAnuncioDeleteUrl = null;
+
+function openEditAnuncio(anuncio) {
+  // activar modo edición
+  editingAnuncioId = anuncio.id;
+  editingAnuncioDeleteUrl = anuncio.deleteurl;
+
+  // Abrir modal
+  publishModal.style.display = "flex";
+
+  // Forzar pestaña Anuncio
+  tabAnuncio.click();
+
+  // Rellenar campos
+  document.getElementById("titulo").value = anuncio.titulo || "";
+  document.getElementById("descripcion").value = anuncio.descripcion || "";
+
+  // Mostrar preview con la imagen actual (sin convertir a base64)
+  previewImg.src = anuncio.url || "";
+  previewImg.style.display = "block";
+  previewImg.style.maxWidth = "100%";
+  previewImg.style.maxHeight = "180px";
+  previewImg.style.objectFit = "cover";
+  previewImg.style.borderRadius = "12px";
+
+  // IMPORTANTE: no obligar a seleccionar imagen para editar
+  // Si el usuario no cambia imagen, base64Imagen queda vacío y el backend mantiene la actual
+  base64Imagen = "";
+
+  // Cambiar textos del modal/botón
+  const h2 = document.querySelector("#publishModal h2");
+  if (h2) h2.textContent = "Editar Anuncio";
+  btnPublicar.textContent = "💾 Guardar cambios";
+
+  mensaje.textContent = "";
+  mensaje.style.color = "#0077cc";
+}
+
+
 
     
 // ===============================
@@ -5279,17 +5392,23 @@ function updateContentOverlay(index) {
 
         updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
-        if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
-            deleteAnnouncementBtn.classList.add("visible");
-            deleteAnnouncementBtn.onclick = () => {
-                showConfirmationDialog(
-                    "¿Estás seguro de que quieres eliminar este anuncio?",
-                    () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
-                );
-            };
-        } else {
-            deleteAnnouncementBtn.classList.remove("visible");
-        }
+      if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+  deleteAnnouncementBtn.classList.add("visible");
+  deleteAnnouncementBtn.onclick = () => {
+    showConfirmationDialog(
+      "¿Estás seguro de que quieres eliminar este anuncio?",
+      () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+    );
+  };
+
+  editAnnouncementBtn.classList.add("visible");
+  editAnnouncementBtn.onclick = () => openEditAnuncio(anuncio);
+
+} else {
+  deleteAnnouncementBtn.classList.remove("visible");
+  editAnnouncementBtn.classList.remove("visible");
+}
+
 
         commentsList.innerHTML = '';
         commentsOverlay.classList.remove('expanded');
@@ -7605,5 +7724,4 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
 
