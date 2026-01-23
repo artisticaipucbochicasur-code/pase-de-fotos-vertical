@@ -3713,24 +3713,12 @@ btnPublicar.textContent = "📢 Publicar anuncio";
     progressContainer.style.display = "none";
 
    // 🔹 Cierre automático después de subir anuncio
-setTimeout(async () => {
-
+setTimeout(() => {
   publishModal.style.display = "none";
   mensaje.textContent = "";
-// ✅ Refrescar anuncios y mantener el anuncio actual visible
-if (typeof cargarAnuncios === "function") {
-  try {
-    const currentIndex = currentSlideIndex || 0; // usa tu variable real si se llama distinto
-    await cargarAnuncios(); // 👈 IMPORTANTE: esperar a que termine
-
-    if (typeof updateContentOverlay === "function") {
-      updateContentOverlay(currentIndex);
-    }
-  } catch (e) {
-    console.error("Error refrescando anuncios:", e);
+  if (typeof cargarAnuncios === "function") {
+    cargarAnuncios();
   }
-}
-
   // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
   const imagesBtn = document.getElementById("imagesBtn");
   if (imagesBtn) {
@@ -4306,8 +4294,51 @@ savedSearchInputEl.addEventListener("blur", () => {
 });
 
 
+// ================================
+// 🔄 Polling anuncios (timestamp)
+// ================================
+let lastAnunciosTimestamp = "";
+let pollingAnunciosStarted = false;
 
 
+async function checkAnunciosUpdates() {
+  try {
+    const formData = new FormData();
+    formData.append("accion", "ultimaActualizacionAnuncios");
+
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: formData });
+    const json = await res.json();
+
+    const ts = json.timestamp || "";
+    if (!ts) return;
+
+    // Primera vez solo guarda y ya
+    if (!lastAnunciosTimestamp) {
+      lastAnunciosTimestamp = ts;
+      return;
+    }
+
+    // Si cambió, recargar anuncios
+    if (ts !== lastAnunciosTimestamp) {
+      lastAnunciosTimestamp = ts;
+
+      // Mantener el anuncio actual visible (si tienes índice global)
+      const idx = (swiperInstance && typeof swiperInstance.realIndex === "number")
+  ? swiperInstance.realIndex
+  : 0;
+
+      if (typeof cargarAnuncios === "function") {
+        await cargarAnuncios();
+      }
+
+      if (typeof updateContentOverlay === "function") {
+        updateContentOverlay(idx);
+      }
+    }
+  } catch (e) {
+    console.error("Polling anuncios error:", e);
+  }
+}
 
     
     
@@ -7733,6 +7764,17 @@ function agregarEfectoRipple(boton) {
     if (isEmbed) document.body.classList.add("embedded");
   })();
     
+
+function startAnunciosPolling() {
+  if (pollingAnunciosStarted) return;
+  pollingAnunciosStarted = true;
+  setInterval(checkAnunciosUpdates, 4000);
+}
+
+startAnunciosPolling();
+
+
+
   </script>
 </body>
 </html>
