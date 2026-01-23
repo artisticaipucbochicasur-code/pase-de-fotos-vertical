@@ -6157,26 +6157,28 @@ searchClose.addEventListener("click", () => {
 
 
 function getVideosForSearch() {
-  // 1) Fuente principal: lastVideos (si está bien cargado)
-  if (Array.isArray(lastVideos) && lastVideos.length > 0) {
+  const wrapper = document.getElementById("slides");
+  if (!wrapper) return [];
+
+  const slides = Array.from(wrapper.children);
+
+  // Si todavía no hay slides renderizados, intenta con lastVideos
+  if (slides.length === 0 && Array.isArray(lastVideos)) {
     return lastVideos.map((v, index) => ({
-      title: v?.title || "",
+      title: (v?.title || v?.titulo || "").toString(),
       id: String(v?.id || ""),
       index
     }));
   }
 
-  // 2) Fallback: leer lo que YA está renderizado en el DOM (slides)
-  const wrapper = document.getElementById("slides");
-  if (!wrapper) return [];
-
-  const slides = Array.from(wrapper.children);
+  // Preferencia: DOM (es lo más fiel a lo que el usuario ve)
   return slides.map((slide, index) => ({
     title: (slide.dataset.title || slide.dataset.titulo || "").toString(),
     id: String(slide.dataset.videoid || ""),
     index
   }));
 }
+
 
 
 
@@ -6201,8 +6203,11 @@ searchInput.addEventListener("input", () => {
 
     if (!query) return;
 
+    console.log("query:", query, "videosSearch:", getVideosForSearch());
+
+
  const matches = getVideosForSearch()
-  .filter(v => normalizeText(v.title).includes(query));
+  .filter(v => normalizeText(String(v.title || "")).includes(query));
 
 
     if (matches.length === 0) {
@@ -6232,7 +6237,7 @@ searchInput.addEventListener("input", () => {
             searchModal.classList.add("hidden");
 
             // Ir al slide
-            swiper.slideToLoop(index, 600);
+if (swiper) swiper.slideToLoop(index, 600);
 
             // Resaltar título al llegar
            // Resaltar SOLO el título al llegar (sin afectar el contenedor)
