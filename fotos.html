@@ -3713,12 +3713,24 @@ btnPublicar.textContent = "📢 Publicar anuncio";
     progressContainer.style.display = "none";
 
    // 🔹 Cierre automático después de subir anuncio
-setTimeout(() => {
+setTimeout(async () => {
+
   publishModal.style.display = "none";
   mensaje.textContent = "";
-  if (typeof cargarAnuncios === "function") {
-    cargarAnuncios();
+// ✅ Refrescar anuncios y mantener el anuncio actual visible
+if (typeof cargarAnuncios === "function") {
+  try {
+    const currentIndex = currentSlideIndex || 0; // usa tu variable real si se llama distinto
+    await cargarAnuncios(); // 👈 IMPORTANTE: esperar a que termine
+
+    if (typeof updateContentOverlay === "function") {
+      updateContentOverlay(currentIndex);
+    }
+  } catch (e) {
+    console.error("Error refrescando anuncios:", e);
   }
+}
+
   // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
   const imagesBtn = document.getElementById("imagesBtn");
   if (imagesBtn) {
