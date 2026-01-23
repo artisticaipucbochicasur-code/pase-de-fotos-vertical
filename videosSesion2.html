@@ -59,7 +59,7 @@
    /* Botones flotantes */
 .floating-buttons {
     position: fixed;
-    bottom: 90px;
+    bottom: 400px;
     right: 18px;
     display: flex;
     flex-direction: column;
@@ -4774,7 +4774,7 @@ async function enviarComentario() {
       // ✅ Actualizar timestamp local y notificar a otros dispositivos
       ultimaActualizacionComentarios = String(Date.now());
       // 🚀 Notificar a otros dispositivos
-      notificarCambioComentarios();
+      setTimeout(() => cargarComentarios(videoId, true, { force: true }), 400);
     } else {
       console.error("❌ No se pudo guardar:", data.message);
     }
@@ -6036,7 +6036,8 @@ if (!checkNew) {
                         // precargarComentarios(videoId);
                     } else {
                         // Cargar y renderizar cuando llegue, pero ya dejamos el contador en 0
-                        cargarComentarios(videoId, true);
+                        cargarComentarios(videoId, true, { force: true });
+;
                     }
                 }
             },
