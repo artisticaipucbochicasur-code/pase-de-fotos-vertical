@@ -5172,7 +5172,7 @@ setInterval(verificarActualizacionAnuncios, INTERVALO_VERIFICACION);
       }
     }
 
-async function cargarImagenes() {
+async function cargarImagenes(forceRefresh = false) {
     loader.style.display = 'block';
     const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
     const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
@@ -5236,14 +5236,28 @@ async function cargarImagenes() {
 
 
 
+const oldAnunciosIds = anunciosData.map(a => a.id);
+const newAnunciosIds = newAnunciosData.map(a => a.id);
 
-        const oldAnunciosIds = anunciosData.map(a => a.id);
-        const newAnunciosIds = newAnunciosData.map(a => a.id);
-        
-        if (JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds)) {
-            loader.style.display = 'none';
-            return;
-        }
+const idsIguales = JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds);
+
+// ✅ Si solo cambió texto/autor/fecha (edición), los IDs son iguales.
+// En ese caso NO salgas sin actualizar la UI.
+if (idsIguales && !forceRefresh) {
+    // actualizar data en memoria
+    anunciosData = newAnunciosData;
+
+    // refrescar índice si lo usas
+    reconstruirIndiceBusqueda();
+
+    // refrescar overlay del anuncio actual (título/desc/autor/etc.)
+    const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    updateContentOverlay(activeIndex);
+
+    loader.style.display = 'none';
+    return;
+}
+
 
         const currentSlideId = currentId;
         anunciosData = newAnunciosData;
