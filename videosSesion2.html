@@ -59,7 +59,7 @@
    /* Botones flotantes */
 .floating-buttons {
     position: fixed;
-    bottom: 400px;
+    bottom: 90px;
     right: 18px;
     display: flex;
     flex-direction: column;
@@ -1803,16 +1803,9 @@ body {
 
     
         <!-- BOTONES flotantes -->
- <div class="floating-buttons">
-  <button id="btn-delete" class="fab danger">
-    <i class="fas fa-trash-alt"></i>
-  </button>
-
-  <button id="btn-edit-video" class="fab">
-    <i class="fas fa-pen"></i>
-  </button>
+   <div class="floating-buttons">
+  <button id="btn-delete" class="fab danger"><i class="fas fa-trash"></i></button>
 </div>
-
 
   
 
@@ -2154,59 +2147,6 @@ setTimeout(() => {
 });
 
 
-// =============================
-// ✏️ MODO EDICIÓN DE VIDEO
-// =============================
-let editingVideoId = null;
-
-// Botón editar (FAB)
-const editVideoBtn = document.getElementById("btn-edit-video");
-
-// Mostrar/ocultar botones según dueño
-function updateVideoOwnerButtons() {
-  const deleteBtn = document.getElementById("btn-delete");
-  const editBtn = document.getElementById("btn-edit-video");
-  if (!deleteBtn || !editBtn) return;
-
-  const activeSlide = swiper?.slides?.[swiper.activeIndex];
-  const correoDelSlide = activeSlide?.dataset?.correo || "";
-
-  const esMio = normalizeText(correoDelSlide) === normalizeText(currentAuthorEmail);
-
-  deleteBtn.style.display = esMio ? "flex" : "none";
-  editBtn.style.display   = esMio ? "flex" : "none";
-}
-
-// Abrir modal y precargar campos para editar
-function openEditVideoFromActive() {
-  const activeSlide = swiper?.slides?.[swiper.activeIndex];
-  if (!activeSlide) return;
-
-  editingVideoId = activeSlide.dataset.videoid || "";
-
-  // Abrir modal
-  publishModal.style.display = "flex";
-
-  // Forzar pestaña Video
-  tabVideo.click();
-
-  // Precargar campos
-  document.getElementById("videoTitle").value = activeSlide.dataset.titulo || "";
-  document.getElementById("videoDescripcion").value = activeSlide.dataset.descripcion || "";
-
-  // No obligar archivo al editar
-  document.getElementById("fileInput").value = "";
-
-  // Cambiar texto del botón de subir
-  const btn = document.getElementById("btnUploadVideo");
-  if (btn) btn.textContent = "💾 Guardar cambios";
-}
-
-if (editVideoBtn) {
-  editVideoBtn.addEventListener("click", openEditVideoFromActive);
-}
-
-
 
 // =============================
 // 🎬 CONTROL DE SECCIONES EN MODAL PUBLICAR
@@ -2244,11 +2184,6 @@ tabVideo.addEventListener("click", () => {
 
 // 📤 Subida del video (mantiene compatibilidad con tu sistema)
 btnUploadVideo.addEventListener("click", async () => {
-    // ✅ Si estamos editando, NO subimos archivo: actualizamos título/descr
-  if (editingVideoId) {
-    return await guardarEdicionVideo();
-  }
-
   const file = document.getElementById("fileInput").files[0];
   const tituloUsuario = document.getElementById("videoTitle").value.trim();
   const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
@@ -2420,54 +2355,6 @@ btnUploadVideo.addEventListener("click", async () => {
   xhr.setRequestHeader("Content-Type", uploadFile.type);
   xhr.send(uploadFile);
 });
-
-
-async function guardarEdicionVideo() {
-  try {
-    const titulo = document.getElementById("videoTitle").value.trim();
-    const descripcion = document.getElementById("videoDescripcion").value.trim();
-
-    const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
-    const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
-
-    if (!editingVideoId) return mostrarAviso("No hay video en edición.");
-    if (!titulo) return mostrarAviso("Escribe un título.");
-
-    const formData = new FormData();
-    formData.append("accion", "editarVideo");     // 👈 backend nuevo
-    formData.append("tipo", "videos");           // 👈 para tu hoja Videos
-    formData.append("idVideo", editingVideoId);
-    formData.append("titulo", titulo);
-    formData.append("descripcion", descripcion);
-    formData.append("autor", autor);
-    formData.append("correo", correo);
-
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: formData });
-    const json = await res.json();
-
-    if (json.status && json.status.toLowerCase().includes("success")) {
-      mostrarAviso("✅ Video actualizado");
-
-      // salir modo edición
-      editingVideoId = null;
-
-      // restaurar texto botón
-      const btn = document.getElementById("btnUploadVideo");
-      if (btn) btn.textContent = "📤 Subir video";
-
-      // cerrar modal
-      publishModal.style.display = "none";
-
-      // fuerza verificación (sin esperar al siguiente intervalo)
-      setTimeout(verificarActualizacionVideos, 0);
-    } else {
-      mostrarAviso(json.message || "No se pudo actualizar el video.");
-    }
-  } catch (e) {
-    console.error("guardarEdicionVideo error:", e);
-    mostrarAviso("❌ Error guardando edición.");
-  }
-}
 
 
 
@@ -4415,50 +4302,6 @@ function actualizarContadorComentariosUI(videoId, opts = {}) {
   }
 }
 
-
-
-// ✅ Polling: detectar cambios por edición de videos (timestamp global)
-let ultimaActualizacionVideosAnterior = "";
-
-// Inicializa (evita falso positivo)
-async function initSyncVideos() {
-  try {
-    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionVideos&_=${Date.now()}`);
-    const json = await resp.json();
-    ultimaActualizacionVideosAnterior = (json.timestamp || "").toString();
-  } catch (e) {
-    console.warn("No se pudo inicializar sync videos:", e);
-  }
-}
-document.addEventListener("DOMContentLoaded", initSyncVideos);
-
-// Verifica cambios y refresca en segundo plano
-async function verificarActualizacionVideos() {
-  try {
-    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionVideos&_=${Date.now()}`);
-    const json = await resp.json();
-    const ts = (json.timestamp || "").toString();
-
-    if (!ultimaActualizacionVideosAnterior) {
-      ultimaActualizacionVideosAnterior = ts;
-      return;
-    }
-
-    if (ts && ts !== ultimaActualizacionVideosAnterior) {
-      console.log("🎬 Cambio detectado en videos, refrescando en segundo plano...");
-      ultimaActualizacionVideosAnterior = ts;
-
-      // refresca sin destruir todo
-      await cargarVideos(true);
-    }
-  } catch (e) {
-    console.error("Error verificando ultimaActualizacionVideos:", e);
-  }
-}
-
-
-
-
 function precargarComentarios(videoId) {
   if (!videoId) return;
   // No bloquear UI: si está en caché, cargarComentarios retorna inmediato.
@@ -4892,25 +4735,17 @@ async function verificarComentariosVideos() {
     if (data.timestamp && data.timestamp !== ultimaActualizacionComentarios) {
       ultimaActualizacionComentarios = data.timestamp;
 
-      // ✅ SOLO refrescar activos (mucho más rápido)
-      if (!swiper) return;
+      // 🔥 FIX2: Usar lastVideos para obtener TODOS los videoIds conocidos y recargarlos (sin render, background)
+      const videoIds = lastVideos.map(v => v.id);
+      for (const videoId of videoIds) {
+        await cargarComentarios(videoId, false, { force: true }); // No render, solo caché fresco
+      }
 
-      const activeIndex = swiper.activeIndex;
-      const prevIndex = (activeIndex - 1 + swiper.slides.length) % swiper.slides.length;
-      const nextIndex = (activeIndex + 1) % swiper.slides.length;
-
-      const ids = [
-        swiper.slides[activeIndex]?.dataset?.videoid,
-        swiper.slides[prevIndex]?.dataset?.videoid,
-        swiper.slides[nextIndex]?.dataset?.videoid
-      ].filter(Boolean);
-
-      // ✅ En paralelo (no en cadena)
-      await Promise.all(ids.map(id => cargarComentarios(id, false, { force: true })));
-
-      // Render solo el activo
+      // Luego, render solo para el activo (con datos frescos)
       const videoIdActivo = getActiveVideoId();
-      if (videoIdActivo) renderComentarios(videoIdActivo);
+      if (videoIdActivo) {
+        renderComentarios(videoIdActivo);
+      }
     }
   } catch (err) {
     console.warn("No se pudo verificar comentarios:", err);
@@ -4920,9 +4755,8 @@ async function verificarComentariosVideos() {
 
 
 
-
 // Cada 5 segundos verificamos si hubo cambios
-setInterval(verificarComentariosVideos, 2000);
+setInterval(verificarComentariosVideos, 5000);
 
 
 // === ❤️ Sincronización de likes en tiempo casi real ===
@@ -4987,12 +4821,11 @@ function iniciarComentariosTiempoReal() {
   const videoId = getActiveVideoId();
   if (!videoId) return;
 
- cargarComentarios(videoId, true, { force: true });
-
+  cargarComentarios(videoId);
 
   comentariosInterval = setInterval(() => {
     const idActual = getActiveVideoId();
-    if (idActual) cargarComentarios(idActual, false, { force: true });
+    if (idActual) cargarComentarios(idActual);
   }, 3000);
 }
 
@@ -5089,20 +4922,11 @@ function renderNotifications() {
           console.log("🔹 Loop desactivado temporalmente (pocos slides)");
         }
 
-      const nuevoSlide = createSlide(
-  notif.title,
-  notif.link,
-  notif.desc,
-  notif.id,
-  notif.autor || "",
-  notif.correo || ""
-);
-
-swiper.appendSlide(nuevoSlide);
-swiper.update(); // Actualizar estructura
-swiper.loopFix(); // Reparar clones y loop mode
-console.log("✅ Nuevo slide añadido, loopFix aplicado, ID:", notif.id);
-
+        const nuevoSlide = createSlide(notif.title, notif.link, notif.desc, notif.id);
+        swiper.appendSlide(nuevoSlide);
+        swiper.update(); // Actualizar estructura
+        swiper.loopFix(); // Reparar clones y loop mode
+        console.log("✅ Nuevo slide añadido, loopFix aplicado, ID:", notif.id);
 
         // Reactivar loop si se desactivó
         if (swiper.slides.length < 3 && originalLoop) {
@@ -5280,100 +5104,74 @@ const deleteCancel = document.getElementById("delete-cancel");
 
 let pendingDelete = null;
 
-btnDelete.onclick = () => { 
-  if (!swiper) return;
-  const activeSlide = document.querySelector(".swiper-slide-active");
-  if (!activeSlide) return;
+btnDelete.onclick = () => {
+    if (!swiper) return;
+    const activeSlide = document.querySelector(".swiper-slide-active");
+    if (!activeSlide) return;
 
-  const title = activeSlide.dataset.title;
-  const link = activeSlide.querySelector(".player-card")?.dataset.embed;
-  const videoId = String(activeSlide.dataset.videoid || ""); // ✅ NUEVO
+    const title = activeSlide.dataset.title;
+    const link = activeSlide.querySelector(".player-card")?.dataset.embed;
 
-  // Si no hay datos de usuario, notificar y salir
-  if (!currentAuthorName || !currentAuthorEmail) {
-    showAlert("No se pudo obtener la información de tu cuenta. Intenta recargar la página.");
-    return;
-  }
+    // Si no hay datos de usuario, notificar y salir
+    if (!currentAuthorName  || !currentAuthorEmail) {
+        showAlert("No se pudo obtener la información de tu cuenta. Intenta recargar la página.");
+        return;
+    }
 
-  pendingDelete = { title, link, videoId }; // ✅ NUEVO
-  deleteTitle.textContent = `¿Eliminar "${title}"?`;
-  deleteModal.classList.remove("hidden");
+    pendingDelete = { title, link };
+    deleteTitle.textContent = `¿Eliminar "${title}"?`;
+    deleteModal.classList.remove("hidden");
 };
 
 deleteCancel.onclick = () => {
-  deleteModal.classList.add("hidden");
-  pendingDelete = null;
+    deleteModal.classList.add("hidden");
+    pendingDelete = null;
 };
 
 deleteConfirm.onclick = async () => {
-  if (!pendingDelete) return;
+    if (!pendingDelete) return;
+    const { title, link } = pendingDelete;
 
-  const { title, link, videoId } = pendingDelete; // ✅ NUEVO
-  deleteModal.classList.add("hidden");
-  pendingDelete = null;
+    deleteModal.classList.add("hidden");
+    pendingDelete = null;
 
-  let identifier = "";
-  let fileName = "";
-  const archiveMatch = link.match(/archive\.org\/download\/([^/]+)\/(.+)$/);
-  if (archiveMatch) {
-    identifier = archiveMatch[1];
-    fileName = decodeURIComponent(archiveMatch[2]);
-  }
-
-  const deleteUrl = `${SCRIPT_URL}?accion=eliminar&link=${encodeURIComponent(link)}&id=${encodeURIComponent(identifier)}&file=${encodeURIComponent(fileName)}&autor=${encodeURIComponent(currentAuthorName)}&correo=${encodeURIComponent(currentAuthorEmail)}`;
-
-  try {
-    const response = await fetch(deleteUrl);
-    const data = await response.json();
-
-    if (data.status === "success") {
-      // ✅ Guardar realIndex antes de tocar DOM (loop-safe)
-      const prevRealIndex = swiper.realIndex;
-
-      // ✅ Remover slide activo del DOM
-      const activeIndex = swiper.activeIndex;
-      const activeSlide = swiper.slides[activeIndex];
-      if (activeSlide) activeSlide.remove();
-
-      // ✅ Re-sync Swiper para evitar desfase
-      swiper.update();
-      if (swiper.slides.length > 0) {
-        const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
-        swiper.slideToLoop(safeReal, 0);
-      }
-
-      // ✅ LIMPIAR comentarios del video eliminado (evita que otros queden “pegados” al caché)
-      if (videoId) {
-        delete comentariosPorVideo[videoId];
-        delete comentariosCache[videoId];
-      }
-
-      // ✅ Si el video eliminado era el activo, deja UI de comentarios limpia
-      const activeNow = getActiveVideoId();
-      if (!activeNow || activeNow === videoId) {
-        const commentsList = document.getElementById("commentsList");
-        const commentCountValue = document.getElementById("commentCountValue");
-        if (commentsList) commentsList.innerHTML = "<li>Sé el primero en comentar...</li>";
-        if (commentCountValue) commentCountValue.textContent = "0";
-      }
-
-      // ✅ Notificar a otros dispositivos que “algo cambió” en comentarios
-      ultimaActualizacionComentarios = String(Date.now());
-      notificarCambioComentarios();
-
-      // ✅ Limpiar buscador
-      if (typeof searchResults !== "undefined" && searchResults) searchResults.innerHTML = "";
-      if (typeof searchInput !== "undefined" && searchInput) searchInput.value = "";
-
-      showAlert("✅ Video eliminado con éxito.", "¡Listo!");
-    } else {
-      showAlert("❌ Error al eliminar: " + (data.message || ""), "Error");
+    let identifier = "";
+    let fileName = "";
+    let archiveMatch = link.match(/archive\.org\/download\/([^/]+)\/(.+)$/);
+    if (archiveMatch) {
+        identifier = archiveMatch[1];
+        fileName = decodeURIComponent(archiveMatch[2]);
     }
-  } catch (err) {
-    showAlert("⚠️ Error de conexión al intentar eliminar.", "Error");
-  }
-};
+    
+    const deleteUrl = `${SCRIPT_URL}?accion=eliminar&link=${encodeURIComponent(link)}&id=${encodeURIComponent(identifier)}&file=${encodeURIComponent(fileName)}&autor=${encodeURIComponent(currentAuthorName )}&correo=${encodeURIComponent(currentAuthorEmail)}`;
 
+    try {
+        const response = await fetch(deleteUrl);
+        const data = await response.json();
+
+        if (data.status === "success") {
+            const activeIndex = swiper.activeIndex; // 👈 usar activeIndex real del DOM
+            const activeSlide = swiper.slides[activeIndex];
+
+            if (activeSlide) {
+                activeSlide.remove();
+                swiper.update();
+
+                // Si hay slides, ir al mismo índice (que ahora apunta al siguiente inmediato)
+                if (swiper.slides.length > 0) {
+                    let targetIndex = Math.min(activeIndex, swiper.slides.length - 1);
+                    swiper.slideTo(targetIndex, 0); // 👈 movimiento exacto
+                }
+            }
+
+            showAlert("✅ Video eliminado con éxito.", "¡Listo!");
+        } else {
+            showAlert("❌ Error al eliminar: " + data.message, "Error");
+        }
+    } catch (err) {
+        showAlert("⚠️ Error de conexión al intentar eliminar.", "Error");
+    }
+};
 
 
 
@@ -5412,21 +5210,13 @@ deleteConfirm.onclick = async () => {
             return { type: "other", embedSrc: link, poster: "" };
         }
 
-function createSlide(titulo, link, descripcion, id, autor = "", correo = "") {  
+    function createSlide(titulo, link, descripcion, id) {
     const { embedSrc, poster } = getEmbedInfo(link);
     const slide = document.createElement("div");
     slide.className = "swiper-slide";
-
-    // ✅ Guardar en ambos nombres (compatibilidad con funciones viejas)
     slide.dataset.title = titulo || "Video";
-    slide.dataset.titulo = titulo || "Video";              // ✅ NUEVO (ES)
-    
     slide.dataset.descripcion = descripcion || "";
-    slide.dataset.desc = descripcion || "";                // ✅ NUEVO (por si lees "desc")
-
-    slide.dataset.videoid = id || "";                      // ID único
-    slide.dataset.autor = autor || "";
-    slide.dataset.correo = correo || "";
+    slide.dataset.videoid = id || ""; // ← AGREGA EL ID ÚNICO AQUÍ
 
     const card = document.createElement("div");
     card.className = "player-card";
@@ -5450,7 +5240,6 @@ function createSlide(titulo, link, descripcion, id, autor = "", correo = "") {
 
     return slide;
 }
-
 
 
 
@@ -5906,24 +5695,20 @@ async function cargarVideos(checkNew = false) {
     }
     if (!checkNew) wrapper.innerHTML = "";
 
-let newVideos = [];
-if (Array.isArray(data.data)) {
-  data.data.forEach((row) => {
-    const titulo = row[0];
-    const link = row[1];
-    const autor = row[2] || "";     // ✅ NUEVO
-    const correo = row[3] || "";    // ✅ NUEVO
-    const descripcion = row[4] || "";
-    const id = row[5];
-
-    if (titulo && link && id) { // 🔥 FIX8: Validar datos para evitar videos inválidos
-      newVideos.push({ title: titulo, link, desc: descripcion, id, autor, correo });
+    let newVideos = [];
+    if (Array.isArray(data.data)) {
+      data.data.forEach((row) => {
+        const titulo = row[0];
+        const link = row[1];
+        const descripcion = row[4] || "";
+        const id = row[5];
+        if (titulo && link && id) { // 🔥 FIX8: Validar datos para evitar videos inválidos
+          newVideos.push({ title: titulo, link, desc: descripcion, id });
+        }
+      });
+    } else {
+      console.warn("⚠️ Advertencia: No se recibieron datos válidos de videos");
     }
-  });
-} else {
-  console.warn("⚠️ Advertencia: No se recibieron datos válidos de videos");
-}
-
 
     // ⚡ Precargamos primero los comentarios del PRIMER video
     if (!checkNew && newVideos.length > 0) {
@@ -5946,64 +5731,34 @@ if (Array.isArray(data.data)) {
     }
 
     // 🔥 FIX8: Eliminación silenciosa sin afectar slide activo
-if (checkNew) {
-  const linksActivos = newVideos.map(v => v.link);
-  const activeSlide = document.querySelector('.swiper-slide-active');
-
-  Array.from(wrapper.children).forEach(slide => {
-    const card = slide.querySelector(".player-card");
-    if (card && !linksActivos.includes(card.dataset.embed)) {
-      if (slide === activeSlide) {
-        // 🔥 FIX8: Si el slide eliminado es el activo, pasar al siguiente slide
-        if (swiper) {
-          swiper.removeSlide(swiper.activeIndex);
-          console.log("✅ Slide activo eliminado, pasando al siguiente");
-          swiper.slideNext(0); // Transición inmediata al siguiente slide
+    if (checkNew) {
+      const linksActivos = newVideos.map(v => v.link);
+      const activeSlide = document.querySelector('.swiper-slide-active');
+      const activeLink = activeSlide ? activeSlide.querySelector('.player-card')?.dataset.embed : null;
+      
+      Array.from(wrapper.children).forEach(slide => {
+        const card = slide.querySelector(".player-card");
+        if (card && !linksActivos.includes(card.dataset.embed)) {
+          if (slide === activeSlide) {
+            // 🔥 FIX8: Si el slide eliminado es el activo, pasar al siguiente slide
+            if (swiper) {
+              swiper.removeSlide(swiper.activeIndex);
+              console.log("✅ Slide activo eliminado, pasando al siguiente");
+              swiper.slideNext(0); // Transición inmediata al siguiente slide
+            }
+          } else {
+            // 🔥 FIX8: Eliminar solo slides no activos, sin actualizar Swiper inmediatamente
+            wrapper.removeChild(slide);
+            console.log("✅ Slide no activo eliminado silenciosamente");
+          }
         }
-      } else {
-        // 🔥 FIX8: Eliminar solo slides no activos, sin actualizar Swiper inmediatamente
-        wrapper.removeChild(slide);
-        console.log("✅ Slide no activo eliminado silenciosamente");
+      });
+      // 🔥 FIX8: Actualizar Swiper solo después de todas las eliminaciones
+      if (swiper) {
+        swiper.update();
+        console.log("✅ Swiper actualizado tras eliminación");
       }
     }
-  });
-
-  // ✅ NUEVO: refrescar info de slides existentes (EDICIONES) sin reconstruir slides
-  // Mapa por ID (más estable que link)
-  const mapById = new Map(newVideos.map(v => [String(v.id), v]));
-
-  Array.from(wrapper.children).forEach(slide => {
-    const id = String(slide.dataset.videoid || "");
-    const v = mapById.get(id);
-    if (!v) return;
-
-    // Actualiza dataset (para overlay, permisos, botón editar, etc.)
-    slide.dataset.title = v.title || "Video";
-    slide.dataset.descripcion = v.desc || "";
-    slide.dataset.autor = v.autor || "";
-    slide.dataset.correo = v.correo || "";
-
-    // Si tu UI usa updateFixedTitle() para el título superior, la llamamos después
-  });
-
-  // 🔥 FIX8: Actualizar Swiper solo después de todas las eliminaciones
-if (swiper) {
-  const prevReal = swiper.realIndex;
-  swiper.update();
-  if (swiper.slides.length > 0) {
-    swiper.slideToLoop(Math.min(prevReal, swiper.slides.length - 1), 0);
-  }
-  console.log("✅ Swiper actualizado y re-sincronizado");
-}
-
-
-  // ✅ Si hay título fijo/overlay, refrescarlo (no rompe nada si existe)
-  if (typeof updateFixedTitle === "function") updateFixedTitle();
-
-  // ✅ Si tienes lógica de mostrar/ocultar botones por dueño, refresca aquí si existe
-  if (typeof updateVideoOwnerButtons === "function") updateVideoOwnerButtons();
-}
-
 
     // 🛎️ Notificaciones de nuevos videos
     if (checkNew && lastVideos.length > 0) { 
@@ -6012,8 +5767,7 @@ if (swiper) {
         // 🔥 FIX8: Filtrar notificaciones vacías/inválidas antes de añadir
         const validNuevos = nuevos.filter(v => v.title && v.link && v.id);
         if (validNuevos.length > 0) {
-// opción 2
-notifications = validNuevos.concat(notifications);
+          notifications.unshift(...validNuevos);
           renderNotifications();
           console.log(`✅ ${validNuevos.length} nuevas notificaciones válidas añadidas`);
         } else {
@@ -6196,36 +5950,6 @@ searchClose.addEventListener("click", () => {
         }
 });
 
-
-function getVideosForSearch() {
-  const wrapper = document.getElementById("slides");
-  if (!wrapper) return [];
-
-  const slides = Array.from(wrapper.children);
-
-  // Si todavía no hay slides renderizados, intenta con lastVideos
-  if (slides.length === 0 && Array.isArray(lastVideos)) {
-    return lastVideos.map((v, index) => ({
-      title: (v?.title || v?.titulo || "").toString(),
-      id: String(v?.id || ""),
-      index
-    }));
-  }
-
-  // Preferencia: DOM (es lo más fiel a lo que el usuario ve)
-return slides.map((slide, index) => ({
-  title: (slide.dataset.title || slide.dataset.titulo || "").toString(),
-  id: String(slide.dataset.videoid || ""),
-  embed: String(slide.querySelector(".player-card")?.dataset.embed || ""),
-  index
-}));
-
-
-}
-
-
-
-
 // Cerrar al hacer clic fuera del contenido
 searchModal.addEventListener("click", (e) => {
     if (e.target === searchModal) {
@@ -6242,62 +5966,60 @@ searchModal.addEventListener("click", (e) => {
 
 // Búsqueda en tiempo real
 searchInput.addEventListener("input", () => {
-  const query = normalizeText(searchInput.value);
-  searchResults.innerHTML = "";
-  if (!query) return;
+    const query = normalizeText(searchInput.value);
+    searchResults.innerHTML = "";
 
-  const matches = getVideosForSearch()
-    .filter(v => normalizeText(String(v.title || "")).includes(query));
+    if (!query) return;
 
-  if (matches.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "No se encontraron resultados";
-    li.style.color = "#aaa";
-    li.style.fontStyle = "italic";
-    searchResults.appendChild(li);
-    return;
-  }
+    const matches = lastVideos
+        .map((video, index) => ({ video, index }))
+        .filter(({ video }) => normalizeText(video.title).includes(query));
 
-  matches.forEach(({ title, id, embed }) => {
-    const li = document.createElement("li");
-    li.textContent = title;
-    li.style.cursor = "pointer";
-    li.style.padding = "10px 12px";
-    li.style.borderBottom = "1px solid #333";
+    if (matches.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No se encontraron resultados";
+        li.style.color = "#aaa";
+        li.style.fontStyle = "italic";
+        searchResults.appendChild(li);
+        return;
+    }
 
-    li.addEventListener("mouseenter", () => (li.style.background = "#333"));
-    li.addEventListener("mouseleave", () => (li.style.background = ""));
+    matches.forEach(({ video, index }) => {
+        const li = document.createElement("li");
+        li.textContent = video.title;
+        li.style.cursor = "pointer";
+        li.style.padding = "10px 12px";
+        li.style.borderBottom = "1px solid #333";
 
-    li.addEventListener("click", () => {
-      searchModal.classList.add("hidden");
+        li.addEventListener("mouseenter", () => {
+            li.style.background = "#333";
+        });
+        li.addEventListener("mouseleave", () => {
+            li.style.background = "";
+        });
 
-      // ✅ Navegar por ID (estable aunque se borren slides)
-      const slides = Array.from(document.querySelectorAll("#slides .swiper-slide"));
-      let target = slides.findIndex(s => String(s.dataset.videoid || "") === String(id));
+        li.addEventListener("click", () => {
+            searchModal.classList.add("hidden");
 
-      // fallback por embed si no encontró por ID
-      if (target < 0 && embed) {
-        target = slides.findIndex(s => (s.querySelector(".player-card")?.dataset.embed || "") === embed);
-      }
+            // Ir al slide
+            swiper.slideToLoop(index, 600);
 
-      if (swiper && target >= 0) {
-        swiper.slideTo(target, 600); // 👈 IMPORTANTE: slideTo (no slideToLoop)
-      }
+            // Resaltar título al llegar
+           // Resaltar SOLO el título al llegar (sin afectar el contenedor)
+setTimeout(() => {
+    const titleEl = document.querySelector("#video-title-fixed .video-title");
+    if (titleEl) {
+        titleEl.classList.add("highlight-title-zoom");
+        setTimeout(() => {
+            titleEl.classList.remove("highlight-title-zoom");
+        }, 1000);
+    }
+}, 700);
+        });
 
-      // Resaltar título al llegar
-      setTimeout(() => {
-        const titleEl = document.querySelector("#video-title-fixed .video-title");
-        if (titleEl) {
-          titleEl.classList.add("highlight-title-zoom");
-          setTimeout(() => titleEl.classList.remove("highlight-title-zoom"), 1000);
-        }
-      }, 700);
+        searchResults.appendChild(li);
     });
-
-    searchResults.appendChild(li);
-  });
 });
-
 
         
      function activarSwipeParaBorrar() {
@@ -6446,10 +6168,11 @@ searchInput.addEventListener("input", () => {
 }
 
 // === AUTO REFRESCO EN SEGUNDO PLANO ===
-// === AUTO REFRESCO EN SEGUNDO PLANO (GARANTIZADO) ===
-setInterval(() => cargarVideos(true), 3000);   // <- esto asegura sincronización en todos
-cargarVideos(); // primera carga
+setInterval(() => {
+  cargarVideos(true); // solo refresca notificaciones, no toca el sliderF
+}, 3000);
 
+        cargarVideos();
 
 
          (function () {
