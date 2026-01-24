@@ -60,7 +60,7 @@
    /* Botones flotantes */
 .floating-buttons {
     position: fixed;
-    bottom: 400px;
+    bottom: 550px;
     right: 18px;
     display: flex;
     flex-direction: column;
@@ -5325,14 +5325,24 @@ deleteConfirm.onclick = async () => {
             const activeSlide = swiper.slides[activeIndex];
             if (activeSlide) activeSlide.remove();
 
-            // ✅ 3) Re-sincronizar Swiper para evitar desfase en otros dispositivos
-            swiper.update();
+      // ✅ 3) Re-sincronizar Swiper (y reparar loop/clones)
+swiper.update();
 
-            // ✅ 4) Mantener posición estable (loop-friendly)
-            if (swiper.slides.length > 0) {
-                const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
-                swiper.slideToLoop(safeReal, 0); // 👈 clave para que NO quede corrido
-            }
+// 🔥 CLAVE: en loop mode hay clones; sin esto aparece el "zoom/distorsión"
+if (swiper.params.loop) {
+  swiper.loopFix();
+}
+
+// (opcional pero ayuda a que recalcule tamaños en móviles/webview)
+swiper.updateSize();
+swiper.updateSlides();
+
+// ✅ 4) Mantener posición estable (loop-friendly)
+if (swiper.slides.length > 0) {
+  const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
+  swiper.slideToLoop(safeReal, 0);
+}
+
 
             // ✅ 5) Limpiar buscador (evita resultados viejos/índices viejos)
             if (typeof searchResults !== "undefined" && searchResults) searchResults.innerHTML = "";
@@ -5962,12 +5972,25 @@ if (checkNew) {
   // 🔥 FIX8: Actualizar Swiper solo después de todas las eliminaciones
 if (swiper) {
   const prevReal = swiper.realIndex;
+
   swiper.update();
+
+  // 🔥 CLAVE: reparar loop/clones para evitar "zoom/distorsión"
+  if (swiper.params.loop) {
+    swiper.loopFix();
+  }
+
+  // (opcional pero recomendado en móviles/webview)
+  swiper.updateSize();
+  swiper.updateSlides();
+
   if (swiper.slides.length > 0) {
     swiper.slideToLoop(Math.min(prevReal, swiper.slides.length - 1), 0);
   }
-  console.log("✅ Swiper actualizado y re-sincronizado");
+
+  console.log("✅ Swiper actualizado, loopFix aplicado y re-sincronizado");
 }
+
 
 
   // ✅ Si hay título fijo/overlay, refrescarlo (no rompe nada si existe)
