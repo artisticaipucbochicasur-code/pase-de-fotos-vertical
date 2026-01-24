@@ -60,7 +60,7 @@
    /* Botones flotantes */
 .floating-buttons {
     position: fixed;
-    bottom: 550px;
+    bottom: 400px;
     right: 18px;
     display: flex;
     flex-direction: column;
@@ -5317,34 +5317,46 @@ deleteConfirm.onclick = async () => {
         const data = await response.json();
 
         if (data.status === "success") {
-            // ✅ 1) Guardar el "realIndex" antes de tocar el DOM (más estable con loop)
-            const prevRealIndex = swiper.realIndex;
+  // ✅ 1) Guardar el "realIndex" antes de tocar nada
+const prevRealIndex = swiper.realIndex;
 
-            // ✅ 2) Remover el slide activo del DOM
-            const activeIndex = swiper.activeIndex;
-            const activeSlide = swiper.slides[activeIndex];
-            if (activeSlide) activeSlide.remove();
+// ✅ 1.1) Pausar y limpiar el player del video que vas a borrar (evita estados raros)
+try {
+  const p = players?.[link];
+  if (p) {
+    if (typeof p.pauseVideo === "function") p.pauseVideo();
+    else if (typeof p.pause === "function") p.pause();
+    delete players[link];
+  }
+} catch(e) {}
 
-      // ✅ 3) Re-sincronizar Swiper (y reparar loop/clones)
-swiper.update();
-
-// 🔥 CLAVE: en loop mode hay clones; sin esto aparece el "zoom/distorsión"
-if (swiper.params.loop) {
-  swiper.loopFix();
+// ✅ 2) En loop, primero quitar clones para no borrar un clon por error
+const wasLoop = !!swiper.params.loop;
+if (wasLoop) {
+  swiper.loopDestroy(); // quita clones y deja solo slides reales
+  swiper.update();
 }
 
-// (opcional pero ayuda a que recalcule tamaños en móviles/webview)
-swiper.updateSize();
-swiper.updateSlides();
+// ✅ 3) Eliminar el slide REAL usando API (NO remove() manual)
+swiper.removeSlide(prevRealIndex);
 
-// ✅ 4) Mantener posición estable (loop-friendly)
+// ✅ 4) Re-crear loop y recalcular todo
+swiper.update();
+if (wasLoop) {
+  swiper.loopCreate();
+  swiper.update();
+  swiper.loopFix(); // repara offsets del loop
+}
+
+// ✅ 5) Mantener posición estable
 if (swiper.slides.length > 0) {
   const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
   swiper.slideToLoop(safeReal, 0);
 }
 
 
-            // ✅ 5) Limpiar buscador (evita resultados viejos/índices viejos)
+
+            // ✅ 6) Limpiar buscador (evita resultados viejos/índices viejos)
             if (typeof searchResults !== "undefined" && searchResults) searchResults.innerHTML = "";
             if (typeof searchInput !== "undefined" && searchInput) searchInput.value = "";
 
