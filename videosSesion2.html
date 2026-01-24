@@ -60,7 +60,7 @@
    /* Botones flotantes */
 .floating-buttons {
     position: fixed;
-    bottom: 400px;
+    bottom: 550px;
     right: 18px;
     display: flex;
     flex-direction: column;
@@ -5320,6 +5320,12 @@ deleteConfirm.onclick = async () => {
   // ✅ 1) Guardar el "realIndex" antes de tocar nada
 const prevRealIndex = swiper.realIndex;
 
+// ✅ EXTRA: mantener el buscador sincronizado con la data real
+if (Array.isArray(lastVideos) && lastVideos.length) {
+  lastVideos = lastVideos.filter(v => String(v.link) !== String(link));
+}
+
+
 // ✅ 1.1) Pausar y limpiar el player del video que vas a borrar (evita estados raros)
 try {
   const p = players?.[link];
@@ -6206,30 +6212,31 @@ searchClose.addEventListener("click", () => {
 
 
 function getVideosForSearch() {
-  const wrapper = document.getElementById("slides");
-  if (!wrapper) return [];
-
-  const slides = Array.from(wrapper.children);
-
-  // Si todavía no hay slides renderizados, intenta con lastVideos
-  if (slides.length === 0 && Array.isArray(lastVideos)) {
-    return lastVideos.map((v, index) => ({
-      title: (v?.title || v?.titulo || "").toString(),
-      id: String(v?.id || ""),
-      index
-    }));
+  // ✅ Fuente principal: la data real (sheet)
+  if (Array.isArray(lastVideos) && lastVideos.length) {
+    return lastVideos
+      .filter(v => v && v.id)
+      .map((v, idx) => ({
+        id: String(v.id),
+        title: String(v.titulo || v.title || v.Titulo || v["Titulo del video"] || ""),
+        author: String(v.autor || v.author || ""),
+        index: idx
+      }));
   }
 
-  // Preferencia: DOM (es lo más fiel a lo que el usuario ve)
-return slides.map((slide, index) => ({
-  title: (slide.dataset.title || slide.dataset.titulo || "").toString(),
-  id: String(slide.dataset.videoid || ""),
-  embed: String(slide.querySelector(".player-card")?.dataset.embed || ""),
-  index
-}));
-
-
+  // 🔁 Fallback (por si aún no cargó lastVideos): DOM
+  const wrapper = document.getElementById("slides");
+  const slides = wrapper ? Array.from(wrapper.children) : [];
+  return slides
+    .filter(slide => slide && slide.dataset && slide.dataset.videoid)
+    .map((slide, idx) => ({
+      id: String(slide.dataset.videoid),
+      title: String(slide.dataset.title || slide.dataset.titulo || ""),
+      author: "",
+      index: idx
+    }));
 }
+
 
 
 
@@ -6886,15 +6893,5 @@ window.addEventListener("message", (event) => {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
 
