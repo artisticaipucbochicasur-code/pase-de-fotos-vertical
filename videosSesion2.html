@@ -1803,9 +1803,11 @@ body {
 
     
         <!-- BOTONES flotantes -->
-   <div class="floating-buttons">
-  <button id="btn-delete" class="fab danger"><i class="fas fa-trash"></i></button>
+<div class="floating-buttons">
+  <button id="btn-edit" class="fab"><i class="fas fa-pen"></i></button>
+  <button id="btn-delete" class="fab"><i class="fas fa-trash"></i></button>
 </div>
+
 
   
 
@@ -2184,177 +2186,159 @@ tabVideo.addEventListener("click", () => {
 
 // 📤 Subida del video (mantiene compatibilidad con tu sistema)
 btnUploadVideo.addEventListener("click", async () => {
-  const file = document.getElementById("fileInput").files[0];
-  const tituloUsuario = document.getElementById("videoTitle").value.trim();
-  const descripcionUsuario = document.getElementById("videoDescripcion").value.trim();
-  const progressBar = document.getElementById("progressVideo");            // ✅ este es el DIV que crece en %
-  const progressContainer = document.getElementById("progressContainerVideo");
-  const metrics = document.getElementById("uploadMetricsVideo");
-  const status = document.getElementById("statusVideo");
+  const titulo = document.getElementById("videoTitle").value.trim();
+  const descripcion = document.getElementById("videoDescripcion").value.trim();
+  const videoFile = document.getElementById("videoFile").files[0];
 
-  // ✅ Asegurar que los avisos se vean (texto negro)
-  if (status) {
-    status.style.color = "#111";
-    status.style.fontWeight = "700";
+  const autor = localStorage.getItem("autor") || window.currentAuthorName || "";
+  const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "";
+
+  const isEditing = !!editingVideoId; // ✅ igual que fotosEdit
+
+  if (!titulo || !autor || !correo) {
+    mensaje.textContent = "⚠️ Por favor completa título o inicia sesión.";
+    mensaje.style.color = "red";
+    return;
   }
 
-  const autor = localStorage.getItem("autor") || window.currentAuthorName || "Anónimo";
-  const correo = localStorage.getItem("correo") || window.currentAuthorEmail || "desconocido@correo.com";
-
-  if (!file) return alert("Selecciona un video para subir.");
-  if (!tituloUsuario) return alert("Escribe un título para el video.");
-
-  // ✅ Compresión opcional (si el checkbox está activado)
-  const doCompress = document.getElementById('compressBeforeUpload')?.checked;
-  let uploadFile = file;
-
-  if (doCompress) {
-    try {
-      progressContainer.style.display = 'block';
-      progressBar.style.width = '0%';
-      status.textContent = '⏳ Preparando compresión...';
-      metrics.textContent = 'Compresión: 0%';
-
-      uploadFile = await compressVideoInBrowser(
-        file,
-        (msg) => { status.textContent = msg; },
-        (progressValue) => {
-          // progressValue puede ser 0..1 (FFmpeg) o 0..100 (por si cambia)
-          let pct = 0;
-          if (typeof progressValue === 'number') {
-            pct = (progressValue <= 1) ? Math.round(progressValue * 100) : Math.round(progressValue);
-          }
-          pct = Math.max(0, Math.min(100, pct));
-
-          progressBar.style.width = pct + '%';
-          metrics.textContent = 'Compresión: ' + pct + '%';
-        }
-      );
-
-      const origMB = (file.size / (1024 * 1024)).toFixed(2);
-      const compMB = (uploadFile.size / (1024 * 1024)).toFixed(2);
-
-      status.textContent = '✅ Compresión lista. Subiendo...';
-      metrics.textContent = 'Tamaño: ' + origMB + ' MB → ' + compMB + ' MB';
-
-      // Reiniciar barra para la subida real
-      progressBar.style.width = '0%';
-    } catch (err) {
-      console.warn('Compresión falló, se sube el original:', err);
-      const msg = (err && err.message) ? err.message : String(err);
-      status.textContent = '⚠️ No se pudo comprimir (' + msg + '). Subiendo original...';
-      console.error('Error compresión:', err);
-
-      // Asegura que la barra quede lista para la subida
-      progressContainer.style.display = 'block';
-      progressBar.style.width = '0%';
-    }
+  // En creación SÍ exiges archivo; en edición NO
+  if (!isEditing && !videoFile) {
+    mensaje.textContent = "⚠️ Selecciona un video para subir.";
+    mensaje.style.color = "red";
+    return;
   }
 
-  // 🔹 Deshabilitar botón mientras sube
   btnUploadVideo.disabled = true;
-  const originalText = btnUploadVideo.textContent;
-  btnUploadVideo.textContent = "⏳ Subiendo...";
+  mensaje.textContent = isEditing ? "⏳ Guardando cambios..." : "⏳ Subiendo video...";
+  mensaje.style.color = "#0077cc";
+
+  const formData = new FormData();
+
+  // ==========================
+  // ✅ EDICIÓN (accion=editarVideo)
+  // ==========================
+  if (isEditing) {
+    formData.append("accion", "editarVideo");
+    formData.append("idVideo", editingVideoId);
+    formData.append("titulo", titulo);
+    formData.append("descripcion", descripcion);
+    formData.append("autor", autor);
+    formData.append("correo", correo);
+
+    try {
+      const response = await fetch(SCRIPT_URL, { method: "POST", body: formData });
+      const result = await response.json();
+
+      if (result.status && result.status.toLowerCase().includes("success")) {
+        mensaje.textContent = "✅ Video actualizado";
+        mensaje.style.color = "green";
+
+        // Reset edición + UI
+        editingVideoId = null;
+        const h2 = document.querySelector("#publishModal h2");
+        if (h2) h2.textContent = "Publicar Contenido";
+        btnUploadVideo.textContent = "📤 Subir Video";
+
+        // Limpia campos
+        document.getElementById("videoTitle").value = "";
+        document.getElementById("videoDescripcion").value = "";
+        document.getElementById("videoFile").value = "";
+
+        // Cierra modal y refresca lista
+        setTimeout(() => {
+          publishModal.style.display = "none";
+          mensaje.textContent = "";
+          if (typeof cargarVideos === "function") cargarVideos(true);
+        }, 900);
+      } else {
+        mensaje.textContent = result.message || "🚫 No se pudo actualizar el video.";
+        mensaje.style.color = "red";
+      }
+    } catch (err) {
+      console.error(err);
+      mensaje.textContent = "🚫 Error al conectar con el servidor.";
+      mensaje.style.color = "red";
+    } finally {
+      btnUploadVideo.disabled = false;
+    }
+
+    return; // ✅ no sigue al flujo de subida
+  }
+
+  // ==========================
+  // ✅ CREACIÓN (tu flujo actual)
+  // ==========================
+  formData.append("accion", "guardar");
+  formData.append("tipo", "video");
+  formData.append("titulo", titulo);
+  formData.append("descripcion", descripcion);
+  formData.append("autor", autor);
+  formData.append("correo", correo);
+
+  // Subida chunked como ya lo tenías
+  const chunkSize = 2 * 1024 * 1024;
+  const totalChunks = Math.ceil(videoFile.size / chunkSize);
+  let currentChunk = 0;
 
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
-  // No borres el status si venimos de compresión
-  if (!doCompress) {
-    status.textContent = "";
-    metrics.textContent = "";
-  }
 
-  const identifier = "artistica_bochica_" + Date.now();
-  const fileName = uploadFile.name;
-  const accessKey = "KPJmAQCm1UyNJWqv";
-  const secretKey = "9JkBrIGexGNOynyf";
-  const url = `https://s3.us.archive.org/${identifier}/${fileName}`;
-  const xhr = new XMLHttpRequest();
+  try {
+    while (currentChunk < totalChunks) {
+      const start = currentChunk * chunkSize;
+      const end = Math.min(start + chunkSize, videoFile.size);
+      const chunk = videoFile.slice(start, end);
 
-  let startTime = Date.now();
+      const chunkForm = new FormData();
+      chunkForm.append("accion", "uploadChunk");
+      chunkForm.append("tipo", "video");
+      chunkForm.append("chunk", chunk);
+      chunkForm.append("chunkIndex", currentChunk);
+      chunkForm.append("totalChunks", totalChunks);
+      chunkForm.append("filename", videoFile.name);
+      chunkForm.append("titulo", titulo);
+      chunkForm.append("descripcion", descripcion);
+      chunkForm.append("autor", autor);
+      chunkForm.append("correo", correo);
 
-  xhr.upload.onprogress = (event) => {
-    if (event.lengthComputable) {
-      const percent = (event.loaded / event.total) * 100;
+      const resp = await fetch(SCRIPT_URL, { method: "POST", body: chunkForm });
+      const resJson = await resp.json();
+
+      if (!resJson.status || !resJson.status.toLowerCase().includes("success")) {
+        throw new Error(resJson.message || "Error en subida");
+      }
+
+      currentChunk++;
+      const percent = (currentChunk / totalChunks) * 100;
       progressBar.style.width = percent + "%";
-
-      const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
-      const totalMB = (event.total / (1024 * 1024)).toFixed(2);
-      const elapsed = (Date.now() - startTime) / 1000;
-      const speedMB = (event.loaded / elapsed / (1024 * 1024)).toFixed(2);
-      const timeLeft = ((event.total - event.loaded) / (event.loaded / elapsed)) || 0;
-      const mins = Math.floor(timeLeft / 60);
-      const secs = Math.floor(timeLeft % 60);
-      metrics.textContent = `Subido: ${loadedMB}/${totalMB} MB — Velocidad: ${speedMB} MB/s — Restante: ${mins}m ${secs}s`;
     }
-  };
 
-  xhr.onload = async function () {
-    // 🔹 Rehabilitar botón al terminar
+    mensaje.textContent = "✅ Video subido correctamente.";
+    mensaje.style.color = "green";
+
+    document.getElementById("videoTitle").value = "";
+    document.getElementById("videoDescripcion").value = "";
+    document.getElementById("videoFile").value = "";
+
+    progressBar.style.width = "0%";
+    progressContainer.style.display = "none";
+
+    setTimeout(() => {
+      publishModal.style.display = "none";
+      mensaje.textContent = "";
+      if (typeof cargarVideos === "function") cargarVideos(true);
+    }, 1000);
+  } catch (err) {
+    console.error(err);
+    mensaje.textContent = "🚫 Error al subir video.";
+    mensaje.style.color = "red";
+    progressContainer.style.display = "none";
+    progressBar.style.width = "0%";
+  } finally {
     btnUploadVideo.disabled = false;
-    btnUploadVideo.textContent = originalText;
-
-    if (xhr.status === 200) {
-      const fileEncoded = encodeURIComponent(fileName);
-      const directLink = `https://archive.org/download/${identifier}/${fileEncoded}`;
-      status.innerHTML = `✅ Video subido correctamente<br><a href="${directLink}" target="_blank">Ver video</a>`;
-
-      // Guarda los datos en tu Apps Script
-      await fetch(`https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec?accion=guardar&tipo=video`
-        + `&titulo=${encodeURIComponent(tituloUsuario)}`
-        + `&link=${encodeURIComponent(directLink)}`
-        + `&autor=${encodeURIComponent(autor)}`
-        + `&correo=${encodeURIComponent(correo)}`
-        + `&descripcion=${encodeURIComponent(descripcionUsuario)}`);
-
-      // Esperar un poco para mostrar 100%
-      await new Promise(res => setTimeout(res, 600));
-
-      // 🔹 Limpiar campos del formulario
-      document.getElementById("fileInput").value = "";
-      document.getElementById("videoTitle").value = "";
-      document.getElementById("videoDescripcion").value = "";
-      progressBar.style.width = "0%";
-      progressContainer.style.display = "none";
-      metrics.textContent = "";
-      status.textContent = "";
-
-      // 🔹 Cerrar modal automáticamente
-      setTimeout(() => {
-        publishModal.style.display = "none";
-        if (typeof cargarAnuncios === "function") {
-          cargarAnuncios();
-        }
-        // === VOLVER A RESALTAR EL BOTÓN DE IMÁGENES ===
-        const videoBtn = document.getElementById("videoBtn");
-        if (videoBtn) {
-          document.querySelectorAll('.header-btn').forEach(btn => btn.classList.remove('selected'));
-          videoBtn.classList.add('selected');
-        }
-      }, 1000);
-    } else {
-      status.textContent = "❌ Error al subir el video.";
-    }
-  };
-
-  xhr.onerror = () => {
-    // 🔹 Rehabilitar botón si falla
-    btnUploadVideo.disabled = false;
-    btnUploadVideo.textContent = originalText;
-    status.textContent = "❌ Error de conexión.";
-  };
-
-  xhr.open("PUT", url, true);
-  xhr.setRequestHeader("Authorization", `LOW ${accessKey}:${secretKey}`);
-  xhr.setRequestHeader("x-archive-auto-make-bucket", "1");
-  xhr.setRequestHeader("x-archive-meta-title", fileName);
-  xhr.setRequestHeader("x-archive-meta-mediatype", "movies");
-  xhr.setRequestHeader("x-archive-meta-description", "Video subido desde la app DECOM");
-  xhr.setRequestHeader("x-archive-meta-collection", "opensource_movies");
-  xhr.setRequestHeader("x-archive-meta-creator", autor);
-  xhr.setRequestHeader("Content-Type", uploadFile.type);
-  xhr.send(uploadFile);
+  }
 });
+
 
 
 
@@ -5102,6 +5086,88 @@ const deleteTitle = document.getElementById("delete-video-title");
 const deleteConfirm = document.getElementById("delete-confirm");
 const deleteCancel = document.getElementById("delete-cancel");
 
+// =============================
+// ✏️ MODO EDICIÓN DE VIDEO (igual que fotosEdit)
+// =============================
+const btnEdit = document.getElementById("btn-edit");
+
+let editingVideoId = null;
+
+function openEditVideo(video) {
+  // activar modo edición
+  editingVideoId = video.id;
+
+  // Abrir modal
+  publishModal.style.display = "flex";
+
+  // Forzar pestaña Video
+  tabVideo.click();
+
+  // Rellenar campos
+  document.getElementById("videoTitle").value = video.titulo || "";
+  document.getElementById("videoDescripcion").value = video.descripcion || "";
+
+  // IMPORTANTE: no obligar a seleccionar archivo para editar
+  // (solo se edita título/descr/autor)
+  const videoFile = document.getElementById("videoFile");
+  if (videoFile) videoFile.value = "";
+
+  // Cambiar textos del modal/botón
+  const h2 = document.querySelector("#publishModal h2");
+  if (h2) h2.textContent = "Editar Video";
+
+  btnUploadVideo.textContent = "💾 Guardar cambios";
+
+  mensaje.textContent = "";
+  mensaje.style.color = "#0077cc";
+}
+
+// Mostrar/ocultar botones flotantes según dueño (misma idea que fotosEdit)
+function updateOwnerButtonsByActiveSlide(swiperInstance) {
+  try {
+    const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+    const wrapper = document.getElementById("videoSwiperWrapper");
+    const slides = wrapper ? wrapper.querySelectorAll(".swiper-slide") : [];
+    const slide = slides[activeIndex];
+
+    // Si no hay slide o no hay correo en dataset, por seguridad ocultamos Edit (y opcionalmente Delete)
+    const slideCorreo = slide?.dataset?.correo || "";
+
+    const isOwner =
+      normalizeText(slideCorreo) &&
+      normalizeText(slideCorreo) === normalizeText(currentAuthorEmail);
+
+    if (btnEdit) btnEdit.style.display = isOwner ? "flex" : "none";
+    if (btnDelete) btnDelete.style.display = isOwner ? "flex" : "none";
+  } catch (e) {
+    if (btnEdit) btnEdit.style.display = "none";
+    if (btnDelete) btnDelete.style.display = "flex"; // si prefieres NO tocar delete, cambia esto a "flex"
+  }
+}
+
+// Click del botón editar: toma el video activo y abre modal en edición
+if (btnEdit) {
+  btnEdit.addEventListener("click", () => {
+    if (!swiperVideosInstance) return;
+
+    const activeIndex = swiperVideosInstance.realIndex;
+    const wrapper = document.getElementById("videoSwiperWrapper");
+    const slides = wrapper ? wrapper.querySelectorAll(".swiper-slide") : [];
+    const slide = slides[activeIndex];
+    if (!slide) return;
+
+    openEditVideo({
+      id: slide.dataset.videoid || "",
+      titulo: slide.dataset.title || "",
+      descripcion: slide.dataset.descripcion || "",
+      autor: slide.dataset.autor || "",
+      correo: slide.dataset.correo || ""
+    });
+  });
+}
+
+
+
 let pendingDelete = null;
 
 btnDelete.onclick = () => {
@@ -5668,6 +5734,9 @@ function cleanupIframesExceptActiveAndAdjacent() {
 
         fixedBox.style.opacity = 1;
     }, 120);
+
+    updateOwnerButtonsByActiveSlide(swiperInstance);
+
 }
 
 
@@ -5724,11 +5793,24 @@ async function cargarVideos(checkNew = false) {
     }
 
     // ⚡ Mostramos los videos
-    if (!checkNew) {
-      newVideos.forEach(v => {
-        wrapper.appendChild(createSlide(v.title, v.link, v.desc, v.id));
-      });
-    }
+ // ⚡ Mostramos los videos
+if (!checkNew) {
+  newVideos.forEach(v => {
+
+    const slide = createSlide(v.title, v.link, v.desc, v.id);
+
+    // ✅ Guardar info para editar (sin cambiar render)
+    slide.dataset.videoid = v.id || "";
+    slide.dataset.title = v.title || "";
+    slide.dataset.descripcion = v.desc || "";
+    slide.dataset.autor = v.autor || "";
+    slide.dataset.correo = v.correo || "";
+
+    wrapper.appendChild(slide);
+
+  });
+}
+
 
     // 🔥 FIX8: Eliminación silenciosa sin afectar slide activo
     if (checkNew) {
@@ -6181,6 +6263,35 @@ setInterval(() => {
     if (isEmbedded) document.body.classList.add("embedded");
   })();
 
+
+  // ✅ Polling: detectar cambios por edición de videos (timestamp global)
+let ultimaActualizacionVideosAnterior = "";
+
+async function verificarActualizacionVideos() {
+  try {
+    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionVideos`);
+    const json = await resp.json();
+    const ts = (json.timestamp || "").toString();
+
+    // Primera vez: solo guardar
+    if (!ultimaActualizacionVideosAnterior) {
+      ultimaActualizacionVideosAnterior = ts;
+      return;
+    }
+
+    // Si cambió: recargar videos en segundo plano
+    if (ts && ts !== ultimaActualizacionVideosAnterior) {
+      console.log("📝 Cambio detectado en videos (edición), recargando en segundo plano.");
+      ultimaActualizacionVideosAnterior = ts;
+      await cargarVideos(true);
+    }
+  } catch (e) {
+    console.error("Error verificando ultimaActualizacionVideos:", e);
+  }
+}
+
+// ⏱️ usa el mismo intervalo que manejas
+setInterval(verificarActualizacionVideos, INTERVALO_VERIFICACION);
 
 
 
