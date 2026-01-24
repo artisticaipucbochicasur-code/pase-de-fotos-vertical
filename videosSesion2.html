@@ -4892,17 +4892,25 @@ async function verificarComentariosVideos() {
     if (data.timestamp && data.timestamp !== ultimaActualizacionComentarios) {
       ultimaActualizacionComentarios = data.timestamp;
 
-      // 🔥 FIX2: Usar lastVideos para obtener TODOS los videoIds conocidos y recargarlos (sin render, background)
-      const videoIds = lastVideos.map(v => v.id);
-      for (const videoId of videoIds) {
-        await cargarComentarios(videoId, false, { force: true }); // No render, solo caché fresco
-      }
+      // ✅ SOLO refrescar activos (mucho más rápido)
+      if (!swiper) return;
 
-      // Luego, render solo para el activo (con datos frescos)
+      const activeIndex = swiper.activeIndex;
+      const prevIndex = (activeIndex - 1 + swiper.slides.length) % swiper.slides.length;
+      const nextIndex = (activeIndex + 1) % swiper.slides.length;
+
+      const ids = [
+        swiper.slides[activeIndex]?.dataset?.videoid,
+        swiper.slides[prevIndex]?.dataset?.videoid,
+        swiper.slides[nextIndex]?.dataset?.videoid
+      ].filter(Boolean);
+
+      // ✅ En paralelo (no en cadena)
+      await Promise.all(ids.map(id => cargarComentarios(id, false, { force: true })));
+
+      // Render solo el activo
       const videoIdActivo = getActiveVideoId();
-      if (videoIdActivo) {
-        renderComentarios(videoIdActivo);
-      }
+      if (videoIdActivo) renderComentarios(videoIdActivo);
     }
   } catch (err) {
     console.warn("No se pudo verificar comentarios:", err);
@@ -4912,8 +4920,9 @@ async function verificarComentariosVideos() {
 
 
 
+
 // Cada 5 segundos verificamos si hubo cambios
-setInterval(verificarComentariosVideos, 5000);
+setInterval(verificarComentariosVideos, 2000);
 
 
 // === ❤️ Sincronización de likes en tiempo casi real ===
@@ -4978,11 +4987,12 @@ function iniciarComentariosTiempoReal() {
   const videoId = getActiveVideoId();
   if (!videoId) return;
 
-  cargarComentarios(videoId);
+ cargarComentarios(videoId, true, { force: true });
+
 
   comentariosInterval = setInterval(() => {
     const idActual = getActiveVideoId();
-    if (idActual) cargarComentarios(idActual);
+    if (idActual) cargarComentarios(idActual, false, { force: true });
   }, 3000);
 }
 
@@ -5271,79 +5281,97 @@ const deleteCancel = document.getElementById("delete-cancel");
 let pendingDelete = null;
 
 btnDelete.onclick = () => { 
-    if (!swiper) return;
-    const activeSlide = document.querySelector(".swiper-slide-active");
-    if (!activeSlide) return;
+  if (!swiper) return;
+  const activeSlide = document.querySelector(".swiper-slide-active");
+  if (!activeSlide) return;
 
-    const title = activeSlide.dataset.title;
-    const link = activeSlide.querySelector(".player-card")?.dataset.embed;
+  const title = activeSlide.dataset.title;
+  const link = activeSlide.querySelector(".player-card")?.dataset.embed;
+  const videoId = String(activeSlide.dataset.videoid || ""); // ✅ NUEVO
 
-    // Si no hay datos de usuario, notificar y salir
-    if (!currentAuthorName || !currentAuthorEmail) {
-        showAlert("No se pudo obtener la información de tu cuenta. Intenta recargar la página.");
-        return;
-    }
+  // Si no hay datos de usuario, notificar y salir
+  if (!currentAuthorName || !currentAuthorEmail) {
+    showAlert("No se pudo obtener la información de tu cuenta. Intenta recargar la página.");
+    return;
+  }
 
-    pendingDelete = { title, link };
-    deleteTitle.textContent = `¿Eliminar "${title}"?`;
-    deleteModal.classList.remove("hidden");
+  pendingDelete = { title, link, videoId }; // ✅ NUEVO
+  deleteTitle.textContent = `¿Eliminar "${title}"?`;
+  deleteModal.classList.remove("hidden");
 };
 
 deleteCancel.onclick = () => {
-    deleteModal.classList.add("hidden");
-    pendingDelete = null;
+  deleteModal.classList.add("hidden");
+  pendingDelete = null;
 };
 
 deleteConfirm.onclick = async () => {
-    if (!pendingDelete) return;
-    const { title, link } = pendingDelete;
+  if (!pendingDelete) return;
 
-    deleteModal.classList.add("hidden");
-    pendingDelete = null;
+  const { title, link, videoId } = pendingDelete; // ✅ NUEVO
+  deleteModal.classList.add("hidden");
+  pendingDelete = null;
 
-    let identifier = "";
-    let fileName = "";
-    const archiveMatch = link.match(/archive\.org\/download\/([^/]+)\/(.+)$/);
-    if (archiveMatch) {
-        identifier = archiveMatch[1];
-        fileName = decodeURIComponent(archiveMatch[2]);
+  let identifier = "";
+  let fileName = "";
+  const archiveMatch = link.match(/archive\.org\/download\/([^/]+)\/(.+)$/);
+  if (archiveMatch) {
+    identifier = archiveMatch[1];
+    fileName = decodeURIComponent(archiveMatch[2]);
+  }
+
+  const deleteUrl = `${SCRIPT_URL}?accion=eliminar&link=${encodeURIComponent(link)}&id=${encodeURIComponent(identifier)}&file=${encodeURIComponent(fileName)}&autor=${encodeURIComponent(currentAuthorName)}&correo=${encodeURIComponent(currentAuthorEmail)}`;
+
+  try {
+    const response = await fetch(deleteUrl);
+    const data = await response.json();
+
+    if (data.status === "success") {
+      // ✅ Guardar realIndex antes de tocar DOM (loop-safe)
+      const prevRealIndex = swiper.realIndex;
+
+      // ✅ Remover slide activo del DOM
+      const activeIndex = swiper.activeIndex;
+      const activeSlide = swiper.slides[activeIndex];
+      if (activeSlide) activeSlide.remove();
+
+      // ✅ Re-sync Swiper para evitar desfase
+      swiper.update();
+      if (swiper.slides.length > 0) {
+        const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
+        swiper.slideToLoop(safeReal, 0);
+      }
+
+      // ✅ LIMPIAR comentarios del video eliminado (evita que otros queden “pegados” al caché)
+      if (videoId) {
+        delete comentariosPorVideo[videoId];
+        delete comentariosCache[videoId];
+      }
+
+      // ✅ Si el video eliminado era el activo, deja UI de comentarios limpia
+      const activeNow = getActiveVideoId();
+      if (!activeNow || activeNow === videoId) {
+        const commentsList = document.getElementById("commentsList");
+        const commentCountValue = document.getElementById("commentCountValue");
+        if (commentsList) commentsList.innerHTML = "<li>Sé el primero en comentar...</li>";
+        if (commentCountValue) commentCountValue.textContent = "0";
+      }
+
+      // ✅ Notificar a otros dispositivos que “algo cambió” en comentarios
+      ultimaActualizacionComentarios = String(Date.now());
+      notificarCambioComentarios();
+
+      // ✅ Limpiar buscador
+      if (typeof searchResults !== "undefined" && searchResults) searchResults.innerHTML = "";
+      if (typeof searchInput !== "undefined" && searchInput) searchInput.value = "";
+
+      showAlert("✅ Video eliminado con éxito.", "¡Listo!");
+    } else {
+      showAlert("❌ Error al eliminar: " + (data.message || ""), "Error");
     }
-
-    const deleteUrl = `${SCRIPT_URL}?accion=eliminar&link=${encodeURIComponent(link)}&id=${encodeURIComponent(identifier)}&file=${encodeURIComponent(fileName)}&autor=${encodeURIComponent(currentAuthorName)}&correo=${encodeURIComponent(currentAuthorEmail)}`;
-
-    try {
-        const response = await fetch(deleteUrl);
-        const data = await response.json();
-
-        if (data.status === "success") {
-            // ✅ 1) Guardar el "realIndex" antes de tocar el DOM (más estable con loop)
-            const prevRealIndex = swiper.realIndex;
-
-            // ✅ 2) Remover el slide activo del DOM
-            const activeIndex = swiper.activeIndex;
-            const activeSlide = swiper.slides[activeIndex];
-            if (activeSlide) activeSlide.remove();
-
-            // ✅ 3) Re-sincronizar Swiper para evitar desfase en otros dispositivos
-            swiper.update();
-
-            // ✅ 4) Mantener posición estable (loop-friendly)
-            if (swiper.slides.length > 0) {
-                const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
-                swiper.slideToLoop(safeReal, 0); // 👈 clave para que NO quede corrido
-            }
-
-            // ✅ 5) Limpiar buscador (evita resultados viejos/índices viejos)
-            if (typeof searchResults !== "undefined" && searchResults) searchResults.innerHTML = "";
-            if (typeof searchInput !== "undefined" && searchInput) searchInput.value = "";
-
-            showAlert("✅ Video eliminado con éxito.", "¡Listo!");
-        } else {
-            showAlert("❌ Error al eliminar: " + (data.message || ""), "Error");
-        }
-    } catch (err) {
-        showAlert("⚠️ Error de conexión al intentar eliminar.", "Error");
-    }
+  } catch (err) {
+    showAlert("⚠️ Error de conexión al intentar eliminar.", "Error");
+  }
 };
 
 
