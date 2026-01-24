@@ -60,7 +60,7 @@
    /* Botones flotantes */
 .floating-buttons {
     position: fixed;
-    bottom: 400px;
+    bottom: 550px;
     right: 18px;
     display: flex;
     flex-direction: column;
@@ -1804,16 +1804,16 @@ body {
 
     
         <!-- BOTONES flotantes -->
- <div class="floating-buttons">
+<div class="floating-buttons hidden-overlay" id="videoOwnerButtons">
   <button id="btn-delete" class="fab danger">
     <i class="fas fa-trash-alt"></i>
   </button>
 
- <button id="btn-edit-video" class="fab hidden-overlay">
-  <i class="fas fa-pen"></i>
-</button>
-
+  <button id="btn-edit-video" class="fab">
+    <i class="fas fa-pen"></i>
+  </button>
 </div>
+
 
 
   
@@ -2165,20 +2165,21 @@ let editingVideoId = null;
 const editVideoBtn = document.getElementById("btn-edit-video");
 
 // Mostrar/ocultar botones según dueño
+// Mostrar/ocultar botones según dueño (USANDO EL CONTENEDOR)
 function updateVideoOwnerButtons() {
-  const deleteBtn = document.getElementById("btn-delete");
-  const editBtn = document.getElementById("btn-edit-video");
-  if (!deleteBtn || !editBtn) return;
+  const container = document.getElementById("videoOwnerButtons");
+  if (!container) return;
 
   const activeSlide = swiper?.slides?.[swiper.activeIndex];
   const correoDelSlide = activeSlide?.dataset?.correo || "";
 
   const esMio = normalizeText(correoDelSlide) === normalizeText(currentAuthorEmail);
 
-deleteBtn.classList.toggle("hidden-overlay", !esMio);
-editBtn.classList.toggle("hidden-overlay", !esMio);
-
+  // ✅ Si es mío -> se muestra el contenedor
+  // ✅ Si no es mío -> se oculta el contenedor
+  container.classList.toggle("hidden-overlay", !esMio);
 }
+
 
 // Abrir modal y precargar campos para editar
 function openEditVideoFromActive() {
