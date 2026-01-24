@@ -5270,7 +5270,7 @@ const deleteCancel = document.getElementById("delete-cancel");
 
 let pendingDelete = null;
 
-btnDelete.onclick = () => {
+btnDelete.onclick = () => { 
     if (!swiper) return;
     const activeSlide = document.querySelector(".swiper-slide-active");
     if (!activeSlide) return;
@@ -5279,7 +5279,7 @@ btnDelete.onclick = () => {
     const link = activeSlide.querySelector(".player-card")?.dataset.embed;
 
     // Si no hay datos de usuario, notificar y salir
-    if (!currentAuthorName  || !currentAuthorEmail) {
+    if (!currentAuthorName || !currentAuthorEmail) {
         showAlert("No se pudo obtener la información de tu cuenta. Intenta recargar la página.");
         return;
     }
@@ -5303,41 +5303,49 @@ deleteConfirm.onclick = async () => {
 
     let identifier = "";
     let fileName = "";
-    let archiveMatch = link.match(/archive\.org\/download\/([^/]+)\/(.+)$/);
+    const archiveMatch = link.match(/archive\.org\/download\/([^/]+)\/(.+)$/);
     if (archiveMatch) {
         identifier = archiveMatch[1];
         fileName = decodeURIComponent(archiveMatch[2]);
     }
-    
-    const deleteUrl = `${SCRIPT_URL}?accion=eliminar&link=${encodeURIComponent(link)}&id=${encodeURIComponent(identifier)}&file=${encodeURIComponent(fileName)}&autor=${encodeURIComponent(currentAuthorName )}&correo=${encodeURIComponent(currentAuthorEmail)}`;
+
+    const deleteUrl = `${SCRIPT_URL}?accion=eliminar&link=${encodeURIComponent(link)}&id=${encodeURIComponent(identifier)}&file=${encodeURIComponent(fileName)}&autor=${encodeURIComponent(currentAuthorName)}&correo=${encodeURIComponent(currentAuthorEmail)}`;
 
     try {
         const response = await fetch(deleteUrl);
         const data = await response.json();
 
         if (data.status === "success") {
-            const activeIndex = swiper.activeIndex; // 👈 usar activeIndex real del DOM
+            // ✅ 1) Guardar el "realIndex" antes de tocar el DOM (más estable con loop)
+            const prevRealIndex = swiper.realIndex;
+
+            // ✅ 2) Remover el slide activo del DOM
+            const activeIndex = swiper.activeIndex;
             const activeSlide = swiper.slides[activeIndex];
+            if (activeSlide) activeSlide.remove();
 
-            if (activeSlide) {
-                activeSlide.remove();
-                swiper.update();
+            // ✅ 3) Re-sincronizar Swiper para evitar desfase en otros dispositivos
+            swiper.update();
 
-                // Si hay slides, ir al mismo índice (que ahora apunta al siguiente inmediato)
-                if (swiper.slides.length > 0) {
-                    let targetIndex = Math.min(activeIndex, swiper.slides.length - 1);
-                    swiper.slideTo(targetIndex, 0); // 👈 movimiento exacto
-                }
+            // ✅ 4) Mantener posición estable (loop-friendly)
+            if (swiper.slides.length > 0) {
+                const safeReal = Math.min(prevRealIndex, swiper.slides.length - 1);
+                swiper.slideToLoop(safeReal, 0); // 👈 clave para que NO quede corrido
             }
+
+            // ✅ 5) Limpiar buscador (evita resultados viejos/índices viejos)
+            if (typeof searchResults !== "undefined" && searchResults) searchResults.innerHTML = "";
+            if (typeof searchInput !== "undefined" && searchInput) searchInput.value = "";
 
             showAlert("✅ Video eliminado con éxito.", "¡Listo!");
         } else {
-            showAlert("❌ Error al eliminar: " + data.message, "Error");
+            showAlert("❌ Error al eliminar: " + (data.message || ""), "Error");
         }
     } catch (err) {
         showAlert("⚠️ Error de conexión al intentar eliminar.", "Error");
     }
 };
+
 
 
 
@@ -5951,10 +5959,15 @@ if (checkNew) {
   });
 
   // 🔥 FIX8: Actualizar Swiper solo después de todas las eliminaciones
-  if (swiper) {
-    swiper.update();
-    console.log("✅ Swiper actualizado tras eliminación");
+if (swiper) {
+  const prevReal = swiper.realIndex;
+  swiper.update();
+  if (swiper.slides.length > 0) {
+    swiper.slideToLoop(Math.min(prevReal, swiper.slides.length - 1), 0);
   }
+  console.log("✅ Swiper actualizado y re-sincronizado");
+}
+
 
   // ✅ Si hay título fijo/overlay, refrescarlo (no rompe nada si existe)
   if (typeof updateFixedTitle === "function") updateFixedTitle();
@@ -6172,15 +6185,13 @@ function getVideosForSearch() {
   }
 
   // Preferencia: DOM (es lo más fiel a lo que el usuario ve)
-return slides.map((slide, index) => {
-  const card = slide.querySelector(".player-card");
-  return {
-    title: (slide.dataset.title || slide.dataset.titulo || "").toString(),
-    id: String(slide.dataset.videoid || ""),
-    embed: String(card?.dataset?.embed || ""),
-    index
-  };
-});
+return slides.map((slide, index) => ({
+  title: (slide.dataset.title || slide.dataset.titulo || "").toString(),
+  id: String(slide.dataset.videoid || ""),
+  embed: String(slide.querySelector(".player-card")?.dataset.embed || ""),
+  index
+}));
+
 
 }
 
@@ -6203,77 +6214,62 @@ searchModal.addEventListener("click", (e) => {
 
 // Búsqueda en tiempo real
 searchInput.addEventListener("input", () => {
-    const query = normalizeText(searchInput.value);
-    searchResults.innerHTML = "";
+  const query = normalizeText(searchInput.value);
+  searchResults.innerHTML = "";
+  if (!query) return;
 
-    if (!query) return;
+  const matches = getVideosForSearch()
+    .filter(v => normalizeText(String(v.title || "")).includes(query));
 
-    console.log("query:", query, "videosSearch:", getVideosForSearch());
+  if (matches.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "No se encontraron resultados";
+    li.style.color = "#aaa";
+    li.style.fontStyle = "italic";
+    searchResults.appendChild(li);
+    return;
+  }
 
+  matches.forEach(({ title, id, embed }) => {
+    const li = document.createElement("li");
+    li.textContent = title;
+    li.style.cursor = "pointer";
+    li.style.padding = "10px 12px";
+    li.style.borderBottom = "1px solid #333";
 
- const matches = getVideosForSearch()
-  .filter(v => normalizeText(String(v.title || "")).includes(query));
+    li.addEventListener("mouseenter", () => (li.style.background = "#333"));
+    li.addEventListener("mouseleave", () => (li.style.background = ""));
 
+    li.addEventListener("click", () => {
+      searchModal.classList.add("hidden");
 
-    if (matches.length === 0) {
-        const li = document.createElement("li");
-        li.textContent = "No se encontraron resultados";
-        li.style.color = "#aaa";
-        li.style.fontStyle = "italic";
-        searchResults.appendChild(li);
-        return;
-    }
+      // ✅ Navegar por ID (estable aunque se borren slides)
+      const slides = Array.from(document.querySelectorAll("#slides .swiper-slide"));
+      let target = slides.findIndex(s => String(s.dataset.videoid || "") === String(id));
 
-matches.forEach(({ title, id, embed, index }) => {
+      // fallback por embed si no encontró por ID
+      if (target < 0 && embed) {
+        target = slides.findIndex(s => (s.querySelector(".player-card")?.dataset.embed || "") === embed);
+      }
 
-  const li = document.createElement("li");
-  li.textContent = title;
-        li.style.cursor = "pointer";
-        li.style.padding = "10px 12px";
-        li.style.borderBottom = "1px solid #333";
+      if (swiper && target >= 0) {
+        swiper.slideTo(target, 600); // 👈 IMPORTANTE: slideTo (no slideToLoop)
+      }
 
-        li.addEventListener("mouseenter", () => {
-            li.style.background = "#333";
-        });
-        li.addEventListener("mouseleave", () => {
-            li.style.background = "";
-        });
-
-        li.addEventListener("click", () => {
-            searchModal.classList.add("hidden");
-
-            // Ir al slide
-// ✅ Recalcular el slide correcto después de eliminaciones (NO usar index viejo)
-const target = Array.from(document.querySelectorAll("#slides .swiper-slide"))
-  .findIndex(s => String(s.dataset.videoid || "") === String(id));
-
-if (swiper && target >= 0) {
-  swiper.slideToLoop(target, 600);
-} else {
-  // fallback: por embed si el id no existiera
-  const target2 = Array.from(document.querySelectorAll("#slides .swiper-slide"))
-    .findIndex(s => (s.querySelector(".player-card")?.dataset.embed || "") === embed);
-
-  if (swiper && target2 >= 0) swiper.slideToLoop(target2, 600);
-}
-
-
-            // Resaltar título al llegar
-           // Resaltar SOLO el título al llegar (sin afectar el contenedor)
-setTimeout(() => {
-    const titleEl = document.querySelector("#video-title-fixed .video-title");
-    if (titleEl) {
-        titleEl.classList.add("highlight-title-zoom");
-        setTimeout(() => {
-            titleEl.classList.remove("highlight-title-zoom");
-        }, 1000);
-    }
-}, 700);
-        });
-
-        searchResults.appendChild(li);
+      // Resaltar título al llegar
+      setTimeout(() => {
+        const titleEl = document.querySelector("#video-title-fixed .video-title");
+        if (titleEl) {
+          titleEl.classList.add("highlight-title-zoom");
+          setTimeout(() => titleEl.classList.remove("highlight-title-zoom"), 1000);
+        }
+      }, 700);
     });
+
+    searchResults.appendChild(li);
+  });
 });
+
 
         
      function activarSwipeParaBorrar() {
