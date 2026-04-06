@@ -1424,6 +1424,10 @@ body {
         <i class="fas fa-search"></i>
       </button>
 
+      <button id="installPwaBtn" class="header-btn" title="Instalar app" style="display:none;">
+        <i class="fas fa-download"></i>
+      </button>
+
       <!-- 🔹 Botón de usuario -->
       <div id="userBtn" 
           style="background:#0077cc;color:white;width:40px;height:40px;border-radius:50%;
@@ -7785,6 +7789,74 @@ function agregarEfectoRipple(boton) {
     const isEmbed = new URLSearchParams(location.search).get("embed") === "1";
     if (isEmbed) document.body.classList.add("embedded");
   })();
+
+(function () {
+  let deferredPrompt = null;
+
+  function esStandalone() {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  }
+
+  function obtenerBtnInstalar() {
+    return document.getElementById("installPwaBtn");
+  }
+
+  function ocultarBtnInstalar() {
+    const btn = obtenerBtnInstalar();
+    if (!btn) return;
+    btn.style.display = "none";
+  }
+
+  function mostrarBtnInstalar() {
+    const btn = obtenerBtnInstalar();
+    if (!btn) return;
+    if (esStandalone()) {
+      btn.style.display = "none";
+      return;
+    }
+    btn.style.display = "flex";
+  }
+
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    mostrarBtnInstalar();
+  });
+
+  window.addEventListener("appinstalled", function () {
+    deferredPrompt = null;
+    ocultarBtnInstalar();
+  });
+
+  window.addEventListener("DOMContentLoaded", function () {
+    const btn = obtenerBtnInstalar();
+    if (!btn) return;
+
+    if (esStandalone()) {
+      ocultarBtnInstalar();
+    }
+
+    btn.addEventListener("click", async function () {
+      if (!deferredPrompt) return;
+
+      deferredPrompt.prompt();
+      const choiceResult = await deferredPrompt.userChoice;
+
+      if (choiceResult && choiceResult.outcome === "accepted") {
+        ocultarBtnInstalar();
+      }
+
+      deferredPrompt = null;
+    });
+  });
+
+  window.addEventListener("load", function () {
+    if (esStandalone()) {
+      ocultarBtnInstalar();
+    }
+  });
+})();
+  
     
   </script>
 </body>
