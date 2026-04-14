@@ -4805,7 +4805,7 @@ if (likesCounter) {
     }
 
 
-// 🆕 Botón editar anuncio: solo si el anuncio actual es mío
+// 🆕 Botón editar anuncio: seguir exactamente el mismo estado visual general
 const editBtn = document.getElementById("editAnnouncementBtn") ||
                 document.getElementById("editBtn") ||
                 document.querySelector(".edit-announcement-btn");
@@ -4816,12 +4816,14 @@ if (editBtn) {
   const esMio = anuncioActual &&
                 normalizeText(anuncioActual.correo) === normalizeText(currentAuthorEmail);
 
-  if (esMio) {
-    editBtn.classList.toggle("hidden-overlay");
+  const overlaysOcultos = contentOverlay.classList.contains("hidden-overlay");
 
-    if (editBtn.classList.contains("hidden-overlay")) {
+  if (esMio) {
+    if (overlaysOcultos) {
+      editBtn.classList.add("hidden-overlay");
       editBtn.classList.remove("visible");
     } else {
+      editBtn.classList.remove("hidden-overlay");
       editBtn.classList.add("visible");
     }
   } else {
@@ -5532,6 +5534,7 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
     );
   };
 
+  editAnnouncementBtn.classList.remove("hidden-overlay");
   editAnnouncementBtn.classList.add("visible");
   editAnnouncementBtn.onclick = () => openEditAnuncio(anuncio);
 
