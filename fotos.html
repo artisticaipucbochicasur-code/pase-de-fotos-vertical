@@ -4805,18 +4805,29 @@ if (likesCounter) {
     }
 
 
-// 🆕 Botón editar anuncio (igual que los demás)
+// 🆕 Botón editar anuncio: solo si el anuncio actual es mío
 const editBtn = document.getElementById("editAnnouncementBtn") ||
                 document.getElementById("editBtn") ||
                 document.querySelector(".edit-announcement-btn");
-if (editBtn) {
-  editBtn.classList.toggle("hidden-overlay");
 
-  // 🔒 lo mantenemos sincronizado también con su clase visual real
-  if (editBtn.classList.contains("hidden-overlay")) {
-    editBtn.classList.remove("visible");
+if (editBtn) {
+  const activeIndex = swiperInstance ? swiperInstance.realIndex : 0;
+  const anuncioActual = anunciosData[activeIndex];
+  const esMio = anuncioActual &&
+                normalizeText(anuncioActual.correo) === normalizeText(currentAuthorEmail);
+
+  if (esMio) {
+    editBtn.classList.toggle("hidden-overlay");
+
+    if (editBtn.classList.contains("hidden-overlay")) {
+      editBtn.classList.remove("visible");
+    } else {
+      editBtn.classList.add("visible");
+    }
   } else {
-    editBtn.classList.add("visible");
+    editBtn.classList.add("hidden-overlay");
+    editBtn.classList.remove("visible");
+    editBtn.onclick = null;
   }
 }
 
@@ -5529,6 +5540,7 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
   deleteAnnouncementBtn.onclick = null;
 
   editAnnouncementBtn.classList.remove("visible");
+  editAnnouncementBtn.classList.add("hidden-overlay");
   editAnnouncementBtn.onclick = null;
 }
 
