@@ -5121,7 +5121,9 @@ async function actualizarContador() {
         if (totalActual !== contadorTotalAnterior) {
             const diferencia = totalActual - contadorTotalAnterior;
             if (diferencia > 0) {
-                const responseAnuncios = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
+               supabase
+.from("publicaciones")
+.select("*")
                 const dataAnuncios = await responseAnuncios.json();
                 const ultimosIds = dataAnuncios.id.slice(-diferencia);
                 const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
