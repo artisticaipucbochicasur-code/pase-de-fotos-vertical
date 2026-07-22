@@ -5972,34 +5972,126 @@ async function cargarImagenes(forceRefresh = false) {
 
 
 
-async function eliminarAnuncio(anuncioId, deleteUrl) {
+// 🗑️ Eliminar anuncio usando Supabase
+
+async function eliminarAnuncio(anuncioId, urlImagen) {
+
     loader.style.display = 'block';
+
     try {
-        const formData = new FormData();
-        formData.append('accion', 'eliminarAnuncio');
-        formData.append('id', anuncioId);
-        formData.append('correo', currentAuthorEmail);
-        formData.append('deleteurl', deleteUrl);
 
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: formData
-        });
 
-        const result = await response.json();
-      if (result.status && result.status.toLowerCase().includes("success")) {
-    showInfoDialog("Éxito", "Anuncio eliminado correctamente.");
-    await cargarImagenes();
-} else {
-    showInfoDialog("Error", result.message || "No se pudo eliminar el anuncio.");
-}
+        // =====================================
+        // 1. OBTENER INFORMACIÓN DE LA IMAGEN
+        // =====================================
 
-    } catch (error) {
-        console.error("Error eliminando anuncio:", error);
-        showInfoDialog("Error", "Ocurrió un problema al eliminar el anuncio.");
+        let archivoStorage = null;
+
+
+        if (urlImagen) {
+
+            const partes = urlImagen.split("/decom-media/");
+
+            if (partes.length > 1) {
+
+                archivoStorage = partes[1];
+
+            }
+
+        }
+
+
+
+        // =====================================
+        // 2. ELIMINAR IMAGEN DEL STORAGE
+        // =====================================
+
+
+        if (archivoStorage) {
+
+
+            const { error: errorStorage } = await supabaseClient
+
+                .storage
+
+                .from("decom-media")
+
+                .remove([archivoStorage]);
+
+
+
+            if (errorStorage) {
+
+                console.error(
+                    "Error eliminando imagen:",
+                    errorStorage
+                );
+
+            }
+
+        }
+
+
+
+
+        // =====================================
+        // 3. ELIMINAR PUBLICACIÓN
+        // =====================================
+
+
+        const { error } = await supabaseClient
+
+            .from("publicaciones")
+
+            .delete()
+
+            .eq("id", anuncioId);
+
+
+
+        if (error) {
+
+            throw error;
+
+        }
+
+
+
+
+        showInfoDialog(
+            "Éxito",
+            "Anuncio eliminado correctamente."
+        );
+
+
+
+        await cargarImagenes();
+
+
+
+    } catch(error) {
+
+
+        console.error(
+            "Error eliminando anuncio:",
+            error
+        );
+
+
+        showInfoDialog(
+            "Error",
+            "Ocurrió un problema al eliminar el anuncio."
+        );
+
+
     } finally {
+
+
         loader.style.display = 'none';
+
+
     }
+
 }
 
 // ===============================
@@ -6076,22 +6168,38 @@ function updateContentOverlay(index) {
         updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
 if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
+
   deleteAnnouncementBtn.classList.add("visible");
+
   deleteAnnouncementBtn.onclick = () => {
+
     showConfirmationDialog(
+
       "¿Estás seguro de que quieres eliminar este anuncio?",
-      () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
+
+      () => eliminarAnuncio(anuncio.id, anuncio.url)
+
     );
+
   };
 
+
   editAnnouncementBtn.classList.remove("hidden-overlay");
+
   if (contentOverlay.classList.contains("hidden-overlay")) {
+
     editAnnouncementBtn.classList.add("hidden-overlay");
+
     editAnnouncementBtn.classList.remove("visible");
+
   } else {
+
     editAnnouncementBtn.classList.remove("hidden-overlay");
+
     editAnnouncementBtn.classList.add("visible");
+
   }
+
 
   editAnnouncementBtn.onclick = () => openEditAnuncio(anuncio);
 
