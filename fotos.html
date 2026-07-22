@@ -3722,8 +3722,8 @@ btnPublicar.addEventListener("click", async () => {
 
 
 
-  mensaje.textContent = isEditing 
-    ? "⏳ Guardando cambios..." 
+  mensaje.textContent = isEditing
+    ? "⏳ Guardando cambios..."
     : "⏳ Subiendo anuncio...";
 
 
@@ -3743,15 +3743,13 @@ btnPublicar.addEventListener("click", async () => {
 
   const interval = setInterval(() => {
 
+    if (simulatedProgress < 90) {
 
-    if(simulatedProgress < 90){
+      simulatedProgress += Math.random() * 5;
 
-      simulatedProgress += Math.random()*5;
-
-      progressBar.style.width = simulatedProgress+"%";
+      progressBar.style.width = simulatedProgress + "%";
 
     }
-
 
   },200);
 
@@ -3760,7 +3758,6 @@ btnPublicar.addEventListener("click", async () => {
 
 
 try {
-
 
 
     let urlImagen = "";
@@ -3772,7 +3769,7 @@ try {
     // =====================================
 
 
-    if(!isEditing || fileInput.files[0]){
+    if (!isEditing || fileInput.files[0]) {
 
 
         const archivo = fileInput.files[0];
@@ -3781,21 +3778,28 @@ try {
         const extension = archivo.name.split(".").pop();
 
 
-        const nombreArchivo = 
+        const nombreArchivo =
           `${Date.now()}_${Math.random().toString(36).substring(2)}.${extension}`;
 
 
 
-   const {data:uploadData,error:uploadError} = await supabaseClient
+        const { error: uploadError } = await supabaseClient
+
           .storage
+
           .from("decom-media")
-          .upload(nombreArchivo,archivo,{
+
+          .upload(nombreArchivo, archivo, {
+
               cacheControl:"3600",
+
               upsert:false
+
           });
 
 
-        if(uploadError){
+
+        if (uploadError) {
 
           throw uploadError;
 
@@ -3803,9 +3807,12 @@ try {
 
 
 
-       const {data:urlData} = supabaseClient
+        const { data: urlData } = supabaseClient
+
           .storage
+
           .from("decom-media")
+
           .getPublicUrl(nombreArchivo);
 
 
@@ -3813,8 +3820,9 @@ try {
         urlImagen = urlData.publicUrl;
 
 
-
     }
+
+
 
 
 
@@ -3823,12 +3831,14 @@ try {
     // =====================================
 
 
+    if (!isEditing) {
 
-    if(!isEditing){
 
 
-        const {error} = await supabaseClient
+        const { error } = await supabaseClient
+
         .from("publicaciones")
+
         .insert([{
 
             titulo: titulo,
@@ -3839,15 +3849,14 @@ try {
 
             correo: correo,
 
-            autor: autor,
-
-            tipo: "anuncio"
+            tipo_media: "imagen"
 
 
         }]);
 
 
-        if(error){
+
+        if (error) {
 
           throw error;
 
@@ -3855,27 +3864,29 @@ try {
 
 
 
-    }else{
+
+    } else {
+
 
 
         // =================================
-        // 3. EDICIÓN (por ahora preparada)
+        // 3. ACTUALIZAR PUBLICACIÓN
         // =================================
 
 
         const datosActualizar = {
 
 
-            titulo:titulo,
+            titulo: titulo,
 
-            descripcion:descripcion
+            descripcion: descripcion
 
 
         };
 
 
 
-        if(urlImagen){
+        if (urlImagen) {
 
           datosActualizar.url_media = urlImagen;
 
@@ -3883,19 +3894,21 @@ try {
 
 
 
-        const {error} = await supabaseClient
+        const { error } = await supabaseClient
+
           .from("publicaciones")
+
           .update(datosActualizar)
-          .eq("id",editingAnuncioId);
+
+          .eq("id", editingAnuncioId);
 
 
 
-        if(error){
+        if (error) {
 
           throw error;
 
         }
-
 
 
     }
@@ -3917,7 +3930,9 @@ try {
 
 
 
-    await new Promise(res=>setTimeout(res,600));
+    await new Promise(res => setTimeout(res,600));
+
+
 
 
 
@@ -3994,6 +4009,7 @@ try {
       if(imagesBtn){
 
         document.querySelectorAll('.header-btn')
+
         .forEach(btn=>btn.classList.remove('selected'));
 
         imagesBtn.classList.add('selected');
@@ -4008,11 +4024,12 @@ try {
 
 
 
-}catch(err){
+} catch(err) {
 
 
 
     clearInterval(interval);
+
 
 
     console.error("Error Supabase:",err);
@@ -4024,10 +4041,10 @@ try {
     mensaje.style.color="red";
 
 
+
     progressContainer.style.display="none";
 
     progressBar.style.width="0%";
-
 
 
 }
@@ -4039,7 +4056,6 @@ btnPublicar.disabled=false;
 
 
 });
-
 
 
 // =============================
