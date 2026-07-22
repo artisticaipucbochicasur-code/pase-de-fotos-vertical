@@ -5345,46 +5345,118 @@ if (editBtn) {
         }
     }
 
-    async function enviarComentario() {
-        const comentarioTexto = commentInput.value.trim();
-        const activeIndex = swiperInstance.realIndex;
-        const currentAnuncio = anunciosData[activeIndex];
+async function enviarComentario() {
 
-        if (!comentarioTexto || !currentAnuncio) {
-            showInfoDialog("Error", "No puedes enviar un comentario vacío.");
-            return;
-        }
 
-        loader.style.display = 'block';
-        try {
-            const formData = new FormData();
-            formData.append('accion', 'agregarComentario');
-            formData.append('anuncioId', currentAnuncio.id);
-            formData.append('comentario', comentarioTexto);
-            formData.append('autor', currentAuthorName);
-            formData.append('correo', currentAuthorEmail);
+    const comentarioTexto = commentInput.value.trim();
 
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+    const activeIndex = swiperInstance.realIndex;
 
-            const result = await response.json();
-            if (result.status === "🗣️ success") {
-                console.log("Comentario agregado con éxito.");
-                commentInput.value = ''; // Limpiar el campo
-                await verificarComentarios(); 
-            } else {
-                console.error("Error al agregar el comentario:", result.message);
-                showInfoDialog("Error", `No se pudo agregar el comentario. ${result.message}`);
-            }
-        } catch (error) {
-            console.error("Error de red al agregar el comentario:", error);
-            showInfoDialog("Error", "Ocurrió un error al intentar agregar el comentario.");
-        } finally {
-            loader.style.display = 'none';
-        }
+    const currentAnuncio = anunciosData[activeIndex];
+
+
+
+    if (!comentarioTexto || !currentAnuncio) {
+
+        showInfoDialog(
+            "Error",
+            "No puedes enviar un comentario vacío."
+        );
+
+        return;
+
     }
+
+
+
+    loader.style.display = 'block';
+
+
+
+    try {
+
+
+
+        const { error } = await supabaseClient
+
+            .from("comentarios")
+
+            .insert([{
+
+
+                publicacion_id: currentAnuncio.id,
+
+
+                texto: comentarioTexto,
+
+
+                autor: currentAuthorName,
+
+
+                correo: currentAuthorEmail
+
+
+
+            }]);
+
+
+
+
+
+        if(error){
+
+
+            throw error;
+
+
+        }
+
+
+
+
+        console.log(
+            "Comentario agregado correctamente."
+        );
+
+
+
+        commentInput.value = "";
+
+
+
+        await verificarComentarios();
+
+
+
+
+
+    } catch(error) {
+
+
+        console.error(
+            "Error agregando comentario:",
+            error
+        );
+
+
+
+        showInfoDialog(
+            "Error",
+            "No se pudo agregar el comentario."
+        );
+
+
+
+    } finally {
+
+
+        loader.style.display = 'none';
+
+
+    }
+
+
+}
 
     sendCommentBtn.addEventListener('click', enviarComentario);
     commentInput.addEventListener('keydown', (e) => {
