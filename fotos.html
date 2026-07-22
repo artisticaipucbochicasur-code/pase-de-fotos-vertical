@@ -5268,27 +5268,45 @@ async function cargarImagenes(forceRefresh = false) {
     const currentId = swiperInstance && anunciosData.length > 0 ? anunciosData[swiperInstance.realIndex].id : null;
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?accion=listarAnuncios`);
-        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+  const { data: publicaciones, error } = await supabaseClient
+    .from("publicaciones")
+    .select("*")
+    .order("fecha_creacion", { ascending: false });
+
+
+if (error) {
+    throw new Error(error.message);
+}
         let newAnunciosData = [];
 
-        if(data.url && data.url.length > 0) {
-            data.url.forEach((url, index) => {
-                const idAnuncio = data.id[index];
+ if(publicaciones && publicaciones.length > 0) {
+
+    publicaciones.forEach((pub)=>{
+
+               const idAnuncio = pub.id;
                 const comentarios = comentariosPorAnuncio[idAnuncio] || [];
                 const comentariosFormateados = normalizarComentarios(comentarios);
-                newAnunciosData.push({
-                    titulo: data.titulo[index] || "",
-                    descripcion: data.descripcion[index] || "",
-                    comentarios: comentariosFormateados,
-                    url: url,
-                    deleteurl: data.deleteurl[index] || "",
-                    autor: data.autor[index] || "",
-                    correo: data.correo[index] || "",
-                    fecha: data.fecha[index] || "",
-                    id: idAnuncio || ""
-                });
+      newAnunciosData.push({
+
+    titulo: pub.titulo || "",
+
+    descripcion: pub.descripcion || "",
+
+    comentarios: comentariosFormateados,
+
+    url: pub.url_media || "",
+
+    deleteurl: "",
+
+    autor: pub.autor_id || "",
+
+    correo: "",
+
+    fecha: pub.fecha_creacion || "",
+
+    id: pub.id || ""
+
+});
             });
         }
 
@@ -5321,7 +5339,7 @@ async function cargarImagenes(forceRefresh = false) {
             // precargar datos de perfil ↓
             if (!perfilCache[correoNorm]) resolvePerfil(correoNorm);
         }
-    });
+    }); 
 }
 
 
