@@ -6027,41 +6027,51 @@ async function eliminarAnuncio(anuncioId, urlImagen) {
         // =====================================
 
 
-        if(nombreArchivo){
+if(nombreArchivo){
 
 
-            const { data:storageData, error:storageError } = await supabaseClient
-
-                .storage
-
-                .from("decom-media")
-
-                .remove([
-                    nombreArchivo
-                ]);
+    console.log("🗑️ Intentando eliminar archivo:", nombreArchivo);
 
 
+    const { data:storageData, error:storageError } = await supabaseClient
 
-            if(storageError){
+        .storage
 
-                console.error(
-                    "Error eliminando imagen Storage:",
-                    storageError
-                );
+        .from("decom-media")
 
-            }else{
-
-
-                console.log(
-                    "Imagen eliminada correctamente",
-                    storageData
-                );
+        .remove([
+            nombreArchivo
+        ]);
 
 
-            }
+
+    console.log("📦 Respuesta eliminación Storage:", {
+        storageData,
+        storageError
+    });
 
 
-        }
+
+    if(storageError){
+
+        console.error(
+            "❌ Error eliminando imagen Storage:",
+            storageError
+        );
+
+    }else{
+
+
+        console.log(
+            "✅ Imagen eliminada correctamente:",
+            storageData
+        );
+
+
+    }
+
+
+}
 
 
 
