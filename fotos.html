@@ -5315,35 +5315,72 @@ if (editBtn) {
       startX = 0;
     });
 
-    async function eliminarComentario(anuncioId, comentarioTexto, autorCorreo) {
-        loader.style.display = 'block';
-        try {
-            const formData = new FormData();
-            formData.append('accion', 'eliminarComentario');
-            formData.append('idAnuncio', anuncioId);
-            formData.append('textoComentario', comentarioTexto);
-            formData.append('correoAutor', autorCorreo);
-            
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+async function eliminarComentario(comentarioId) {
 
-            const result = await response.json();
-            if (result.status === "✅ success") {
-                console.log("Comentario eliminado con éxito.");
-                await verificarComentarios(); 
-            } else {
-                console.error("Error al eliminar el comentario:", result.message);
-                showInfoDialog("Error", `No se pudo eliminar el comentario. ${result.message}`);
-            }
-        } catch (error) {
-            console.error("Error de red al eliminar el comentario:", error);
-            showInfoDialog("Error", "Ocurrió un error al intentar eliminar el comentario.");
-        } finally {
-            loader.style.display = 'none';
+
+    loader.style.display = 'block';
+
+
+    try {
+
+
+        const { error } = await supabaseClient
+
+            .from("comentarios")
+
+            .delete()
+
+            .eq("id", comentarioId);
+
+
+
+
+        if(error){
+
+            throw error;
+
         }
+
+
+
+
+        console.log(
+            "Comentario eliminado correctamente."
+        );
+
+
+
+        await verificarComentarios();
+
+
+
+    } catch(error){
+
+
+        console.error(
+            "Error eliminando comentario:",
+            error
+        );
+
+
+
+        showInfoDialog(
+            "Error",
+            "No se pudo eliminar el comentario."
+        );
+
+
+
+    } finally {
+
+
+        loader.style.display = 'none';
+
+
     }
+
+
+}
 
 async function enviarComentario() {
 
@@ -6648,14 +6685,14 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
                 li.dataset.correo = comentario.autorCorreo;
                 li.dataset.texto = comentario.textoPuro;
 
-                deleteBtn.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    const activeIndex = swiperInstance.realIndex;
-                    const currentAnuncio = anunciosData[activeIndex];
-                    if(currentAnuncio) {
-                        eliminarComentario(currentAnuncio.id, comentario.textoPuro, comentario.autorCorreo);
-                    }
-                });
+           deleteBtn.addEventListener('click', (ev) => {
+
+    ev.stopPropagation();
+
+
+    eliminarComentario(comentario.id);
+
+});
 
                 commentsList.appendChild(li);
             });
