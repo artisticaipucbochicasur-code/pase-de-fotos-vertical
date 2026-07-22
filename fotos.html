@@ -5637,27 +5637,103 @@ setInterval(verificarActualizacionAnuncios, INTERVALO_VERIFICACION);
 
 
 
-    async function verificarComentarios() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContadorComentarios`);
-        const data = await response.json();
-        const totalComentariosActual = data.contadorComentarios || 0;
+async function verificarComentarios() {
 
-        if (data.comentarios) {
-          comentariosPorAnuncio = data.comentarios;
+
+    try {
+
+
+        const { data, error } = await supabaseClient
+
+            .from("comentarios")
+
+            .select("*")
+
+            .order("fecha", { ascending: true });
+
+
+
+        if(error){
+
+            throw error;
+
         }
 
-        if (contadorComentariosAnterior === -1) {
-          contadorComentariosAnterior = totalComentariosActual;
-        } else if (totalComentariosActual !== contadorComentariosAnterior) {
-          console.log("💬 Cambio detectado en comentarios, recargando...");
-          contadorComentariosAnterior = totalComentariosActual;
-          recargarComentariosDelAnuncioActual();
+
+
+        comentariosPorAnuncio = {};
+
+
+
+        if(data && data.length > 0){
+
+
+            data.forEach(comentario => {
+
+
+
+                const id = comentario.publicacion_id;
+
+
+
+                if(!comentariosPorAnuncio[id]){
+
+                    comentariosPorAnuncio[id] = [];
+
+                }
+
+
+
+                comentariosPorAnuncio[id].push({
+
+                    id: comentario.id,
+
+                    texto: comentario.texto,
+
+                    textoPuro: comentario.texto,
+
+                    autor: comentario.autor,
+
+                    autorCorreo: comentario.correo,
+
+                    fecha: comentario.fecha
+
+                });
+
+
+
+            });
+
+
         }
-      } catch (e) {
-        console.error("Error al verificar comentarios:", e);
-      }
+
+
+
+
+
+        // refrescar comentario del anuncio actual
+
+        if(typeof recargarComentariosDelAnuncioActual === "function"){
+
+            recargarComentariosDelAnuncioActual();
+
+        }
+
+
+
+    } catch(error){
+
+
+        console.error(
+            "Error cargando comentarios Supabase:",
+            error
+        );
+
+
     }
+
+
+}
 
     function recargarComentariosDelAnuncioActual() {
       if (!swiperInstance || anunciosData.length === 0) return;
@@ -6885,9 +6961,9 @@ function showCustommostrarAviso(title, titlesList) {
     verificarLikes();
 
    verificarComentarios().then(() => {
-  cargarImagenes();
-  verificarLikes(); // ✅ fuerza primera carga visible
-});
+    cargarImagenes();
+     verificarLikes(); // ✅ fuerza primera carga visible
+    });
 
 
     if (lblContador) {
@@ -6899,12 +6975,12 @@ function showCustommostrarAviso(title, titlesList) {
 
 
     // === BOTÓN DE IMÁGENES COMO CAMPANA ===
-const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
-if (imagesNotificationBtn) {
+   const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
+    if (imagesNotificationBtn) {
     imagesNotificationBtn.addEventListener("click", () => {
         showCustommostrarAviso("Nuevos anuncios en imágenes", nuevosTitulos);
     });
-}
+     }
 
 
 // === BOTÓN IMÁGENES: NUEVOS ANUNCIOS O CARGAR VISTA ===
