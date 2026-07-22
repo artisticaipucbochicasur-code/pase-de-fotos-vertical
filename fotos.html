@@ -5577,9 +5577,9 @@ async function cargarImagenes(forceRefresh = false) {
 
                     comentarios: comentariosFormateados,
 
-                    url: pub.url_media || "",
+                    url: pub.url_media || "", 
 
-                    deleteurl: "",
+                    deleteurl: pub.url_media || "",
 
                     autor: pub.autor_id || "",
 
@@ -5974,6 +5974,8 @@ async function cargarImagenes(forceRefresh = false) {
 
 // 🗑️ Eliminar anuncio usando Supabase
 
+// 🗑️ Eliminar anuncio Supabase + Storage
+
 async function eliminarAnuncio(anuncioId, urlImagen) {
 
     loader.style.display = 'block';
@@ -5981,65 +5983,96 @@ async function eliminarAnuncio(anuncioId, urlImagen) {
     try {
 
 
+        console.log("Eliminando anuncio:", anuncioId);
+        console.log("Imagen asociada:", urlImagen);
+
+
+
         // =====================================
-        // 1. OBTENER INFORMACIÓN DE LA IMAGEN
+        // 1. EXTRAER NOMBRE DEL ARCHIVO STORAGE
         // =====================================
 
-        let archivoStorage = null;
+
+        let nombreArchivo = null;
 
 
         if (urlImagen) {
 
+
             const partes = urlImagen.split("/decom-media/");
 
-            if (partes.length > 1) {
 
-                archivoStorage = partes[1];
+            if (partes.length === 2) {
+
+                nombreArchivo = partes[1];
 
             }
+
 
         }
 
 
 
+        console.log(
+            "Archivo Storage a eliminar:",
+            nombreArchivo
+        );
+
+
+
+
+
         // =====================================
-        // 2. ELIMINAR IMAGEN DEL STORAGE
+        // 2. ELIMINAR ARCHIVO STORAGE
         // =====================================
 
 
-        if (archivoStorage) {
+        if(nombreArchivo){
 
 
-            const { error: errorStorage } = await supabaseClient
+            const { data:storageData, error:storageError } = await supabaseClient
 
                 .storage
 
                 .from("decom-media")
 
-                .remove([archivoStorage]);
+                .remove([
+                    nombreArchivo
+                ]);
 
 
 
-            if (errorStorage) {
+            if(storageError){
 
                 console.error(
-                    "Error eliminando imagen:",
-                    errorStorage
+                    "Error eliminando imagen Storage:",
+                    storageError
                 );
 
+            }else{
+
+
+                console.log(
+                    "Imagen eliminada correctamente",
+                    storageData
+                );
+
+
             }
+
 
         }
 
 
 
 
+
         // =====================================
-        // 3. ELIMINAR PUBLICACIÓN
+        // 3. ELIMINAR REGISTRO PUBLICACIÓN
         // =====================================
 
 
-        const { error } = await supabaseClient
+        const {error} = await supabaseClient
 
             .from("publicaciones")
 
@@ -6049,11 +6082,12 @@ async function eliminarAnuncio(anuncioId, urlImagen) {
 
 
 
-        if (error) {
+        if(error){
 
             throw error;
 
         }
+
 
 
 
@@ -6069,7 +6103,8 @@ async function eliminarAnuncio(anuncioId, urlImagen) {
 
 
 
-    } catch(error) {
+    } catch(error){
+
 
 
         console.error(
@@ -6078,16 +6113,18 @@ async function eliminarAnuncio(anuncioId, urlImagen) {
         );
 
 
+
         showInfoDialog(
             "Error",
-            "Ocurrió un problema al eliminar el anuncio."
+            "No se pudo eliminar el anuncio."
         );
+
 
 
     } finally {
 
 
-        loader.style.display = 'none';
+        loader.style.display='none';
 
 
     }
@@ -6177,7 +6214,7 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
 
       "¿Estás seguro de que quieres eliminar este anuncio?",
 
-      () => eliminarAnuncio(anuncio.id, anuncio.url)
+     () => eliminarAnuncio(anuncio.id, anuncio.deleteurl)
 
     );
 
