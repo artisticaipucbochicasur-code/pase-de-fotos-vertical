@@ -5497,6 +5497,75 @@ commentInput.addEventListener("blur", () => {
 });
 
 
+function formatoFechaComentario(fecha) {
+
+    if(!fecha) return "";
+
+    const ahora = new Date();
+
+    const fechaComentario = new Date(fecha);
+
+
+    const diferencia = ahora - fechaComentario;
+
+
+    const minutos = Math.floor(diferencia / 60000);
+
+    const horas = Math.floor(minutos / 60);
+
+    const dias = Math.floor(horas / 24);
+
+
+
+    if(minutos < 1){
+
+        return "Hace un momento";
+
+    }
+
+
+    if(minutos < 60){
+
+        return `Hace ${minutos} minuto${minutos > 1 ? "s" : ""}`;
+
+    }
+
+
+    if(horas < 24){
+
+        return `Hace ${horas} hora${horas > 1 ? "s" : ""}`;
+
+    }
+
+
+    if(dias === 1){
+
+        return "Ayer";
+
+    }
+
+
+    if(dias < 7){
+
+        return `Hace ${dias} días`;
+
+    }
+
+
+
+    return fechaComentario.toLocaleDateString(
+        "es-CO",
+        {
+            day:"numeric",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+
 function normalizarComentarios(lista) {
 
     if (!Array.isArray(lista)) return [];
@@ -5542,7 +5611,7 @@ function normalizarComentarios(lista) {
 
                 return {
 
-                    texto: `${autor} (${fecha}) - ${comentario}`,
+                    texto: `${autor} · ${formatoFechaComentario(fecha)}\n${comentario}`,
 
                     autorCorreo: correo,
 
