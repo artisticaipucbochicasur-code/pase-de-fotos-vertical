@@ -3866,53 +3866,146 @@ try {
 
 
 
-    } else {
+    }else {
+
+
+    // =================================
+    // 3. ACTUALIZAR PUBLICACIÓN
+    // =================================
+
+
+    // Obtener imagen actual antes de cambiarla
+
+    const { data: anuncioActual, error: errorConsulta } = await supabaseClient
+
+        .from("publicaciones")
+
+        .select("url_media")
+
+        .eq("id", editingAnuncioId)
+
+        .single();
 
 
 
-        // =================================
-        // 3. ACTUALIZAR PUBLICACIÓN
-        // =================================
+    if(errorConsulta){
 
+        throw errorConsulta;
 
-        const datosActualizar = {
-
-
-            titulo: titulo,
-
-            descripcion: descripcion
-
-
-        };
+    }
 
 
 
-        if (urlImagen) {
-
-          datosActualizar.url_media = urlImagen;
-
-        }
+    const imagenAnterior = anuncioActual?.url_media || "";
 
 
 
-        const { error } = await supabaseClient
-
-          .from("publicaciones")
-
-          .update(datosActualizar)
-
-          .eq("id", editingAnuncioId);
 
 
+    const datosActualizar = {
 
-        if (error) {
 
-          throw error;
+        titulo: titulo,
+
+        descripcion: descripcion
+
+
+    };
+
+
+
+    // Si se cargó una imagen nueva
+
+    if(urlImagen){
+
+
+        datosActualizar.url_media = urlImagen;
+
+
+
+    }
+
+
+
+
+
+    const { error } = await supabaseClient
+
+        .from("publicaciones")
+
+        .update(datosActualizar)
+
+        .eq("id", editingAnuncioId);
+
+
+
+    if(error){
+
+        throw error;
+
+    }
+
+
+
+
+
+
+    // =================================
+    // 4. ELIMINAR IMAGEN ANTERIOR
+    // =================================
+
+
+    if(urlImagen && imagenAnterior){
+
+
+        const archivoAnterior = imagenAnterior
+
+            .split("/")
+
+            .pop();
+
+
+
+        if(archivoAnterior){
+
+
+            const {error: errorStorage} = await supabaseClient
+
+                .storage
+
+                .from("decom-media")
+
+                .remove([archivoAnterior]);
+
+
+
+            if(errorStorage){
+
+                console.warn(
+                    "No se pudo eliminar imagen anterior:",
+                    errorStorage
+                );
+
+
+            } else {
+
+
+                console.log(
+                    "Imagen anterior eliminada:",
+                    archivoAnterior
+                );
+
+
+            }
+
 
         }
 
 
     }
+
+
+}
 
 
 
@@ -6027,41 +6120,51 @@ async function eliminarAnuncio(anuncioId, urlImagen) {
         // =====================================
 
 
-        if(nombreArchivo){
+if(nombreArchivo){
 
 
-            const { data:storageData, error:storageError } = await supabaseClient
-
-                .storage
-
-                .from("decom-media")
-
-                .remove([
-                    nombreArchivo
-                ]);
+    console.log("🗑️ Intentando eliminar archivo:", nombreArchivo);
 
 
+    const { data:storageData, error:storageError } = await supabaseClient
 
-            if(storageError){
+        .storage
 
-                console.error(
-                    "Error eliminando imagen Storage:",
-                    storageError
-                );
+        .from("decom-media")
 
-            }else{
-
-
-                console.log(
-                    "Imagen eliminada correctamente",
-                    storageData
-                );
+        .remove([
+            nombreArchivo
+        ]);
 
 
-            }
+
+    console.log("📦 Respuesta eliminación Storage:", {
+        storageData,
+        storageError
+    });
 
 
-        }
+
+    if(storageError){
+
+        console.error(
+            "❌ Error eliminando imagen Storage:",
+            storageError
+        );
+
+    }else{
+
+
+        console.log(
+            "✅ Imagen eliminada correctamente:",
+            storageData
+        );
+
+
+    }
+
+
+}
 
 
 
