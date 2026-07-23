@@ -5100,28 +5100,11 @@ currentDescription.addEventListener("click", function () {
 });
 
 
-let bloqueoClickSwiper = false;
 
-
-
-
-commentsOverlay.addEventListener('touchstart', ()=>{
-    bloqueoClickSwiper = true;
-}, {passive:true});
-
-
-commentsOverlay.addEventListener('touchmove', ()=>{
-    bloqueoClickSwiper = true;
-}, {passive:true});
 
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
-document.querySelector('.swiper').addEventListener('click', (e) => {
-
-    if(bloqueoClickSwiper){
-        bloqueoClickSwiper = false;
-        return;
-    }
+document.querySelector('.swiper').addEventListener('click', () => {
   const currentTime = new Date().getTime();
   if (currentTime - lastTapTime > 300) {
     // ✅ Estos se alternan normal
@@ -5224,9 +5207,7 @@ if (editBtn) {
 
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
-    commentsOverlay.addEventListener('click',(e)=>{
-
-    e.stopPropagation();
+    commentsOverlay.addEventListener('click', (e) => {
         if (!isSwiping) {
             commentsOverlay.classList.toggle('expanded');
         }
@@ -5245,13 +5226,6 @@ if (editBtn) {
 
       const commentData = commentElement.dataset;
       const autorCorreo = commentData.correo;
-
-      console.log(
-"Correo comentario:",
-autorCorreo,
-"Correo usuario:",
-currentAuthorEmail
-);
 
       if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
           startX = e.touches[0].clientX;
@@ -5648,52 +5622,68 @@ function normalizarComentarios(lista) {
 
     return [...lista]
 
-    .reverse()
+        .reverse()
 
-    .map(c => {
-
-
-        const autor = c?.autor ?? "";
-
-        const fecha = c?.fecha ?? "";
-
-        const comentario = c?.comentario ?? c?.texto ?? "";
-
-        const correo = c?.correo ?? "";
+        .map(c => {
 
 
+            try {
 
-        if(autor || fecha || comentario){
+                if(typeof c === "string"){
 
+                    c = JSON.parse(c);
 
-            return {
+                }
 
-                id: c.id,
-
-                texto: comentario,
-
-                textoPuro: comentario,
-
-                autor: autor,
-
-                autorCorreo: correo,
-
-                fecha: fecha,
-
-                fechaTexto: formatoFechaComentario(fecha)
-
-            };
+            } catch(e){}
 
 
-        }
+
+            const autor = c?.autor ?? "";
+
+            const fecha = c?.fecha ?? "";
+
+            const correo = c?.correo ?? "";
 
 
-        return null;
+            // Compatible Google + Supabase
+
+            const comentario = 
+                c?.comentario ??
+                c?.texto ??
+                "";
 
 
-    })
 
-    .filter(Boolean);
+            if(autor || fecha || comentario){
+
+
+           return {
+
+    texto: `${autor} (${fecha}) - ${comentario}`,
+
+    autorCorreo: correo,
+
+    textoPuro: comentario,
+
+    autor: autor,
+
+    fecha: fecha,
+
+    fechaOriginal: fecha
+
+};
+
+
+            }
+
+
+            return null;
+
+
+        })
+
+        .filter(Boolean);
 
 }
 
