@@ -3864,15 +3864,28 @@ async function actualizarPerfilSupabase(){
 
     // Actualizar botón superior
 
-    if(typeof mostrarUsuario==="function"){
+if(typeof mostrarUsuario==="function"){
 
-        mostrarUsuario(usuarioNuevo);
+    mostrarUsuario(usuarioNuevo);
 
-    }
+}
 
 
 
-    cerrarEditarPerfil();
+// =================================
+// ACTUALIZAR MODAL PERFIL ABIERTO
+// =================================
+
+
+if(typeof abrirPerfil==="function"){
+
+    actualizarVistaPerfil(usuarioNuevo);
+
+}
+
+
+
+cerrarEditarPerfil();
 
 
 
@@ -3890,6 +3903,10 @@ async function actualizarPerfilSupabase(){
 // BOTÓN GUARDAR EDITAR PERFIL
 // =====================================
 
+// =====================================
+// BOTÓN GUARDAR EDITAR PERFIL
+// =====================================
+
 document
 .getElementById("guardarEditarPerfil")
 ?.addEventListener(
@@ -3897,7 +3914,71 @@ document
 async ()=>{
 
 
-    await actualizarPerfilSupabase();
+    const btn = document.getElementById("guardarEditarPerfil");
+
+
+    const textoOriginal = btn.innerHTML;
+
+
+    btn.disabled = true;
+
+
+    btn.innerHTML = `
+    <i class="fas fa-spinner fa-spin"></i>
+    Guardando...
+    `;
+
+
+
+    try{
+
+
+        await actualizarPerfilSupabase();
+
+
+
+        btn.innerHTML = `
+        <i class="fas fa-check"></i>
+        Guardado
+        `;
+
+
+
+        await new Promise(
+            r=>setTimeout(r,1200)
+        );
+
+
+
+    }catch(e){
+
+
+        console.error(
+            "Error botón guardar:",
+            e
+        );
+
+
+        btn.innerHTML = `
+        <i class="fas fa-times"></i>
+        Error
+        `;
+
+
+    }
+
+
+
+    btn.disabled=false;
+
+
+
+    setTimeout(()=>{
+
+        btn.innerHTML = textoOriginal;
+
+    },1500);
+
 
 
 });
@@ -10826,6 +10907,153 @@ function abrirPerfil() {
   } else {
     aplicarLightModeModalPerfil();
   }
+}
+
+
+// =====================================
+// ACTUALIZAR DATOS MODAL PERFIL EN VIVO
+// =====================================
+
+function actualizarVistaPerfil(u){
+
+
+    const nombre =
+    document.getElementById("nombrePerfil");
+
+
+    const correo =
+    document.getElementById("correoPerfil");
+
+
+
+    if(nombre){
+
+        nombre.textContent =
+        u.nombre;
+
+    }
+
+
+
+    if(correo){
+
+        correo.textContent =
+        u.correo;
+
+    }
+
+
+
+    const datos =
+    document.getElementById("perfilDatosContainer");
+
+
+
+    if(datos){
+
+
+        datos.innerHTML = `
+
+        ${u.telefono ? `
+
+        <div class="perfil-dato-item">
+
+        <i class="fas fa-phone-alt"></i>
+
+        <div>
+
+        <div class="dato-label">
+        Teléfono
+        </div>
+
+        <div class="dato-valor">
+        ${u.telefono}
+        </div>
+
+        </div>
+
+        </div>
+
+        `:''}
+
+
+
+        ${u.congregacion ? `
+
+        <div class="perfil-dato-item">
+
+        <i class="fas fa-church"></i>
+
+        <div>
+
+        <div class="dato-label">
+        Congregación
+        </div>
+
+        <div class="dato-valor">
+        ${u.congregacion}
+        </div>
+
+        </div>
+
+        </div>
+
+        `:''}
+
+
+
+        ${u.cargo ? `
+
+        <div class="perfil-dato-item">
+
+        <i class="fas fa-user-tie"></i>
+
+        <div>
+
+        <div class="dato-label">
+        Cargo
+        </div>
+
+        <div class="dato-valor">
+        ${u.cargo}
+        </div>
+
+        </div>
+
+        </div>
+
+        `:''}
+
+
+
+        ${u.ciudad ? `
+
+        <div class="perfil-dato-item">
+
+        <i class="fas fa-location-dot"></i>
+
+        <div>
+
+        <div class="dato-label">
+        Ciudad
+        </div>
+
+        <div class="dato-valor">
+        ${u.ciudad}
+        </div>
+
+        </div>
+
+        </div>
+
+        `:''}
+
+        `;
+
+
+    }
+
+
 }
 
 
