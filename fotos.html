@@ -420,37 +420,32 @@
         cursor: pointer;
     }
     
-/* Contenedor del botón de borrado */
-.delete-btn-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 100px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    background: rgba(255, 0, 0, 0.25);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-
-    transform: translateX(0);
-    transition: transform 0.3s ease;
-
-    z-index: 1;
-}
-
-
-/* Botón de borrado */
-.delete-btn {
-    color:white;
-    font-weight:bold;
-    padding:10px;
-    cursor:pointer;
-    user-select:none;
-}
+    /* Contenedor del botón de borrado */
+    .delete-btn-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 0; 
+    }
+    
+    /* Botón de borrado en sí mismo */
+    .delete-btn {
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
     
     /* El comentario se desliza */
     .comment-content {
@@ -4898,7 +4893,8 @@ async function toggleLikeAnuncioActual() {
 
     
     // Variables para el swipe
-
+    let startX = 0;
+    let activeComment = null;
     let isSwiping = false;
 
 
@@ -5224,147 +5220,119 @@ if (editBtn) {
 
     
     // Lógica para el swipe
-let startX = 0;
-let activeComment = null;
+    commentsList.addEventListener('touchstart', (e) => {
+      const commentElement = e.target.closest('li');
+      if (!commentElement) return;
+
+      const commentData = commentElement.dataset;
+      const autorCorreo = commentData.correo;
+
+      console.log(
+"Correo comentario:",
+autorCorreo,
+"Correo usuario:",
+currentAuthorEmail
+);
+
+      if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
+          startX = e.touches[0].clientX;
+          activeComment = commentElement;
+          activeComment.querySelector('.comment-content').style.transition = 'none';
+          isSwiping = false; 
+      }
+    });
+
+    commentsList.addEventListener('touchmove', (e) => {
+      if (!activeComment) return;
+
+      const currentX = e.touches[0].clientX;
+      const diffX = currentX - startX;
+      
+      if (Math.abs(diffX) > 10) { 
+        isSwiping = true;
+      }
+      
+      if (diffX > 0) { 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(${diffX}px)`;
+        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(0)`;
+        }
+      } else { 
+        activeComment.querySelector('.comment-content').style.transform = `translateX(0)`; 
+        let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(-100%)`;
+        }
+      }
+    });
+
+    commentsList.addEventListener('touchend', (e) => {
+      if (!activeComment) return;
+      
+      const swipeThreshold = 50;
+      const diffX = e.changedTouches[0].clientX - startX;
+      
+      const commentContent = activeComment.querySelector('.comment-content');
+      let deleteBtnContainer = activeComment.querySelector('.delete-btn-container');
+
+      commentContent.style.transition = 'transform 0.3s ease';
+
+      if (diffX > swipeThreshold) {
+        commentContent.style.transform = `translateX(100px)`; 
+        
+        if (!deleteBtnContainer) {
+            deleteBtnContainer = document.createElement('div');
+            deleteBtnContainer.className = 'delete-btn-container';
+            
+            let deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Borrar';
+            deleteBtnContainer.appendChild(deleteBtn);
+            
+            activeComment.insertBefore(deleteBtnContainer, commentContent);
+            deleteBtnContainer.style.transform = `translateX(0)`;
+            
+            deleteBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation(); 
+         const commentData = activeComment.dataset;
+
+const comentarioId = commentData.id;
 
 
-commentsList.addEventListener('touchstart', function(e){
+showConfirmationDialog(
+    "¿Estás seguro de que quieres borrar este comentario?",
+    () => {
 
-    const li = e.target.closest('li');
+        if(comentarioId){
 
-    if(!li) return;
+            eliminarComentario(comentarioId);
 
+        } else {
 
-    const correoComentario = li.dataset.correo || "";
-
-
-    console.log(
-        "Comentario:",
-        correoComentario,
-        "Usuario:",
-        currentAuthorEmail
-    );
-
-
-    if(
-        normalizeText(correoComentario) !== 
-        normalizeText(currentAuthorEmail)
-    ){
-        activeComment = null;
-        return;
-    }
-
-
-    activeComment = li;
-
-    startX = e.touches[0].clientX;
-
-
-    const contenido = li.querySelector('.comment-content');
-
-    if(contenido){
-        contenido.style.transition="none";
-    }
-
-
-});
-
-
-
-
-commentsList.addEventListener('touchmove', function(e){
-
-    if(!activeComment) return;
-
-
-    const actualX = e.touches[0].clientX;
-
-    const diferencia = actualX - startX;
-
-
-    if(diferencia < 0) return;
-
-
-    const contenido =
-    activeComment.querySelector('.comment-content');
-
-
-    if(contenido){
-
-        contenido.style.transform =
-        `translateX(${Math.min(diferencia,120)}px)`;
-
-    }
-
-
-});
-
-
-
-
-commentsList.addEventListener('touchend', function(e){
-
-
-    if(!activeComment) return;
-
-
-    const finalX =
-    e.changedTouches[0].clientX;
-
-
-    const diferencia =
-    finalX-startX;
-
-
-
-    const contenido =
-    activeComment.querySelector('.comment-content');
-
-
-
-    if(diferencia > 60){
-
-
-        contenido.style.transition =
-        "transform .3s ease";
-
-
-        contenido.style.transform =
-        "translateX(100px)";
-
-
-
-        let boton =
-        activeComment.querySelector('.delete-btn-container');
-
-
-        if(boton){
-
-            boton.style.transform =
-            "translateX(0)";
+            console.error(
+                "No se encontró ID del comentario"
+            );
 
         }
 
-
-
-    }else{
-
-
-        contenido.style.transition =
-        "transform .3s ease";
-
-
-        contenido.style.transform =
-        "translateX(0)";
-
     }
+);
+            });
+        } else {
+            deleteBtnContainer.style.transform = `translateX(0)`;
+        }
+        
+      } else {
+        commentContent.style.transform = `translateX(0)`;
+        if (deleteBtnContainer) {
+            deleteBtnContainer.style.transform = `translateX(-100%)`;
+        }
+      }
 
-
-
-    activeComment=null;
-
-
-});
+      activeComment = null;
+      startX = 0;
+    });
 
 async function eliminarComentario(comentarioId) {
 
