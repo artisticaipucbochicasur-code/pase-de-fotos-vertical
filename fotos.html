@@ -2897,53 +2897,81 @@ async function guardarUsuarioSupabase(usuario){
 
 
     if(!usuario || !usuario.correo){
+
         console.warn(
-            "Usuario sin correo"
+            "⚠️ Usuario sin correo"
         );
+
         return;
+
     }
 
 
-    const {data,error} = await supabaseClient
-    .from("usuarios")
-    .upsert([{
-
-        nombre: usuario.nombre,
-
-        correo: usuario.correo,
-
-        foto_perfil: usuario.fotoPerfil || "",
-
-        telefono: String(usuario.telefono || ""),
-
-        congregacion: usuario.congregacion || "",
-
-        cargo: usuario.cargo || "",
-
-        ciudad: usuario.ciudad || ""
-
-    }],
-    {
-        onConflict:"correo"
-    });
+    try {
 
 
-    if(error){
+        const respuesta = await supabaseClient
+
+        .from("usuarios")
+
+        .upsert(
+        [
+            {
+
+                nombre: usuario.nombre,
+
+                correo: usuario.correo,
+
+                foto_perfil: usuario.fotoPerfil || "",
+
+                telefono: String(usuario.telefono || ""),
+
+                congregacion: usuario.congregacion || "",
+
+                cargo: usuario.cargo || "",
+
+                ciudad: usuario.ciudad || ""
+
+            }
+        ],
+        {
+            onConflict:"correo"
+        });
+
+
+        console.log(
+            "📌 Respuesta completa Supabase:",
+            respuesta
+        );
+
+
+        if(respuesta.error){
+
+            console.error(
+                "❌ Error Supabase:",
+                respuesta.error
+            );
+
+            return;
+
+        }
+
+
+        console.log(
+            "✅ Usuario guardado correctamente en Supabase"
+        );
+
+
+    } catch(error){
+
 
         console.error(
-            "❌ Error guardando usuario Supabase:",
+            "🔥 Error inesperado guardando usuario:",
             error
         );
 
-        return;
 
     }
-
-
-    console.log(
-        "✅ Usuario sincronizado Supabase",
-        data
-    );
 
 }
 
@@ -8727,11 +8755,26 @@ if (data.status && data.status.includes("success")) {
     };
 
 
-    // =====================================
-    // 🔥 SINCRONIZAR USUARIO CON SUPABASE
-    // =====================================
+  // =====================================
+// 🔥 SINCRONIZAR USUARIO CON SUPABASE
+// =====================================
+
+try {
+
+    console.log("📤 Intentando enviar usuario a Supabase:", usuario);
 
     await guardarUsuarioSupabase(usuario);
+
+    console.log("✅ Finalizó guardarUsuarioSupabase");
+
+} catch (error) {
+
+    console.error(
+        "❌ Falló guardarUsuarioSupabase:",
+        error
+    );
+
+}
 
 
 
