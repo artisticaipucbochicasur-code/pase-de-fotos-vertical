@@ -5100,28 +5100,11 @@ currentDescription.addEventListener("click", function () {
 });
 
 
-let bloqueoClickSwiper = false;
 
-
-
-
-commentsOverlay.addEventListener('touchstart', ()=>{
-    bloqueoClickSwiper = true;
-}, {passive:true});
-
-
-commentsOverlay.addEventListener('touchmove', ()=>{
-    bloqueoClickSwiper = true;
-}, {passive:true});
 
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
-document.querySelector('.swiper').addEventListener('click', (e) => {
-
-    if(bloqueoClickSwiper){
-        bloqueoClickSwiper = false;
-        return;
-    }
+document.querySelector('.swiper').addEventListener('click', () => {
   const currentTime = new Date().getTime();
   if (currentTime - lastTapTime > 300) {
     // ✅ Estos se alternan normal
@@ -5224,9 +5207,7 @@ if (editBtn) {
 
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
-    commentsOverlay.addEventListener('click',(e)=>{
-
-    e.stopPropagation();
+    commentsOverlay.addEventListener('click', (e) => {
         if (!isSwiping) {
             commentsOverlay.classList.toggle('expanded');
         }
