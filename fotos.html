@@ -2891,15 +2891,16 @@ const perfilCache = {};
 async function guardarUsuarioSupabase(usuario){
 
     console.log(
-        "🚀 Entró a guardarUsuarioSupabase",
+        "%c🚀 Entró a guardarUsuarioSupabase",
+        "color:green;font-size:16px;font-weight:bold",
         usuario
     );
 
 
     if(!usuario || !usuario.correo){
 
-        console.warn(
-            "⚠️ Usuario sin correo"
+        console.error(
+            "❌ Usuario sin correo"
         );
 
         return;
@@ -2910,14 +2911,13 @@ async function guardarUsuarioSupabase(usuario){
     try {
 
 
-        const respuesta = await supabaseClient
+        const { data, error } = await supabaseClient
 
         .from("usuarios")
 
         .upsert(
         [
             {
-
                 nombre: usuario.nombre,
 
                 correo: usuario.correo,
@@ -2931,7 +2931,6 @@ async function guardarUsuarioSupabase(usuario){
                 cargo: usuario.cargo || "",
 
                 ciudad: usuario.ciudad || ""
-
             }
         ],
         {
@@ -2939,17 +2938,12 @@ async function guardarUsuarioSupabase(usuario){
         });
 
 
-        console.log(
-            "📌 Respuesta completa Supabase:",
-            respuesta
-        );
-
-
-        if(respuesta.error){
+        if(error){
 
             console.error(
-                "❌ Error Supabase:",
-                respuesta.error
+                "%c❌ ERROR SUPABASE USUARIOS",
+                "color:red;font-size:16px;font-weight:bold",
+                error
             );
 
             return;
@@ -2958,23 +2952,25 @@ async function guardarUsuarioSupabase(usuario){
 
 
         console.log(
-            "✅ Usuario guardado correctamente en Supabase"
+            "%c✅ USUARIO GUARDADO EN SUPABASE",
+            "color:blue;font-size:16px;font-weight:bold",
+            data
         );
 
 
-    } catch(error){
+    }catch(e){
 
 
         console.error(
-            "🔥 Error inesperado guardando usuario:",
-            error
+            "%c🔥 ERROR INESPERADO",
+            "color:red;font-size:16px;font-weight:bold",
+            e
         );
 
 
     }
 
 }
-
 
 
 
