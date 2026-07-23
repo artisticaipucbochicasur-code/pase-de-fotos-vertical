@@ -2883,6 +2883,88 @@ function aplicarLightModeModalPublicar() {
 const perfilCache = {};
 
 
+// =====================================
+// 👤 Obtener perfil completo desde Supabase
+// =====================================
+
+async function cargarPerfilSupabase(correo){
+
+    if(!correo) return null;
+
+
+    try{
+
+
+        const {data,error} = await supabaseClient
+
+        .from("usuarios")
+
+        .select("*")
+
+        .eq("correo", correo)
+
+        .single();
+
+
+
+        if(error){
+
+            console.warn(
+                "No se encontró perfil Supabase:",
+                error.message
+            );
+
+            return null;
+
+        }
+
+
+
+        console.log(
+            "👤 Perfil cargado desde Supabase:",
+            data
+        );
+
+
+
+        return {
+
+            nombre: data.nombre,
+
+            correo: data.correo,
+
+            fotoPerfil: data.foto_perfil,
+
+            telefono: data.telefono,
+
+            congregacion: data.congregacion,
+
+            cargo: data.cargo,
+
+            ciudad: data.ciudad
+
+        };
+
+
+
+    }catch(e){
+
+
+        console.error(
+            "Error cargando perfil Supabase:",
+            e
+        );
+
+
+        return null;
+
+    }
+
+}   
+
+
+
+
 
 // =====================================
 // 👤 Guardar / actualizar usuario Supabase
@@ -2971,6 +3053,72 @@ async function guardarUsuarioSupabase(usuario){
     }
 
 }
+
+
+
+// =====================================
+// 👤 Obtener usuario desde Supabase
+// =====================================
+
+async function obtenerUsuarioSupabase(correo){
+
+    if(!correo) return null;
+
+
+    try{
+
+
+        const {data,error} = await supabaseClient
+
+        .from("usuarios")
+
+        .select("*")
+
+        .eq("correo", correo)
+
+        .single();
+
+
+
+        if(error){
+
+            console.error(
+                "❌ Error obteniendo usuario Supabase:",
+                error
+            );
+
+            return null;
+
+        }
+
+
+
+        console.log(
+            "👤 Usuario Supabase encontrado:",
+            data
+        );
+
+
+        return data;
+
+
+
+    }catch(e){
+
+
+        console.error(
+            "🔥 Error consulta usuario:",
+            e
+        );
+
+
+        return null;
+
+    }
+
+}
+
+
 
 
 
@@ -10193,43 +10341,180 @@ function agregarEfectoRipple(boton) {
     return overlay;
   }
 
-  function updateUserUI(u) {
-    // Si tu archivo ya tiene mostrarUsuario(), lo usamos (NO rompe nada)
-    if (typeof window.mostrarUsuario === "function") {
-      try { window.mostrarUsuario(u); } catch (e) {}
-      return;
+async function updateUserUI(u) {
+
+
+    // =====================================
+    // 👤 PRIORIDAD: CARGAR PERFIL DESDE SUPABASE
+    // =====================================
+
+    try {
+
+        if(
+            u &&
+            u.correo &&
+            typeof cargarPerfilSupabase === "function"
+        ){
+
+            const perfilSupabase = await cargarPerfilSupabase(
+                u.correo
+            );
+
+
+            if(perfilSupabase){
+
+                console.log(
+                    "👤 Perfil actualizado desde Supabase:",
+                    perfilSupabase
+                );
+
+
+                u = perfilSupabase;
+
+            }
+
+        }
+
+
+    } catch(error){
+
+
+        console.warn(
+            "⚠️ No se pudo cargar perfil Supabase, usando datos locales:",
+            error
+        );
+
+
     }
 
-    // Fallback mínimo (por si un archivo no tiene mostrarUsuario)
+
+
+    // =====================================
+    // Usar mostrarUsuario existente
+    // =====================================
+
+    if (typeof window.mostrarUsuario === "function") {
+
+        try {
+
+            window.mostrarUsuario(u);
+
+        } catch(e){
+
+            console.error(
+                "Error ejecutando mostrarUsuario:",
+                e
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+
+    // =====================================
+    // Fallback mínimo
+    // =====================================
+
     const userBtn = document.getElementById("userBtn");
     const userName = document.getElementById("userName");
     const userEmail = document.getElementById("userEmail");
     const userMenuPhoto = document.getElementById("userMenuPhoto");
 
-    const fotoSrc = (localStorage.getItem("fotoPerfil") || u?.fotoPerfil || "").trim();
-    const initials = getInitials(u?.nombre);
 
-    if (userBtn) {
-      if (fotoSrc) {
-        userBtn.innerHTML = `<img src="${fotoSrc}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-      } else {
-        userBtn.textContent = initials;
-      }
+    const fotoSrc = (
+        localStorage.getItem("fotoPerfil") || 
+        u?.fotoPerfil || 
+        ""
+    ).trim();
+
+
+    const initials = getInitials(
+        u?.nombre
+    );
+
+
+
+    if(userBtn){
+
+        if(fotoSrc){
+
+            userBtn.innerHTML = 
+            `
+            <img src="${fotoSrc}" 
+            style="
+            width:40px;
+            height:40px;
+            border-radius:50%;
+            object-fit:cover;
+            border:2px solid #0077cc;
+            ">
+            `;
+
+
+        }else{
+
+            userBtn.textContent = initials;
+
+        }
+
     }
 
-    if (userName) userName.textContent = u?.nombre || "Usuario";
-    if (userEmail) userEmail.textContent = u?.correo || "";
 
-    if (userMenuPhoto) {
-      if (fotoSrc) {
-        userMenuPhoto.innerHTML = `<img src="${fotoSrc}" style="width:100%;height:100%;object-fit:cover;">`;
-      } else {
-        userMenuPhoto.innerHTML = "";
-        userMenuPhoto.textContent = initials;
-      }
+
+    if(userName){
+
+        userName.textContent =
+        u?.nombre || "Usuario";
+
     }
-  }
 
+
+
+    if(userEmail){
+
+        userEmail.textContent =
+        u?.correo || "";
+
+    }
+
+
+
+    if(userMenuPhoto){
+
+
+        if(fotoSrc){
+
+
+            userMenuPhoto.innerHTML =
+            `
+            <img src="${fotoSrc}"
+            style="
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            ">
+            `;
+
+
+        }else{
+
+
+            userMenuPhoto.innerHTML = "";
+
+            userMenuPhoto.textContent =
+            initials;
+
+
+        }
+
+    }
+
+
+}
   function applyAuthUI() {
     const u = safeUser();
     const modal = document.getElementById("loginModal");
