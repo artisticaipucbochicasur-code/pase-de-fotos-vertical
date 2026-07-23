@@ -6257,6 +6257,13 @@ async function cargarGuardadosSupabase() {
 
             const li = document.createElement("li");
 
+            li.dataset.buscar = 
+(
+    (publicacion.titulo || "") +
+    " " +
+    (publicacion.descripcion || "")
+);
+
 
             li.style.display="flex";
             li.style.gap="12px";
@@ -6393,6 +6400,10 @@ async function cargarGuardadosSupabase() {
 
 
 
+// ======================================
+// 🔎 BUSCADOR DE GUARDADOS
+// ======================================
+
 if(savedSearchInput){
 
 
@@ -6409,23 +6420,23 @@ if(savedSearchInput){
 
 
             const items =
-            document.querySelectorAll(
-                "#savedList li"
-            );
+            savedList.querySelectorAll("li");
 
 
 
             items.forEach(item=>{
 
 
-                const contenido =
-                item.textContent
+                const texto =
+                (
+                    item.dataset.buscar || ""
+                )
                 .toLowerCase();
 
 
 
                 if(
-                    contenido.includes(textoBusqueda)
+                    texto.includes(textoBusqueda)
                 ){
 
                     item.style.display="flex";
