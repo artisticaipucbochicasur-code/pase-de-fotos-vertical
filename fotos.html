@@ -2890,93 +2890,60 @@ const perfilCache = {};
 
 async function guardarUsuarioSupabase(usuario){
 
-    console.log("🚀 Entró a guardarUsuarioSupabase", usuario);
-
-    if(!usuario || !usuario.correo){
-        console.warn("Usuario sin correo");
-        return;
-    }
-
+    console.log(
+        "🚀 Entró a guardarUsuarioSupabase",
+        usuario
+    );
 
 
     if(!usuario || !usuario.correo){
-
         console.warn(
-            "No se pudo sincronizar usuario: falta correo"
+            "Usuario sin correo"
         );
-
         return;
-
     }
 
 
-    try{
+    const {data,error} = await supabaseClient
+    .from("usuarios")
+    .upsert([{
+
+        nombre: usuario.nombre,
+
+        correo: usuario.correo,
+
+        foto_perfil: usuario.fotoPerfil || "",
+
+        telefono: String(usuario.telefono || ""),
+
+        congregacion: usuario.congregacion || "",
+
+        cargo: usuario.cargo || "",
+
+        ciudad: usuario.ciudad || ""
+
+    }],
+    {
+        onConflict:"correo"
+    });
 
 
-        const { error } = await supabaseClient
-
-        .from("usuarios")
-
-        .upsert([{
-
-
-            nombre: usuario.nombre || "",
-
-
-            correo: usuario.correo,
-
-
-            foto_perfil: usuario.fotoPerfil || "",
-
-
-            telefono: usuario.telefono || "",
-
-
-            congregacion: usuario.congregacion || "",
-
-
-            cargo: usuario.cargo || "",
-
-
-            ciudad: usuario.ciudad || "",
-
-
-            actualizado: new Date()
-
-
-        }],{
-
-
-            onConflict:"correo"
-
-
-        });
-
-
-
-        if(error){
-
-            throw error;
-
-        }
-
-
-        console.log(
-            "✅ Usuario sincronizado Supabase:",
-            usuario.correo
-        );
-
-
-    }catch(error){
-
+    if(error){
 
         console.error(
-            "❌ Error sincronizando usuario:",
+            "❌ Error guardando usuario Supabase:",
             error
         );
 
+        return;
 
     }
+
+
+    console.log(
+        "✅ Usuario sincronizado Supabase",
+        data
+    );
 
 }
 
@@ -8732,42 +8699,115 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 
       // mostrarAvisoA ELIMINADA (ya no se muestra)
 
-      if (data.status && data.status.includes("success")) {
-        const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "") || "";
-        const usuario = {
-          nombre: data.nombre || "Usuario",
-          correo: data.correo || "",
-          fotoPerfil: fotoPerfil,
-          telefono: data.telefono || "",
-          congregacion: data.congregacion || "",
-          cargo: data.cargo || "",
-          ciudad: data.ciudad || ""
-        };
+if (data.status && data.status.includes("success")) {
 
-        localStorage.setItem("usuario", JSON.stringify(usuario));
-        localStorage.setItem("autor", data.nombre);
-        localStorage.setItem("correo", data.correo);
-        localStorage.setItem("telefono", usuario.telefono);
-        localStorage.setItem("congregacion", usuario.congregacion);
-        localStorage.setItem("cargo", usuario.cargo);
-        localStorage.setItem("ciudad", usuario.ciudad);
-
-        currentAuthorName = data.nombre;
-        currentAuthorEmail = data.correo;
-
-        guardarUsuarioSupabase(usuario);
-
-        cerrarLoader(loader);
-        btnLogin.disabled = false;
-        btnLogin.classList.remove("btn-loading");
-        cerrarModalYContinuar();
-
-if (window.DEComAuthApply) window.DEComAuthApply();
-if (window.DEComAuthPing)  window.DEComAuthPing();
+    const fotoPerfil = 
+        data.fotoPerfil || 
+        (Array.isArray(data.foto) ? data.foto[0] : "") || "";
 
 
-        mostrarAviso("Bienvenido, " + data.nombre, "success");
-      } else {
+    const usuario = {
+
+        nombre: data.nombre || "Usuario",
+
+        correo: data.correo || "",
+
+        fotoPerfil: fotoPerfil,
+
+        telefono: data.telefono || "",
+
+        congregacion: data.congregacion || "",
+
+        cargo: data.cargo || "",
+
+        ciudad: data.ciudad || ""
+
+    };
+
+
+    // =====================================
+    // 🔥 SINCRONIZAR USUARIO CON SUPABASE
+    // =====================================
+
+    await guardarUsuarioSupabase(usuario);
+
+
+
+    // =====================================
+    // GUARDAR SESIÓN LOCAL
+    // =====================================
+
+    localStorage.setItem(
+        "usuario",
+        JSON.stringify(usuario)
+    );
+
+    localStorage.setItem(
+        "autor",
+        usuario.nombre
+    );
+
+    localStorage.setItem(
+        "correo",
+        usuario.correo
+    );
+
+    localStorage.setItem(
+        "telefono",
+        usuario.telefono
+    );
+
+    localStorage.setItem(
+        "congregacion",
+        usuario.congregacion
+    );
+
+    localStorage.setItem(
+        "cargo",
+        usuario.cargo
+    );
+
+    localStorage.setItem(
+        "ciudad",
+        usuario.ciudad
+    );
+
+
+
+    // Variables globales actuales
+
+    currentAuthorName = usuario.nombre;
+
+    currentAuthorEmail = usuario.correo;
+
+
+
+    cerrarLoader(loader);
+
+    btnLogin.disabled = false;
+
+    btnLogin.classList.remove("btn-loading");
+
+
+    cerrarModalYContinuar();
+
+
+
+    if (window.DEComAuthApply) 
+        window.DEComAuthApply();
+
+    if (window.DEComAuthPing)  
+        window.DEComAuthPing();
+
+
+
+    mostrarAviso(
+        "Bienvenido, " + usuario.nombre,
+        "success"
+    );
+
+
+} else {
         cerrarLoader(loader);
         btnLogin.disabled = false;
         btnLogin.classList.remove("btn-loading");
