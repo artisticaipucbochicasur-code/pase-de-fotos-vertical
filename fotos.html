@@ -7242,61 +7242,203 @@ async function resolveFotoPerfil(correo, nombre="") {
 
 
 
-   function initSwiper(initialIndex = 0) {
+function initSwiper(initialIndex = 0) {
+
     if(!swiperInstance) {
+
         swiperInstance = new Swiper('.swiper', {
+
             loop: true,
             direction: 'vertical',
             slidesPerView: 1,
             spaceBetween: 10,
-            zoom: { maxRatio: 3, minRatio: 1 }
+            zoom: { 
+                maxRatio: 3, 
+                minRatio: 1 
+            }
+
         });
 
+
+
         swiperInstance.on('slideChange', () => {
+
+
             const activeIndex = swiperInstance.realIndex;
+
+
             updateContentOverlay(activeIndex);
 
-   // ✅ Actualizar contador/estado de likes INMEDIATO al cambiar de slide
-    const anuncioSlide = anunciosData[activeIndex];
-    if (anuncioSlide && anuncioSlide.id) {
-      actualizarLikeUI(anuncioSlide.id);
-    }
+
+
+            // ❤️ Actualizar contador/estado de likes al cambiar anuncio
+            const anuncioSlide = anunciosData[activeIndex];
+
+            if (anuncioSlide && anuncioSlide.id) {
+
+                actualizarLikeUI(anuncioSlide.id);
+
+            }
+
+
+
+            // 🔖 Actualizar estado del botón guardar
+            if(typeof actualizarEstadoGuardado === "function"){
+
+                actualizarEstadoGuardado();
+
+            }
+
+
+
 
 
             if(window.AppInventor && anunciosData.length > 0) {
+
+
                 const anuncioActual = anunciosData[activeIndex];
-                
+
+
                 if (!anuncioActual) return;
 
+
+
                 const id = anuncioActual.id;
-                const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
+
+
+                const hayServidor = 
+                Array.isArray(comentariosPorAnuncio[id]) && 
+                comentariosPorAnuncio[id].length > 0;
+
+
+
                 if (hayServidor) {
-                    anuncioActual.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
+
+                    anuncioActual.comentarios =
+                    normalizarComentarios(comentariosPorAnuncio[id]);
+
                 }
+
+
+
                 const listaTitulos = anunciosData.map(a => a.titulo);
-                const payload = { ...anuncioActual, titulos: listaTitulos, contador: contadorAcumulado };
-                window.AppInventor.setWebViewString(JSON.stringify(payload));
+
+
+
+                const payload = { 
+
+                    ...anuncioActual, 
+
+                    titulos: listaTitulos, 
+
+                    contador: contadorAcumulado 
+
+                };
+
+
+
+                window.AppInventor.setWebViewString(
+                    JSON.stringify(payload)
+                );
+
             }
+
+
         });
+
+
     }
 
+
+
+
     if(anunciosData.length > 0) {
-        const initialSlideIndex = Math.min(initialIndex, anunciosData.length - 1);
-        swiperInstance.slideToLoop(initialSlideIndex, 0, false);
+
+
+        const initialSlideIndex = Math.min(
+            initialIndex,
+            anunciosData.length - 1
+        );
+
+
+
+        swiperInstance.slideToLoop(
+            initialSlideIndex,
+            0,
+            false
+        );
+
+
+
         updateContentOverlay(initialSlideIndex);
-        
-        if(window.AppInventor){
-            const anuncioInicial = anunciosData[initialSlideIndex];
-            const id = anuncioInicial.id;
-            const hayServidor = Array.isArray(comentariosPorAnuncio[id]) && comentariosPorAnuncio[id].length > 0;
-            if (hayServidor) {
-                anuncioInicial.comentarios = normalizarComentarios(comentariosPorAnuncio[id]);
-            }
-            const listaTitulos = anunciosData.map(a => a.titulo);
-            const payload = { ...anuncioInicial, titulos: listaTitulos, contador: contadorAcumulado };
-            window.AppInventor.setWebViewString(JSON.stringify(payload));
+
+
+
+        // 🔖 Estado inicial del botón guardar
+        if(typeof actualizarEstadoGuardado === "function"){
+
+            actualizarEstadoGuardado();
+
         }
+
+
+
+
+        if(window.AppInventor){
+
+
+            const anuncioInicial =
+            anunciosData[initialSlideIndex];
+
+
+
+            const id = anuncioInicial.id;
+
+
+
+            const hayServidor =
+            Array.isArray(comentariosPorAnuncio[id]) &&
+            comentariosPorAnuncio[id].length > 0;
+
+
+
+            if(hayServidor){
+
+                anuncioInicial.comentarios =
+                normalizarComentarios(
+                    comentariosPorAnuncio[id]
+                );
+
+            }
+
+
+
+            const listaTitulos =
+            anunciosData.map(a => a.titulo);
+
+
+
+            const payload = {
+
+                ...anuncioInicial,
+
+                titulos: listaTitulos,
+
+                contador: contadorAcumulado
+
+            };
+
+
+
+            window.AppInventor.setWebViewString(
+                JSON.stringify(payload)
+            );
+
+
+        }
+
     }
+
 }
 
 function aplicarTruncado(element, maxLength = 80) {
