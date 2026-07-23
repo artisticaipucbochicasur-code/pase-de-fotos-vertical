@@ -4765,116 +4765,274 @@ const likePendingPorAnuncio = {};
 
 
 async function toggleLikeAnuncioActual() {
-  if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
 
-  const activeIndex = swiperInstance.realIndex;
-  const anuncioActual = anunciosData[activeIndex];
-  if (!anuncioActual || !anuncioActual.id) return;
 
-  const anuncioId = anuncioActual.id;
+if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
 
-  // ✅ Evitar spam/doble click si ya hay una petición en curso
-  if (likePendingPorAnuncio[anuncioId]) return;
 
-  // ✅ Guardar estado anterior para rollback
-  const prevLiked = !!likedPorAnuncio[anuncioId];
-  const prevCount = Number(likesPorAnuncio[anuncioId] || 0);
 
-  // ✅ UI optimista: actualizar INMEDIATO (sin esperar fetch)
-  const nextLiked = !prevLiked;
-  const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+const activeIndex = swiperInstance.realIndex;
 
-  likedPorAnuncio[anuncioId] = nextLiked;
-  likesPorAnuncio[anuncioId] = nextCount;
+const anuncioActual = anunciosData[activeIndex];
 
-  // ✅ Pintar UI optimista DIRECTO para que nada la pise (evita parpadeo)
-  if (typeof likeCountValue !== "undefined" && likeCountValue) {
-    likeCountValue.textContent = nextCount;
-    likeCountValue.style.display = (nextCount > 0) ? "flex" : "none";
-  }
-  if (typeof likeIcon !== "undefined" && likeIcon) {
-    likeIcon.className = nextLiked ? "fas fa-heart" : "far fa-heart";
-  }
 
-  // ✅ Marcar pendiente DESPUÉS de pintar optimista
-  likePendingPorAnuncio[anuncioId] = true;
+if(!anuncioActual || !anuncioActual.id) return;
 
-  try {
-    const params = new URLSearchParams({
-      accion: 'toggleLike',
-      anuncioId: anuncioId,
-      correo: currentAuthorEmail || '',
-      autor: currentAuthorName || ''
-    });
 
-    const resp = await fetch(`${SCRIPT_URL}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString()
-    });
 
-    const data = await resp.json();
+const anuncioId = anuncioActual.id;
 
-    if (data && data.status === 'success') {
-      const serverLiked = !!data.liked;
-      const serverLikes = Number(data.likes || 0);
 
-      // ✅ Solo reconciliar si el servidor difiere del estado optimista actual
-      const currentLiked = !!likedPorAnuncio[anuncioId];
-      const currentLikes = Number(likesPorAnuncio[anuncioId] || 0);
 
-      if (serverLiked !== currentLiked || serverLikes !== currentLikes) {
-        likedPorAnuncio[anuncioId] = serverLiked;
-        likesPorAnuncio[anuncioId] = serverLikes;
-        actualizarLikeUI(anuncioId);
-      }
-      // ✅ Si coincide, NO hacemos nada -> no parpadea
-    } else {
-      // 🔁 Rollback si servidor responde error
-      likedPorAnuncio[anuncioId] = prevLiked;
-      likesPorAnuncio[anuncioId] = prevCount;
-      actualizarLikeUI(anuncioId);
+if(likePendingPorAnuncio[anuncioId]) return;
+
+
+
+const prevLiked =
+!!likedPorAnuncio[anuncioId];
+
+
+const prevCount =
+Number(likesPorAnuncio[anuncioId] || 0);
+
+
+
+// UI optimista
+
+const nextLiked = !prevLiked;
+
+
+const nextCount =
+Math.max(
+0,
+prevCount + (nextLiked ? 1 : -1)
+);
+
+
+
+likedPorAnuncio[anuncioId] = nextLiked;
+
+likesPorAnuncio[anuncioId] = nextCount;
+
+
+actualizarLikeUI(anuncioId);
+
+
+
+likePendingPorAnuncio[anuncioId] = true;
+
+
+
+try {
+
+
+    // Buscar si existe
+
+    const {data: existente,error:buscarError}=
+
+    await supabaseClient
+
+    .from("likes")
+
+    .select("id")
+
+    .eq("publicacion_id", anuncioId)
+
+    .eq("correo", currentAuthorEmail);
+
+
+
+    if(buscarError){
+
+        throw buscarError;
+
     }
-  } catch (e) {
-    console.error('Error toggleLike:', e);
 
-    // 🔁 Rollback si falla la red
-    likedPorAnuncio[anuncioId] = prevLiked;
-    likesPorAnuncio[anuncioId] = prevCount;
+
+
+    if(existente.length > 0){
+
+
+        // quitar like
+
+
+        const {error}=
+
+        await supabaseClient
+
+        .from("likes")
+
+        .delete()
+
+        .eq("id", existente[0].id);
+
+
+
+        if(error) throw error;
+
+
+
+    }else{
+
+
+        // agregar like
+
+
+        const {error}=
+
+        await supabaseClient
+
+        .from("likes")
+
+        .insert([{
+
+            publicacion_id: anuncioId,
+
+            correo: currentAuthorEmail
+
+        }]);
+
+
+
+        if(error) throw error;
+
+
+    }
+
+
+
+    // actualizar datos reales
+
+    await verificarLikes();
+
+
+
+}catch(error){
+
+
+    console.error(
+        "Error toggle like:",
+        error
+    );
+
+
+
+    // rollback
+
+    likedPorAnuncio[anuncioId]=prevLiked;
+
+    likesPorAnuncio[anuncioId]=prevCount;
+
+
     actualizarLikeUI(anuncioId);
-  } finally {
-    likePendingPorAnuncio[anuncioId] = false;
-  }
+
+
+
+}finally{
+
+
+    likePendingPorAnuncio[anuncioId]=false;
+
+
+}
+
+
 }
 
 
 
-  async function verificarLikes() {
-  try {
-    const url = `${SCRIPT_URL}?accion=obtenerContadorLikes&correo=${encodeURIComponent(currentAuthorEmail || '')}`;
-    const response = await fetch(url);
-    const data = await response.json();
+async function verificarLikes() {
 
-    // Guardar data
-    const totalLikesActual = Number(data.totalLikes || 0);
-    if (data.likesPorAnuncio) likesPorAnuncio = data.likesPorAnuncio;
-    if (data.likedPorAnuncio) likedPorAnuncio = data.likedPorAnuncio;
+    try {
 
-    // ✅ SIEMPRE actualizar UI del anuncio actual (incluye primera carga)
-    if (swiperInstance && anunciosData && anunciosData.length > 0) {
-      const activeIndex = swiperInstance.realIndex;
-      const anuncioActual = anunciosData[activeIndex];
-      if (anuncioActual && anuncioActual.id) {
-        actualizarLikeUI(anuncioActual.id);
-      }
+
+        const { data, error } = await supabaseClient
+
+            .from("likes")
+
+            .select("*");
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+
+        likesPorAnuncio = {};
+        likedPorAnuncio = {};
+
+
+
+        data.forEach(like => {
+
+
+            const id = like.publicacion_id;
+
+
+
+            // contador general
+
+            likesPorAnuncio[id] =
+            (likesPorAnuncio[id] || 0) + 1;
+
+
+
+            // saber si este usuario dio like
+
+            if(
+                normalizeText(like.correo) ===
+                normalizeText(currentAuthorEmail)
+            ){
+
+                likedPorAnuncio[id] = true;
+
+            }
+
+
+        });
+
+
+
+        // actualizar anuncio visible
+
+        if(
+            swiperInstance &&
+            anunciosData &&
+            anunciosData.length > 0
+        ){
+
+            const activeIndex =
+            swiperInstance.realIndex;
+
+
+            const anuncioActual =
+            anunciosData[activeIndex];
+
+
+            if(anuncioActual){
+
+                actualizarLikeUI(anuncioActual.id);
+
+            }
+
+        }
+
+
+    } catch(error){
+
+
+        console.error(
+            "Error cargando likes Supabase:",
+            error
+        );
+
+
     }
 
-    // Mantener tracking por si lo usas para debug
-    contadorLikesAnterior = totalLikesActual;
-
-  } catch (e) {
-    console.error('Error al verificar likes:', e);
-  }
 }
 
 
