@@ -4419,37 +4419,105 @@ function mostrarAviso(mensaje, tipo = "info") {
 // ==========================
 // ✅ FUNCIONES DE COOKIES (Compatibilidad WebViewer)
 // ==========================
-function setSavedTitles(data) {
-    document.cookie = "savedTitles=" + encodeURIComponent(JSON.stringify(data)) + "; path=/; max-age=31536000";
-}
 
-function getSavedTitles() {
-    const match = document.cookie.match(/(^| )savedTitles=([^;]+)/);
-    return match ? JSON.parse(decodeURIComponent(match[2])) : [];
-}
+let guardadosPorAnuncio = {};
 
 // ==========================
 // 💾 GUARDAR ANUNCIO ACTUAL
 // ==========================
-function saveCurrentTitle() {
-    if (!swiperInstance || anunciosData.length === 0) {
-        showToast("⚠️ No hay anuncios para guardar");
-        return;
+async function verificarGuardados(){
+
+    try{
+
+
+        const {data,error}=await supabaseClient
+
+        .from("guardados")
+
+        .select("*")
+
+        .eq(
+            "correo",
+            currentAuthorEmail
+        );
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+
+        guardadosPorAnuncio = {};
+
+
+
+        data.forEach(g=>{
+
+
+            guardadosPorAnuncio[g.publicacion_id]=true;
+
+
+        });
+
+
+
+        actualizarEstadoGuardado();
+
+
+
+    }catch(error){
+
+
+        console.error(
+            "Error cargando guardados:",
+            error
+        );
+
+
     }
 
-    const currentIndex = swiperInstance.realIndex;
-    const currentAnuncio = anunciosData[currentIndex];
+}
 
-    let saved = getSavedTitles();
 
-    // Evitamos duplicados por ID
-    if (!saved.find(item => item.id === currentAnuncio.id)) {
-        saved.push({ id: currentAnuncio.id, titulo: currentAnuncio.titulo });
-        setSavedTitles(saved);
-        showToast("✅ Anuncio guardado");
-    } else {
-        showToast("ℹ️ Este anuncio ya está guardado");
+function actualizarEstadoGuardado(){
+
+
+    if(!swiperInstance) return;
+
+
+    const index = swiperInstance.realIndex;
+
+
+    const anuncio = anunciosData[index];
+
+
+    if(!anuncio) return;
+
+
+
+    const icon = saveBtn.querySelector("i");
+
+
+    if(
+        guardadosPorAnuncio[anuncio.id]
+    ){
+
+        icon.className="fas fa-bookmark";
+
+
+    }else{
+
+
+        icon.className="far fa-bookmark";
+
+
     }
+
+
 }
 
     // 🔧 Normaliza texto: minúsculas, sin tildes, sin espacios extras
@@ -4633,13 +4701,115 @@ function renderSavedTitles(filter = "") {
 // ==========================
 // 📌 EVENTOS DEL BOTÓN ÚNICO (Guardar / Ver Anuncios)
 // ==========================
-saveBtn.addEventListener("click", () => {
-    savedSearchInput.value = "";
-    renderSavedTitles();
-    setTimeout(() => {
-        savedModal.style.display = "flex";
-        savedList.scrollTop = 0;
-    }, 50);
+saveBtn.addEventListener("click", async ()=>{
+
+
+    if(!swiperInstance || anunciosData.length===0)
+        return;
+
+
+
+    const index =
+    swiperInstance.realIndex;
+
+
+    const anuncio =
+    anunciosData[index];
+
+
+
+    if(!anuncio) return;
+
+
+
+    const existe =
+    guardadosPorAnuncio[anuncio.id];
+
+
+
+    try{
+
+
+        if(existe){
+
+
+            await supabaseClient
+
+            .from("guardados")
+
+            .delete()
+
+            .eq(
+                "publicacion_id",
+                anuncio.id
+            )
+
+            .eq(
+                "correo",
+                currentAuthorEmail
+            );
+
+
+            delete guardadosPorAnuncio[anuncio.id];
+
+
+            showToast(
+              "🗑️ Eliminado de guardados"
+            );
+
+
+
+        }else{
+
+
+            await supabaseClient
+
+            .from("guardados")
+
+            .insert([{
+
+
+                publicacion_id:
+                anuncio.id,
+
+
+                correo:
+                currentAuthorEmail
+
+
+            }]);
+
+
+
+            guardadosPorAnuncio[anuncio.id]=true;
+
+
+
+            showToast(
+             "🔖 Guardado"
+            );
+
+
+        }
+
+
+
+        actualizarEstadoGuardado();
+
+
+
+    }catch(error){
+
+
+        console.error(
+          "Error guardando:",
+          error
+        );
+
+
+    }
+
+
 });
 
 savedSearchInput.addEventListener("input", (e) => {
@@ -6281,6 +6451,8 @@ async function cargarImagenes(forceRefresh = false) {
 
             updateContentOverlay(activeIndex);
 
+            actualizarEstadoGuardado();
+
 
 
             loader.style.display = 'none';
@@ -7290,10 +7462,15 @@ function showCustommostrarAviso(title, titlesList) {
 
     verificarLikes();
 
-   verificarComentarios().then(() => {
+ verificarComentarios().then(() => {
+
     cargarImagenes();
-     verificarLikes(); // ✅ fuerza primera carga visible
-    });
+
+    verificarLikes();
+
+    verificarGuardados();
+
+});
 
 
     if (lblContador) {
