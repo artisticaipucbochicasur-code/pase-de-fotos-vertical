@@ -2890,60 +2890,93 @@ const perfilCache = {};
 
 async function guardarUsuarioSupabase(usuario){
 
-    console.log(
-        "🚀 Entró a guardarUsuarioSupabase",
-        usuario
-    );
+    console.log("🚀 Entró a guardarUsuarioSupabase", usuario);
+
+    if(!usuario || !usuario.correo){
+        console.warn("Usuario sin correo");
+        return;
+    }
+
 
 
     if(!usuario || !usuario.correo){
+
         console.warn(
-            "Usuario sin correo"
+            "No se pudo sincronizar usuario: falta correo"
         );
+
         return;
+
     }
 
 
-    const {data,error} = await supabaseClient
-    .from("usuarios")
-    .upsert([{
-
-        nombre: usuario.nombre,
-
-        correo: usuario.correo,
-
-        foto_perfil: usuario.fotoPerfil || "",
-
-        telefono: String(usuario.telefono || ""),
-
-        congregacion: usuario.congregacion || "",
-
-        cargo: usuario.cargo || "",
-
-        ciudad: usuario.ciudad || ""
-
-    }],
-    {
-        onConflict:"correo"
-    });
+    try{
 
 
-    if(error){
+        const { error } = await supabaseClient
+
+        .from("usuarios")
+
+        .upsert([{
+
+
+            nombre: usuario.nombre || "",
+
+
+            correo: usuario.correo,
+
+
+            foto_perfil: usuario.fotoPerfil || "",
+
+
+            telefono: usuario.telefono || "",
+
+
+            congregacion: usuario.congregacion || "",
+
+
+            cargo: usuario.cargo || "",
+
+
+            ciudad: usuario.ciudad || "",
+
+
+            actualizado: new Date()
+
+
+        }],{
+
+
+            onConflict:"correo"
+
+
+        });
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        console.log(
+            "✅ Usuario sincronizado Supabase:",
+            usuario.correo
+        );
+
+
+    }catch(error){
+
 
         console.error(
-            "❌ Error guardando usuario Supabase:",
+            "❌ Error sincronizando usuario:",
             error
         );
 
-        return;
 
     }
-
-
-    console.log(
-        "✅ Usuario sincronizado Supabase",
-        data
-    );
 
 }
 
@@ -8699,24 +8732,17 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 
       // mostrarAvisoA ELIMINADA (ya no se muestra)
 
-   const usuario = {
-  nombre: data.nombre || "Usuario",
-  correo: data.correo || "",
-  fotoPerfil: fotoPerfil,
-  telefono: data.telefono || "",
-  congregacion: data.congregacion || "",
-  cargo: data.cargo || "",
-  ciudad: data.ciudad || ""
-};
-
-
-// =================================
-// GUARDAR / ACTUALIZAR PERFIL SUPABASE
-// =================================
-await guardarUsuarioSupabase(usuario);
-
-
-localStorage.setItem("usuario", JSON.stringify(usuario));
+      if (data.status && data.status.includes("success")) {
+        const fotoPerfil = data.fotoPerfil || (Array.isArray(data.foto) ? data.foto[0] : "") || "";
+        const usuario = {
+          nombre: data.nombre || "Usuario",
+          correo: data.correo || "",
+          fotoPerfil: fotoPerfil,
+          telefono: data.telefono || "",
+          congregacion: data.congregacion || "",
+          cargo: data.cargo || "",
+          ciudad: data.ciudad || ""
+        };
 
         localStorage.setItem("usuario", JSON.stringify(usuario));
         localStorage.setItem("autor", data.nombre);
