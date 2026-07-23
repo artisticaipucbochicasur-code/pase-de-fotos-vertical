@@ -2879,9 +2879,103 @@ function aplicarLightModeModalPublicar() {
 
     
 // Cache de perfiles precargados
-const perfilCache = {}; // clave: correo normalizado → datos completos del perfil
+// Cache de perfiles precargados 
+const perfilCache = {};
 
-    async function resolvePerfil(correo) {
+
+
+// =====================================
+// 👤 Guardar / actualizar usuario Supabase
+// =====================================
+
+async function guardarUsuarioSupabase(usuario){
+
+
+    if(!usuario || !usuario.correo){
+
+        console.warn(
+            "No se pudo sincronizar usuario: falta correo"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+
+        const { error } = await supabaseClient
+
+        .from("usuarios")
+
+        .upsert([{
+
+
+            nombre: usuario.nombre || "",
+
+
+            correo: usuario.correo,
+
+
+            foto_perfil: usuario.fotoPerfil || "",
+
+
+            telefono: usuario.telefono || "",
+
+
+            congregacion: usuario.congregacion || "",
+
+
+            cargo: usuario.cargo || "",
+
+
+            ciudad: usuario.ciudad || "",
+
+
+            actualizado: new Date()
+
+
+        }],{
+
+
+            onConflict:"correo"
+
+
+        });
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        console.log(
+            "✅ Usuario sincronizado Supabase:",
+            usuario.correo
+        );
+
+
+    }catch(error){
+
+
+        console.error(
+            "❌ Error sincronizando usuario:",
+            error
+        );
+
+
+    }
+
+}
+
+
+
+
+async function resolvePerfil(correo) {
     const correoNorm = normalizeText(correo);
     if (!correoNorm || perfilCache[correoNorm]) return; // ya está cacheado
 
@@ -8652,6 +8746,8 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 
         currentAuthorName = data.nombre;
         currentAuthorEmail = data.correo;
+
+        guardarUsuarioSupabase(usuario);
 
         cerrarLoader(loader);
         btnLogin.disabled = false;
