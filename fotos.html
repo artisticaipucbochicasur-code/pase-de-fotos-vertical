@@ -3694,6 +3694,96 @@ async function cargarPerfilSupabase(correo){
 
 
 // =====================================
+// 🔄 Sincronizar usuario desde Supabase
+// =====================================
+
+async function sincronizarUsuarioSupabase(){
+
+
+    const correo =
+    localStorage.getItem("correo");
+
+
+    if(!correo){
+
+        console.warn(
+            "Sin correo para sincronizar"
+        );
+
+        return null;
+
+    }
+
+
+
+    const perfil =
+    await cargarPerfilSupabase(correo);
+
+
+
+    if(!perfil){
+
+        console.warn(
+            "No se encontró perfil actualizado"
+        );
+
+        return null;
+
+    }
+
+
+
+    console.log(
+        "🔄 Usuario sincronizado desde Supabase:",
+        perfil
+    );
+
+
+
+    localStorage.setItem(
+        "usuario",
+        JSON.stringify(perfil)
+    );
+
+
+    localStorage.setItem(
+        "autor",
+        perfil.nombre || ""
+    );
+
+
+    localStorage.setItem(
+        "telefono",
+        perfil.telefono || ""
+    );
+
+
+    localStorage.setItem(
+        "congregacion",
+        perfil.congregacion || ""
+    );
+
+
+    localStorage.setItem(
+        "cargo",
+        perfil.cargo || ""
+    );
+
+
+    localStorage.setItem(
+        "ciudad",
+        perfil.ciudad || ""
+    );
+
+
+    return perfil;
+
+
+}
+
+
+
+// =====================================
 // ✏️ ACTUALIZAR PERFIL DESDE MODAL
 // =====================================
 
@@ -10000,6 +10090,8 @@ try {
 
     currentAuthorEmail = usuario.correo;
 
+    await sincronizarUsuarioSupabase();
+
 
 
     cerrarLoader(loader);
@@ -11118,11 +11210,35 @@ document.getElementById("modalEditarPerfil")
 });
 
 
-document.getElementById("cerrarEditarPerfil")
-?.addEventListener("click",()=>{
+// =====================================
+// CERRAR MODAL EDITAR PERFIL
+// =====================================
 
-document.getElementById("modalEditarPerfil")
-.style.display="none";
+function cerrarEditarPerfil(){
+
+    const modal =
+    document.getElementById("modalEditarPerfil");
+
+
+    if(modal){
+
+        modal.style.display="none";
+
+    }
+
+
+}
+
+
+
+// botón X
+
+document.getElementById("cerrarEditarPerfil")
+?.addEventListener(
+"click",
+()=>{
+
+    cerrarEditarPerfil();
 
 });
 
