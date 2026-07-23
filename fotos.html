@@ -1564,15 +1564,24 @@ body {
           </style>
 
           <!-- Botones -->
-          <button class="menu-btn">
-            <i class="fas fa-user-circle"></i>
-            <span>Mi perfil</span>
-          </button>
 
-          <button class="menu-btn">
-            <i class="fas fa-bell"></i>
-            <span>Notificaciones</span>
-          </button>
+<button class="menu-btn">
+  <i class="fas fa-user-circle"></i>
+  <span>Mi perfil</span>
+</button>
+
+
+<!-- 🔖 MIS GUARDADOS -->
+<button id="openSavedMenu" class="menu-btn">
+  <i class="far fa-bookmark"></i>
+  <span>Mis guardados</span>
+</button>
+
+
+<button class="menu-btn">
+  <i class="fas fa-bell"></i>
+  <span>Notificaciones</span>
+</button>
 
           <button id="themeToggle" class="menu-btn">
             <i class="fas fa-sun" id="themeIcon"></i>
@@ -8699,6 +8708,66 @@ function buildDriveUrlIfNeeded(urlOrId) {
 
   return s;
 }
+
+
+
+// ===============================
+// 🔖 ABRIR MIS GUARDADOS
+// ===============================
+
+const openSavedMenu = document.getElementById("openSavedMenu");
+
+
+if(openSavedMenu){
+
+    openSavedMenu.addEventListener(
+        "click",
+        async()=>{
+
+
+            // cerrar menú lateral
+            const userMenu =
+            document.getElementById("userMenu");
+
+
+            if(userMenu){
+
+                userMenu.style.display="none";
+
+            }
+
+
+
+            // limpiar búsqueda
+            if(savedSearchInput){
+
+                savedSearchInput.value="";
+
+            }
+
+
+
+            // cargar desde Supabase
+            await cargarGuardadosSupabase();
+
+
+
+            // abrir modal
+            if(savedModal){
+
+                savedModal.style.display="flex";
+
+            }
+
+
+        }
+    );
+
+}
+
+
+
+
 
 // --- Mostrar usuario con preloader y logs de depuración ---
 // --- Mostrar usuario con preloader y logs de depuración ---
