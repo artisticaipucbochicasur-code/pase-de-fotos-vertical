@@ -2813,101 +2813,130 @@ Guardar cambios
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
+
 async function abrirPerfilPorCorreo(correo) {
+
   if (!correo || correo.trim() === "") {
     console.warn("abrirPerfilPorCorreo → correo vacío");
     return;
   }
 
-  const correoLimpio = correo.trim();
-  const correoNorm = normalizeText(correoLimpio);
-
-  // ⚡ SI EL PERFIL ESTÁ EN CACHÉ → ABRIR INSTANTÁNEO
-  if (perfilCache[correoNorm]) {
-    const data = perfilCache[correoNorm];
-
-    // Foto principal
-    document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
-
-    // Foto difuminada
-    document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
-
-    // Nombre y correo
-    document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
-    document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
-
-    mostrarDatosAutor({
-      telefono: data.telefono,
-      ciudad: data.ciudad,
-      congregacion: data.congregacion,
-      cargo: data.cargo
-    });
-
-    document.getElementById("modalAutor").classList.remove("hidden");
-    return; // ⬅ evita hacer el fetch
-  }
-
-  // ⚡ SI NO ESTÁ EN CACHÉ → HACER PETICIÓN NORMAL
-  const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoLimpio)}`;
 
   try {
-    const res = await fetch(url, { method: "GET", cache: "no-cache" });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Error HTTP:", res.status, errorText);
-      mostrarAviso(`Error del servidor (${res.status})\n\n${errorText.substring(0, 400)}`);
+    const correoNorm = normalizeText(correo.trim());
+
+
+    // Revisar caché primero
+    if (perfilCache[correoNorm]) {
+
+      mostrarPerfilAutor(perfilCache[correoNorm]);
       return;
+
     }
 
-    const textoCrudo = await res.text();
-    let data;
 
-    try {
-      data = JSON.parse(textoCrudo);
-    } catch (parseErr) {
-      console.error("JSON inválido recibido:", textoCrudo);
-      mostrarAviso("Error: el servidor no devolvió datos válidos.\nRevisa la consola para más detalles.");
-      return;
-    }
+    // Buscar directamente en Supabase
+    const { data, error } = await supabaseClient
+      .from("usuarios")
+      .select("*")
+      .eq("correo", correo.trim())
+      .single();
 
-    if (data.status === "success") {
 
-      // ⚡ Guardar en caché para próxima apertura instantánea
-      perfilCache[correoNorm] = data;
 
-      // Foto principal
-      document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
+    if (error || !data) {
 
-      // Foto difuminada
-      document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
-
-      // Nombre y correo
-      document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
-      document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
-
-      // INSERTAR DATOS AL ESTILO PERFIL
-      mostrarDatosAutor({
-        telefono: data.telefono,
-        ciudad: data.ciudad,
-        congregacion: data.congregacion,
-        cargo: data.cargo
-      });
-
-      // Mostrar modal
-      document.getElementById("modalAutor").classList.remove("hidden");
-
-    } else {
+      console.error("Perfil no encontrado:", error);
       mostrarAviso("Perfil no encontrado");
+      return;
+
     }
 
-  } catch (err) {
-    console.error("Error crítico en abrirPerfilPorCorreo:", err);
-    mostrarAviso("Error de conexión. Revisa tu internet o intenta más tarde.");
+
+
+    const perfil = {
+
+      nombre: data.nombre || "Anónimo",
+
+      correo: data.correo || "",
+
+      telefono: data.telefono || "",
+
+      ciudad: data.ciudad || "",
+
+      congregacion: data.congregacion || "",
+
+      cargo: data.cargo || "",
+
+      fotoPerfil: data.foto_perfil || "img/default-user.png"
+
+    };
+
+
+
+    // Guardar cache
+    perfilCache[correoNorm] = perfil;
+
+
+
+    mostrarPerfilAutor(perfil);
+
+
+
+  } catch(err){
+
+    console.error("Error abriendo perfil:",err);
+
+    mostrarAviso("Error cargando perfil");
+
   }
+
+
 }
 
 
+
+
+function mostrarPerfilAutor(data){
+
+
+    document.getElementById("autorFoto").src =
+        data.fotoPerfil || "img/default-user.png";
+
+
+    document.getElementById("autorFotoFondo").src =
+        data.fotoPerfil || "img/default-user.png";
+
+
+
+    document.getElementById("autorNombre").textContent =
+        data.nombre || "Anónimo";
+
+
+    document.getElementById("autorCorreo").textContent =
+        data.correo || "Sin correo";
+
+
+
+    mostrarDatosAutor({
+
+        telefono:data.telefono,
+
+        ciudad:data.ciudad,
+
+        congregacion:data.congregacion,
+
+        cargo:data.cargo
+
+    });
+
+
+
+    document.getElementById("modalAutor")
+        .classList.remove("hidden");
+
+}
 
 // Cerrar modal
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
@@ -3899,13 +3928,13 @@ async function actualizarPerfilSupabase(){
     // ================================
 
 
-    const usuarioNuevo={
+const usuarioNuevo = {
 
-        ...usuarioActual,
+    ...usuarioActual,
 
-        ...datosActualizar
+    ...datosActualizar
 
-    };
+};
 
 
 
@@ -9099,81 +9128,60 @@ if (anuncio.correo && anuncio.correo !== currentAuthorEmail) {
 // =====================================
 // 🔍 Resolver foto con caché + fallback
 // =====================================
-async function resolveFotoPerfil(correo, nombre="") {
-    if (!correo) return fallbackName(nombre);
+async function resolveFotoPerfil(correo,nombre=""){
 
-    // RAM
-    if (fotoCache[correo]) return fotoCache[correo];
 
-    // LocalStorage
-    if (fotoLocal[correo]) {
-        fotoCache[correo] = fotoLocal[correo];
-        return fotoLocal[correo];
-    }
-
-    try {
-        const res = await fetch(`${SCRIPT_URL}?accion=getFotoPerfil&correo=${encodeURIComponent(correo)}`);
-        const data = await res.json();
-        let foto = (data && (data.fotoPerfil || data.foto || data.url)) ? (data.fotoPerfil || data.foto || data.url) : "";
-
-        if (!foto) return fallbackName(nombre);
-
-        const candidates = [];
-        const s = String(foto).trim();
-        candidates.push(s);
-
-        const idOnly = s.match(/^[A-Za-z0-9_-]{20,80}$/);
-        if (idOnly) {
-            const id = idOnly[0];
-            candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
-            candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
-            candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
-        } else {
-            const m = s.match(/(?:id=|\/d\/)([A-Za-z0-9_-]{20,80})/);
-            if (m && m[1]) {
-                const id = m[1];
-                candidates.push(`https://drive.google.com/uc?export=view&id=${id}`);
-                candidates.push(`https://drive.google.com/uc?export=download&id=${id}`);
-                candidates.push(`https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}`);
-            }
-        }
-
-        const uniqueCandidates = Array.from(new Set(candidates)).filter(Boolean);
-
-        for (let i = 0; i < uniqueCandidates.length; i++) {
-            const url = uniqueCandidates[i];
-            try {
-                const ok = await new Promise((resolve) => {
-                    const testImg = new Image();
-                    testImg.referrerPolicy = "no-referrer";
-                    let finished = false;
-                    const to = setTimeout(() => {
-                        if (!finished) { finished = true; resolve(false); }
-                    }, 3000);
-
-                    testImg.onload = () => {
-                        if (!finished) { finished = true; clearTimeout(to); resolve(true); }
-                    };
-                    testImg.onerror = () => {
-                        if (!finished) { finished = true; clearTimeout(to); resolve(false); }
-                    };
-
-                    try { testImg.src = url; } catch { clearTimeout(to); resolve(false); }
-                });
-
-                if (ok) {
-                    fotoCache[correo] = url;
-                    saveLocalPhoto(correo, url);
-                    return url;
-                }
-            } catch {}
-        }
-
+    if(!correo)
         return fallbackName(nombre);
 
-    } catch (err) {
-        return fallbackName(nombre);
+
+
+    // Cache RAM
+
+    if(fotoCache[correo])
+        return fotoCache[correo];
+
+
+
+    try{
+
+
+        const {data,error}=await supabaseClient
+
+        .from("usuarios")
+
+        .select("foto_perfil")
+
+        .eq("correo",correo)
+
+        .single();
+
+
+
+        let foto =
+            data?.foto_perfil ||
+            "img/default-user.png";
+
+
+
+        fotoCache[correo]=foto;
+
+
+        return foto;
+
+
+
+    }catch(e){
+
+
+        console.error("Error buscando foto:",e);
+
+
+        return "img/default-user.png";
+
     }
+
+
 }
 
 
