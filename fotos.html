@@ -3805,7 +3805,13 @@ async function sincronizarUsuarioSupabase(){
     );
 
 
-    return perfil;
+    console.log(
+    "✅ localStorage actualizado con Supabase",
+    perfil
+);
+
+
+return perfil;
 
 
 }
@@ -10162,13 +10168,51 @@ console.log(
 
 
 
-    // Variables globales actuales
+ // =====================================
+// 🔄 CARGAR DATOS REALES DESDE SUPABASE
+// =====================================
+
+currentAuthorEmail = usuario.correo;
+
+
+const perfilSupabase = 
+await sincronizarUsuarioSupabase();
+
+
+
+if(perfilSupabase){
+
+
+    console.log(
+        "✅ Perfil definitivo cargado:",
+        perfilSupabase
+    );
+
+
+    currentAuthorName = perfilSupabase.nombre;
+
+    currentAuthorEmail = perfilSupabase.correo;
+
+
+
+    // Actualizar interfaz con datos reales
+
+    if(typeof mostrarUsuario === "function"){
+
+        mostrarUsuario(perfilSupabase);
+
+    }
+
+
+}else{
+
 
     currentAuthorName = usuario.nombre;
 
     currentAuthorEmail = usuario.correo;
 
-    await sincronizarUsuarioSupabase();
+
+}
 
 
 
