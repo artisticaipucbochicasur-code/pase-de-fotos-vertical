@@ -3693,6 +3693,214 @@ async function cargarPerfilSupabase(correo){
 
 
 
+// =====================================
+// ✏️ ACTUALIZAR PERFIL DESDE MODAL
+// =====================================
+
+async function actualizarPerfilSupabase(){
+
+
+    console.log(
+        "%c✏️ Iniciando actualización perfil",
+        "color:orange;font-size:16px;font-weight:bold"
+    );
+
+
+
+    const usuarioActual = JSON.parse(
+        localStorage.getItem("usuario")
+    );
+
+
+
+    if(!usuarioActual || !usuarioActual.correo){
+
+        console.error(
+            "❌ No existe usuario logueado"
+        );
+
+        return;
+
+    }
+
+
+
+    const datosActualizar = {
+
+
+        nombre:
+        document.getElementById("editarNombre").value.trim(),
+
+
+        telefono:
+        document.getElementById("editarTelefono").value.trim(),
+
+
+        congregacion:
+        document.getElementById("editarCongregacion").value.trim(),
+
+
+        cargo:
+        document.getElementById("editarCargo").value.trim(),
+
+
+        ciudad:
+        document.getElementById("editarCiudad").value.trim(),
+
+
+        actualizado:
+        new Date().toISOString()
+
+    };
+
+
+
+    console.log(
+        "📤 Datos enviados a Supabase:",
+        datosActualizar
+    );
+
+
+
+    const {data,error}=await supabaseClient
+
+    .from("usuarios")
+
+    .update(datosActualizar)
+
+    .eq(
+        "correo",
+        usuarioActual.correo
+    );
+
+
+
+    if(error){
+
+
+        console.error(
+            "❌ Error actualizando Supabase:",
+            error
+        );
+
+
+        mostrarAviso(
+            "Error guardando cambios",
+            "error"
+        );
+
+
+        return;
+
+    }
+
+
+
+    console.log(
+        "%c✅ Perfil actualizado Supabase",
+        "color:green;font-size:16px;font-weight:bold",
+        data
+    );
+
+
+
+    // ================================
+    // Actualizar localStorage
+    // ================================
+
+
+    const usuarioNuevo={
+
+        ...usuarioActual,
+
+        ...datosActualizar
+
+    };
+
+
+
+    localStorage.setItem(
+        "usuario",
+        JSON.stringify(usuarioNuevo)
+    );
+
+
+    localStorage.setItem(
+        "autor",
+        usuarioNuevo.nombre
+    );
+
+
+    localStorage.setItem(
+        "telefono",
+        usuarioNuevo.telefono
+    );
+
+
+    localStorage.setItem(
+        "congregacion",
+        usuarioNuevo.congregacion
+    );
+
+
+    localStorage.setItem(
+        "cargo",
+        usuarioNuevo.cargo
+    );
+
+
+    localStorage.setItem(
+        "ciudad",
+        usuarioNuevo.ciudad
+    );
+
+
+
+    console.log(
+        "💾 Datos locales actualizados"
+    );
+
+
+
+    // Actualizar botón superior
+
+    if(typeof mostrarUsuario==="function"){
+
+        mostrarUsuario(usuarioNuevo);
+
+    }
+
+
+
+    cerrarEditarPerfil();
+
+
+
+    mostrarAviso(
+        "Perfil actualizado correctamente",
+        "success"
+    );
+
+
+}
+
+
+
+// =====================================
+// BOTÓN GUARDAR EDITAR PERFIL
+// =====================================
+
+document
+.getElementById("guardarEditarPerfil")
+?.addEventListener(
+"click",
+async ()=>{
+
+
+    await actualizarPerfilSupabase();
+
+
+});
 
 
 // =====================================
