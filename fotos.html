@@ -6586,6 +6586,147 @@ async function verificarComentarios() {
       }
     }
 
+
+
+
+    // ==========================================
+// ⚡ SUPABASE REALTIME
+// Actualización automática entre dispositivos
+// ==========================================
+
+function iniciarRealtimeSupabase(){
+
+
+    console.log("⚡ Iniciando Supabase Realtime...");
+
+
+
+    // ===============================
+    // PUBLICACIONES
+    // ===============================
+
+    supabaseClient
+
+    .channel("publicaciones-realtime")
+
+    .on(
+        "postgres_changes",
+        {
+            event:"*",
+            schema:"public",
+            table:"publicaciones"
+        },
+        payload=>{
+
+
+            console.log(
+                "📢 Cambio en publicaciones:",
+                payload
+            );
+
+
+            // recargar anuncios
+            if(typeof cargarImagenes === "function"){
+
+                cargarImagenes(true);
+
+            }
+
+
+        }
+    )
+
+    .subscribe();
+
+
+
+
+
+    // ===============================
+    // COMENTARIOS
+    // ===============================
+
+    supabaseClient
+
+    .channel("comentarios-realtime")
+
+    .on(
+        "postgres_changes",
+        {
+            event:"*",
+            schema:"public",
+            table:"comentarios"
+        },
+        payload=>{
+
+
+            console.log(
+                "💬 Cambio en comentarios:",
+                payload
+            );
+
+
+
+            if(typeof verificarComentarios === "function"){
+
+                verificarComentarios();
+
+            }
+
+
+        }
+    )
+
+    .subscribe();
+
+
+
+
+
+    // ===============================
+    // LIKES
+    // ===============================
+
+    supabaseClient
+
+    .channel("likes-realtime")
+
+    .on(
+        "postgres_changes",
+        {
+            event:"*",
+            schema:"public",
+            table:"likes"
+        },
+        payload=>{
+
+
+            console.log(
+                "❤️ Cambio en likes:",
+                payload
+            );
+
+
+
+            if(typeof verificarLikes === "function"){
+
+                verificarLikes();
+
+            }
+
+
+        }
+    )
+
+    .subscribe();
+
+
+
+}
+
+
+
+
 async function cargarImagenes(forceRefresh = false) {
 
     loader.style.display = 'block';
@@ -7926,13 +8067,15 @@ function showCustommostrarAviso(title, titlesList) {
 
     verificarLikes();
 
- verificarComentarios().then(() => {
+verificarComentarios().then(() => {
 
     cargarImagenes();
 
     verificarLikes();
 
     verificarGuardados();
+
+    iniciarRealtimeSupabase();
 
 });
 
