@@ -5227,6 +5227,13 @@ if (editBtn) {
       const commentData = commentElement.dataset;
       const autorCorreo = commentData.correo;
 
+      console.log(
+"Correo comentario:",
+autorCorreo,
+"Correo usuario:",
+currentAuthorEmail
+);
+
       if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
           startX = e.touches[0].clientX;
           activeComment = commentElement;
@@ -5622,68 +5629,52 @@ function normalizarComentarios(lista) {
 
     return [...lista]
 
-        .reverse()
+    .reverse()
 
-        .map(c => {
+    .map(c => {
 
 
-            try {
+        const autor = c?.autor ?? "";
 
-                if(typeof c === "string"){
+        const fecha = c?.fecha ?? "";
 
-                    c = JSON.parse(c);
+        const comentario = c?.comentario ?? c?.texto ?? "";
 
-                }
-
-            } catch(e){}
+        const correo = c?.correo ?? "";
 
 
 
-            const autor = c?.autor ?? "";
-
-            const fecha = c?.fecha ?? "";
-
-            const correo = c?.correo ?? "";
+        if(autor || fecha || comentario){
 
 
-            // Compatible Google + Supabase
+            return {
 
-            const comentario = 
-                c?.comentario ??
-                c?.texto ??
-                "";
+                id: c.id,
 
+                texto: comentario,
 
+                textoPuro: comentario,
 
-            if(autor || fecha || comentario){
+                autor: autor,
 
+                autorCorreo: correo,
 
-           return {
+                fecha: fecha,
 
-    texto: `${autor} (${fecha}) - ${comentario}`,
+                fechaTexto: formatoFechaComentario(fecha)
 
-    autorCorreo: correo,
-
-    textoPuro: comentario,
-
-    autor: autor,
-
-    fecha: fecha,
-
-    fechaOriginal: fecha
-
-};
+            };
 
 
-            }
+        }
 
 
-            return null;
+        return null;
 
 
-        })
+    })
 
-        .filter(Boolean);
+    .filter(Boolean);
 
 }
 
