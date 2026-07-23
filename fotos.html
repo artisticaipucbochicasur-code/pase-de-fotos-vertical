@@ -6609,32 +6609,143 @@ function iniciarRealtimeSupabase(){
 
     .channel("publicaciones-realtime")
 
-    .on(
-        "postgres_changes",
-        {
-            event:"*",
-            schema:"public",
-            table:"publicaciones"
-        },
-        payload=>{
+.on(
+    "postgres_changes",
+    {
+        event:"*",
+        schema:"public",
+        table:"publicaciones"
+    },
+    async payload=>{
 
 
-            console.log(
-                "📢 Cambio en publicaciones:",
-                payload
+        console.log(
+            "📢 Cambio en publicaciones:",
+            payload
+        );
+
+
+
+        const tipo =
+        payload.eventType;
+
+
+
+        // ===============================
+        // NUEVA PUBLICACIÓN
+        // ===============================
+
+        if(tipo === "INSERT"){
+
+
+            await cargarImagenes(true);
+
+
+            return;
+
+        }
+
+
+
+        // ===============================
+        // EDICIÓN
+        // ===============================
+
+        if(tipo === "UPDATE"){
+
+
+            const actualizado =
+            payload.new;
+
+
+
+            const index =
+            anunciosData.findIndex(
+                a=>a.id === actualizado.id
             );
 
 
-            // recargar anuncios
-            if(typeof cargarImagenes === "function"){
 
-                cargarImagenes(true);
+            if(index !== -1){
+
+
+                anunciosData[index].titulo =
+                actualizado.titulo;
+
+
+
+                anunciosData[index].descripcion =
+                actualizado.descripcion;
+
+
+
+                anunciosData[index].url =
+                actualizado.url_media;
+
+
+
+                updateContentOverlay(
+                    swiperInstance.realIndex
+                );
+
+
+            }else{
+
+
+                await cargarImagenes(true);
+
+
+            }
+
+
+
+            return;
+
+        }
+
+
+
+
+        // ===============================
+        // ELIMINACIÓN
+        // ===============================
+
+        if(tipo === "DELETE"){
+
+
+            const eliminado =
+            payload.old.id;
+
+
+
+            const index =
+            anunciosData.findIndex(
+                a=>a.id === eliminado
+            );
+
+
+
+            if(index !== -1){
+
+
+                anunciosData.splice(
+                    index,
+                    1
+                );
+
+
+                await cargarImagenes(true);
+
 
             }
 
 
         }
-    )
+
+
+
+    }
+)
 
     .subscribe();
 
