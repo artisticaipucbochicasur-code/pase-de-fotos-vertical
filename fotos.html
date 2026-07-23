@@ -420,37 +420,32 @@
         cursor: pointer;
     }
     
-/* Contenedor del botón de borrado */
-.delete-btn-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 100px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    background: rgba(255, 0, 0, 0.25);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-
-    transform: translateX(0);
-    transition: transform 0.3s ease;
-
-    z-index: 1;
-}
-
-
-/* Botón de borrado */
-.delete-btn {
-    color:white;
-    font-weight:bold;
-    padding:10px;
-    cursor:pointer;
-    user-select:none;
-}
+    /* Contenedor del botón de borrado */
+    .delete-btn-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
+    backdrop-filter: blur(10px); /* Efecto de desenfoque */
+    -webkit-backdrop-filter: blur(10px); /* Compatibilidad con navegadores WebKit */
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 0; 
+    }
+    
+    /* Botón de borrado en sí mismo */
+    .delete-btn {
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
     
     /* El comentario se desliza */
     .comment-content {
@@ -5226,7 +5221,6 @@ if (editBtn) {
     // Lógica para el swipe
 let startX = 0;
 let activeComment = null;
-let comentarioFueSwipe = false;
 
 
 commentsList.addEventListener('touchstart', function(e){
@@ -5239,22 +5233,33 @@ commentsList.addEventListener('touchstart', function(e){
     const correoComentario = li.dataset.correo || "";
 
 
+    console.log(
+        "Comentario:",
+        correoComentario,
+        "Usuario:",
+        currentAuthorEmail
+    );
+
+
     if(
-        normalizeText(correoComentario) !==
+        normalizeText(correoComentario) !== 
         normalizeText(currentAuthorEmail)
     ){
-
         activeComment = null;
         return;
-
     }
 
 
     activeComment = li;
 
-    comentarioFueSwipe = false;
-
     startX = e.touches[0].clientX;
+
+
+    const contenido = li.querySelector('.comment-content');
+
+    if(contenido){
+        contenido.style.transition="none";
+    }
 
 
 });
