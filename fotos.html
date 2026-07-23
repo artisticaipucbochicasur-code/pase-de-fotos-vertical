@@ -9829,13 +9829,62 @@ setTimeout(() => {
       modal.style.display = "flex";
       modal.style.zIndex = "99999";
       setTimeout(() => (overlay.style.opacity = "1"), 50);
-    } else {
-      setTimeout(() => {
-        if (document.getElementById("userBtn")) {
-          mostrarUsuario(usuarioGuardado);
-        }
-      }, 100);
+} else {
+
+  setTimeout(async () => {
+
+    if (!document.getElementById("userBtn")) return;
+
+
+    console.log(
+      "🔄 Verificando usuario actualizado en Supabase..."
+    );
+
+
+    const correoActual =
+      localStorage.getItem("correo");
+
+
+    if(correoActual && typeof sincronizarUsuarioSupabase === "function"){
+
+
+      const usuarioActualizado =
+      await sincronizarUsuarioSupabase();
+
+
+
+      if(usuarioActualizado){
+
+        console.log(
+          "✅ Usuario actualizado desde Supabase:",
+          usuarioActualizado
+        );
+
+
+        mostrarUsuario(usuarioActualizado);
+
+
+        return;
+
+      }
+
     }
+
+
+
+    // Si falla Supabase, usa local como respaldo
+
+    console.warn(
+      "⚠️ Usando usuario local como respaldo"
+    );
+
+
+    mostrarUsuario(usuarioGuardado);
+
+
+  },100);
+
+}
 
     // ======================================================================================
     // CREAR PREVIEW SI NO EXISTE
