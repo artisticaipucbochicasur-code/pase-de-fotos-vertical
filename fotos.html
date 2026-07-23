@@ -4120,6 +4120,10 @@ async ()=>{
 // 👤 Guardar / actualizar usuario Supabase
 // =====================================
 
+// =====================================
+// 👤 Guardar / actualizar usuario Supabase
+// =====================================
+
 async function guardarUsuarioSupabase(usuario){
 
     console.log(
@@ -4143,11 +4147,65 @@ async function guardarUsuarioSupabase(usuario){
     try {
 
 
+        // Primero consultar usuario existente
+
+        const { data: existente, error: errorConsulta } = 
+        await supabaseClient
+
+        .from("usuarios")
+
+        .select("*")
+
+        .eq(
+            "correo",
+            usuario.correo
+        )
+
+        .single();
+
+
+
+        if(errorConsulta && errorConsulta.code !== "PGRST116"){
+
+            console.error(
+                "❌ Error consultando usuario existente",
+                errorConsulta
+            );
+
+            return;
+
+        }
+
+
+
+        // Si ya existe, NO reemplazar información
+        // solamente actualizar campos realmente nuevos
+
+        if(existente){
+
+
+            console.log(
+                "%cℹ️ Usuario ya existe en Supabase. No se pisa información.",
+                "color:orange;font-size:15px;font-weight:bold",
+                existente
+            );
+
+
+            return existente;
+
+
+        }
+
+
+
+        // Si no existe, crear usuario nuevo
+
+
         const { data, error } = await supabaseClient
 
         .from("usuarios")
 
-        .upsert(
+        .insert(
         [
             {
                 nombre: usuario.nombre,
@@ -4164,16 +4222,14 @@ async function guardarUsuarioSupabase(usuario){
 
                 ciudad: usuario.ciudad || ""
             }
-        ],
-        {
-            onConflict:"correo"
-        });
+        ]);
+
 
 
         if(error){
 
             console.error(
-                "%c❌ ERROR SUPABASE USUARIOS",
+                "%c❌ ERROR CREANDO USUARIO SUPABASE",
                 "color:red;font-size:16px;font-weight:bold",
                 error
             );
@@ -4183,11 +4239,16 @@ async function guardarUsuarioSupabase(usuario){
         }
 
 
+
         console.log(
-            "%c✅ USUARIO GUARDADO EN SUPABASE",
+            "%c✅ USUARIO CREADO EN SUPABASE",
             "color:blue;font-size:16px;font-weight:bold",
             data
         );
+
+
+        return data;
+
 
 
     }catch(e){
@@ -10036,7 +10097,16 @@ try {
 
     console.log("📤 Intentando enviar usuario a Supabase:", usuario);
 
-    await guardarUsuarioSupabase(usuario);
+    // =====================================
+// 🔥 NO SOBRESCRIBIR SUPABASE AL LOGIN
+// =====================================
+
+// El login solamente autentica.
+// Supabase es la fuente de verdad.
+
+console.log(
+    "ℹ️ Login correcto. No se actualiza Supabase."
+);
 
     console.log("✅ Finalizó guardarUsuarioSupabase");
 
