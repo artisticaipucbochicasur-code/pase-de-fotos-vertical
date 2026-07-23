@@ -9437,14 +9437,14 @@ function mostrarUsuario(u) {
   console.log("mostrarUsuario - objeto recibido:", u);
 
   // ✅ Detectar si ya hay imagen en el botón (pero NO salir de la función)
-  let yaTieneImagen = !!userBtn.querySelector("img");
+// ✅ Limpiar siempre antes de volver a pintar
+// evita duplicar la foto cuando el perfil viene desde Supabase
 
-  // ✅ Limpiar cualquier nodo previo si no tiene imagen aun
-  if (!yaTieneImagen) {
-    while (userBtn.firstChild) {
-      userBtn.removeChild(userBtn.firstChild);
-    }
-  }
+while (userBtn.firstChild) {
+  userBtn.removeChild(userBtn.firstChild);
+}
+
+let yaTieneImagen = false;
 
   u = u || {};
   u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
@@ -9510,7 +9510,7 @@ function mostrarUsuario(u) {
       fallback();
     };
 
-    if (!yaTieneImagen) userBtn.appendChild(img);
+   userBtn.appendChild(img);
 
   } else {
     const candidates = buildDriveCandidates(foto);
@@ -9552,7 +9552,7 @@ function mostrarUsuario(u) {
           boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
         });
 
-        if (!yaTieneImagen) userBtn.appendChild(img);
+        userBtn.appendChild(img);
       };
 
       testImg.onload = () => {
