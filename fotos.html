@@ -2208,6 +2208,156 @@ onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderCol
   </div>
 </div>
 
+<!-- =====================================
+     MODAL EDITAR PERFIL
+===================================== -->
+
+<div id="modalEditarPerfil" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.75);
+    backdrop-filter:blur(5px);
+    z-index:999999;
+    align-items:center;
+    justify-content:center;
+">
+
+
+<div class="contenido-editar-perfil" style="
+    width:100%;
+    max-width:500px;
+    height:100%;
+    background:white;
+    overflow-y:auto;
+    padding:30px;
+    box-sizing:border-box;
+">
+
+
+
+<!-- Cerrar -->
+
+<span id="cerrarEditarPerfil"
+style="
+position:absolute;
+top:20px;
+right:25px;
+font-size:28px;
+cursor:pointer;
+color:white;
+">
+×
+</span>
+
+
+
+<h2 style="
+text-align:center;
+margin-bottom:30px;
+">
+Editar perfil
+</h2>
+
+
+
+<div style="
+display:flex;
+flex-direction:column;
+gap:15px;
+">
+
+
+<label>
+Nombre
+<input id="editarNombre"
+type="text">
+</label>
+
+
+
+<label>
+Teléfono
+<input id="editarTelefono"
+type="text">
+</label>
+
+
+
+<label>
+Congregación
+<input id="editarCongregacion"
+type="text">
+</label>
+
+
+
+<label>
+Cargo
+<input id="editarCargo"
+type="text">
+</label>
+
+
+
+<label>
+Ciudad
+<input id="editarCiudad"
+type="text">
+</label>
+
+
+</div>
+
+
+
+
+<div style="
+display:flex;
+gap:15px;
+margin-top:30px;
+">
+
+
+<button id="cancelarEditarPerfil"
+style="
+flex:1;
+padding:12px;
+border-radius:12px;
+border:none;
+background:#ddd;
+cursor:pointer;
+">
+Cancelar
+</button>
+
+
+
+<button id="guardarEditarPerfil"
+style="
+flex:1;
+padding:12px;
+border-radius:12px;
+border:none;
+background:#0077cc;
+color:white;
+cursor:pointer;
+">
+Guardar
+</button>
+
+
+
+</div>
+
+
+</div>
+
+</div>
+
 <!-- CAJA DE CHAT -->
 <div id="chatBox" onclick="event.stopPropagation()" style="
   display:none;
@@ -10125,13 +10275,66 @@ function abrirPerfil() {
 // ✏️ EDITAR PERFIL
 // =====================================
 
+// =====================================
+// ✏️ ABRIR EDITAR PERFIL
+// =====================================
+
 document.getElementById("btnEditarPerfil")
 ?.addEventListener("click",()=>{
 
-    console.log("✏️ Botón editar perfil presionado");
+
+console.log("✏️ Abriendo edición perfil");
+
+const u = JSON.parse(
+localStorage.getItem("usuario")
+) || {};
+
+
+
+document.getElementById("editarNombre").value =
+u.nombre || "";
+
+
+document.getElementById("editarTelefono").value =
+u.telefono || "";
+
+
+document.getElementById("editarCongregacion").value =
+u.congregacion || "";
+
+
+document.getElementById("editarCargo").value =
+u.cargo || "";
+
+
+document.getElementById("editarCiudad").value =
+u.ciudad || "";
+
+
+
+document.getElementById("modalEditarPerfil")
+.style.display="flex";
+
 
 });
 
+
+document.getElementById("cerrarEditarPerfil")
+?.addEventListener("click",()=>{
+
+document.getElementById("modalEditarPerfil")
+.style.display="none";
+
+});
+
+
+document.getElementById("cancelarEditarPerfil")
+?.addEventListener("click",()=>{
+
+document.getElementById("modalEditarPerfil")
+.style.display="none";
+
+});
 
 function cerrarModalPerfil() {
   document.getElementById("modalPerfil").style.display = "none";
