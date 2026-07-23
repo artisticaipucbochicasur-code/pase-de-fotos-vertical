@@ -5100,11 +5100,28 @@ currentDescription.addEventListener("click", function () {
 });
 
 
+let bloqueoClickSwiper = false;
 
+
+
+
+commentsOverlay.addEventListener('touchstart', ()=>{
+    bloqueoClickSwiper = true;
+}, {passive:true});
+
+
+commentsOverlay.addEventListener('touchmove', ()=>{
+    bloqueoClickSwiper = true;
+}, {passive:true});
 
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
-document.querySelector('.swiper').addEventListener('click', () => {
+document.querySelector('.swiper').addEventListener('click', (e) => {
+
+    if(bloqueoClickSwiper){
+        bloqueoClickSwiper = false;
+        return;
+    }
   const currentTime = new Date().getTime();
   if (currentTime - lastTapTime > 300) {
     // ✅ Estos se alternan normal
@@ -5207,7 +5224,9 @@ if (editBtn) {
 
 
     // Toggle para expandir/colapsar el contenedor de comentarios con un toque
-    commentsOverlay.addEventListener('click', (e) => {
+    commentsOverlay.addEventListener('click',(e)=>{
+
+    e.stopPropagation();
         if (!isSwiping) {
             commentsOverlay.classList.toggle('expanded');
         }
@@ -5226,6 +5245,13 @@ if (editBtn) {
 
       const commentData = commentElement.dataset;
       const autorCorreo = commentData.correo;
+
+      console.log(
+"Correo comentario:",
+autorCorreo,
+"Correo usuario:",
+currentAuthorEmail
+);
 
       if (normalizeText(autorCorreo) === normalizeText(currentAuthorEmail)) {
           startX = e.touches[0].clientX;
@@ -5288,17 +5314,29 @@ if (editBtn) {
             
             deleteBtn.addEventListener('click', (ev) => {
                 ev.stopPropagation(); 
-                const commentData = activeComment.dataset;
-                const comentario = commentData.texto;
-                const autorCorreo = commentData.correo;
-                
-                showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
-                  const activeIndex = swiperInstance.realIndex;
-                  const currentAnuncio = anunciosData[activeIndex];
-                  if(currentAnuncio) {
-                    eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
-                  }
-                });
+         const commentData = activeComment.dataset;
+
+const comentarioId = commentData.id;
+
+
+showConfirmationDialog(
+    "¿Estás seguro de que quieres borrar este comentario?",
+    () => {
+
+        if(comentarioId){
+
+            eliminarComentario(comentarioId);
+
+        } else {
+
+            console.error(
+                "No se encontró ID del comentario"
+            );
+
+        }
+
+    }
+);
             });
         } else {
             deleteBtnContainer.style.transform = `translateX(0)`;
@@ -5610,66 +5648,52 @@ function normalizarComentarios(lista) {
 
     return [...lista]
 
-        .reverse()
+    .reverse()
 
-        .map(c => {
+    .map(c => {
 
 
-            try {
+        const autor = c?.autor ?? "";
 
-                if(typeof c === "string"){
+        const fecha = c?.fecha ?? "";
 
-                    c = JSON.parse(c);
+        const comentario = c?.comentario ?? c?.texto ?? "";
 
-                }
-
-            } catch(e){}
+        const correo = c?.correo ?? "";
 
 
 
-            const autor = c?.autor ?? "";
-
-            const fecha = c?.fecha ?? "";
-
-            const correo = c?.correo ?? "";
+        if(autor || fecha || comentario){
 
 
-            // Compatible Google + Supabase
+            return {
 
-            const comentario = 
-                c?.comentario ??
-                c?.texto ??
-                "";
+                id: c.id,
 
+                texto: comentario,
 
+                textoPuro: comentario,
 
-            if(autor || fecha || comentario){
+                autor: autor,
 
+                autorCorreo: correo,
 
-                return {
+                fecha: fecha,
 
-                    texto: `${autor} · ${formatoFechaComentario(fecha)}\n${comentario}`,
+                fechaTexto: formatoFechaComentario(fecha)
 
-                    autorCorreo: correo,
-
-                    textoPuro: comentario,
-
-                    autor: autor,
-
-                    fecha: fecha
-
-                };
+            };
 
 
-            }
+        }
 
 
-            return null;
+        return null;
 
 
-        })
+    })
 
-        .filter(Boolean);
+    .filter(Boolean);
 
 }
 
@@ -6681,9 +6705,9 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
                 li.appendChild(deleteBtnContainer);
                 li.appendChild(commentContent);
 
-                li.dataset.id = comentario.id;
-                li.dataset.correo = comentario.autorCorreo;
-                li.dataset.texto = comentario.textoPuro;
+               li.dataset.id = comentario.id;
+li.dataset.correo = comentario.autorCorreo;
+li.dataset.texto = comentario.textoPuro;
 
            deleteBtn.addEventListener('click', (ev) => {
 
