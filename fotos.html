@@ -4709,12 +4709,10 @@ saveBtn.addEventListener("click", async ()=>{
 
 
 
-    const index =
-    swiperInstance.realIndex;
+    const index = swiperInstance.realIndex;
 
 
-    const anuncio =
-    anunciosData[index];
+    const anuncio = anunciosData[index];
 
 
 
@@ -4722,8 +4720,7 @@ saveBtn.addEventListener("click", async ()=>{
 
 
 
-    const existe =
-    guardadosPorAnuncio[anuncio.id];
+    const existe = guardadosPorAnuncio[anuncio.id];
 
 
 
@@ -4733,7 +4730,7 @@ saveBtn.addEventListener("click", async ()=>{
         if(existe){
 
 
-            await supabaseClient
+            const {error} = await supabaseClient
 
             .from("guardados")
 
@@ -4750,11 +4747,19 @@ saveBtn.addEventListener("click", async ()=>{
             );
 
 
+            if(error){
+
+                throw error;
+
+            }
+
+
+
             delete guardadosPorAnuncio[anuncio.id];
 
 
             showToast(
-              "🗑️ Eliminado de guardados"
+                "🗑️ Eliminado de guardados"
             );
 
 
@@ -4762,22 +4767,27 @@ saveBtn.addEventListener("click", async ()=>{
         }else{
 
 
-            await supabaseClient
+            const {error} = await supabaseClient
 
             .from("guardados")
 
             .insert([{
 
-
                 publicacion_id:
                 anuncio.id,
-
 
                 correo:
                 currentAuthorEmail
 
-
             }]);
+
+
+
+            if(error){
+
+                throw error;
+
+            }
 
 
 
@@ -4786,7 +4796,7 @@ saveBtn.addEventListener("click", async ()=>{
 
 
             showToast(
-             "🔖 Guardado"
+                "🔖 Guardado"
             );
 
 
@@ -4794,6 +4804,7 @@ saveBtn.addEventListener("click", async ()=>{
 
 
 
+        // actualizar icono inmediatamente
         actualizarEstadoGuardado();
 
 
@@ -4802,8 +4813,13 @@ saveBtn.addEventListener("click", async ()=>{
 
 
         console.error(
-          "Error guardando:",
-          error
+            "Error guardando:",
+            error
+        );
+
+
+        showToast(
+            "❌ Error al guardar"
         );
 
 
@@ -6134,6 +6150,229 @@ async function verificarActualizacionAnuncios() {
 
 // ⏱️ Usa el mismo intervalo que ya manejas (5s)
 setInterval(verificarActualizacionAnuncios, INTERVALO_VERIFICACION);
+
+
+
+
+async function cargarGuardadosSupabase() {
+
+    const savedList = document.getElementById("savedList");
+
+    if (!savedList) return;
+
+
+    savedList.innerHTML = `
+        <li style="color:#aaa;text-align:center;">
+            Cargando guardados...
+        </li>
+    `;
+
+
+    try {
+
+
+        const { data, error } = await supabaseClient
+
+            .from("guardados")
+
+            .select(`
+                publicacion_id,
+                fecha,
+                publicaciones(
+                    id,
+                    titulo,
+                    descripcion,
+                    url_media
+                )
+            `)
+
+            .eq(
+                "correo",
+                currentAuthorEmail
+            )
+
+            .order(
+                "fecha",
+                {
+                    ascending:false
+                }
+            );
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+
+        savedList.innerHTML = "";
+
+
+
+        if(!data || data.length === 0){
+
+
+            savedList.innerHTML = `
+
+            <li style="
+                color:#aaa;
+                text-align:center;
+                padding:20px;
+            ">
+                No tienes publicaciones guardadas.
+            </li>
+
+            `;
+
+
+            return;
+
+        }
+
+
+
+
+
+        data.forEach(item=>{
+
+
+            const publicacion = item.publicaciones;
+
+
+            if(!publicacion) return;
+
+
+
+            const li = document.createElement("li");
+
+
+            li.style.display="flex";
+            li.style.gap="12px";
+            li.style.alignItems="center";
+            li.style.padding="10px 0";
+            li.style.borderBottom="1px solid rgba(255,255,255,.1)";
+            li.style.cursor="pointer";
+
+
+
+            const img = document.createElement("img");
+
+
+            img.src = publicacion.url_media || "";
+
+
+            img.style.width="55px";
+            img.style.height="55px";
+            img.style.objectFit="cover";
+            img.style.borderRadius="8px";
+
+
+
+            const info = document.createElement("div");
+
+
+            info.style.flex="1";
+
+
+
+            const titulo = document.createElement("div");
+
+
+            titulo.textContent =
+            publicacion.titulo || "Sin título";
+
+
+            titulo.style.fontWeight="bold";
+            titulo.style.fontSize="15px";
+
+
+
+            const desc = document.createElement("div");
+
+
+            desc.textContent =
+            publicacion.descripcion || "";
+
+
+            desc.style.fontSize="12px";
+            desc.style.color="#aaa";
+
+
+
+            info.appendChild(titulo);
+            info.appendChild(desc);
+
+
+
+            li.appendChild(img);
+            li.appendChild(info);
+
+
+
+            // abrir publicación al tocar
+            li.addEventListener("click",()=>{
+
+
+                const index =
+                anunciosData.findIndex(
+                    a=>a.id===publicacion.id
+                );
+
+
+                if(index!==-1){
+
+
+                    savedModal.style.display="none";
+
+
+                    swiperInstance.slideToLoop(
+                        index,
+                        300
+                    );
+
+
+                }
+
+
+            });
+
+
+
+            savedList.appendChild(li);
+
+
+
+        });
+
+
+
+    }catch(error){
+
+
+        console.error(
+            "Error cargando guardados:",
+            error
+        );
+
+
+        savedList.innerHTML = `
+
+        <li style="
+            color:red;
+            text-align:center;
+        ">
+            Error cargando guardados.
+        </li>
+
+        `;
+
+
+    }
+
+}
 
 
 
