@@ -5288,17 +5288,29 @@ if (editBtn) {
             
             deleteBtn.addEventListener('click', (ev) => {
                 ev.stopPropagation(); 
-                const commentData = activeComment.dataset;
-                const comentario = commentData.texto;
-                const autorCorreo = commentData.correo;
-                
-                showConfirmationDialog("¿Estás seguro de que quieres borrar este comentario?", () => {
-                  const activeIndex = swiperInstance.realIndex;
-                  const currentAnuncio = anunciosData[activeIndex];
-                  if(currentAnuncio) {
-                    eliminarComentario(currentAnuncio.id, comentario, autorCorreo);
-                  }
-                });
+         const commentData = activeComment.dataset;
+
+const comentarioId = commentData.id;
+
+
+showConfirmationDialog(
+    "¿Estás seguro de que quieres borrar este comentario?",
+    () => {
+
+        if(comentarioId){
+
+            eliminarComentario(comentarioId);
+
+        } else {
+
+            console.error(
+                "No se encontró ID del comentario"
+            );
+
+        }
+
+    }
+);
             });
         } else {
             deleteBtnContainer.style.transform = `translateX(0)`;
@@ -5646,19 +5658,21 @@ function normalizarComentarios(lista) {
             if(autor || fecha || comentario){
 
 
-                return {
+           return {
 
-                    texto: `${autor} · ${formatoFechaComentario(fecha)}\n${comentario}`,
+    texto: `${autor} (${fecha}) - ${comentario}`,
 
-                    autorCorreo: correo,
+    autorCorreo: correo,
 
-                    textoPuro: comentario,
+    textoPuro: comentario,
 
-                    autor: autor,
+    autor: autor,
 
-                    fecha: fecha
+    fecha: fecha,
 
-                };
+    fechaOriginal: fecha
+
+};
 
 
             }
@@ -6681,9 +6695,9 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
                 li.appendChild(deleteBtnContainer);
                 li.appendChild(commentContent);
 
-                li.dataset.id = comentario.id;
-                li.dataset.correo = comentario.autorCorreo;
-                li.dataset.texto = comentario.textoPuro;
+               li.dataset.id = comentario.id;
+li.dataset.correo = comentario.autorCorreo;
+li.dataset.texto = comentario.textoPuro;
 
            deleteBtn.addEventListener('click', (ev) => {
 
