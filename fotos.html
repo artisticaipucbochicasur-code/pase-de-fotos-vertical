@@ -3723,6 +3723,76 @@ async function cargarPerfilSupabase(correo){
 
 
 // =====================================
+// 🔐 LOGIN CON SUPABASE AUTH
+// =====================================
+
+async function loginUsuarioSupabase(correo, password){
+
+    console.log(
+        "🔐 Intentando login Supabase:",
+        correo
+    );
+
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+
+        email: correo,
+
+        password: password
+
+    });
+
+
+
+    if(error){
+
+        console.error(
+            "❌ Error login Supabase:",
+            error
+        );
+
+        throw error;
+
+    }
+
+
+
+    console.log(
+        "✅ Login Auth correcto:",
+        data.user
+    );
+
+
+
+    // Buscar perfil adicional
+
+    const perfil = await cargarPerfilSupabase(correo);
+
+
+
+    if(!perfil){
+
+        throw new Error(
+            "Usuario autenticado pero sin perfil"
+        );
+
+    }
+
+
+
+    console.log(
+        "👤 Perfil encontrado:",
+        perfil
+    );
+
+
+
+    return perfil;
+
+}
+
+
+// =====================================
 // 🔄 Sincronizar usuario desde Supabase
 // =====================================
 
