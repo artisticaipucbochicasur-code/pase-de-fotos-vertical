@@ -10185,14 +10185,25 @@ regFoto?.addEventListener("change", async () => {
 // 📸 SUBIR FOTO PERFIL A SUPABASE STORAGE
 // =====================================
 
+// =====================================
+// 📸 SUBIR FOTO PERFIL SUPABASE
+// =====================================
+
 async function subirFotoPerfilSupabase(authId){
+
 
     try{
 
+
+        console.log(
+            "📸 Iniciando subida foto perfil"
+        );
+
+
         if(!window.fotoComprimida){
 
-            console.log(
-                "ℹ️ Usuario sin foto seleccionada"
+            console.warn(
+                "⚠️ No existe foto comprimida"
             );
 
             return "";
@@ -10200,41 +10211,48 @@ async function subirFotoPerfilSupabase(authId){
         }
 
 
-        console.log(
-            "📸 Preparando subida foto perfil..."
+
+        const base64 =
+        window.fotoComprimida;
+
+
+
+        const blob = await fetch(base64)
+        .then(r=>r.blob());
+
+
+
+        const archivo = new File(
+            [blob],
+            "perfil.jpg",
+            {
+                type:"image/jpeg"
+            }
         );
 
-
-        // convertir base64 a archivo
-
-        const respuesta = await fetch(
-            window.fotoComprimida
-        );
-
-        const blob = await respuesta.blob();
-
-
-        const nombreArchivo =
-        `perfil_${Date.now()}.jpg`;
 
 
         const ruta =
-        `usuarios/${authId}/${nombreArchivo}`;
+        `usuarios/${authId}/perfil.jpg`;
 
 
 
-        const {
-            data,
-            error
+        console.log(
+            "📂 Ruta Storage:",
+            ruta
+        );
 
-        } = await supabaseClient
+
+
+        const {data,error} =
+        await supabaseClient
         .storage
         .from("perfiles")
         .upload(
             ruta,
-            blob,
+            archivo,
             {
-                contentType:"image/jpeg",
+                cacheControl:"3600",
                 upsert:true
             }
         );
@@ -10244,7 +10262,7 @@ async function subirFotoPerfilSupabase(authId){
         if(error){
 
             console.error(
-                "❌ Error subiendo foto:",
+                "❌ Error Storage:",
                 error
             );
 
@@ -10255,43 +10273,38 @@ async function subirFotoPerfilSupabase(authId){
 
 
         console.log(
-            "✅ Foto subida:",
+            "✅ Archivo subido:",
             data
         );
 
 
 
-        const {
-            data:urlData
-
-        } = supabaseClient
+        const {data:urlData} =
+        supabaseClient
         .storage
         .from("perfiles")
-        .getPublicUrl(ruta);
-
-
-
-        const urlFoto =
-        urlData.publicUrl;
+        .getPublicUrl(
+            ruta
+        );
 
 
 
         console.log(
-            "🌐 URL foto:",
-            urlFoto
+            "🌐 URL pública:",
+            urlData.publicUrl
         );
 
 
-        return urlFoto;
+        return urlData.publicUrl;
 
 
 
-    }catch(e){
+    }catch(error){
 
 
         console.error(
-            "🔥 Error foto perfil:",
-            e
+            "🔥 Error subir foto:",
+            error
         );
 
 
