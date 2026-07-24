@@ -6020,6 +6020,110 @@ async function verificarGuardados(){
 }
 
 
+
+
+// =====================================
+// 🔖 CARGAR GUARDADOS DEL USUARIO
+// =====================================
+
+async function cargarGuardadosUsuario(){
+
+    try{
+
+
+        const correo = localStorage.getItem("correo");
+
+
+        if(!correo){
+
+            console.warn(
+                "No hay correo para cargar guardados"
+            );
+
+            return;
+
+        }
+
+
+
+        const { data, error } = await supabaseClient
+
+        .from("guardados")
+
+        .select("*")
+
+        .eq(
+            "correo",
+            correo
+        );
+
+
+
+        if(error){
+
+            console.error(
+                "Error cargando guardados:",
+                error
+            );
+
+            return;
+
+        }
+
+
+
+        console.log(
+            "🔖 Guardados cargados:",
+            data
+        );
+
+
+
+        // limpiar memoria anterior
+
+        guardadosPorAnuncio = {};
+
+
+
+        data.forEach(g => {
+
+
+            guardadosPorAnuncio[g.publicacion_id] = true;
+
+
+        });
+
+
+
+        console.log(
+            "✅ Estado guardados actualizado:",
+            guardadosPorAnuncio
+        );
+
+
+
+        if(typeof actualizarEstadoGuardado==="function"){
+
+            actualizarEstadoGuardado();
+
+        }
+
+
+
+    }catch(e){
+
+        console.error(
+            "Error inesperado guardados:",
+            e
+        );
+
+    }
+
+}
+
+
+
+
 function actualizarEstadoGuardado(){
 
 
@@ -9689,6 +9793,8 @@ verificarComentarios().then(() => {
 
     cargarImagenes();
 
+    cargarGuardadosUsuario();
+
     verificarLikes();
 
     verificarGuardados();
@@ -9920,6 +10026,8 @@ setTimeout(() => {
 
       const usuarioActualizado =
       await sincronizarUsuarioSupabase();
+
+      await cargarGuardadosUsuario();
 
 
 
