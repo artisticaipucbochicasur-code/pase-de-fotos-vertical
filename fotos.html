@@ -10138,111 +10138,100 @@ document.head.appendChild(spinStyle);
 // LOGIN (spinner instantáneo al presionar botón)
 // ======================================================================================
 document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
+
   e.preventDefault();
+
   const btnLogin = e.target;
+
   btnLogin.disabled = true;
+
   btnLogin.classList.add("btn-loading");
 
+
   const correo = document.getElementById("loginCorreo").value.trim();
+
   const pin = document.getElementById("loginPin").value.trim();
 
+
+
   if (!correo || !pin) {
+
     btnLogin.disabled = false;
+
     btnLogin.classList.remove("btn-loading");
-    return mostrarAviso("Completa todos los campos", "error");
-  }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-    btnLogin.disabled = false;
-    btnLogin.classList.remove("btn-loading");
-    return mostrarAviso("Correo inválido", "error");
-  }
-
-  if (pin.length < 4) {
-    btnLogin.disabled = false;
-    btnLogin.classList.remove("btn-loading");
-    return mostrarAviso("El PIN o contraseña debe tener al menos 4 caracteres", "error");
-  }
-
-  const loader = mostrarLoader("Iniciando sesión...");
-  await new Promise(requestAnimationFrame);
-
-  const formData = new URLSearchParams();
-  formData.append("accion", "login");
-  formData.append("correo", correo);
-  formData.append("pin", pin);
-
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData
-    });
-    const texto = await res.text();
-    console.log("Login:", texto);
-
-    try {
-      const data = JSON.parse(texto);
-
-      // mostrarAvisoA ELIMINADA (ya no se muestra)
-
-if (data.status && data.status.includes("success")) {
-
-  console.log("✅ Login exitoso, preparando usuario Supabase");
-
-    const fotoPerfil = 
-        data.fotoPerfil || 
-        (Array.isArray(data.foto) ? data.foto[0] : "") || "";
-
-
-    const usuario = {
-
-        nombre: data.nombre || "Usuario",
-
-        correo: data.correo || "",
-
-        fotoPerfil: fotoPerfil,
-
-        telefono: data.telefono || "",
-
-        congregacion: data.congregacion || "",
-
-        cargo: data.cargo || "",
-
-        ciudad: data.ciudad || ""
-
-    };
-
-
-  // =====================================
-// 🔥 SINCRONIZAR USUARIO CON SUPABASE
-// =====================================
-
-try {
-
-    console.log("📤 Intentando enviar usuario a Supabase:", usuario);
-
-    // =====================================
-// 🔥 NO SOBRESCRIBIR SUPABASE AL LOGIN
-// =====================================
-
-// El login solamente autentica.
-// Supabase es la fuente de verdad.
-
-console.log(
-    "ℹ️ Login correcto. No se actualiza Supabase."
-);
-
-    console.log("✅ Finalizó guardarUsuarioSupabase");
-
-} catch (error) {
-
-    console.error(
-        "❌ Falló guardarUsuarioSupabase:",
-        error
+    return mostrarAviso(
+      "Completa todos los campos",
+      "error"
     );
 
-}
+  }
+
+
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+
+    btnLogin.disabled = false;
+
+    btnLogin.classList.remove("btn-loading");
+
+    return mostrarAviso(
+      "Correo inválido",
+      "error"
+    );
+
+  }
+
+
+
+  if (pin.length < 4) {
+
+    btnLogin.disabled = false;
+
+    btnLogin.classList.remove("btn-loading");
+
+    return mostrarAviso(
+      "La contraseña debe tener al menos 4 caracteres",
+      "error"
+    );
+
+  }
+
+
+
+  const loader = mostrarLoader(
+    "Iniciando sesión..."
+  );
+
+
+  await new Promise(requestAnimationFrame);
+
+
+
+  try {
+
+
+    console.log(
+      "🔐 Login usando Supabase Auth"
+    );
+
+
+
+    // =====================================
+    // 🔐 LOGIN SUPABASE AUTH
+    // =====================================
+
+    const usuario = await loginUsuarioSupabase(
+      correo,
+      pin
+    );
+
+
+
+    console.log(
+      "👤 Usuario obtenido desde Supabase:",
+      usuario
+    );
 
 
 
@@ -10251,134 +10240,146 @@ console.log(
     // =====================================
 
     localStorage.setItem(
-        "usuario",
-        JSON.stringify(usuario)
+      "usuario",
+      JSON.stringify(usuario)
     );
+
 
     localStorage.setItem(
-        "autor",
-        usuario.nombre
+      "autor",
+      usuario.nombre || ""
     );
+
 
     localStorage.setItem(
-        "correo",
-        usuario.correo
+      "correo",
+      usuario.correo || ""
     );
+
 
     localStorage.setItem(
-        "telefono",
-        usuario.telefono
+      "telefono",
+      usuario.telefono || ""
     );
+
 
     localStorage.setItem(
-        "congregacion",
-        usuario.congregacion
+      "congregacion",
+      usuario.congregacion || ""
     );
+
 
     localStorage.setItem(
-        "cargo",
-        usuario.cargo
+      "cargo",
+      usuario.cargo || ""
     );
+
 
     localStorage.setItem(
-        "ciudad",
-        usuario.ciudad
+      "ciudad",
+      usuario.ciudad || ""
     );
 
-
-
- // =====================================
-// 🔄 CARGAR DATOS REALES DESDE SUPABASE
-// =====================================
-
-currentAuthorEmail = usuario.correo;
-
-
-const perfilSupabase = 
-await sincronizarUsuarioSupabase();
-
-
-
-if(perfilSupabase){
 
 
     console.log(
-        "✅ Perfil definitivo cargado:",
-        perfilSupabase
+      "💾 Sesión local guardada"
     );
 
 
-    currentAuthorName = perfilSupabase.nombre;
 
-    currentAuthorEmail = perfilSupabase.correo;
-
-
-
-    // Actualizar interfaz con datos reales
-
-    if(typeof mostrarUsuario === "function"){
-
-        mostrarUsuario(perfilSupabase);
-
-    }
-
-
-}else{
-
+    // =====================================
+    // ACTUALIZAR VARIABLES GLOBALES
+    // =====================================
 
     currentAuthorName = usuario.nombre;
 
     currentAuthorEmail = usuario.correo;
 
 
-}
+
+    // =====================================
+    // MOSTRAR USUARIO
+    // =====================================
+
+    if(typeof mostrarUsuario === "function"){
+
+      mostrarUsuario(usuario);
+
+    }
 
 
 
     cerrarLoader(loader);
 
+
     btnLogin.disabled = false;
 
     btnLogin.classList.remove("btn-loading");
+
 
 
     cerrarModalYContinuar();
 
 
 
-    if (window.DEComAuthApply) 
-        window.DEComAuthApply();
+    if(window.DEComAuthApply){
 
-    if (window.DEComAuthPing)  
-        window.DEComAuthPing();
+      window.DEComAuthApply();
+
+    }
+
+
+
+    if(window.DEComAuthPing){
+
+      window.DEComAuthPing();
+
+    }
 
 
 
     mostrarAviso(
-        "Bienvenido, " + usuario.nombre,
-        "success"
+      "Bienvenido, " + usuario.nombre,
+      "success"
     );
 
 
-} else {
-        cerrarLoader(loader);
-        btnLogin.disabled = false;
-        btnLogin.classList.remove("btn-loading");
-        mostrarAviso(data.message || "Correo o PIN incorrecto", "error");
-      }
-    } catch {
-      cerrarLoader(loader);
-      btnLogin.disabled = false;
-      btnLogin.classList.remove("btn-loading");
-      mostrarAviso("Error del servidor", "error");
-    }
-  } catch {
+
+  }catch(error){
+
+
+
+    console.error(
+      "❌ Error login Supabase:",
+      error
+    );
+
+
+
     cerrarLoader(loader);
+
+
     btnLogin.disabled = false;
+
     btnLogin.classList.remove("btn-loading");
-    mostrarAviso("Error de conexión", "error");
+
+
+
+    mostrarAviso(
+      "Correo o contraseña incorrectos",
+      "error"
+    );
+
+
   }
+
+
 });
+
+
+
+
 // ======================================================================================
 // REGISTRO (spinner instantáneo al presionar botón, PIN libre de mínimo 4 caracteres)
 // ======================================================================================
