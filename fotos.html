@@ -10178,6 +10178,131 @@ regFoto?.addEventListener("change", async () => {
   }
 });
 
+
+
+
+// =====================================
+// 📸 SUBIR FOTO PERFIL A SUPABASE STORAGE
+// =====================================
+
+async function subirFotoPerfilSupabase(authId){
+
+    try{
+
+        if(!window.fotoComprimida){
+
+            console.log(
+                "ℹ️ Usuario sin foto seleccionada"
+            );
+
+            return "";
+
+        }
+
+
+        console.log(
+            "📸 Preparando subida foto perfil..."
+        );
+
+
+        // convertir base64 a archivo
+
+        const respuesta = await fetch(
+            window.fotoComprimida
+        );
+
+        const blob = await respuesta.blob();
+
+
+        const nombreArchivo =
+        `perfil_${Date.now()}.jpg`;
+
+
+        const ruta =
+        `usuarios/${authId}/${nombreArchivo}`;
+
+
+
+        const {
+            data,
+            error
+
+        } = await supabaseClient
+        .storage
+        .from("perfiles")
+        .upload(
+            ruta,
+            blob,
+            {
+                contentType:"image/jpeg",
+                upsert:true
+            }
+        );
+
+
+
+        if(error){
+
+            console.error(
+                "❌ Error subiendo foto:",
+                error
+            );
+
+            return "";
+
+        }
+
+
+
+        console.log(
+            "✅ Foto subida:",
+            data
+        );
+
+
+
+        const {
+            data:urlData
+
+        } = supabaseClient
+        .storage
+        .from("perfiles")
+        .getPublicUrl(ruta);
+
+
+
+        const urlFoto =
+        urlData.publicUrl;
+
+
+
+        console.log(
+            "🌐 URL foto:",
+            urlFoto
+        );
+
+
+        return urlFoto;
+
+
+
+    }catch(e){
+
+
+        console.error(
+            "🔥 Error foto perfil:",
+            e
+        );
+
+
+        return "";
+
+    }
+
+}
+
+
+
 // --- Spinner animación global ---
 const spinStyle = document.createElement("style");
 spinStyle.textContent = `
@@ -10648,6 +10773,19 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
 
 
 
+// ==================================================
+// 📸 SUBIR FOTO DE PERFIL
+// ==================================================
+
+const fotoUrl =
+await subirFotoPerfilSupabase(user.id);
+
+
+console.log(
+ "📸 Foto guardada:",
+ fotoUrl
+);  
+
 
     // ==================================================
     // 2. CREAR PERFIL EN TABLA USUARIOS
@@ -10678,7 +10816,7 @@ document.getElementById("btnRegistro")?.addEventListener("click", async (e) => {
 
       ciudad:ciudad,
 
-      foto_perfil:""
+      foto_perfil:fotoUrl
 
     }])
 
