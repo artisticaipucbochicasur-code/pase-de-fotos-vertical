@@ -1962,14 +1962,21 @@ font-weight:600;
     <!-- Recuperar PIN -->
  <!-- Recuperar contraseña Supabase -->
 
+<!-- Recuperar contraseña Supabase -->
+
 <div id="formRecuperarPin" style="display:none;">
+
 
 <h3 id="tituloRecuperar">
 🔁 Recuperar contraseña
 </h3>
 
 
+
+<!-- PASO 1: Solicitar correo -->
+
 <div id="pasoCorreo">
+
 
 <p style="font-size:13px;color:#555;">
 Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
@@ -1980,8 +1987,15 @@ Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
 id="recCorreo"
 type="email"
 placeholder="Correo registrado"
-style="width:100%;margin:10px 0;padding:10px;border-radius:8px;border:1px solid #ccc;"
+style="
+width:100%;
+margin:10px 0;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+"
 >
+
 
 
 <button 
@@ -2006,11 +2020,83 @@ Enviar enlace de recuperación
 
 
 
-<p style="margin-top:10px;font-size:13px;">
-<a href="#" id="volverLogin">
-Volver al inicio
-</a>
+
+
+<!-- PASO 2: Nueva contraseña -->
+
+<div id="formNuevaPassword" style="display:none;">
+
+
+<p style="font-size:13px;color:#555;">
+Crea tu nueva contraseña de acceso.
 </p>
+
+
+
+<input 
+id="passwordNueva"
+type="password"
+placeholder="Nueva contraseña"
+style="
+width:100%;
+margin:10px 0;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+"
+>
+
+
+
+<input 
+id="passwordConfirmar"
+type="password"
+placeholder="Confirmar contraseña"
+style="
+width:100%;
+margin:10px 0;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+"
+>
+
+
+
+<button 
+id="btnActualizarPassword"
+style="
+width:100%;
+padding:12px;
+margin-top:10px;
+background:#28a745;
+color:white;
+border:none;
+border-radius:8px;
+font-weight:bold;
+">
+
+Guardar contraseña
+
+</button>
+
+
+</div>
+
+
+
+
+
+<p style="margin-top:10px;font-size:13px;">
+
+<a href="#" id="volverLogin">
+
+Volver al inicio
+
+</a>
+
+</p>
+
 
 
 </div>
@@ -10634,6 +10720,138 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 
 });
 
+
+
+
+// =====================================
+// 🔒 DETECTAR RECUPERACIÓN DE PASSWORD
+// =====================================
+
+supabaseClient.auth.onAuthStateChange(
+async(event, session)=>{
+
+
+    console.log(
+        "Evento Auth:",
+        event
+    );
+
+
+    if(event === "PASSWORD_RECOVERY"){
+
+
+        console.log(
+            "🔐 Usuario en recuperación"
+        );
+
+
+        document.getElementById("loginModal").style.display="flex";
+
+
+        ocultarTodo();
+
+
+        document.getElementById("formNuevaPassword").style.display="block";
+
+
+    }
+
+
+});
+
+
+
+
+
+
+// =====================================
+// ACTUALIZAR NUEVA PASSWORD
+// =====================================
+
+document
+.getElementById("btnActualizarPassword")
+?.addEventListener(
+"click",
+async()=>{
+
+
+const nueva =
+document
+.getElementById("passwordNueva")
+.value
+.trim();
+
+
+
+const confirmar =
+document
+.getElementById("passwordConfirmar")
+.value
+.trim();
+
+
+
+if(!nueva || nueva.length < 6){
+
+return mostrarAviso(
+"La contraseña debe tener mínimo 6 caracteres",
+"error"
+);
+
+}
+
+
+
+if(nueva !== confirmar){
+
+return mostrarAviso(
+"Las contraseñas no coinciden",
+"error"
+);
+
+}
+
+
+
+const {error} =
+await supabaseClient.auth
+.updateUser({
+
+password:nueva
+
+});
+
+
+
+if(error){
+
+console.error(error);
+
+return mostrarAviso(
+"No se pudo actualizar la contraseña",
+"error"
+);
+
+}
+
+
+
+mostrarAviso(
+"Contraseña actualizada correctamente",
+"success"
+);
+
+
+
+setTimeout(()=>{
+
+location.reload();
+
+},1500);
+
+
+
+});
 
 
 
