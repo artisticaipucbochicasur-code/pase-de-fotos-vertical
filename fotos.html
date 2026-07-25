@@ -10726,39 +10726,38 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 // =====================================
 // 🔒 DETECTAR RECUPERACIÓN DE PASSWORD
 // =====================================
-
 supabaseClient.auth.onAuthStateChange(
 async(event, session)=>{
 
+console.log("Evento Auth:", event);
 
-    console.log(
-        "Evento Auth:",
-        event
-    );
+if(event === "PASSWORD_RECOVERY"){
 
-
-    if(event === "PASSWORD_RECOVERY"){
+console.log("🔐 Usuario en recuperación");
 
 
-        console.log(
-            "🔐 Usuario en recuperación"
-        );
+const modal = document.getElementById("loginModal");
+
+if(modal){
+    modal.style.display="flex";
+}
 
 
-        document.getElementById("loginModal").style.display="flex";
+ocultarTodo();
 
 
-        ocultarTodo();
+const nuevo =
+document.getElementById("formNuevaPassword");
 
 
-        document.getElementById("formNuevaPassword").style.display="block";
+if(nuevo){
+    nuevo.style.display="block";
+}
 
 
-    }
-
+}
 
 });
-
 
 
 
@@ -11444,11 +11443,11 @@ async()=>{
 
 function ocultarTodo(){
 
-
     [
         "formLogin",
         "formRegistro",
-        "formRecuperarPin"
+        "formRecuperarPin",
+        "formNuevaPassword"
     ]
     .forEach(id=>{
 
