@@ -11058,43 +11058,35 @@ document.head.appendChild(styleSpinGlobal);
 
 
 
-// ============================
-// 🔁 Recuperar PIN olvidado (con verificación y cambio definitivo)
-// ============================
-
-
-// === Abrir flujo de recuperación ===
-document.getElementById("olvidastePin").addEventListener("click", () => {
-  ocultarTodo();
-  document.getElementById("formRecuperarPin").style.display = "block";
-  document.getElementById("pasoCorreo").style.display = "block";
-});
-
-// === Volver al login ===
-document.getElementById("volverLogin").addEventListener("click", () => {
-  ocultarTodo();
-  document.getElementById("formLogin").style.display = "block";
-});
 // =====================================
 // 🔁 RECUPERAR CONTRASEÑA SUPABASE
 // =====================================
 
 
-// abrir recuperación
+// Abrir recuperación
 
 document
 .getElementById("olvidastePin")
 ?.addEventListener(
 "click",
-()=>{
+(e)=>{
+
+
+    e.preventDefault();
 
 
     ocultarTodo();
 
 
-    document
-    .getElementById("formRecuperarPin")
-    .style.display="block";
+    const recuperar =
+    document.getElementById("formRecuperarPin");
+
+
+    if(recuperar){
+
+        recuperar.style.display="block";
+
+    }
 
 
 });
@@ -11102,7 +11094,7 @@ document
 
 
 
-// volver login
+// Volver al login
 
 document
 .getElementById("volverLogin")
@@ -11117,9 +11109,15 @@ document
     ocultarTodo();
 
 
-    document
-    .getElementById("formLogin")
-    .style.display="block";
+    const login =
+    document.getElementById("formLogin");
+
+
+    if(login){
+
+        login.style.display="block";
+
+    }
 
 
 });
@@ -11128,7 +11126,7 @@ document
 
 
 
-// enviar correo recuperación
+// Enviar enlace de recuperación Supabase
 
 document
 .getElementById("btnEnviarRecuperacion")
@@ -11137,92 +11135,121 @@ document
 async()=>{
 
 
-const correo =
-document
-.getElementById("recCorreo")
-.value
-.trim()
-.toLowerCase();
+    const correo =
+    document
+    .getElementById("recCorreo")
+    .value
+    .trim()
+    .toLowerCase();
 
 
 
-if(!correo){
-
-    return mostrarAviso(
-        "Ingresa tu correo",
-        "error"
-    );
-
-}
-
-
-
-try{
-
-
-    const {error}=
-    await supabaseClient.auth
-    .resetPasswordForEmail(
-        correo,
-        {
-
-            redirectTo:
-            "https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/fotos.html"
-
-        }
-    );
-
-
-
-    if(error){
-
-        console.error(
-            error
-        );
+    if(!correo){
 
 
         return mostrarAviso(
-            "No se pudo enviar el correo",
+            "Ingresa tu correo",
             "error"
         );
+
 
     }
 
 
 
-    mostrarAviso(
-        "Te enviamos un enlace para recuperar tu contraseña",
-        "success"
-    );
+    try{
+
+
+        const {error} =
+        await supabaseClient.auth
+        .resetPasswordForEmail(
+            correo,
+            {
+
+                redirectTo:
+                "https://artisticaipucbochicasur-code.github.io/pase-de-fotos-vertical/fotos.html"
+
+            }
+        );
 
 
 
-}catch(e){
+        if(error){
 
 
-    console.error(
-        e
-    );
+            console.error(
+                "Error recuperación:",
+                error
+            );
 
 
-    mostrarAviso(
-        "Error enviando recuperación",
-        "error"
-    );
+            return mostrarAviso(
+                "No se pudo enviar el correo de recuperación",
+                "error"
+            );
 
 
-}
+        }
 
+
+
+        mostrarAviso(
+            "Te enviamos un enlace para recuperar tu contraseña",
+            "success"
+        );
+
+
+
+    }catch(e){
+
+
+        console.error(
+            e
+        );
+
+
+        mostrarAviso(
+            "Error enviando recuperación",
+            "error"
+        );
+
+
+    }
 
 
 });
 
-// === Función auxiliar ===
-function ocultarTodo() {
-  ["formLogin","formRegistro","formRecuperarPin"].forEach(id => document.getElementById(id).style.display = "none");
-  ["pasoCorreo","pasoVerificar","pasoNuevoPin"].forEach(id => document.getElementById(id).style.display = "none");
-}
 
+
+
+// Ocultar formularios
+
+function ocultarTodo(){
+
+
+    [
+        "formLogin",
+        "formRegistro",
+        "formRecuperarPin"
+    ]
+    .forEach(id=>{
+
+
+        const elemento =
+        document.getElementById(id);
+
+
+        if(elemento){
+
+            elemento.style.display="none";
+
+        }
+
+
+    });
+
+
+}
 
 
    
