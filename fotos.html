@@ -10825,6 +10825,10 @@ if(nueva){
 // ACTUALIZAR NUEVA PASSWORD
 // =====================================
 
+// =====================================
+// ACTUALIZAR NUEVA PASSWORD SUPABASE
+// =====================================
+
 document
 .getElementById("btnActualizarPassword")
 ?.addEventListener(
@@ -10870,9 +10874,50 @@ return mostrarAviso(
 
 
 
-const {error} =
-await supabaseClient.auth
-.updateUser({
+try{
+
+
+// =====================================
+// VERIFICAR SESIÓN DE RECUPERACIÓN
+// =====================================
+
+const { data: sessionData, error: sessionError } =
+await supabaseClient.auth.getSession();
+
+
+
+console.log(
+"Sesión recuperación:",
+sessionData
+);
+
+
+
+if(sessionError || !sessionData.session){
+
+
+console.error(
+"Error sesión:",
+sessionError
+);
+
+
+return mostrarAviso(
+"La sesión de recuperación expiró. Solicita nuevamente el enlace.",
+"error"
+);
+
+
+}
+
+
+
+// =====================================
+// ACTUALIZAR PASSWORD
+// =====================================
+
+const { data, error } =
+await supabaseClient.auth.updateUser({
 
 password:nueva
 
@@ -10880,16 +10925,32 @@ password:nueva
 
 
 
+console.log(
+"Respuesta cambio contraseña:",
+data,
+error
+);
+
+
+
 if(error){
 
-console.error(error);
+
+console.error(
+"Error actualizando contraseña:",
+error
+);
+
+
 
 return mostrarAviso(
 "No se pudo actualizar la contraseña",
 "error"
 );
 
+
 }
+
 
 
 
@@ -10900,16 +10961,41 @@ mostrarAviso(
 
 
 
-setTimeout(()=>{
+// cerrar sesión de recuperación y volver
+
+setTimeout(async()=>{
+
+
+await supabaseClient.auth.signOut();
+
 
 location.reload();
 
-},1500);
+
+},2000);
+
+
+
+}catch(e){
+
+
+console.error(
+"Error general:",
+e
+);
+
+
+mostrarAviso(
+"Error actualizando contraseña",
+"error"
+);
+
+
+}
 
 
 
 });
-
 
 
 // ======================================================================================
