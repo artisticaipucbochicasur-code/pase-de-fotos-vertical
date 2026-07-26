@@ -10726,32 +10726,90 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
 // =====================================
 // 🔒 DETECTAR RECUPERACIÓN DE PASSWORD
 // =====================================
+// =====================================
+// 🔒 DETECTAR RECUPERACIÓN DE PASSWORD
+// =====================================
+
 supabaseClient.auth.onAuthStateChange(
 async(event, session)=>{
 
+
 console.log("Evento Auth:", event);
 
+
+
 if(event === "PASSWORD_RECOVERY"){
+
 
 console.log("🔐 Usuario en recuperación");
 
 
-const modal = document.getElementById("loginModal");
+
+// abrir modal
+
+const modal =
+document.getElementById("loginModal");
+
 
 if(modal){
+
     modal.style.display="flex";
+
 }
 
 
-ocultarTodo();
+
+// ocultar formularios principales
+
+document
+.getElementById("formLogin")
+.style.display="none";
 
 
-const nuevo =
+document
+.getElementById("formRegistro")
+.style.display="none";
+
+
+
+// mostrar contenedor recuperación
+
+const recuperar =
+document.getElementById("formRecuperarPin");
+
+
+if(recuperar){
+
+    recuperar.style.display="block";
+
+}
+
+
+
+// ocultar solicitud correo
+
+const pasoCorreo =
+document.getElementById("pasoCorreo");
+
+
+if(pasoCorreo){
+
+    pasoCorreo.style.display="none";
+
+}
+
+
+
+// mostrar nueva contraseña
+
+const nueva =
 document.getElementById("formNuevaPassword");
 
 
-if(nuevo){
-    nuevo.style.display="block";
+if(nueva){
+
+    nueva.style.display="block";
+
 }
 
 
@@ -11443,27 +11501,25 @@ async()=>{
 
 function ocultarTodo(){
 
-    [
-        "formLogin",
-        "formRegistro",
-        "formRecuperarPin",
-        "formNuevaPassword"
-    ]
-    .forEach(id=>{
+[
+"formLogin",
+"formRegistro"
+]
+.forEach(id=>{
 
 
-        const elemento =
-        document.getElementById(id);
+const elemento =
+document.getElementById(id);
 
 
-        if(elemento){
+if(elemento){
 
-            elemento.style.display="none";
+elemento.style.display="none";
 
-        }
+}
 
 
-    });
+});
 
 
 }
