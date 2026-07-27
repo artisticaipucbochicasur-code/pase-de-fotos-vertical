@@ -4559,24 +4559,112 @@ async function obtenerUsuarioSupabase(correo){
 
 
 async function resolvePerfil(correo) {
+
     const correoNorm = normalizeText(correo);
-    if (!correoNorm || perfilCache[correoNorm]) return; // ya está cacheado
+
+
+    if (!correoNorm) return;
+
+
+    if (perfilCache[correoNorm]) {
+        return;
+    }
+
+
 
     try {
-        const url = `${SCRIPT_URL}?accion=getUserByEmail&correo=${encodeURIComponent(correoNorm)}`;
-        const res = await fetch(url, { method: "GET", cache: "no-cache" });
 
-        if (!res.ok) return;
 
-        const textoCrudo = await res.text();
-        const data = JSON.parse(textoCrudo);
+        const { data, error } = await supabaseClient
 
-        if (data.status === "success") {
-            perfilCache[correoNorm] = data; // guardar perfil en RAM
+        .from("usuarios")
+
+        .select("*")
+
+        .eq(
+            "correo",
+            correo.trim()
+        )
+
+        .single();
+
+
+
+        if(error || !data){
+
+            console.warn(
+                "Perfil no encontrado en Supabase:",
+                correo
+            );
+
+            return;
+
         }
-    } catch (e) {
-        console.warn("No se pudo precargar perfil:", correoNorm);
+
+
+
+
+        const perfil = {
+
+
+            nombre:
+            data.nombre || "Anónimo",
+
+
+            correo:
+            data.correo || "",
+
+
+            telefono:
+            data.telefono || "",
+
+
+            ciudad:
+            data.ciudad || "",
+
+
+            congregacion:
+            data.congregacion || "",
+
+
+            cargo:
+            data.cargo || "",
+
+
+            fotoPerfil:
+            data.foto_perfil || "img/default-user.png"
+
+
+        };
+
+
+
+
+
+        // Guardar en memoria
+
+        perfilCache[correoNorm] = perfil;
+
+
+
+        console.log(
+            "✅ Perfil cargado desde Supabase:",
+            perfil
+        );
+
+
+
+    } catch(e){
+
+
+        console.error(
+            "Error resolviendo perfil Supabase:",
+            e
+        );
+
+
     }
+
 }
 
 
@@ -9498,14 +9586,6 @@ li.dataset.texto = comentario.textoPuro;
                 if (fotoUrl.startsWith("avatar://")) {
                     const inicial = fotoUrl.split("://")[1];
                     const avatar = document.createElement("div");
-
-                    avatar.style.cursor = "pointer";
-
-avatar.onclick = (e) => {
-    e.stopPropagation();
-    abrirPerfilPorCorreo(correoAutor);
-};
-
                     avatar.style.width = "30px";
                     avatar.style.height = "30px";
                     avatar.style.borderRadius = "50%";
@@ -9528,14 +9608,6 @@ avatar.onclick = (e) => {
                     img.style.background = "#eee";
                     img.alt = anuncio.autor || "autor";
                     img.referrerPolicy = "no-referrer";
-
-                    img.style.cursor = "pointer";
-
-img.onclick = (e) => {
-    e.stopPropagation();
-
-    abrirPerfilPorCorreo(correoAutor);
-};
 
                     const sep = fotoUrl.includes("?") ? "&" : "?";
                     img.src = fotoUrl + `${sep}v=${Date.now()}`;
