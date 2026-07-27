@@ -10597,18 +10597,29 @@ localStorage.getItem("usuario")
 
 
 
-const authId =
-usuario.auth_id;
+// Obtener usuario autenticado directamente desde Supabase
+
+const {
+data:{
+    user
+}
+
+} = await supabaseClient.auth.getUser();
 
 
 
-if(!authId){
+if(!user){
 
 throw new Error(
-"No se encontró auth_id"
+"No existe sesión activa en Supabase"
 );
 
 }
+
+
+
+const authId =
+user.id;
 
 
 
