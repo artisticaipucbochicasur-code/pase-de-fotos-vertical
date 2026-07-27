@@ -12442,143 +12442,364 @@ if (window.DEComAuthPing)  window.DEComAuthPing();
 
 
 function abrirPerfil() { 
+
   console.log("👤 Abriendo perfil del usuario");
+
+
   // Obtener datos del usuario desde localStorage
+
   let u = JSON.parse(localStorage.getItem("usuario")) || {};
+
   u.nombre = u.nombre || u.name || localStorage.getItem("autor") || "Usuario";
+
   u.correo = u.correo || localStorage.getItem("correo") || "";
+
   u.telefono = u.telefono || localStorage.getItem("telefono") || "";
+
   u.congregacion = u.congregacion || localStorage.getItem("congregacion") || "";
+
   u.cargo = u.cargo || localStorage.getItem("cargo") || "";
+
   u.ciudad = u.ciudad || localStorage.getItem("ciudad") || "";
 
-  // Mostrar modal
-  const modal = document.getElementById("modalPerfil");
-  modal.style.display = "flex";
 
-  // === FOTO DE PERFIL (sin cambios, funciona bien) ===
+
+  // Mostrar modal
+
+  const modal = document.getElementById("modalPerfil");
+
+  if(modal){
+
+      modal.style.display = "flex";
+
+  }
+
+
+
+  // === FOTO DE PERFIL ===
+
   const userBtn = document.getElementById("userBtn");
+
   const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
+
   const fotoModal = document.getElementById("fotoPerfilModal");
+
   const menuPhoto = document.getElementById("userMenuPhoto");
 
+
+
   let fotoSrc = "";
-  if (userBtnImg?.src) fotoSrc = userBtnImg.src;
-  else if (fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
-  else if (menuPhoto?.querySelector("img")?.src) fotoSrc = menuPhoto.querySelector("img").src;
-  if (!fotoSrc && localStorage.getItem("fotoPerfil")) fotoSrc = localStorage.getItem("fotoPerfil");
-
-if (fotoSrc) {
 
 
-    // 🔄 Evitar caché de imágenes Supabase
-    const fotoActualizada =
+
+  // =========================================
+  // PRIORIDAD 1: SIEMPRE LA FOTO GUARDADA NUEVA
+  // =========================================
+
+  const fotoLocal =
+  localStorage.getItem("fotoPerfil");
+
+
+  if(fotoLocal){
+
+      fotoSrc = fotoLocal;
+
+  }
+
+
+
+  // =========================================
+  // PRIORIDAD 2: OBJETO USUARIO
+  // =========================================
+
+  if(!fotoSrc && u.fotoPerfil){
+
+      fotoSrc = u.fotoPerfil;
+
+  }
+
+
+  if(!fotoSrc && u.foto_perfil){
+
+      fotoSrc = u.foto_perfil;
+
+  }
+
+
+
+  // =========================================
+  // PRIORIDAD 3: ELEMENTOS VISUALES
+  // =========================================
+
+  if(!fotoSrc && userBtnImg?.src){
+
+      fotoSrc = userBtnImg.src;
+
+  }
+
+
+  if(!fotoSrc && fotoModal?.src?.trim()){
+
+      fotoSrc = fotoModal.src;
+
+  }
+
+
+  if(!fotoSrc && menuPhoto?.querySelector("img")?.src){
+
+      fotoSrc = menuPhoto.querySelector("img").src;
+
+  }
+
+
+
+
+  // =========================================
+  // EVITAR CACHÉ SUPABASE
+  // =========================================
+
+  if(
+    fotoSrc &&
     fotoSrc.includes("supabase.co/storage")
-    ? fotoSrc.split("?")[0] + "?v=" + Date.now()
-    : fotoSrc;
+  ){
+
+      fotoSrc =
+      fotoSrc.split("?")[0]
+      +
+      "?v="
+      +
+      Date.now();
+
+  }
 
 
 
-    if (fotoModal) {
-        fotoModal.src = fotoActualizada;
-    }
+
+  if(fotoSrc){
 
 
-    const fondo =
-    document.getElementById("fotoFondoDifuminado");
+      if(fotoModal){
 
-    if(fondo){
-        fondo.src = fotoActualizada;
-    }
+          fotoModal.style.opacity="0";
 
 
+          const cargarFoto = ()=>{
 
-    if (menuPhoto) {
+              fotoModal.style.transition =
+              "opacity .25s ease";
 
-      menuPhoto.innerHTML = `
-      <img src="${fotoActualizada}" 
-      style="
-      width:80px;
-      height:80px;
-      border-radius:50%;
-      object-fit:cover;
-      border:2px solid #0077cc;">
-      `;
+              fotoModal.style.opacity="1";
 
-    }
+          };
+
+
+          fotoModal.onload = cargarFoto;
+
+          fotoModal.src = fotoSrc;
+
+
+      }
 
 
 
-    if (userBtn && !userBtnImg) {
-
-      userBtn.innerHTML = `
-      <img src="${fotoActualizada}"
-      style="
-      width:32px;
-      height:32px;
-      border-radius:50%;
-      object-fit:cover;">
-      `;
-
-    }
+      const fondo =
+      document.getElementById("fotoFondoDifuminado");
 
 
-}
+      if(fondo){
+
+          fondo.src = fotoSrc;
+
+      }
+
+
+
+      if(menuPhoto){
+
+          menuPhoto.innerHTML =
+          `
+          <img src="${fotoSrc}"
+          style="
+          width:80px;
+          height:80px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid #0077cc;">
+          `;
+
+      }
+
+
+
+      if(userBtn){
+
+          userBtn.innerHTML =
+          `
+          <img src="${fotoSrc}"
+          style="
+          width:32px;
+          height:32px;
+          border-radius:50%;
+          object-fit:cover;">
+          `;
+
+      }
+
+
+  }
+
+
+
   // Nombre + correo
-  document.getElementById("nombrePerfil").textContent = u.nombre;
-  document.getElementById("correoPerfil").textContent = u.correo || "Sin correo registrado";
 
-  // === DATOS ADICIONALES (SIN ESTILOS INLINE DE COLOR) ===
+  const nombrePerfil =
+  document.getElementById("nombrePerfil");
+
+
+  const correoPerfil =
+  document.getElementById("correoPerfil");
+
+
+
+  if(nombrePerfil){
+
+      nombrePerfil.textContent = u.nombre;
+
+  }
+
+
+
+  if(correoPerfil){
+
+      correoPerfil.textContent =
+      u.correo || "Sin correo registrado";
+
+  }
+
+
+
+
+
+  // === DATOS ADICIONALES ===
+
   const datosHTML = `
+
     ${u.telefono ? `
+
       <div class="perfil-dato-item">
+
         <i class="fas fa-phone-alt"></i>
+
         <div>
+
           <div class="dato-label">Teléfono</div>
-          <div class="dato-valor" style="text-decoration:underline;">${u.telefono}</div>
+
+          <div class="dato-valor" style="text-decoration:underline;">
+          ${u.telefono}
+          </div>
+
         </div>
+
       </div>
+
     ` : ''}
+
+
+
     ${u.congregacion ? `
+
       <div class="perfil-dato-item">
+
         <i class="fas fa-church"></i>
+
         <div>
+
           <div class="dato-label">Congregación</div>
-          <div class="dato-valor">${u.congregacion}</div>
+
+          <div class="dato-valor">
+          ${u.congregacion}
+          </div>
+
         </div>
+
       </div>
+
     ` : ''}
+
+
+
     ${u.cargo ? `
+
       <div class="perfil-dato-item">
+
         <i class="fas fa-user-tie"></i>
+
         <div>
+
           <div class="dato-label">Cargo</div>
-          <div class="dato-valor">${u.cargo}</div>
+
+          <div class="dato-valor">
+          ${u.cargo}
+          </div>
+
         </div>
+
       </div>
+
     ` : ''}
+
+
+
     ${u.ciudad ? `
+
       <div class="perfil-dato-item">
+
         <i class="fas fa-map-marker-alt"></i>
+
         <div>
+
           <div class="dato-label">Ciudad</div>
-          <div class="dato-valor">${u.ciudad}</div>
+
+          <div class="dato-valor">
+          ${u.ciudad}
+          </div>
+
         </div>
+
       </div>
+
     ` : ''}
+
   `;
 
-  const contenedor = document.getElementById("perfilDatosContainer");
-  if (contenedor) {
-    contenedor.innerHTML = datosHTML;
+
+
+  const contenedor =
+  document.getElementById("perfilDatosContainer");
+
+
+  if(contenedor){
+
+      contenedor.innerHTML = datosHTML;
+
   }
 
-  // === APLICAR TEMA CORRECTO AL FINAL (esto es lo que lo arregla todo) ===
-  if (document.body.classList.contains('dark-mode')) {
-    aplicarDarkModeModalPerfil();
-  } else {
-    aplicarLightModeModalPerfil();
+
+
+
+  // Aplicar tema
+
+  if(document.body.classList.contains('dark-mode')){
+
+      aplicarDarkModeModalPerfil();
+
+  }else{
+
+      aplicarLightModeModalPerfil();
+
   }
+
+
 }
 
 
