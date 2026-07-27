@@ -12187,7 +12187,18 @@ let yaTieneImagen = false;
         return;
       }
 
-      const url = candidates[idx++];
+    let url = candidates[idx++];
+
+
+// evitar caché en imágenes Supabase
+if(
+url.includes("supabase.co/storage")
+&& !url.includes("?v=")
+){
+
+url += "?v=" + Date.now();
+
+}
       if (!url) return tryNext();
 
       const testImg = new Image();
@@ -12467,17 +12478,62 @@ function abrirPerfil() {
   else if (menuPhoto?.querySelector("img")?.src) fotoSrc = menuPhoto.querySelector("img").src;
   if (!fotoSrc && localStorage.getItem("fotoPerfil")) fotoSrc = localStorage.getItem("fotoPerfil");
 
-  if (fotoSrc) {
-    if (fotoModal) fotoModal.src = fotoSrc;
-    document.getElementById("fotoFondoDifuminado").src = fotoSrc;
-    if (menuPhoto) {
-      menuPhoto.innerHTML = `<img src="${fotoSrc}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #0077cc;">`;
-    }
-    if (userBtn && !userBtnImg) {
-      userBtn.innerHTML = `<img src="${fotoSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`;
-    }
-  }
+if (fotoSrc) {
 
+
+    // 🔄 Evitar caché de imágenes Supabase
+    const fotoActualizada =
+    fotoSrc.includes("supabase.co/storage")
+    ? fotoSrc.split("?")[0] + "?v=" + Date.now()
+    : fotoSrc;
+
+
+
+    if (fotoModal) {
+        fotoModal.src = fotoActualizada;
+    }
+
+
+    const fondo =
+    document.getElementById("fotoFondoDifuminado");
+
+    if(fondo){
+        fondo.src = fotoActualizada;
+    }
+
+
+
+    if (menuPhoto) {
+
+      menuPhoto.innerHTML = `
+      <img src="${fotoActualizada}" 
+      style="
+      width:80px;
+      height:80px;
+      border-radius:50%;
+      object-fit:cover;
+      border:2px solid #0077cc;">
+      `;
+
+    }
+
+
+
+    if (userBtn && !userBtnImg) {
+
+      userBtn.innerHTML = `
+      <img src="${fotoActualizada}"
+      style="
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      object-fit:cover;">
+      `;
+
+    }
+
+
+}
   // Nombre + correo
   document.getElementById("nombrePerfil").textContent = u.nombre;
   document.getElementById("correoPerfil").textContent = u.correo || "Sin correo registrado";
