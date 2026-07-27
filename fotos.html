@@ -5628,15 +5628,19 @@ try {
 
 
 
-    const datosActualizar = {
+const datosActualizar = {
 
 
-        titulo: titulo,
+    titulo: titulo,
 
-        descripcion: descripcion
+    descripcion: descripcion,
+
+    autor: autor,
+
+    correo: correo
 
 
-    };
+};
 
 
 
@@ -7231,9 +7235,8 @@ function updateInfo(title, description, autor = "Anónimo") {
     : description;
 
   // 🆕 Insertar autor junto al título
-const autorHTML = autor && autor !== "Anónimo"
-  ? `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`
-  : "";
+  const autorHTML = `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`;
+
   // Guardar HTML completo con autor
   const shortTitle = `${shortTitleText}${autorHTML}`;
   const fullTitle = `${title}${autorHTML}`;
@@ -8705,28 +8708,39 @@ async function cargarImagenes(forceRefresh = false) {
                 const comentariosFormateados = normalizarComentarios(comentarios);
 
 
+newAnunciosData.push({
 
-                newAnunciosData.push({
+    titulo: pub.titulo || "",
 
-                    titulo: pub.titulo || "",
+    descripcion: pub.descripcion || "",
 
-                    descripcion: pub.descripcion || "",
+    comentarios: comentariosFormateados,
 
-                    comentarios: comentariosFormateados,
+    url: pub.url_media || "", 
 
-                    url: pub.url_media || "", 
+    deleteurl: pub.url_media || "",
 
-                    deleteurl: pub.url_media || "",
 
-                    autor: pub.autor_id || "",
+    // NUEVO: autor visible
+    autor:
+    pub.autor ||
+    pub.nombre_autor ||
+    pub.correo ||
+    "Anónimo",
 
-                    correo: pub.correo || "",
 
-                    fecha: pub.fecha_creacion || "",
+    correo:
+    pub.correo || "",
 
-                    id: pub.id || ""
 
-                });
+    fecha:
+    pub.fecha_creacion || "",
+
+
+    id:
+    pub.id || ""
+
+});
 
 
             });
