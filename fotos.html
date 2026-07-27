@@ -2596,6 +2596,7 @@ position:absolute;
 bottom:-60px;
 overflow:hidden;
 box-shadow:0 8px 25px rgba(0,0,0,.3);
+cursor:pointer;
 ">
 
 <img id="editarFotoImagen"
@@ -2606,7 +2607,39 @@ height:100%;
 object-fit:cover;
 ">
 
+
+<!-- NUEVO: selector oculto -->
+<input 
+type="file"
+id="inputFotoEditar"
+accept="image/*"
+style="display:none;"
+>
+
+
 </div>
+
+
+<button 
+id="btnCambiarFotoEditar"
+style="
+position:absolute;
+bottom:-55px;
+right:calc(50% - 75px);
+width:35px;
+height:35px;
+border-radius:50%;
+border:none;
+background:#0077cc;
+color:white;
+font-size:16px;
+cursor:pointer;
+z-index:5;
+">
+
+<i class="fas fa-camera"></i>
+
+</button>
 
 
 </div>
@@ -10362,7 +10395,7 @@ regFoto?.addEventListener("change", async () => {
 // 📸 SUBIR FOTO PERFIL SUPABASE
 // =====================================
 
-async function subirFotoPerfilSupabase(authId){
+async function subirFotoPerfilSupabase(authId){ 
 
 
     try{
@@ -10486,6 +10519,215 @@ async function subirFotoPerfilSupabase(authId){
     }
 
 }
+
+
+
+// =====================================
+// 📸 CAMBIAR FOTO DESDE EDITAR PERFIL
+// =====================================
+
+
+document
+.getElementById("btnCambiarFotoEditar")
+?.addEventListener(
+"click",
+()=>{
+
+
+document
+.getElementById("inputFotoEditar")
+.click();
+
+
+});
+
+
+
+
+
+document
+.getElementById("inputFotoEditar")
+?.addEventListener(
+"change",
+async(e)=>{
+
+
+const archivo=e.target.files[0];
+
+
+if(!archivo) return;
+
+
+
+const reader=new FileReader();
+
+
+
+reader.onload=async()=>{
+
+
+// usamos la misma variable del registro
+window.fotoComprimida = reader.result;
+
+
+
+// mostrar preview inmediato
+
+const img =
+document.getElementById("editarFotoImagen");
+
+
+if(img){
+
+img.src =
+window.fotoComprimida;
+
+}
+
+
+
+
+try{
+
+
+const usuario =
+JSON.parse(
+localStorage.getItem("usuario")
+) || {};
+
+
+
+const authId =
+usuario.auth_id;
+
+
+
+if(!authId){
+
+throw new Error(
+"No se encontró auth_id"
+);
+
+}
+
+
+
+// reutilizamos tu función existente
+
+const nuevaFoto =
+await subirFotoPerfilSupabase(
+authId
+);
+
+
+
+
+if(!nuevaFoto){
+
+throw new Error(
+"No se generó URL"
+);
+
+}
+
+
+
+
+
+// actualizar tabla usuarios
+
+const {error}=
+
+await supabaseClient
+.from("usuarios")
+.update({
+
+foto_perfil:nuevaFoto
+
+})
+.eq(
+"auth_id",
+authId
+);
+
+
+
+if(error)
+throw error;
+
+
+
+
+
+// actualizar local
+
+usuario.foto_perfil=nuevaFoto;
+usuario.fotoPerfil=nuevaFoto;
+
+
+localStorage.setItem(
+"usuario",
+JSON.stringify(usuario)
+);
+
+
+localStorage.setItem(
+"fotoPerfil",
+nuevaFoto
+);
+
+
+
+
+
+// actualizar toda la interfaz
+
+if(typeof mostrarUsuario==="function"){
+
+mostrarUsuario(usuario);
+
+}
+
+
+
+mostrarAviso(
+"Foto actualizada correctamente",
+"success"
+);
+
+
+
+}
+catch(error){
+
+
+console.error(
+"Error cambiando foto:",
+error
+);
+
+
+mostrarAviso(
+"No se pudo actualizar la foto",
+"error"
+);
+
+
+
+}
+
+
+
+};
+
+
+
+reader.readAsDataURL(archivo);
+
+
+
+});
+
 
 
 
@@ -12481,6 +12723,10 @@ document.getElementById("modalEditarPerfil")
 
 
 });
+
+
+
+
 
 
 // =====================================
