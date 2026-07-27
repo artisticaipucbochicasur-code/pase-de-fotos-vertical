@@ -4109,6 +4109,13 @@ async function actualizarPerfilSupabase(){
         document.getElementById("editarCiudad").value.trim(),
 
 
+        // 📸 Mantener foto actualizada
+        foto_perfil:
+        usuarioActual.foto_perfil ||
+        usuarioActual.fotoPerfil ||
+        "",
+
+
         actualizado:
         new Date().toISOString()
 
@@ -4216,6 +4223,13 @@ const usuarioNuevo = {
     );
 
 
+    // 📸 Guardar también la foto localmente
+    localStorage.setItem(
+        "fotoPerfil",
+        usuarioNuevo.foto_perfil || ""
+    );
+
+
 
     console.log(
         "💾 Datos locales actualizados"
@@ -4225,28 +4239,28 @@ const usuarioNuevo = {
 
     // Actualizar botón superior
 
-if(typeof mostrarUsuario==="function"){
+    if(typeof mostrarUsuario==="function"){
 
-    mostrarUsuario(usuarioNuevo);
+        mostrarUsuario(usuarioNuevo);
 
-}
-
-
-
-// =================================
-// ACTUALIZAR MODAL PERFIL ABIERTO
-// =================================
-
-
-if(typeof abrirPerfil==="function"){
-
-    actualizarVistaPerfil(usuarioNuevo);
-
-}
+    }
 
 
 
-cerrarEditarPerfil();
+    // =================================
+    // ACTUALIZAR MODAL PERFIL ABIERTO
+    // =================================
+
+
+    if(typeof abrirPerfil==="function"){
+
+        actualizarVistaPerfil(usuarioNuevo);
+
+    }
+
+
+
+    cerrarEditarPerfil();
 
 
 
@@ -4257,7 +4271,6 @@ cerrarEditarPerfil();
 
 
 }
-
 
 
 // =====================================
