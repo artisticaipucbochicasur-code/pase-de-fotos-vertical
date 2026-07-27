@@ -12532,19 +12532,7 @@ function abrirPerfil() {
   // EVITAR CACHÉ SUPABASE
   // =========================================
 
-  if(
-    fotoSrc &&
-    fotoSrc.includes("supabase.co/storage")
-  ){
 
-      fotoSrc =
-      fotoSrc.split("?")[0]
-      +
-      "?v="
-      +
-      Date.now();
-
-  }
 
 
 
@@ -12552,27 +12540,16 @@ function abrirPerfil() {
   if(fotoSrc){
 
 
-      if(fotoModal){
+ if(fotoModal){
 
-          fotoModal.style.opacity="0";
+    // Solo cambiar si realmente es diferente
+    if(fotoModal.src !== fotoSrc){
 
+        fotoModal.src = fotoSrc;
 
-          const cargarFoto = ()=>{
+    }
 
-              fotoModal.style.transition =
-              "opacity .25s ease";
-
-              fotoModal.style.opacity="1";
-
-          };
-
-
-          fotoModal.onload = cargarFoto;
-
-          fotoModal.src = fotoSrc;
-
-
-      }
+}
 
 
 
@@ -12580,11 +12557,15 @@ function abrirPerfil() {
       document.getElementById("fotoFondoDifuminado");
 
 
-      if(fondo){
+ if(fondo){
 
-          fondo.src = fotoSrc;
+    if(fondo.src !== fotoSrc){
 
-      }
+        fondo.src = fotoSrc;
+
+    }
+
+}
 
 
 
@@ -13439,12 +13420,11 @@ localStorage.getItem("usuario")
 
 
 usuarioActual.fotoPerfil =
-nuevaFoto;
+fotoCache;
 
 
 usuarioActual.foto_perfil =
-nuevaFoto;
-
+fotoCache;
 
 
 localStorage.setItem(
@@ -13454,9 +13434,13 @@ JSON.stringify(usuarioActual)
 
 
 
+const fotoCache =
+nuevaFoto + "?v=" + Date.now();
+
+
 localStorage.setItem(
 "fotoPerfil",
-nuevaFoto
+fotoCache
 );
 
 
