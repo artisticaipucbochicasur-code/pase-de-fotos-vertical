@@ -3979,10 +3979,16 @@ async function sincronizarUsuarioSupabase(){
 
 
 
-    localStorage.setItem(
-        "usuario",
-        JSON.stringify(perfil)
-    );
+localStorage.setItem(
+    "usuario",
+    JSON.stringify(perfil)
+);
+
+
+localStorage.setItem(
+    "fotoPerfil",
+    perfil.fotoPerfil || ""
+);
 
 
     localStorage.setItem(
@@ -12289,6 +12295,27 @@ if (menuPhoto) {
 }
 
 
+// =====================================
+// 📸 FUENTE ÚNICA FOTO USUARIO
+// =====================================
+
+function obtenerFotoUsuario(){
+
+    const usuario =
+    JSON.parse(localStorage.getItem("usuario")) || {};
+
+
+    return (
+        usuario.fotoPerfil ||
+        usuario.foto_perfil ||
+        localStorage.getItem("fotoPerfil") ||
+        ""
+    );
+
+}
+
+
+
 function mostrarIniciales(u) {
   if (!userBtn) return;
 
@@ -12452,80 +12479,17 @@ function abrirPerfil() {
 
   // === FOTO DE PERFIL ===
 
-  const userBtn = document.getElementById("userBtn");
 
-  const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
+const userBtn = document.getElementById("userBtn");
 
-  const fotoModal = document.getElementById("fotoPerfilModal");
+const fotoModal = document.getElementById("fotoPerfilModal");
 
-  const menuPhoto = document.getElementById("userMenuPhoto");
-
+const menuPhoto = document.getElementById("userMenuPhoto");
 
 
-  let fotoSrc = "";
+// ÚNICA FUENTE DE FOTO
 
-
-
-  // =========================================
-  // PRIORIDAD 1: SIEMPRE LA FOTO GUARDADA NUEVA
-  // =========================================
-
-  const fotoLocal =
-  localStorage.getItem("fotoPerfil");
-
-
-  if(fotoLocal){
-
-      fotoSrc = fotoLocal;
-
-  }
-
-
-
-  // =========================================
-  // PRIORIDAD 2: OBJETO USUARIO
-  // =========================================
-
-  if(!fotoSrc && u.fotoPerfil){
-
-      fotoSrc = u.fotoPerfil;
-
-  }
-
-
-  if(!fotoSrc && u.foto_perfil){
-
-      fotoSrc = u.foto_perfil;
-
-  }
-
-
-
-  // =========================================
-  // PRIORIDAD 3: ELEMENTOS VISUALES
-  // =========================================
-
-  if(!fotoSrc && userBtnImg?.src){
-
-      fotoSrc = userBtnImg.src;
-
-  }
-
-
-  if(!fotoSrc && fotoModal?.src?.trim()){
-
-      fotoSrc = fotoModal.src;
-
-  }
-
-
-  if(!fotoSrc && menuPhoto?.querySelector("img")?.src){
-
-      fotoSrc = menuPhoto.querySelector("img").src;
-
-  }
-
-
+const fotoSrc = obtenerFotoUsuario();
 
 
   // =========================================
@@ -12990,11 +12954,7 @@ const usuarioGuardado =
 JSON.parse(localStorage.getItem("usuario")) || {};
 
 
-const fotoActual =
-usuarioGuardado.fotoPerfil ||
-localStorage.getItem("fotoPerfil") ||
-document.getElementById("userBtn")?.querySelector("img")?.src ||
-"";
+const fotoActual = obtenerFotoUsuario();
 
 
 if(fotoEditar && fotoActual){
@@ -13084,42 +13044,29 @@ function cerrarModalPerfil() {
 
 
 function abrirFotoGrande() {
+
   const modal = document.getElementById("modalFotoGrande");
+
   const img = document.getElementById("fotoGrandeVista");
 
-  // === MISMA LÓGICA DE PRIORIDAD QUE EN abrirPerfil() ===
-  let fotoSrc = "";
 
-  // 1. Botón del usuario
-  const userBtn = document.getElementById("userBtn");
-  const userBtnImg = userBtn ? userBtn.querySelector("img") : null;
-  if (userBtnImg && userBtnImg.src) fotoSrc = userBtnImg.src;
+  const fotoSrc = obtenerFotoUsuario();
 
-  // 2. Foto del modal perfil
-  const fotoModal = document.getElementById("fotoPerfilModal");
-  if (!fotoSrc && fotoModal?.src?.trim()) fotoSrc = fotoModal.src;
 
-  // 3. Menú del usuario
-  const menuPhoto = document.getElementById("userMenuPhoto");
-  if (!fotoSrc && menuPhoto) {
-    const menuImg = menuPhoto.querySelector("img");
-    if (menuImg?.src) fotoSrc = menuImg.src;
-  }
+  if (fotoSrc) {
 
-  // 4. localStorage (foto guardada)
-  if (!fotoSrc && localStorage.getItem("fotoPerfil")) {
-    fotoSrc = localStorage.getItem("fotoPerfil");
-  }
+      img.src = fotoSrc;
 
-  // === APLICAR FOTO ===
-  if (fotoSrc && fotoSrc !== "undefined" && fotoSrc !== "null") {
-    img.src = fotoSrc;
-    modal.style.display = "flex";
+      modal.style.display = "flex";
+
   } else {
-    console.warn("No se encontró foto para mostrar en modal grande");
-    // Opcional: mostrar mensaje o cerrar
-    modal.style.display = "none";
+
+      console.warn("No se encontró foto para mostrar");
+
+      modal.style.display = "none";
+
   }
+
 }
 
 
@@ -13419,6 +13366,10 @@ localStorage.getItem("usuario")
 
 
 
+const fotoCache =
+nuevaFoto + "?v=" + Date.now();
+
+
 usuarioActual.fotoPerfil =
 fotoCache;
 
@@ -13433,9 +13384,10 @@ JSON.stringify(usuarioActual)
 );
 
 
-
-const fotoCache =
-nuevaFoto + "?v=" + Date.now();
+localStorage.setItem(
+"fotoPerfil",
+fotoCache
+);
 
 
 localStorage.setItem(
