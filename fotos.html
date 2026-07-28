@@ -2451,7 +2451,7 @@ Volver al inicio
         filter: blur(18px) brightness(0.6);
         transform: scale(1.1);
       ">
-      <img id="autorFoto" style="
+      <img id="autorFoto" style="display:block;
         position: relative;
         max-width: 100%;
         max-height: 100%;
@@ -3232,59 +3232,129 @@ function mostrarPerfilAutor(data){
 
 
     const foto =
-    obtenerAvatarUsuario(
-        data.nombre,
-        data.fotoPerfil,
-        120
-    );
-
-
-
-    const contenedorFoto =
     document.getElementById("autorFoto");
 
 
-
-    const contenedorFondo =
+    const fondo =
     document.getElementById("autorFotoFondo");
 
 
 
-    if(contenedorFoto){
-
-        contenedorFoto.outerHTML =
-        foto.replace(
-            "<div",
-            '<div id="autorFoto"'
-        );
-
-    }
+    const fotoPerfil =
+    data.fotoPerfil || "";
 
 
 
-    // Fondo difuminado solamente si existe imagen real
+    // ===========================
+    // FOTO PRINCIPAL
+    // ===========================
 
-    if(contenedorFondo){
+    if(fotoPerfil){
 
-        if(data.fotoPerfil){
 
-            contenedorFondo.src =
-            data.fotoPerfil + "?v=" + Date.now();
+        foto.src = fotoPerfil;
 
-        }else{
+        foto.style.display="block";
 
-            contenedorFondo.src="";
+
+
+        if(fondo){
+
+            fondo.src = fotoPerfil;
 
         }
 
+
+
+    }else{
+
+
+        // Sin foto: limpiar imagen anterior
+
+        foto.removeAttribute("src");
+
+        foto.style.display="none";
+
+
+
+        if(fondo){
+
+            fondo.removeAttribute("src");
+
+        }
+
+
+
+        // Crear iniciales
+
+        const iniciales =
+        obtenerIniciales(data.nombre);
+
+
+
+        let avatar =
+        document.getElementById("autorAvatarInicial");
+
+
+
+        if(!avatar){
+
+
+            avatar =
+            document.createElement("div");
+
+
+            avatar.id =
+            "autorAvatarInicial";
+
+
+            avatar.style.width="90px";
+
+            avatar.style.height="90px";
+
+            avatar.style.borderRadius="50%";
+
+            avatar.style.background="#5468ff";
+
+            avatar.style.color="white";
+
+            avatar.style.display="flex";
+
+            avatar.style.alignItems="center";
+
+            avatar.style.justifyContent="center";
+
+            avatar.style.fontSize="32px";
+
+            avatar.style.fontWeight="bold";
+
+            avatar.style.margin="auto";
+
+
+
+            foto.parentElement.appendChild(avatar);
+
+
+        }
+
+
+
+        avatar.textContent=iniciales;
+
+        avatar.style.display="flex";
+
+
     }
 
 
+
+    // ===========================
+    // DATOS
+    // ===========================
 
 
     document.getElementById("autorNombre").textContent =
     data.nombre || "Anónimo";
-
 
 
     document.getElementById("autorCorreo").textContent =
@@ -3309,6 +3379,26 @@ function mostrarPerfilAutor(data){
     document.getElementById("modalAutor")
     .classList.remove("hidden");
 
+}
+
+
+
+
+
+function obtenerIniciales(nombre){
+
+    if(!nombre)
+        return "U";
+
+
+    const partes =
+    nombre.trim().split(" ");
+
+
+    return (
+        partes[0][0] +
+        (partes[1] ? partes[1][0] : "")
+    ).toUpperCase();
 
 }
 
