@@ -5075,7 +5075,10 @@ let forzarBajarAlFinal = false; // evita conflicto cuando YO envío mensajes
 
 const chatCache = {};
 // Guarda hasta qué fecha está sincronizada cada conversación
-const chatUltimaFecha = {};
+const chatUltimaFecha = 
+JSON.parse(
+    localStorage.getItem("chatUltimaFecha") || "{}"
+);
 
 
 
@@ -5407,12 +5410,10 @@ function iniciarChatCon(info) {
     null;
 
 
-
     const fotoFinal =
     fotoDesdePerfil ||
     info.foto ||
     "";
-
 
 
 
@@ -5424,7 +5425,6 @@ function iniciarChatCon(info) {
         fotoFinal
 
     };
-
 
 
 
@@ -5445,13 +5445,10 @@ function iniciarChatCon(info) {
         mensajesIniciales.length === 0
     ){
 
-
         mensajesIniciales =
         cargarChatLocal(info.correo);
 
-
     }
-
 
 
 
@@ -5460,38 +5457,53 @@ function iniciarChatCon(info) {
 
 
 
-// Normalizar mensajes antiguos del cache
-chatCache[info.correo] =
-chatCache[info.correo].map(m => {
 
 
-    if(!m.fechaOrden && m.fecha){
+
+    // =====================================
+    // 2. NORMALIZAR FECHAS DEL CACHE
+    // =====================================
 
 
-        const posibleFecha =
-        new Date(m.fecha);
+    chatCache[info.correo] =
+
+    chatCache[info.correo].map(m=>{
 
 
-        if(!isNaN(posibleFecha)){
+        if(!m.fechaOrden && m.fecha){
 
 
-            m.fechaOrden =
-            posibleFecha.toISOString();
+            const fecha =
+            new Date(m.fecha);
+
+
+
+            if(!isNaN(fecha)){
+
+
+                m.fechaOrden =
+                fecha.toISOString();
+
+
+            }
 
 
         }
 
-    }
+
+        return m;
 
 
-    return m;
+    });
 
 
-});
+
+
+
 
 
     // =====================================
-    // 2. PREPARAR ULTIMA FECHA SINCRONIZADA
+    // 3. GUARDAR ULTIMA FECHA DE CHAT
     // =====================================
 
 
@@ -5500,51 +5512,47 @@ chatCache[info.correo].map(m => {
     ){
 
 
-      const ultimoMensaje =
-chatCache[info.correo]
-[
- chatCache[info.correo].length - 1
-];
+        const ultimoMensaje =
 
-
-if(ultimoMensaje.fechaOrden){
-
-    chatUltimaFecha[info.correo] =
-    ultimoMensaje.fechaOrden;
-
-}
+        chatCache[info.correo]
+        [
+            chatCache[info.correo].length - 1
+        ];
 
 
 
-if(ultimoMensaje.fechaOrden){
+        const ultimaFecha =
 
-    chatUltimaFecha[info.correo] =
-    ultimoMensaje.fechaOrden;
+        ultimoMensaje.fechaOriginal ||
 
+        ultimoMensaje.fechaOrden ||
 
-} else if(ultimoMensaje.fecha){
-
-
-    const fechaConvertida =
-    new Date(
-        ultimoMensaje.fecha
-    );
+        null;
 
 
-    if(!isNaN(fechaConvertida)){
 
 
-        chatUltimaFecha[info.correo] =
-        fechaConvertida.toISOString();
+        if(ultimaFecha){
 
 
-    }
+            chatUltimaFecha[info.correo] =
+            ultimaFecha;
 
 
-}
+
+            localStorage.setItem(
+                "chatUltimaFecha",
+                JSON.stringify(chatUltimaFecha)
+            );
+
+
+        }
+
 
 
     }
+
+
 
 
 
@@ -5552,7 +5560,7 @@ if(ultimoMensaje.fechaOrden){
 
 
     // =====================================
-    // 3. PINTAR MENSAJES ANTES DE MOSTRAR
+    // 4. MOSTRAR MENSAJES INMEDIATAMENTE
     // =====================================
 
 
@@ -5566,7 +5574,7 @@ if(ultimoMensaje.fechaOrden){
     if(cont){
 
 
-        cont.innerHTML = "";
+        cont.innerHTML="";
 
 
 
@@ -5579,13 +5587,19 @@ if(ultimoMensaje.fechaOrden){
                 chatCache[info.correo]
             );
 
+
             console.log(
-    "💾 CHAT MOSTRADO DESDE CACHE:",
-    {
-        usuario: info.correo,
-        mensajesCache: chatCache[info.correo].length
-    }
-);
+                "💾 CHAT MOSTRADO DESDE CACHE:",
+                {
+                    usuario:info.correo,
+                    mensajesCache:
+                    chatCache[info.correo].length,
+
+                    ultimaFecha:
+                    chatUltimaFecha[info.correo]
+                }
+            );
+
 
 
         }else{
@@ -5613,8 +5627,9 @@ if(ultimoMensaje.fechaOrden){
 
 
 
+
     // =====================================
-    // 4. AHORA MOSTRAR CHAT
+    // 5. ABRIR CHAT
     // =====================================
 
 
@@ -5627,7 +5642,7 @@ if(ultimoMensaje.fechaOrden){
 
 
     // =====================================
-    // 5. SINCRONIZAR SILENCIOSAMENTE
+    // 6. SINCRONIZAR EN SEGUNDO PLANO
     // =====================================
 
 
@@ -5636,8 +5651,10 @@ if(ultimoMensaje.fechaOrden){
 
 
 
+
+
     // =====================================
-    // 6. ACTIVAR REALTIME
+    // 7. REALTIME
     // =====================================
 
 
@@ -5646,7 +5663,6 @@ if(ultimoMensaje.fechaOrden){
 
 
 }
-
 
 
 
