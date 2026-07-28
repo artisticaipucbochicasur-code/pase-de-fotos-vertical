@@ -4998,6 +4998,43 @@ data.foto_perfil || ""
 
 
     
+async function obtenerIdUsuarioPorCorreo(correo){
+
+    if(!correo) return null;
+
+
+    const {data,error} = await supabaseClient
+
+    .from("usuarios")
+
+    .select("id")
+
+    .eq("correo",correo)
+
+    .single();
+
+
+
+    if(error){
+
+        console.error(
+            "Error buscando usuario:",
+            correo,
+            error
+        );
+
+        return null;
+
+    }
+
+
+    return data.id;
+
+}    
+
+
+
+
 
 // =====================================
 // 👁 MOSTRAR / OCULTAR CONTRASEÑAS
@@ -5393,28 +5430,88 @@ document.getElementById("chatEnviar").onclick = async () => {
     input.value = "";
     input.focus();
 
-    // Enviar al servidor
-    const body = new FormData();
-    body.append("accion", "guardarChat");
-    body.append("de", usuarioActual.correo);
-    body.append("para", chatConUsuario.correo);
-    body.append("mensaje", txt);
+// =====================================
+// ENVIAR MENSAJE A SUPABASE
+// =====================================
 
-    try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body });
-        const json = await res.json();
-        if (json.status !== "success") {
-            actualizarUltimoMensaje({
-                mensaje: txt + " (No enviado)",
-                fecha: "Error"
-            });
-        }
-    } catch (err) {
-        actualizarUltimoMensaje({
-            mensaje: txt + " (Sin conexión)",
-            fecha: "Reintentar"
-        });
+try {
+
+
+    const remitenteId =
+    await obtenerIdUsuarioPorCorreo(
+        usuarioActual.correo
+    );
+
+
+    const destinatarioId =
+    await obtenerIdUsuarioPorCorreo(
+        chatConUsuario.correo
+    );
+
+
+
+    if(!remitenteId || !destinatarioId){
+
+        throw new Error(
+            "No se encontraron usuarios"
+        );
+
     }
+
+
+
+
+    const {error} = await supabaseClient
+
+    .from("chat_mensajes")
+
+    .insert({
+
+        remitente_id: remitenteId,
+
+        destinatario_id: destinatarioId,
+
+        mensaje: txt
+
+    });
+
+
+
+    if(error){
+
+        throw error;
+
+    }
+
+
+
+    console.log(
+        "✅ Mensaje guardado en Supabase"
+    );
+
+
+
+}catch(err){
+
+
+    console.error(
+        "❌ Error enviando mensaje:",
+        err
+    );
+
+
+    actualizarUltimoMensaje({
+
+        mensaje:
+        txt + " (No enviado)",
+
+        fecha:
+        "Error"
+
+    });
+
+
+}
 };
 
     // AVISAR QUE ESTÁS ESCRIBIENDO
