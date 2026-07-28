@@ -5984,36 +5984,62 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-        // actualizar visualmente sin duplicar
+// =====================================
+// REEMPLAZAR MENSAJE TEMPORAL VISUAL
+// =====================================
 
-        const burbujas =
-        document.querySelectorAll(
-            "#chatMensajes .mensaje"
-        );
-
-
-
-        burbujas.forEach(b=>{
-
-
-            if(
-                b.dataset.temp === tempId
-            ){
-
-                b.remove();
-
-            }
-
-
-        });
+const burbujas =
+document.querySelectorAll(
+    "#chatMensajes > div"
+);
 
 
 
+burbujas.forEach(b=>{
 
 
-        agregarMensajeIndividual(
-            mensajeReal
-        );
+    const contenido =
+    b.querySelector("div");
+
+
+    const hora =
+    b.querySelector("small");
+
+
+
+    if(
+        contenido &&
+        contenido.textContent === txt &&
+        hora &&
+        hora.textContent.includes("Enviando")
+    ){
+
+
+        // actualizar la misma burbuja
+
+        hora.textContent =
+        mensajeReal.fecha;
+
+
+
+        b.dataset.id =
+        mensajeReal.id;
+
+
+
+        b.dataset.temp = "";
+
+
+
+        return;
+
+    }
+
+
+});
+
+
+
 
 
 
@@ -6085,7 +6111,7 @@ document.getElementById("chatInput").addEventListener("input", () => {
   function agregarMensajeIndividual(m) {
     const cont = document.getElementById("chatMensajes");
     const div = document.createElement("div");
-    
+    div.classList.add("mensaje");
     div.style.maxWidth = "75%";
     div.style.margin = "6px 0";
     div.style.padding = "8px 12px";
@@ -6110,12 +6136,12 @@ document.getElementById("chatInput").addEventListener("input", () => {
         div.style.borderBottomLeftRadius = "4px";
     }
 
-    div.innerHTML = `
+div.innerHTML = `
         <div>${m.mensaje}</div>
         <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
             ${m.fecha}
         </small>
-    `;
+`;
 
     cont.appendChild(div);
 
