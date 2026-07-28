@@ -5391,80 +5391,134 @@ function iniciarChatCon(info) {
 
     const correoNorm = normalizeText(info.correo);
 
-    // ✅ 1) TOMAR FOTO DIRECTA DEL PERFIL CARGADO
+
     const fotoDesdePerfil =
         perfilCache[correoNorm]?.fotoPerfil ||
         null;
 
-    // ✅ 2) FOTO DEL LOCALSTORAGE (si es el usuario actual)
+
     const fotoUsuarioActual =
         usuarioActual?.correo === info.correo
             ? usuarioActual.fotoPerfil
             : null;
 
-    // ✅ 3) ELEGIR FOTO FINAL EN ESTE ORDEN:
+
+
     const fotoFinal =
         fotoDesdePerfil ||
         fotoUsuarioActual ||
         info.fotoPerfil ||
         info.foto ||
-        "img/default-user.png";
+        "";
 
-    // ✅ guardar usuario activo con foto unificada
+
+
     chatConUsuario = {
         ...info,
         foto: fotoFinal
     };
 
-   
-
- abrirVentanaChat();
 
 
-// =====================================
-// ⚡ MOSTRAR CACHE LOCAL INMEDIATO
-// =====================================
+    // =====================================
+    // 1. CARGAR MENSAJES ANTES DE ABRIR
+    // =====================================
 
-const mensajesCache =
-chatCache[info.correo] ||
-cargarChatLocal(info.correo);
+
+    let mensajesIniciales =
+    chatCache[info.correo];
 
 
 
-if(mensajesCache && mensajesCache.length){
+    if(
+        !mensajesIniciales ||
+        mensajesIniciales.length === 0
+    ){
+
+        mensajesIniciales =
+        cargarChatLocal(info.correo);
+
+    }
 
 
-    chatCache[info.correo] =
-    mensajesCache;
+
+    if(
+        mensajesIniciales &&
+        mensajesIniciales.length > 0
+    ){
 
 
-    renderizarMensajes(
-        mensajesCache
-    );
+        chatCache[info.correo] =
+        mensajesIniciales;
 
 
-}else{
+
+    }else{
 
 
-    document.getElementById("chatMensajes").innerHTML =
-    `
-    <div style="
-    text-align:center;
-    color:#999;
-    padding:20px;
-    ">
-    Cargando mensajes...
-    </div>
-    `;
+        chatCache[info.correo] = [];
+
+    }
 
 
-}
 
 
-// Luego sincroniza con Supabase
-cargarConversacion();
 
-activarRealtimeChat();
+    // =====================================
+    // 2. ABRIR VENTANA YA CON DATOS
+    // =====================================
+
+
+    abrirVentanaChat();
+
+
+
+    const cont =
+    document.getElementById("chatMensajes");
+
+
+
+    if(chatCache[info.correo].length > 0){
+
+
+        renderizarMensajes(
+            chatCache[info.correo]
+        );
+
+
+    }else{
+
+
+        cont.innerHTML =
+        `
+        <div style="
+        text-align:center;
+        color:#999;
+        padding:20px;
+        ">
+        Sin mensajes aún
+        </div>
+        `;
+
+
+    }
+
+
+
+
+
+    // =====================================
+    // 3. SINCRONIZAR EN SEGUNDO PLANO
+    // =====================================
+
+
+    cargarConversacion();
+
+
+
+    activarRealtimeChat();
+
+
 }
 
 
@@ -6326,15 +6380,23 @@ async function cargarConversacion() {
 
         // quitar cargando
 
-        if(
-            cont.innerHTML.includes(
-                "Cargando mensajes"
-            )
-        ){
+     if(
+    cont.innerHTML.includes(
+        "Cargando mensajes"
+    )
+    ||
+    cont.innerHTML.includes(
+        "Sin mensajes aún"
+    )
+){
 
-            cont.innerHTML="";
+    if(mensajesServidor.length > 0){
 
-        }
+        cont.innerHTML="";
+
+    }
+
+}
 
 
 
