@@ -5067,6 +5067,72 @@ let forzarBajarAlFinal = false; // evita conflicto cuando YO envío mensajes
 
 const chatCache = {};
 
+// =====================================
+// 💾 CACHE LOCAL DE CHATS
+// =====================================
+
+function guardarChatLocal(correo, mensajes){
+
+    try{
+
+        localStorage.setItem(
+            "chat_" + correo,
+            JSON.stringify(mensajes)
+        );
+
+
+    }catch(e){
+
+        console.warn(
+            "No se pudo guardar chat local:",
+            e
+        );
+
+    }
+
+}
+
+
+
+
+function cargarChatLocal(correo){
+
+    try{
+
+
+        const datos =
+        localStorage.getItem(
+            "chat_" + correo
+        );
+
+
+        if(!datos){
+
+            return [];
+
+        }
+
+
+        return JSON.parse(datos);
+
+
+
+    }catch(e){
+
+
+        console.warn(
+            "No se pudo cargar chat local:",
+            e
+        );
+
+
+        return [];
+
+    }
+
+}
+
+
 
 
 let chatAutoRefresh = null;
