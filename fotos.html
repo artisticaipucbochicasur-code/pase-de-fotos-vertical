@@ -4822,7 +4822,7 @@ correoNorm
 
 .ilike(
     "correo",
-    correo.trim()
+    correoNorm
 )
 
 .single();
@@ -4870,8 +4870,8 @@ correoNorm
             data.cargo || "",
 
 
-            fotoPerfil:
-            data.foto_perfil || "img/default-user.png"
+        fotoPerfil:
+data.foto_perfil || ""
 
 
         };
@@ -4906,29 +4906,6 @@ correoNorm
 
 }
 
-
-    function mostrarDatosPerfilInstantaneo(data) {
-
-    // Foto principal
-    document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
-
-    // Foto difuminada
-    document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
-
-    // Nombre y correo
-    document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
-    document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
-
-    // Datos estilo perfil
-    mostrarDatosAutor({
-        telefono: data.telefono,
-        ciudad: data.ciudad,
-        congregacion: data.congregacion,
-        cargo: data.cargo
-    });
-
-    document.getElementById("modalAutor").classList.remove("hidden");
-}
 
     
 
@@ -12613,8 +12590,14 @@ if (window.DEComAuthPing)  window.DEComAuthPing();
     const correoAutor = document.getElementById("autorCorreo");
     const datosCont = document.getElementById("autorDatosContainer");
 
-    if (foto) foto.src = "img/default-user.png";
-    if (fondo) fondo.src = "img/default-user.png";
+  if (foto) {
+    foto.removeAttribute("src");
+    foto.innerHTML = "";
+}
+
+if (fondo) {
+    fondo.removeAttribute("src");
+}
     if (nombre) nombre.textContent = "";
     if (correoAutor) correoAutor.textContent = "";
     if (datosCont) datosCont.innerHTML = "";
