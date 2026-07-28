@@ -5738,22 +5738,19 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-    const mensajeTemp = {
+ const mensajeTemp = {
 
-        id: tempId,
+    id: tempId,
 
-        temporal:true,
+    de: usuarioActual.correo,
 
-        de:
-        usuarioActual.correo,
+    mensaje: txt,
 
-        mensaje:
-        txt,
+    fecha:"Enviando.",
 
-        fecha:
-        "Enviando..."
+    temporal:true
 
-    };
+};
 
 
 
@@ -6316,13 +6313,82 @@ async function cargarConversacion() {
         // =====================================
 
 
-        const temporales =
+   // =====================================
+// REEMPLAZAR MENSAJE "ENVIANDO"
+// POR MENSAJE REAL DEL SERVIDOR
+// =====================================
 
-        cacheActual.filter(
-            m =>
-            m.temporal === true
+for (let i = 0; i < cacheActual.length; i++) {
+
+    const temp = cacheActual[i];
+
+
+    if (
+        temp.id &&
+        temp.id.startsWith("temp_")
+    ) {
+
+
+        const confirmado =
+        mensajesServidor.find(real =>
+
+            real.mensaje === temp.mensaje &&
+
+            real.de === temp.de
+
         );
 
+
+        if(confirmado){
+
+
+            // Buscar la burbuja temporal en pantalla
+            const burbujas =
+            cont.querySelectorAll(".mensaje-chat");
+
+
+            for(const b of burbujas){
+
+
+                const texto =
+                b.querySelector("div")?.textContent;
+
+
+                if(texto === temp.mensaje){
+
+
+                    const hora =
+                    b.querySelector("small");
+
+
+                    if(hora){
+
+                        hora.textContent =
+                        confirmado.fecha;
+
+                    }
+
+
+                    break;
+
+                }
+
+            }
+
+
+
+            // reemplazar en cache
+            cacheActual[i] = confirmado;
+
+
+            huboCambios = true;
+
+
+        }
+
+    }
+
+}
 
 
 
@@ -6385,39 +6451,35 @@ async function cargarConversacion() {
 
 
 
-        mensajesServidor.forEach(msg=>{
+    mensajesServidor.forEach(msg=>{
 
 
-            const existe =
+    const existe =
 
-            cacheActual.some(
-                c =>
-                c.id === msg.id
-            );
+    cacheActual.some(c=>
 
+        c.id === msg.id
 
-
-            if(!existe){
-
-
-                cacheActual.push(msg);
+    );
 
 
 
-                agregarMensajeIndividual(
-                    msg
-                );
+    if(!existe){
 
 
-
-                huboCambios=true;
-
-
-            }
+        cacheActual.push(msg);
 
 
+        agregarMensajeIndividual(msg);
 
-        });
+
+        huboCambios=true;
+
+
+    }
+
+
+});
 
 
 
