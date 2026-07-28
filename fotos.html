@@ -3121,9 +3121,7 @@ async function abrirPerfilPorCorreo(correo) {
       "",
 
 
-      fotoPerfil:
-      data.foto_perfil ||
-      "img/default-user.png"
+     fotoPerfil: data.foto_perfil || ""
 
 
     };
@@ -3173,24 +3171,124 @@ async function abrirPerfilPorCorreo(correo) {
 
 
 
+
+// ======================================
+// 🧑 AVATAR ÚNICO DE USUARIO
+// ======================================
+
+function obtenerAvatarUsuario(nombre, foto, tamaño = 100){
+
+    if(foto && foto.trim() !== ""){
+
+        return `
+        <img 
+        src="${foto}?v=${Date.now()}"
+        style="
+        width:${tamaño}px;
+        height:${tamaño}px;
+        border-radius:50%;
+        object-fit:cover;
+        ">
+        `;
+
+    }
+
+
+    const iniciales = (nombre || "Usuario")
+        .trim()
+        .split(" ")
+        .map(p => p.charAt(0))
+        .join("")
+        .substring(0,2)
+        .toUpperCase();
+
+
+
+    return `
+    <div
+    style="
+    width:${tamaño}px;
+    height:${tamaño}px;
+    border-radius:50%;
+    background:#5468ff;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:${tamaño/2.5}px;
+    font-weight:bold;
+    ">
+    ${iniciales}
+    </div>
+    `;
+
+}
+
+
+
+
+
 function mostrarPerfilAutor(data){
 
 
-    document.getElementById("autorFoto").src =
-        data.fotoPerfil || "img/default-user.png";
+    const foto =
+    obtenerAvatarUsuario(
+        data.nombre,
+        data.fotoPerfil,
+        120
+    );
 
 
-    document.getElementById("autorFotoFondo").src =
-        data.fotoPerfil || "img/default-user.png";
+
+    const contenedorFoto =
+    document.getElementById("autorFoto");
+
+
+
+    const contenedorFondo =
+    document.getElementById("autorFotoFondo");
+
+
+
+    if(contenedorFoto){
+
+        contenedorFoto.outerHTML =
+        foto.replace(
+            "<div",
+            '<div id="autorFoto"'
+        );
+
+    }
+
+
+
+    // Fondo difuminado solamente si existe imagen real
+
+    if(contenedorFondo){
+
+        if(data.fotoPerfil){
+
+            contenedorFondo.src =
+            data.fotoPerfil + "?v=" + Date.now();
+
+        }else{
+
+            contenedorFondo.src="";
+
+        }
+
+    }
+
 
 
 
     document.getElementById("autorNombre").textContent =
-        data.nombre || "Anónimo";
+    data.nombre || "Anónimo";
+
 
 
     document.getElementById("autorCorreo").textContent =
-        data.correo || "Sin correo";
+    data.correo || "Sin correo";
 
 
 
@@ -3209,7 +3307,8 @@ function mostrarPerfilAutor(data){
 
 
     document.getElementById("modalAutor")
-        .classList.remove("hidden");
+    .classList.remove("hidden");
+
 
 }
 
@@ -4807,29 +4906,6 @@ correoNorm
 
 }
 
-
-    function mostrarDatosPerfilInstantaneo(data) {
-
-    // Foto principal
-    document.getElementById("autorFoto").src = data.fotoPerfil || "img/default-user.png";
-
-    // Foto difuminada
-    document.getElementById("autorFotoFondo").src = data.fotoPerfil || "img/default-user.png";
-
-    // Nombre y correo
-    document.getElementById("autorNombre").textContent = data.nombre || "Anónimo";
-    document.getElementById("autorCorreo").textContent = data.correo || "Sin correo";
-
-    // Datos estilo perfil
-    mostrarDatosAutor({
-        telefono: data.telefono,
-        ciudad: data.ciudad,
-        congregacion: data.congregacion,
-        cargo: data.cargo
-    });
-
-    document.getElementById("modalAutor").classList.remove("hidden");
-}
 
     
 
