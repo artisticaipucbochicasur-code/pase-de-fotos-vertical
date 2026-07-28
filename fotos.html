@@ -5604,26 +5604,19 @@ function iniciarChatCon(info) {
 
 
 
-        else if(ultimoMensaje.fecha){
+  else if(ultimoMensaje.fecha){
+
+    // Evitar fechas visibles tipo:
+    // 28/7/2026, 5:35:23 p. m.
+    // porque Supabase no las acepta
+
+    console.warn(
+        "⚠️ Fecha visible ignorada:",
+        ultimoMensaje.fecha
+    );
 
 
-            const f =
-            new Date(
-                ultimoMensaje.fecha
-            );
-
-
-            if(!isNaN(f.getTime())){
-
-
-                ultimaFechaISO =
-                f.toISOString();
-
-
-            }
-
-
-        }
+}
 
 
 
@@ -6602,7 +6595,7 @@ console.log(
 
 
 
-    const mensajesServidor =
+const mensajesServidor =
 
 (mensajes || []).map(m=>({
 
@@ -6611,13 +6604,19 @@ console.log(
     mensaje:m.mensaje,
 
 
+    // visible
     fecha:
     new Date(
         m.fecha_creacion
     ).toLocaleString(),
 
 
+    // lógica
     fechaOrden:
+    m.fecha_creacion,
+
+
+    fechaOriginal:
     m.fecha_creacion,
 
 
@@ -6625,9 +6624,13 @@ console.log(
 
     m.remitente_id === usuarioId
 
-    ? usuarioActual.correo
+    ?
 
-    : chatConUsuario.correo
+    usuarioActual.correo
+
+    :
+
+    chatConUsuario.correo
 
 
 }));
@@ -7428,10 +7431,13 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
 
+
     const mensaje = {
 
 
-        id: mensajeSupabase.id,
+        id:
+        mensajeSupabase.id,
+
 
 
         mensaje:
@@ -7439,6 +7445,7 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
 
+        // 👀 Visible para usuario
         fecha:
         new Date(
             mensajeSupabase.fecha_creacion
@@ -7446,8 +7453,19 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
 
-        de:
+        // 🔥 Para lógica interna
+        fechaOrden:
+        mensajeSupabase.fecha_creacion,
 
+
+
+        // 🔥 Guardamos fecha original también
+        fechaOriginal:
+        mensajeSupabase.fecha_creacion,
+
+
+
+        de:
 
         mensajeSupabase.remitente_id === miId
 
@@ -7460,12 +7478,12 @@ async function agregarMensajeRealtime(mensajeSupabase){
         chatConUsuario.correo
 
 
+
     };
 
 
 
 
-    // evitar duplicados
 
     const cache =
     chatCache[chatConUsuario.correo] || [];
@@ -7473,6 +7491,7 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
     const existe =
+
     cache.some(
         m => m.id === mensaje.id
     );
@@ -7485,6 +7504,7 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
 
+
     if(!chatCache[chatConUsuario.correo]){
 
         chatCache[chatConUsuario.correo]=[];
@@ -7493,12 +7513,22 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
 
+
+
     chatCache[chatConUsuario.correo]
     .push(mensaje);
 
 
 
+    guardarChatLocal(
+        chatConUsuario.correo,
+        chatCache[chatConUsuario.correo]
+    );
+
+
+
     agregarMensajeIndividual(mensaje);
+
 
 
 
@@ -7513,7 +7543,6 @@ async function agregarMensajeRealtime(mensajeSupabase){
         cont.scrollHeight;
 
     }
-
 
 
 }
