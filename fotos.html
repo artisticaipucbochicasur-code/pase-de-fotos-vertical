@@ -6549,7 +6549,10 @@ function activarRealtimeChat(){
         return;
 
 
-    // eliminar canal anterior
+
+    // =====================================
+    // ELIMINAR CANAL ANTERIOR
+    // =====================================
 
     if(chatRealtimeChannel){
 
@@ -6558,11 +6561,22 @@ function activarRealtimeChat(){
 
         chatRealtimeChannel = null;
 
+        console.log(
+            "🧹 Canal realtime anterior eliminado"
+        );
+
     }
 
 
 
+
+
+    // =====================================
+    // CREAR NUEVO CANAL
+    // =====================================
+
     chatRealtimeChannel = supabaseClient
+
 
     .channel(
         "chat-" +
@@ -6573,94 +6587,187 @@ function activarRealtimeChat(){
 
 
 
+
+
     .on(
 
         "postgres_changes",
 
         {
+
             event:"INSERT",
 
             schema:"public",
 
             table:"chat_mensajes"
+
         },
 
 
+
         async(payload)=>{
+
+
+            console.log(
+                "🔴 EVENTO REALTIME RECIBIDO:",
+                payload
+            );
+
 
 
             const nuevo = payload.new;
 
 
 
+            if(!nuevo){
+
+                console.warn(
+                    "Realtime recibió evento vacío"
+                );
+
+                return;
+
+            }
+
+
+
+
+
+            // =====================================
+            // OBTENER IDS
+            // =====================================
+
+
             const miId =
+
             await obtenerIdUsuarioPorCorreo(
                 usuarioActual.correo
             );
 
 
+
             const otroId =
+
             await obtenerIdUsuarioPorCorreo(
                 chatConUsuario.correo
             );
 
 
 
-            // solo mensajes de esta conversación
+
+
+            if(!miId || !otroId){
+
+                console.warn(
+                    "No se pudieron resolver IDs del chat"
+                );
+
+                return;
+
+            }
+
+
+
+
+
+            // =====================================
+            // VALIDAR QUE SEA ESTE CHAT
+            // =====================================
+
 
             const pertenece =
+
 
             (
 
                 nuevo.remitente_id === miId &&
+
                 nuevo.destinatario_id === otroId
 
             )
+
 
             ||
 
             (
 
                 nuevo.remitente_id === otroId &&
+
                 nuevo.destinatario_id === miId
 
             );
 
 
 
-            if(!pertenece)
+
+
+            if(!pertenece){
+
+
+                console.log(
+                    "Mensaje realtime ignorado"
+                );
+
+
                 return;
+
+
+            }
+
 
 
 
 
             console.log(
-                "🔴 Nuevo mensaje realtime:",
+                "✅ Nuevo mensaje de conversación actual:",
                 nuevo
             );
 
 
 
-            cargarConversacion();
+
+
+            // Actualizar conversación
+
+            await cargarConversacion();
 
 
 
         }
+
 
     )
 
 
+
+
+
     .subscribe(
+
         status=>{
 
+
             console.log(
-                "Realtime chat:",
+                "📡 Estado Realtime Chat:",
                 status
             );
+
+
+            if(status === "SUBSCRIBED"){
+
+
+                console.log(
+                    "✅ Chat conectado en tiempo real"
+                );
+
+
+            }
+
 
         }
 
     );
+
 
 }
 
