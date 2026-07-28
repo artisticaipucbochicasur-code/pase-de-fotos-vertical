@@ -6413,19 +6413,25 @@ temporales.forEach(temp=>{
 
 
 
-    if(!existe){
+if(!existe){
+
+    cacheActual.push(msg);
 
 
-        cacheActual.push(msg);
+    // Solo pintar si viene del otro usuario
 
+    if(
+        msg.de !== usuarioActual.correo
+    ){
 
         agregarMensajeIndividual(msg);
 
-
-        huboCambios=true;
-
-
     }
+
+
+    huboCambios=true;
+
+}
 
 
 });
@@ -6612,11 +6618,103 @@ temporales.forEach(temp=>{
 
 
 
+
+
+function confirmarMensajeRealtime(nuevo){
+
+
+    const cache =
+    chatCache[chatConUsuario.correo] || [];
+
+
+
+    const temporal =
+    cache.find(m=>
+
+        m.id &&
+        m.id.startsWith("temp_") &&
+
+        m.mensaje === nuevo.mensaje
+
+    );
+
+
+
+    if(!temporal)
+        return;
+
+
+
+    temporal.id = nuevo.id;
+
+
+    temporal.fecha =
+    new Date(
+        nuevo.fecha_creacion
+    ).toLocaleString();
+
+
+
+    temporal.estado =
+    "enviado";
+
+
+
+    // Actualizar solamente la hora visual
+
+    const mensajes =
+    document.querySelectorAll(
+        "#chatMensajes small"
+    );
+
+
+    mensajes.forEach(s=>{
+
+
+        if(
+            s.textContent.includes(
+                "Enviando"
+            )
+        ){
+
+            s.textContent =
+            temporal.fecha;
+
+        }
+
+
+    });
+
+
+
+    guardarChatLocal(
+
+        chatConUsuario.correo,
+
+        cache
+
+    );
+
+
+    console.log(
+        "✅ Mensaje temporal confirmado",
+        temporal
+    );
+
+
+}
+
+
 // =====================================
 // 🔴 ACTIVAR CHAT EN TIEMPO REAL
 // =====================================
 
-function activarRealtimeChat(){
+// =====================================
+// 🔴 ACTIVAR CHAT EN TIEMPO REAL
+// =====================================
+
+function activarRealtimeChat(){ 
+
 
     if(!chatConUsuario || !usuarioActual)
         return;
@@ -6629,10 +6727,13 @@ function activarRealtimeChat(){
 
     if(chatRealtimeChannel){
 
+
         supabaseClient
         .removeChannel(chatRealtimeChannel);
 
+
         chatRealtimeChannel = null;
+
 
         console.log(
             "🧹 Canal realtime anterior eliminado"
@@ -6644,9 +6745,11 @@ function activarRealtimeChat(){
 
 
 
+
     // =====================================
     // CREAR NUEVO CANAL
     // =====================================
+
 
     chatRealtimeChannel = supabaseClient
 
@@ -6657,6 +6760,7 @@ function activarRealtimeChat(){
         "-" +
         chatConUsuario.correo
     )
+
 
 
 
@@ -6694,13 +6798,11 @@ function activarRealtimeChat(){
 
             if(!nuevo){
 
-                console.warn(
-                    "Realtime recibió evento vacío"
-                );
-
                 return;
 
             }
+
+
 
 
 
@@ -6729,6 +6831,8 @@ function activarRealtimeChat(){
 
 
 
+
+
             if(!miId || !otroId){
 
                 console.warn(
@@ -6743,8 +6847,11 @@ function activarRealtimeChat(){
 
 
 
+
+
+
             // =====================================
-            // VALIDAR QUE SEA ESTE CHAT
+            // VALIDAR CONVERSACIÓN ACTUAL
             // =====================================
 
 
@@ -6762,6 +6869,7 @@ function activarRealtimeChat(){
 
             ||
 
+
             (
 
                 nuevo.remitente_id === otroId &&
@@ -6774,12 +6882,8 @@ function activarRealtimeChat(){
 
 
 
+
             if(!pertenece){
-
-
-                console.log(
-                    "Mensaje realtime ignorado"
-                );
 
 
                 return;
@@ -6791,8 +6895,10 @@ function activarRealtimeChat(){
 
 
 
+
+
             console.log(
-                "✅ Nuevo mensaje de conversación actual:",
+                "✅ Nuevo mensaje del chat actual:",
                 nuevo
             );
 
@@ -6800,15 +6906,66 @@ function activarRealtimeChat(){
 
 
 
-            // Actualizar conversación
 
-           await agregarMensajeRealtime(nuevo);
+
+            // =====================================
+            // SI EL MENSAJE ES MÍO
+            // SOLO CONFIRMAR TEMPORAL
+            // NO CREAR OTRO MENSAJE
+            // =====================================
+
+
+            if(nuevo.remitente_id === miId){
+
+
+
+                if(
+                    typeof confirmarMensajeRealtime === "function"
+                ){
+
+
+                    confirmarMensajeRealtime(nuevo);
+
+
+                }
+
+
+
+                return;
+
+
+            }
+
+
+
+
+
+
+
+
+            // =====================================
+            // SI VIENE DE LA OTRA PERSONA
+            // AGREGAR NORMALMENTE
+            // =====================================
+
+
+            if(
+                typeof agregarMensajeRealtime === "function"
+            ){
+
+
+                await agregarMensajeRealtime(nuevo);
+
+
+            }
+
 
 
         }
 
 
     )
+
 
 
 
@@ -6825,6 +6982,7 @@ function activarRealtimeChat(){
             );
 
 
+
             if(status === "SUBSCRIBED"){
 
 
@@ -6839,7 +6997,6 @@ function activarRealtimeChat(){
         }
 
     );
-
 
 }
 
