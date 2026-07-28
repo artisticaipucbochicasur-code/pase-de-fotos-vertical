@@ -5746,7 +5746,7 @@ document.getElementById("chatEnviar").onclick = async () => {
 
     mensaje: txt,
 
-    fecha:"Enviando.",
+    fecha:"Enviando...",
 
     temporal:true
 
@@ -6307,130 +6307,53 @@ async function cargarConversacion() {
 
 
 
-
-        // =====================================
-        // ELIMINAR TEMPORALES YA CONFIRMADOS
-        // =====================================
-
-
-   // =====================================
-// REEMPLAZAR MENSAJE "ENVIANDO"
-// POR MENSAJE REAL DEL SERVIDOR
+// =====================================
+// CONFIRMAR MENSAJE TEMPORAL
+// SIN CREAR DUPLICADOS
 // =====================================
 
-for (let i = 0; i < cacheActual.length; i++) {
+const temporales =
+cacheActual.filter(m =>
+    m.id &&
+    m.id.startsWith("temp_")
+);
 
-    const temp = cacheActual[i];
 
 
-    if (
-        temp.id &&
-        temp.id.startsWith("temp_")
-    ) {
+temporales.forEach(temp=>{
 
 
-        const confirmado =
-        mensajesServidor.find(real =>
+    const confirmado =
 
-            real.mensaje === temp.mensaje &&
+    mensajesServidor.find(real =>
 
-            real.de === temp.de
+        real.mensaje === temp.mensaje &&
 
-        );
+        real.de === temp.de
 
+    );
 
-        if(confirmado){
 
 
-            // Buscar la burbuja temporal en pantalla
-            const burbujas =
-            cont.querySelectorAll(".mensaje-chat");
+    if(confirmado){
 
 
-            for(const b of burbujas){
+        // borrar visual temporal
+        const elementos =
+        cont.querySelectorAll("div");
 
 
-                const texto =
-                b.querySelector("div")?.textContent;
 
+        elementos.forEach(el=>{
 
-                if(texto === temp.mensaje){
 
+            if(
+                el.innerText &&
+                el.innerText.includes(temp.mensaje) &&
+                el.innerText.includes("Enviando")
+            ){
 
-                    const hora =
-                    b.querySelector("small");
-
-
-                    if(hora){
-
-                        hora.textContent =
-                        confirmado.fecha;
-
-                    }
-
-
-                    break;
-
-                }
-
-            }
-
-
-
-            // reemplazar en cache
-            cacheActual[i] = confirmado;
-
-
-            huboCambios = true;
-
-
-        }
-
-    }
-
-}
-
-
-
-        temporales.forEach(temp=>{
-
-
-            const existe =
-
-            mensajesServidor.find(real=>
-
-                real.mensaje === temp.mensaje &&
-
-                real.de === temp.de
-
-            );
-
-
-
-            if(existe){
-
-
-                const index =
-
-                cacheActual.findIndex(
-                    x=>x.id === temp.id
-                );
-
-
-
-                if(index !== -1){
-
-
-                    cacheActual[index] = existe;
-
-
-                }
-
-
-
-                huboCambios=true;
-
-
+                el.closest(".mensaje")?.remove();
 
             }
 
@@ -6438,6 +6361,32 @@ for (let i = 0; i < cacheActual.length; i++) {
         });
 
 
+
+
+        // reemplazar en cache
+
+        const index =
+        cacheActual.findIndex(
+            x=>x.id === temp.id
+        );
+
+
+        if(index !== -1){
+
+            cacheActual[index] = confirmado;
+
+        }
+
+
+
+        huboCambios = true;
+
+
+    }
+
+
+
+});
 
 
 
