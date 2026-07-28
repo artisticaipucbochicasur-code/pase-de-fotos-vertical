@@ -5389,39 +5389,41 @@ async function precargarTodosLosChats(){
     
 function iniciarChatCon(info) {
 
-    const correoNorm = normalizeText(info.correo);
+
+    const correoNorm =
+    normalizeText(info.correo);
+
 
 
     const fotoDesdePerfil =
-        perfilCache[correoNorm]?.fotoPerfil ||
-        null;
-
-
-    const fotoUsuarioActual =
-        usuarioActual?.correo === info.correo
-            ? usuarioActual.fotoPerfil
-            : null;
+    perfilCache[correoNorm]?.fotoPerfil ||
+    null;
 
 
 
     const fotoFinal =
-        fotoDesdePerfil ||
-        fotoUsuarioActual ||
-        info.fotoPerfil ||
-        info.foto ||
-        "";
+    fotoDesdePerfil ||
+    info.foto ||
+    "";
+
 
 
 
     chatConUsuario = {
+
         ...info,
-        foto: fotoFinal
+
+        foto:
+        fotoFinal
+
     };
 
 
 
+
+
     // =====================================
-    // 1. CARGAR MENSAJES ANTES DE ABRIR
+    // 1. PREPARAR MENSAJES ANTES DE MOSTRAR
     // =====================================
 
 
@@ -5442,43 +5444,34 @@ function iniciarChatCon(info) {
 
 
 
-    if(
-        mensajesIniciales &&
-        mensajesIniciales.length > 0
-    ){
 
-
-        chatCache[info.correo] =
-        mensajesIniciales;
-
-
-
-    }else{
-
-
-        chatCache[info.correo] = [];
-
-    }
+    chatCache[info.correo] =
+    mensajesIniciales || [];
 
 
 
 
-
-    // =====================================
-    // 2. ABRIR VENTANA YA CON DATOS
-    // =====================================
-
-
-    abrirVentanaChat();
 
 
 
     const cont =
-    document.getElementById("chatMensajes");
+    document.getElementById(
+        "chatMensajes"
+    );
 
 
 
-    if(chatCache[info.correo].length > 0){
+
+    // limpiar solamente antes de pintar
+
+    cont.innerHTML="";
+
+
+
+
+    if(
+        chatCache[info.correo].length
+    ){
 
 
         renderizarMensajes(
@@ -5486,37 +5479,31 @@ function iniciarChatCon(info) {
         );
 
 
-    }else{
-
-
-        cont.innerHTML =
-        `
-        <div style="
-        text-align:center;
-        color:#999;
-        padding:20px;
-        ">
-        Sin mensajes aún
-        </div>
-        `;
-
-
     }
 
 
 
 
+    // =====================================
+    // 2. AHORA SI MOSTRAR VENTANA
+    // =====================================
+
+
+    abrirVentanaChat();
+
+
+
 
     // =====================================
-    // 3. SINCRONIZAR EN SEGUNDO PLANO
+    // 3. ACTUALIZAR EN SEGUNDO PLANO
     // =====================================
 
 
     cargarConversacion();
 
 
-
     activarRealtimeChat();
+
 
 
 }
@@ -5540,9 +5527,8 @@ function renderizarMensajes(mensajes) {
         div.style.fontSize = "14px";
         div.style.lineHeight = "1.3";
         div.style.wordBreak = "break-word";
-        div.style.opacity = "0";
-        div.style.transform = "translateY(10px)";
-        div.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+     div.style.opacity = "1";
+div.style.transform = "translateY(0)";
 
         if (m.de === usuarioActual.correo) {
             div.style.background = "#6FA3FF";
@@ -5566,19 +5552,17 @@ function renderizarMensajes(mensajes) {
 
         cont.appendChild(div);
 
-        // Animación cascada solo al inicio
-        setTimeout(() => {
-            div.style.opacity = "1";
-            div.style.transform = "translateY(0)";
-        }, index * 30);
+
     });
 
-  // 🟦 NUEVO: Scroll EXACTO cuando TODAS las animaciones terminaron
-const totalTiempoAnim = mensajes.length * 30 + 50;
 
-setTimeout(() => {
-    cont.scrollTop = cont.scrollHeight;
-}, totalTiempoAnim);
+
+requestAnimationFrame(()=>{
+
+    cont.scrollTop =
+    cont.scrollHeight;
+
+});
 
 
 }
