@@ -5650,26 +5650,23 @@ async function cargarConversacion() {
         // ==========================================
 
 
-        const {data: mensajes, error} =
-        await supabaseClient
+  const { data: mensajes, error } =
+await supabaseClient
 
-        .from("chat_mensajes")
+.from("chat_mensajes")
 
-        .select("*")
+.select("*")
 
-        .or(
-            `
-            and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),
-            and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})
-            `
-        )
+.or(
+    `and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})`
+)
 
-        .order(
-            "fecha_creacion",
-            {
-                ascending:true
-            }
-        );
+.order(
+    "fecha_creacion",
+    {
+        ascending:true
+    }
+);
 
 
 
