@@ -5575,28 +5575,44 @@ async function precargarResumenChats(){
 
 
 
-            if(!resumen[correo]){
+     if(!resumen[correo]){
 
 
-                resumen[correo]={
+    const correoNorm =
+    normalizeText(correo);
 
 
-                    ultimoMensaje:
-                    m.mensaje,
+
+    resumen[correo]={
 
 
-                    fecha:
-                    m.fecha_creacion,
+        ultimoMensaje:
+        m.mensaje,
 
 
-                    id:
-                    m.id
+        fecha:
+        m.fecha_creacion,
 
 
-                };
+        id:
+        m.id,
 
 
-            }
+        nombre:
+        perfilCache[correoNorm]?.nombre ||
+        correo,
+
+
+        foto:
+        perfilCache[correoNorm]?.fotoPerfil ||
+        "img/default-user.png"
+
+
+
+    };
+
+
+}
 
 
 
@@ -7311,51 +7327,69 @@ function renderizarListaChats(){
 
 
 
-        div.innerHTML=
-        `
-
-        <div style="
-        width:45px;
-        height:45px;
-        border-radius:50%;
-        background:#ddd;
-        margin-right:12px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        ">
-        👤
-        </div>
+        const fecha =
+formatearFechaChat(
+    data.fecha
+);
 
 
-        <div style="flex:1">
 
-            <div style="
-            font-weight:600;
-            ">
-            ${correo}
-            </div>
+div.innerHTML =
+`
 
-
-            <div style="
-            color:#666;
-            font-size:13px;
-            ">
-            ${data.ultimoMensaje}
-            </div>
-
-        </div>
+<img src="${data.foto}"
+onerror="this.src='img/default-user.png'"
+style="
+width:48px;
+height:48px;
+border-radius:50%;
+object-fit:cover;
+margin-right:12px;
+">
 
 
-        <div style="
-        font-size:11px;
-        color:#999;
-        ">
-        ${new Date(data.fecha)
-        .toLocaleDateString()}
-        </div>
+<div style="
+flex:1;
+overflow:hidden;
+">
 
-        `;
+
+<div style="
+font-weight:600;
+font-size:15px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+">
+${data.nombre}
+</div>
+
+
+
+<div style="
+color:#666;
+font-size:13px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+">
+${data.ultimoMensaje}
+</div>
+
+
+</div>
+
+
+
+<div style="
+font-size:11px;
+color:#999;
+">
+${fecha}
+</div>
+
+
+`;
 
 
 
@@ -7423,6 +7457,86 @@ function abrirListaChats(){
     box.style.display="block";
 
 }
+
+
+function formatearFechaChat(fecha){
+
+
+    const ahora =
+    new Date();
+
+
+    const f =
+    new Date(fecha);
+
+
+
+    const diferencia =
+    ahora - f;
+
+
+
+    const minutos =
+    Math.floor(
+        diferencia / 60000
+    );
+
+
+
+    if(minutos < 1){
+
+        return "Ahora";
+
+    }
+
+
+    if(minutos < 60){
+
+        return minutos+" min";
+
+    }
+
+
+
+    const horas =
+    Math.floor(
+        minutos / 60
+    );
+
+
+    if(horas < 24){
+
+        return horas+" h";
+
+    }
+
+
+
+    const ayer =
+    new Date();
+
+    ayer.setDate(
+        ayer.getDate()-1
+    );
+
+
+    if(
+        f.toDateString() ===
+        ayer.toDateString()
+    ){
+
+        return "Ayer";
+
+    }
+
+
+
+    return f.toLocaleDateString();
+
+}
+
+
+
 
 document.getElementById(
 "abrirListaChats"
