@@ -6266,17 +6266,52 @@ await supabaseClient
 
 
 
-        // ACTUALIZAR CACHE
+// =====================================
+// ACTUALIZAR CACHE SIN PERDER TEMPORALES
+// =====================================
 
-        if(
-            mensajesServidor.length >=
-            cacheActual.length
-        ){
 
-            chatCache[chatConUsuario.correo] =
-            mensajesServidor;
+const mensajesPendientes =
 
-        }
+(cacheActual || [])
+
+.filter(
+
+m =>
+
+m.id &&
+m.id.startsWith("temp_")
+
+);
+
+
+
+
+const mensajesFinales = [
+
+...mensajesServidor,
+
+...mensajesPendientes
+
+];
+
+
+
+
+chatCache[chatConUsuario.correo] =
+mensajesFinales;
+
+
+
+// 💾 Guardar sincronizado local
+
+guardarChatLocal(
+
+    chatConUsuario.correo,
+
+    mensajesFinales
+
+);
 
 
 
