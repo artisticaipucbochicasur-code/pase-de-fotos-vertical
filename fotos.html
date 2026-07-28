@@ -5065,7 +5065,10 @@ document.addEventListener("click", function(e){
     let nuevosMensajes = 0;
 let forzarBajarAlFinal = false; // evita conflicto cuando YO envío mensajes
 
-const chatCache = {};  
+const chatCache = {};
+
+
+
 let chatAutoRefresh = null;
 
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
@@ -5154,45 +5157,154 @@ function reproducirSonidoNuevoMensaje() {
 
     
     
-async function precargarTodosLosChats() {
-    if (!usuarioActual) return;
+// =====================================
+// 💬 PRECARGAR CHATS DESDE SUPABASE
+// =====================================
 
-    try {
-        const body = new FormData();
-        body.append("accion", "listarUsuariosChat");
-        body.append("user", usuarioActual.correo);
+async function precargarTodosLosChats(){
 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body });
-        const json = await res.json();
+    if(!usuarioActual) return;
 
-        if (json.status !== "success" || !json.usuarios) return;
 
-        // Para cada usuario con quien has hablado → precargar su conversación completa
-        const promesas = json.usuarios.map(async (u) => {
-            if (chatCache[u.correo]) return; // ya lo tenemos
+    try{
 
-            const body2 = new FormData();
-            body2.append("accion", "listarChat");
-            body2.append("user1", usuarioActual.correo);
-            body2.append("user2", u.correo);
 
-            try {
-                const res2 = await fetch(SCRIPT_URL, { method: "POST", body2 });
-                const data = await res2.json();
-                if (data.mensajes) {
-                    chatCache[u.correo] = data.mensajes; // guardamos en caché
-                }
-            } catch (e) {
-                console.warn("Error precargando chat con", u.correo, e);
+        const usuarioId =
+        await obtenerIdUsuarioPorCorreo(
+            usuarioActual.correo
+        );
+
+
+        if(!usuarioId) return;
+
+
+
+        // Buscar conversaciones donde participa
+
+        const {data: mensajes,error} =
+        await supabaseClient
+
+        .from("chat_mensajes")
+
+        .select("*")
+
+        .or(
+        `remitente_id.eq.${usuarioId},destinatario_id.eq.${usuarioId}`
+        )
+
+        .order(
+            "fecha_creacion",
+            {
+                ascending:true
             }
+        );
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+
+
+        const chats = {};
+
+
+
+        for(const m of mensajes){
+
+
+            const otroId =
+            m.remitente_id === usuarioId
+            ? m.destinatario_id
+            : m.remitente_id;
+
+
+
+            const otroCorreo =
+            await obtenerCorreoUsuarioPorId(
+                otroId
+            );
+
+
+
+            if(!otroCorreo) continue;
+
+
+
+            if(!chats[otroCorreo]){
+
+                chats[otroCorreo]=[];
+
+            }
+
+
+
+            chats[otroCorreo].push({
+
+                id:m.id,
+
+                mensaje:m.mensaje,
+
+                fecha:
+                new Date(
+                    m.fecha_creacion
+                ).toLocaleString(),
+
+
+                de:
+                m.remitente_id === usuarioId
+                ?
+                usuarioActual.correo
+                :
+                otroCorreo
+
+            });
+
+
+
+        }
+
+
+
+
+        Object.keys(chats).forEach(correo=>{
+
+
+            chatCache[correo]=chats[correo];
+
+
+            guardarChatLocal(
+                correo,
+                chats[correo]
+            );
+
+
         });
 
-        // No bloqueamos la UI: lanzamos todas en paralelo
-        await Promise.allSettled(promesas);
 
-    } catch (err) {
-        console.error("Error precargando lista de chats:", err);
+
+        console.log(
+            "✅ Chats precargados Supabase",
+            chatCache
+        );
+
+
+
+    }catch(e){
+
+
+        console.error(
+            "Error precargando chats:",
+            e
+        );
+
+
     }
+
 }
 
     
@@ -6011,6 +6123,54 @@ async function obtenerIdUsuarioPorCorreo(correo){
     return data.id;
 
 }
+
+
+
+
+async function obtenerCorreoUsuarioPorId(id){
+
+
+    if(!id) return null;
+
+
+    const {data,error}=
+
+    await supabaseClient
+
+    .from("usuarios")
+
+    .select("correo")
+
+    .eq(
+        "id",
+        id
+    )
+
+    .single();
+
+
+
+    if(error){
+
+        console.warn(
+            "No se encontró correo:",
+            id
+        );
+
+        return null;
+
+    }
+
+
+    return data.correo;
+
+
+}
+
+
+
+
+
     
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
 function activarCerrarAfuera() {
