@@ -5074,6 +5074,10 @@ document.addEventListener("click", function(e){
 let forzarBajarAlFinal = false; // evita conflicto cuando YO envío mensajes
 
 const chatCache = {};
+// Guarda hasta qué fecha está sincronizada cada conversación
+const chatUltimaFecha = {};
+
+
 
 // =====================================
 // 💾 CACHE LOCAL DE CHATS
@@ -5386,7 +5390,6 @@ async function precargarTodosLosChats(){
 
 }
 
-    
 function iniciarChatCon(info) {
 
 
@@ -5394,6 +5397,10 @@ function iniciarChatCon(info) {
     normalizeText(info.correo);
 
 
+
+    // =====================================
+    // FOTO DEL USUARIO
+    // =====================================
 
     const fotoDesdePerfil =
     perfilCache[correoNorm]?.fotoPerfil ||
@@ -5422,8 +5429,9 @@ function iniciarChatCon(info) {
 
 
 
+
     // =====================================
-    // 1. PREPARAR MENSAJES ANTES DE MOSTRAR
+    // 1. RECUPERAR CACHE RAM / LOCAL
     // =====================================
 
 
@@ -5437,8 +5445,10 @@ function iniciarChatCon(info) {
         mensajesIniciales.length === 0
     ){
 
+
         mensajesIniciales =
         cargarChatLocal(info.correo);
+
 
     }
 
@@ -5453,6 +5463,46 @@ function iniciarChatCon(info) {
 
 
 
+    // =====================================
+    // 2. PREPARAR ULTIMA FECHA SINCRONIZADA
+    // =====================================
+
+
+    if(
+        chatCache[info.correo].length > 0
+    ){
+
+
+        const ultimoMensaje =
+
+        chatCache[info.correo]
+        [
+            chatCache[info.correo].length - 1
+        ];
+
+
+
+        if(ultimoMensaje.fecha){
+
+
+            chatUltimaFecha[info.correo] =
+            ultimoMensaje.fecha;
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+    // =====================================
+    // 3. PINTAR MENSAJES ANTES DE MOSTRAR
+    // =====================================
+
 
     const cont =
     document.getElementById(
@@ -5461,22 +5511,39 @@ function iniciarChatCon(info) {
 
 
 
-
-    // limpiar solamente antes de pintar
-
-    cont.innerHTML="";
+    if(cont){
 
 
+        cont.innerHTML = "";
 
 
-    if(
-        chatCache[info.correo].length
-    ){
+
+        if(
+            chatCache[info.correo].length > 0
+        ){
 
 
-        renderizarMensajes(
-            chatCache[info.correo]
-        );
+            renderizarMensajes(
+                chatCache[info.correo]
+            );
+
+
+        }else{
+
+
+            cont.innerHTML =
+            `
+            <div style="
+            text-align:center;
+            color:#999;
+            padding:20px;
+            ">
+            Cargando mensajes...
+            </div>
+            `;
+
+
+        }
 
 
     }
@@ -5484,8 +5551,10 @@ function iniciarChatCon(info) {
 
 
 
+
+
     // =====================================
-    // 2. AHORA SI MOSTRAR VENTANA
+    // 4. AHORA MOSTRAR CHAT
     // =====================================
 
 
@@ -5494,12 +5563,22 @@ function iniciarChatCon(info) {
 
 
 
+
+
+
     // =====================================
-    // 3. ACTUALIZAR EN SEGUNDO PLANO
+    // 5. SINCRONIZAR SILENCIOSAMENTE
     // =====================================
 
 
     cargarConversacion();
+
+
+
+
+    // =====================================
+    // 6. ACTIVAR REALTIME
+    // =====================================
 
 
     activarRealtimeChat();
@@ -5507,7 +5586,6 @@ function iniciarChatCon(info) {
 
 
 }
-
 
 
 
@@ -6271,24 +6349,45 @@ async function cargarConversacion() {
 
 
 
-        const { data: mensajes, error } =
+   let query = supabaseClient
 
-        await supabaseClient
+.from("chat_mensajes")
 
-        .from("chat_mensajes")
+.select("*")
 
-        .select("*")
+.or(
+    `and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})`
+)
 
-        .or(
-            `and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})`
-        )
+.order(
+    "fecha_creacion",
+    {
+        ascending:true
+    }
+);
 
-        .order(
-            "fecha_creacion",
-            {
-                ascending:true
-            }
-        );
+
+// =====================================
+// SOLO TRAER NUEVOS MENSAJES
+// =====================================
+
+const ultimaFecha =
+chatUltimaFecha[chatConUsuario.correo];
+
+
+if(ultimaFecha){
+
+    query = query.gt(
+        "fecha_creacion",
+        ultimaFecha
+    );
+
+}
+
+
+
+const { data: mensajes, error } =
+await query;
 
 
 
@@ -6329,7 +6428,24 @@ async function cargarConversacion() {
         }));
 
 
+// =====================================
+// ACTUALIZAR CURSOR DE SINCRONIZACIÓN
+// =====================================
 
+if(mensajesServidor.length > 0){
+
+    const ultimo =
+    mensajesServidor[
+        mensajesServidor.length - 1
+    ];
+
+
+    chatUltimaFecha[
+        chatConUsuario.correo
+    ] =
+    ultimo.fecha;
+
+}
 
 
 
