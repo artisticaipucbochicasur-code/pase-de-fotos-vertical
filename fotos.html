@@ -5149,7 +5149,7 @@ function cargarChatLocal(correo){
 
 
 
-
+let listaChatsCache = {};
 let chatAutoRefresh = null;
 
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
@@ -5403,6 +5403,164 @@ async function precargarTodosLosChats(){
     }
 
 }
+
+
+
+async function precargarResumenChats(){
+
+    if(!usuarioActual) return;
+
+
+    try{
+
+
+        const usuarioId =
+        await obtenerIdUsuarioPorCorreo(
+            usuarioActual.correo
+        );
+
+
+        if(!usuarioId) return;
+
+
+
+        const {data: mensajes,error} =
+
+        await supabaseClient
+
+        .from("chat_mensajes")
+
+        .select(
+            `
+            id,
+            remitente_id,
+            destinatario_id,
+            mensaje,
+            fecha_creacion
+            `
+        )
+
+        .or(
+        `remitente_id.eq.${usuarioId},destinatario_id.eq.${usuarioId}`
+        )
+
+        .order(
+            "fecha_creacion",
+            {
+                ascending:false
+            }
+        )
+
+        .limit(100);
+
+
+
+        if(error)
+            throw error;
+
+
+
+        const resumen={};
+
+
+
+        for(const m of mensajes){
+
+
+            const otroId =
+
+            m.remitente_id === usuarioId
+
+            ?
+
+            m.destinatario_id
+
+            :
+
+            m.remitente_id;
+
+
+
+            const correo =
+
+            await obtenerCorreoUsuarioPorId(
+                otroId
+            );
+
+
+            if(!correo)
+                continue;
+
+
+
+            if(!resumen[correo]){
+
+
+                resumen[correo]={
+
+
+                    ultimoMensaje:
+                    m.mensaje,
+
+
+                    fecha:
+                    m.fecha_creacion,
+
+
+                    id:
+                    m.id
+
+
+                };
+
+
+            }
+
+
+
+        }
+
+
+
+        listaChatsCache = resumen;
+
+
+
+        localStorage.setItem(
+
+            "listaChatsCache",
+
+            JSON.stringify(resumen)
+
+        );
+
+
+
+        console.log(
+            "✅ Resumen chats cargado:",
+            resumen
+        );
+
+
+
+    }catch(e){
+
+
+        console.error(
+            "Error resumen chats:",
+            e
+        );
+
+
+    }
+
+
+}
+
+
+
+
+
 
 function iniciarChatCon(info) {
 
@@ -11484,11 +11642,11 @@ autor:a.autor
 
         // Precargar chats sin bloquear
 
-        if (usuarioActual) {
+      if (usuarioActual) {
 
-            precargarTodosLosChats();
+    precargarResumenChats();
 
-        }
+}
 
 
 
