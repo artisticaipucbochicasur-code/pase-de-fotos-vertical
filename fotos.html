@@ -5702,15 +5702,19 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-    if (!txt || !chatConUsuario || !usuarioActual) return;
+    if (!txt || !chatConUsuario || !usuarioActual)
+        return;
+
 
 
 
     btn.style.transform = "scale(0.88)";
-
     btn.style.transition = "transform 0.18s ease";
 
-    setTimeout(() => btn.style.transform = "scale(1)", 180);
+    setTimeout(() => {
+        btn.style.transform = "scale(1)";
+    },180);
+
 
 
 
@@ -5727,7 +5731,7 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
     // =====================================
-    // CREAR MENSAJE TEMPORAL
+    // MENSAJE TEMPORAL
     // =====================================
 
 
@@ -5738,13 +5742,22 @@ document.getElementById("chatEnviar").onclick = async () => {
 
     const mensajeTemp = {
 
+
         id: tempId,
 
-        de: usuarioActual.correo,
+        temporal:true,
 
-        mensaje: txt,
 
-        fecha: "Enviando..."
+        de:
+        usuarioActual.correo,
+
+
+        mensaje:
+        txt,
+
+
+        fecha:
+        "Enviando..."
 
     };
 
@@ -5766,8 +5779,6 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-
-    // 💾 GUARDAR CACHE LOCAL INMEDIATO
 
     guardarChatLocal(
 
@@ -5804,228 +5815,181 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-    input.value = "";
-
+    input.value="";
     input.focus();
 
 
 
 
 
-
-
-// =====================================
-// ENVIAR MENSAJE A SUPABASE
-// =====================================
-
-
-try {
+    try {
 
 
 
-    const remitenteId =
+        const remitenteId =
 
-    await obtenerIdUsuarioPorCorreo(
-
-        usuarioActual.correo
-
-    );
-
-
-
-
-
-    const destinatarioId =
-
-    await obtenerIdUsuarioPorCorreo(
-
-        chatConUsuario.correo
-
-    );
-
-
-
-
-
-    if(!remitenteId || !destinatarioId){
-
-
-        throw new Error(
-            "No se encontraron usuarios"
+        await obtenerIdUsuarioPorCorreo(
+            usuarioActual.correo
         );
 
 
+
+
+        const destinatarioId =
+
+        await obtenerIdUsuarioPorCorreo(
+            chatConUsuario.correo
+        );
+
+
+
+
+
+        if(!remitenteId || !destinatarioId){
+
+            throw new Error(
+                "No se encontraron usuarios"
+            );
+
+        }
+
+
+
+
+
+        const {error}=
+
+        await supabaseClient
+
+        .from("chat_mensajes")
+
+        .insert({
+
+            remitente_id:
+            remitenteId,
+
+
+            destinatario_id:
+            destinatarioId,
+
+
+            mensaje:
+            txt
+
+        });
+
+
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+
+
+        console.log(
+            "✅ Mensaje guardado en Supabase"
+        );
+
+
+
+
+
+        // =====================================
+        // CONFIRMAR TEMPORAL
+        // =====================================
+
+
+        const cache =
+        chatCache[chatConUsuario.correo] || [];
+
+
+
+        const ultimo =
+
+        cache.find(
+
+            m =>
+
+            m.temporal === true &&
+
+            m.mensaje === txt
+
+        );
+
+
+
+
+        if(ultimo){
+
+
+            ultimo.fecha =
+            new Date()
+            .toLocaleString();
+
+
+
+            ultimo.temporal=false;
+
+
+            delete ultimo.id;
+
+
+        }
+
+
+
+
+        guardarChatLocal(
+
+            chatConUsuario.correo,
+
+            cache
+
+        );
+
+
+
+
+
+    }catch(err){
+
+
+
+        console.error(
+            "❌ Error enviando mensaje:",
+            err
+        );
+
+
+
+        actualizarUltimoMensaje({
+
+            mensaje:
+            txt + " (No enviado)",
+
+
+            fecha:
+            "Error"
+
+        });
+
+
+
+
+        guardarChatLocal(
+
+            chatConUsuario.correo,
+
+            chatCache[chatConUsuario.correo]
+
+        );
+
     }
-
-
-
-
-
-
-
-    const {error} =
-
-    await supabaseClient
-
-    .from("chat_mensajes")
-
-    .insert({
-
-
-        remitente_id:
-        remitenteId,
-
-
-        destinatario_id:
-        destinatarioId,
-
-
-        mensaje:
-        txt
-
-
-    });
-
-
-
-
-
-
-    if(error){
-
-        throw error;
-
-    }
-
-
-
-
-
-
-    console.log(
-        "✅ Mensaje guardado en Supabase"
-    );
-
-
-
-
-
-
-
-    // =====================================
-    // CONFIRMAR MENSAJE TEMPORAL
-    // =====================================
-
-
-    const cache =
-
-    chatCache[chatConUsuario.correo] || [];
-
-
-
-
-
-    const ultimo =
-
-    cache.find(
-
-        m =>
-
-        m.id &&
-
-        m.id.startsWith("temp_")
-
-    );
-
-
-
-
-
-
-    if(ultimo){
-
-
-        ultimo.fecha =
-
-        new Date()
-        .toLocaleString();
-
-
-
-        delete ultimo.id;
-
-
-
-    }
-
-
-
-
-
-
-    // 💾 ACTUALIZAR CACHE LOCAL
-
-    guardarChatLocal(
-
-        chatConUsuario.correo,
-
-        cache
-
-    );
-
-
-
-
-
-
-}catch(err){
-
-
-
-    console.error(
-
-        "❌ Error enviando mensaje:",
-
-        err
-
-    );
-
-
-
-
-
-    actualizarUltimoMensaje({
-
-
-        mensaje:
-
-        txt + " (No enviado)",
-
-
-        fecha:
-
-        "Error"
-
-
-    });
-
-
-
-
-
-    // 💾 Guardar estado fallido local
-
-    guardarChatLocal(
-
-        chatConUsuario.correo,
-
-        chatCache[chatConUsuario.correo]
-
-    );
-
-
-
-}
 
 
 
@@ -6140,101 +6104,112 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
 // ================= CARGAR CONVERSACIÓN (CON INDICADOR "ESCRIBIENDO") =================
 async function cargarConversacion() {
 
-    if (!chatConUsuario || !usuarioActual) return;
+
+    if (!chatConUsuario || !usuarioActual)
+        return;
+
 
 
     try {
 
 
-        // ==========================================
-        // OBTENER IDS DE USUARIOS EN SUPABASE
-        // ==========================================
-
         const usuarioId =
+
         await obtenerIdUsuarioPorCorreo(
             usuarioActual.correo
         );
 
 
+
         const otroUsuarioId =
+
         await obtenerIdUsuarioPorCorreo(
             chatConUsuario.correo
         );
 
 
-        if(!usuarioId || !otroUsuarioId){
 
-            console.warn(
-                "No se encontraron usuarios para chat"
-            );
 
+        if(!usuarioId || !otroUsuarioId)
             return;
 
-        }
 
 
 
 
-        // ==========================================
-        // CARGAR MENSAJES DESDE SUPABASE
-        // ==========================================
+        const {data: mensajes,error}=
+
+        await supabaseClient
+
+        .from("chat_mensajes")
+
+        .select("*")
+
+        .or(
+
+        `and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})`
+
+        )
+
+        .order(
+
+            "fecha_creacion",
+
+            {
+                ascending:true
+            }
+
+        );
 
 
-  const { data: mensajes, error } =
-await supabaseClient
-
-.from("chat_mensajes")
-
-.select("*")
-
-.or(
-    `and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})`
-)
-
-.order(
-    "fecha_creacion",
-    {
-        ascending:true
-    }
-);
 
 
 
-        if(error){
-
+        if(error)
             throw error;
 
-        }
 
 
 
-        // Convertir formato Supabase
-        // al formato que ya usa tu chat
+
 
         const mensajesServidor =
-        (mensajes || []).map(m => ({
+
+        (mensajes || []).map(m=>({
+
 
             id:m.id,
+
 
             mensaje:m.mensaje,
 
 
             fecha:
+
             new Date(
                 m.fecha_creacion
             ).toLocaleString(),
+
 
 
             de:
 
             m.remitente_id === usuarioId
 
-            ? usuarioActual.correo
+            ?
 
-            : chatConUsuario.correo
+            usuarioActual.correo
+
+            :
+
+            chatConUsuario.correo
+
 
 
         }));
+
+
+
 
 
 
@@ -6243,21 +6218,26 @@ await supabaseClient
         document.getElementById("chatMensajes");
 
 
+
+
         const cacheActual =
+
         chatCache[chatConUsuario.correo] || [];
 
 
 
-        let huboCambios = false;
+
+        let huboCambios=false;
 
 
 
-        // --- ELIMINAR CARGANDO MENSAJES ---
+
+
 
         if(
-            cont.innerHTML.includes("Cargando mensajes")
-            &&
-            mensajesServidor.length > 0
+            cont.innerHTML.includes(
+                "Cargando mensajes"
+            )
         ){
 
             cont.innerHTML="";
@@ -6268,67 +6248,101 @@ await supabaseClient
 
 
 
-        // ==========================================
+
+
+        // =====================================
         // CONFIRMAR MENSAJES TEMPORALES
-        // ==========================================
+        // =====================================
 
 
-        const cache =
-        chatCache[chatConUsuario.correo] || [];
+        const temporales =
 
+        cacheActual.filter(
 
-        const tempMsg =
-        cache.find(
-            m =>
-            m.id &&
-            m.id.startsWith("temp_")
+            m=>m.temporal===true
+
         );
 
 
 
-        if(tempMsg){
+
+        temporales.forEach(temp=>{
+
 
 
             const confirmado =
-            mensajesServidor.find(ms =>
 
-                ms.de === usuarioActual.correo &&
+            mensajesServidor.find(
 
-                ms.mensaje === tempMsg.mensaje
+                ms=>
+
+                ms.mensaje===temp.mensaje &&
+
+                ms.de===usuarioActual.correo
 
             );
+
 
 
 
             if(confirmado){
 
 
-                const ult =
-                cont.lastElementChild;
 
-
-                if(ult){
-
-                    const small =
-                    ult.querySelector("small");
-
-
-                    if(small){
-
-                        small.textContent =
-                        confirmado.fecha;
-
-                    }
-
-                }
-
-
-
-                tempMsg.fecha =
+                temp.fecha =
                 confirmado.fecha;
 
 
-                delete tempMsg.id;
+
+                temp.id =
+                confirmado.id;
+
+
+
+                temp.temporal=false;
+
+
+
+                huboCambios=true;
+
+
+
+            }
+
+
+        });
+
+
+
+
+
+
+
+        // =====================================
+        // AGREGAR MENSAJES NUEVOS
+        // =====================================
+
+
+        mensajesServidor.forEach(msg=>{
+
+
+            const existe =
+
+            cacheActual.some(
+
+                c=>c.id===msg.id
+
+            );
+
+
+
+            if(!existe){
+
+
+                agregarMensajeIndividual(msg);
+
+
+                cacheActual.push(msg);
 
 
                 huboCambios=true;
@@ -6337,106 +6351,43 @@ await supabaseClient
             }
 
 
-        }
 
-
-
-
-        // ==========================================
-        // AGREGAR MENSAJES NUEVOS
-        // ==========================================
-
-
-        if(
-            mensajesServidor.length >
-            cacheActual.length
-        ){
-
-
-            const nuevos =
-            mensajesServidor.slice(
-                cacheActual.length
-            );
-
-
-            nuevos.forEach(msg=>{
-
-
-                agregarMensajeIndividual(msg);
-
-
-                huboCambios=true;
-
-
-            });
-
-
-        }
-
-
-
-
-
-// =====================================
-// ACTUALIZAR CACHE SIN PERDER TEMPORALES
-// =====================================
-
-
-const mensajesPendientes =
-
-(cacheActual || [])
-
-.filter(
-
-m =>
-
-m.id &&
-m.id.startsWith("temp_")
-
-);
-
-
-
-
-const mensajesFinales = [
-
-...mensajesServidor,
-
-...mensajesPendientes
-
-];
-
-
-
-
-chatCache[chatConUsuario.correo] =
-mensajesFinales;
-
-
-
-// 💾 Guardar sincronizado local
-
-guardarChatLocal(
-
-    chatConUsuario.correo,
-
-    mensajesFinales
-
-);
+        });
 
 
 
 
 
 
-        // ==========================================
-        // TEMPORALMENTE DESACTIVAMOS TYPING
-        // (todavía viene de Google)
-        // ==========================================
+
+
+        chatCache[chatConUsuario.correo]=
+        cacheActual;
+
+
+
+
+
+        guardarChatLocal(
+
+            chatConUsuario.correo,
+
+            cacheActual
+
+        );
+
+
+
+
+
+
 
 
         const typingDiv =
-        document.getElementById("chatEscribiendo");
+        document.getElementById(
+            "chatEscribiendo"
+        );
+
 
 
         if(typingDiv){
@@ -6452,73 +6403,19 @@ guardarChatLocal(
 
 
 
-        // ==========================================
-        // SCROLL INTELIGENTE
-        // ==========================================
-
 
         if(huboCambios){
 
 
-            const estabaAbajo = (
-
-                cont.dataset.abierto === "1"
-
-                ||
-
-                (
-                cont.scrollTop +
-                cont.clientHeight >=
-                cont.scrollHeight - 100
-                )
-
-            );
-
-
-
-            if(estabaAbajo){
-
-
-                setTimeout(()=>{
-
-                    cont.scrollTop =
-                    cont.scrollHeight;
-
-                },100);
-
-
-            }
+            cont.scrollTop =
+            cont.scrollHeight;
 
 
         }
-
-
 
 
 
         cont.dataset.abierto="0";
-
-
-
-
-
-        if(estoyAbajo()){
-
-
-            nuevosMensajes=0;
-
-
-            document.getElementById(
-                "newMsgCount"
-            ).innerText="";
-
-
-            document.getElementById(
-                "newMsgIndicator"
-            ).style.display="none";
-
-
-        }
 
 
 
@@ -6534,6 +6431,7 @@ guardarChatLocal(
 
 
     }
+
 
 }
 
