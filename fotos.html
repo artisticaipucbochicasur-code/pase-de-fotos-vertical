@@ -9897,66 +9897,88 @@ li.dataset.texto = comentario.textoPuro;
 
                 if (stillActiveToken !== token || currentId !== expectedId) return;
 
-                // Fallback con inicial
-                if (fotoUrl.startsWith("avatar://")) {
-                    const inicial = fotoUrl.split("://")[1];
-                    const avatar = document.createElement("div");
-                    avatar.style.width = "30px";
-                    avatar.style.height = "30px";
-                    avatar.style.borderRadius = "50%";
-                    avatar.style.background = "#5468ff";
-                    avatar.style.display = "flex";
-                    avatar.style.alignItems = "center";
-                    avatar.style.justifyContent = "center";
-                    avatar.style.fontSize = "14px";
-                    avatar.style.color = "#fff";
-                    avatar.textContent = inicial;
-                    div.appendChild(avatar);
-                } else {
-                    const img = document.createElement("img");
-                    img.className = "autor-foto";
-                    img.style.width = "30px";
-                    img.style.height = "30px";
-                    img.style.objectFit = "cover";
-                    img.style.borderRadius = "50%";
-                    img.style.border = "2px solid #fff";
-                    img.style.background = "#eee";
-                    img.alt = anuncio.autor || "autor";
-                    img.referrerPolicy = "no-referrer";
+// ===============================
+// FOTO O INICIALES DEL AUTOR
+// ===============================
 
-                 img.src = fotoUrl;
+if (
+    !fotoUrl ||
+    fotoUrl.length <= 3 ||
+    !fotoUrl.startsWith("http")
+) {
 
-                 img.onerror = () => {
 
-    img.onerror = null;
+    const avatar = document.createElement("div");
 
-    const inicial =
+    avatar.style.width = "30px";
+    avatar.style.height = "30px";
+    avatar.style.borderRadius = "50%";
+    avatar.style.background = "#5468ff";
+    avatar.style.display = "flex";
+    avatar.style.alignItems = "center";
+    avatar.style.justifyContent = "center";
+    avatar.style.fontSize = "14px";
+    avatar.style.fontWeight = "bold";
+    avatar.style.color = "#fff";
+
+
+    avatar.textContent =
     fallbackName(anuncio.autor);
 
-    const avatar =
-    document.createElement("div");
+
+    div.appendChild(avatar);
 
 
-    avatar.style.width="30px";
-    avatar.style.height="30px";
-    avatar.style.borderRadius="50%";
-    avatar.style.background="#5468ff";
-    avatar.style.display="flex";
-    avatar.style.alignItems="center";
-    avatar.style.justifyContent="center";
-    avatar.style.color="#fff";
-    avatar.style.fontWeight="bold";
+
+} else {
 
 
-    avatar.textContent=inicial;
+    const img = document.createElement("img");
+
+    img.className = "autor-foto";
+
+    img.style.width = "30px";
+    img.style.height = "30px";
+    img.style.objectFit = "cover";
+    img.style.borderRadius = "50%";
+    img.style.border = "2px solid #fff";
+    img.style.background = "#eee";
+
+    img.alt = anuncio.autor || "autor";
 
 
-    img.replaceWith(avatar);
+    img.src = fotoUrl;
 
-};
 
-                    div.appendChild(img);
-                }
+    img.onerror = () => {
+
+        img.remove();
+
+        const avatar = document.createElement("div");
+
+        avatar.style.width="30px";
+        avatar.style.height="30px";
+        avatar.style.borderRadius="50%";
+        avatar.style.background="#5468ff";
+        avatar.style.display="flex";
+        avatar.style.alignItems="center";
+        avatar.style.justifyContent="center";
+        avatar.style.fontSize="14px";
+        avatar.style.fontWeight="bold";
+        avatar.style.color="#fff";
+
+        avatar.textContent =
+        fallbackName(anuncio.autor);
+
+
+        div.appendChild(avatar);
+
+    };
+
+
+    div.appendChild(img);
+
+}
 
                 const span = document.createElement("span");
                 span.style.fontSize = "13px";
