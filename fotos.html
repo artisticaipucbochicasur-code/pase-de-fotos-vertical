@@ -6729,8 +6729,7 @@ function activarRealtimeChat(){
 
             // Actualizar conversación
 
-            await cargarConversacion();
-
+           await agregarMensajeRealtime(nuevo);
 
 
         }
@@ -6770,6 +6769,124 @@ function activarRealtimeChat(){
 
 
 }
+
+
+// =====================================
+// AGREGAR MENSAJE RECIBIDO EN REALTIME
+// =====================================
+
+async function agregarMensajeRealtime(mensajeSupabase){
+
+
+    if(!chatConUsuario || !usuarioActual)
+        return;
+
+
+
+    const miId =
+    await obtenerIdUsuarioPorCorreo(
+        usuarioActual.correo
+    );
+
+
+
+    const otroId =
+    await obtenerIdUsuarioPorCorreo(
+        chatConUsuario.correo
+    );
+
+
+
+    const mensaje = {
+
+
+        id: mensajeSupabase.id,
+
+
+        mensaje:
+        mensajeSupabase.mensaje,
+
+
+
+        fecha:
+        new Date(
+            mensajeSupabase.fecha_creacion
+        ).toLocaleString(),
+
+
+
+        de:
+
+
+        mensajeSupabase.remitente_id === miId
+
+        ?
+
+        usuarioActual.correo
+
+        :
+
+        chatConUsuario.correo
+
+
+    };
+
+
+
+
+    // evitar duplicados
+
+    const cache =
+    chatCache[chatConUsuario.correo] || [];
+
+
+
+    const existe =
+    cache.some(
+        m => m.id === mensaje.id
+    );
+
+
+
+    if(existe)
+        return;
+
+
+
+
+    if(!chatCache[chatConUsuario.correo]){
+
+        chatCache[chatConUsuario.correo]=[];
+
+    }
+
+
+
+    chatCache[chatConUsuario.correo]
+    .push(mensaje);
+
+
+
+    agregarMensajeIndividual(mensaje);
+
+
+
+    const cont =
+    document.getElementById("chatMensajes");
+
+
+
+    if(cont){
+
+        cont.scrollTop =
+        cont.scrollHeight;
+
+    }
+
+
+
+}
+
 
 
 async function obtenerIdUsuarioPorCorreo(correo){
