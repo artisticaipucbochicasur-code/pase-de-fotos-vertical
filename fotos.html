@@ -9834,13 +9834,36 @@ li.dataset.texto = comentario.textoPuro;
                     img.alt = anuncio.autor || "autor";
                     img.referrerPolicy = "no-referrer";
 
-                    const sep = fotoUrl.includes("?") ? "&" : "?";
-                    img.src = fotoUrl + `${sep}v=${Date.now()}`;
+                 img.src = fotoUrl;
 
-                    img.onerror = () => {
-                        img.onerror = null;
-                        img.src = "img/default-user.png";
-                    };
+                 img.onerror = () => {
+
+    img.onerror = null;
+
+    const inicial =
+    fallbackName(anuncio.autor);
+
+    const avatar =
+    document.createElement("div");
+
+
+    avatar.style.width="30px";
+    avatar.style.height="30px";
+    avatar.style.borderRadius="50%";
+    avatar.style.background="#5468ff";
+    avatar.style.display="flex";
+    avatar.style.alignItems="center";
+    avatar.style.justifyContent="center";
+    avatar.style.color="#fff";
+    avatar.style.fontWeight="bold";
+
+
+    avatar.textContent=inicial;
+
+
+    img.replaceWith(avatar);
+
+};
 
                     div.appendChild(img);
                 }
@@ -9886,43 +9909,79 @@ if (anuncio.correo && anuncio.correo !== currentAuthorEmail) {
 // =====================================
 // 🔍 Resolver foto con caché + fallback
 // =====================================
-async function resolveFotoPerfil(correo,nombre=""){
+async function resolveFotoPerfil(correo, nombre = "") {
 
+    const correoNorm = normalizeText(correo);
 
-    if(!correo)
+    if (!correoNorm) {
         return fallbackName(nombre);
+    }
+
+
+    // ================================
+    // CACHE ÚNICA DE FOTOS
+    // ================================
+
+    if (fotoCache[correoNorm]) {
+        return fotoCache[correoNorm];
+    }
 
 
 
-    // Cache RAM
-
-    if(fotoCache[correo])
-        return fotoCache[correo];
+    try {
 
 
-
-    try{
-
-
-        const {data,error}=await supabaseClient
+        const { data, error } = await supabaseClient
 
         .from("usuarios")
 
         .select("foto_perfil")
 
-        .eq("correo",correo)
+        .ilike(
+            "correo",
+            correoNorm
+        )
 
         .single();
 
 
 
-        let foto =
-            data?.foto_perfil ||
-            "img/default-user.png";
+        if(error || !data){
+
+            console.warn(
+                "Foto no encontrada:",
+                correoNorm
+            );
+
+
+            const avatar =
+            fallbackName(nombre);
+
+
+            fotoCache[correoNorm] = avatar;
+
+
+            return avatar;
+
+        }
 
 
 
-        fotoCache[correo]=foto;
+        let foto = data.foto_perfil;
+
+
+
+        // Si no tiene foto → usar iniciales
+        if(!foto){
+
+            foto = fallbackName(nombre);
+
+        }
+
+
+
+        fotoCache[correoNorm] = foto;
+
 
 
         return foto;
@@ -9932,16 +9991,18 @@ async function resolveFotoPerfil(correo,nombre=""){
     }catch(e){
 
 
-        console.error("Error buscando foto:",e);
+        console.error(
+            "Error buscando foto Supabase:",
+            e
+        );
 
 
-        return "img/default-user.png";
+        return fallbackName(nombre);
 
     }
 
 
 }
-
 
 
 function initSwiper(initialIndex = 0) {
