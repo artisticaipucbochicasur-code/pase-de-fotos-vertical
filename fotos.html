@@ -4998,39 +4998,6 @@ data.foto_perfil || ""
 
 
     
-async function obtenerIdUsuarioPorCorreo(correo){
-
-    if(!correo) return null;
-
-
-    const {data,error} = await supabaseClient
-
-    .from("usuarios")
-
-    .select("id")
-
-    .eq("correo",correo)
-
-    .single();
-
-
-
-    if(error){
-
-        console.error(
-            "Error buscando usuario:",
-            correo,
-            error
-        );
-
-        return null;
-
-    }
-
-
-    return data.id;
-
-}    
 
 
 
@@ -5489,6 +5456,26 @@ try {
         "✅ Mensaje guardado en Supabase"
     );
 
+    // actualizar mensaje temporal
+const cache =
+chatCache[chatConUsuario.correo] || [];
+
+
+const ultimo =
+cache.find(
+m => m.id && m.id.startsWith("temp_")
+);
+
+
+if(ultimo){
+
+    ultimo.fecha =
+    new Date().toLocaleString();
+
+    delete ultimo.id;
+
+}
+
 
 
 }catch(err){
@@ -5622,123 +5609,411 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
 
 // ================= CARGAR CONVERSACIÓN (CON INDICADOR "ESCRIBIENDO") =================
 async function cargarConversacion() {
+
     if (!chatConUsuario || !usuarioActual) return;
 
-    const body = new FormData();
-    body.append("accion", "listarChat");
-    body.append("user1", usuarioActual.correo);
-    body.append("user2", chatConUsuario.correo);
 
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body });
-        const json = await res.json();
-        if (!json.mensajes) return;
 
-        const mensajesServidor = json.mensajes;
-        const cont = document.getElementById("chatMensajes");
-        const cacheActual = chatCache[chatConUsuario.correo] || [];
+
+        // ==========================================
+        // OBTENER IDS DE USUARIOS EN SUPABASE
+        // ==========================================
+
+        const usuarioId =
+        await obtenerIdUsuarioPorCorreo(
+            usuarioActual.correo
+        );
+
+
+        const otroUsuarioId =
+        await obtenerIdUsuarioPorCorreo(
+            chatConUsuario.correo
+        );
+
+
+        if(!usuarioId || !otroUsuarioId){
+
+            console.warn(
+                "No se encontraron usuarios para chat"
+            );
+
+            return;
+
+        }
+
+
+
+
+        // ==========================================
+        // CARGAR MENSAJES DESDE SUPABASE
+        // ==========================================
+
+
+        const {data: mensajes, error} =
+        await supabaseClient
+
+        .from("chat_mensajes")
+
+        .select("*")
+
+        .or(
+            `
+            and(remitente_id.eq.${usuarioId},destinatario_id.eq.${otroUsuarioId}),
+            and(remitente_id.eq.${otroUsuarioId},destinatario_id.eq.${usuarioId})
+            `
+        )
+
+        .order(
+            "fecha_creacion",
+            {
+                ascending:true
+            }
+        );
+
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+
+        // Convertir formato Supabase
+        // al formato que ya usa tu chat
+
+        const mensajesServidor =
+        (mensajes || []).map(m => ({
+
+            id:m.id,
+
+            mensaje:m.mensaje,
+
+
+            fecha:
+            new Date(
+                m.fecha_creacion
+            ).toLocaleString(),
+
+
+            de:
+
+            m.remitente_id === usuarioId
+
+            ? usuarioActual.correo
+
+            : chatConUsuario.correo
+
+
+        }));
+
+
+
+
+        const cont =
+        document.getElementById("chatMensajes");
+
+
+        const cacheActual =
+        chatCache[chatConUsuario.correo] || [];
+
+
 
         let huboCambios = false;
 
-        // --- 🔥 ELIMINAR "Cargando mensajes..." SI AÚN ESTÁ MOSTRADO ---
-        if (cont.innerHTML.includes("Cargando mensajes") && mensajesServidor.length > 0) {
-            cont.innerHTML = "";
+
+
+        // --- ELIMINAR CARGANDO MENSAJES ---
+
+        if(
+            cont.innerHTML.includes("Cargando mensajes")
+            &&
+            mensajesServidor.length > 0
+        ){
+
+            cont.innerHTML="";
+
         }
 
-        // --- 1. ACTUALIZAR HORAS DE MENSAJES TEMPORALES ---
-        const cache = chatCache[chatConUsuario.correo] || [];
-        const tempMsg = cache.find(m => m.id && m.id.startsWith("temp_"));
 
-        if (tempMsg) {
-            const confirmado = mensajesServidor.find(ms =>
+
+
+
+        // ==========================================
+        // CONFIRMAR MENSAJES TEMPORALES
+        // ==========================================
+
+
+        const cache =
+        chatCache[chatConUsuario.correo] || [];
+
+
+        const tempMsg =
+        cache.find(
+            m =>
+            m.id &&
+            m.id.startsWith("temp_")
+        );
+
+
+
+        if(tempMsg){
+
+
+            const confirmado =
+            mensajesServidor.find(ms =>
+
                 ms.de === usuarioActual.correo &&
+
                 ms.mensaje === tempMsg.mensaje
+
             );
 
-            if (confirmado) {
-                const ult = cont.lastElementChild;
-                if (ult) {
-                    const small = ult.querySelector("small");
-                    if (small) small.textContent = confirmado.fecha;
+
+
+            if(confirmado){
+
+
+                const ult =
+                cont.lastElementChild;
+
+
+                if(ult){
+
+                    const small =
+                    ult.querySelector("small");
+
+
+                    if(small){
+
+                        small.textContent =
+                        confirmado.fecha;
+
+                    }
+
                 }
 
-                tempMsg.fecha = confirmado.fecha;
+
+
+                tempMsg.fecha =
+                confirmado.fecha;
+
+
                 delete tempMsg.id;
 
-                huboCambios = true;
+
+                huboCambios=true;
+
+
             }
+
+
         }
 
-        // --- 2. AGREGAR MENSAJES NUEVOS ---
-        if (mensajesServidor.length > cacheActual.length) {
-            const nuevos = mensajesServidor.slice(cacheActual.length);
-            nuevos.forEach(msg => {
-                agregarMensajeIndividual(msg);
-                huboCambios = true;
-            });
-        }
 
-        // --- 3. ACTUALIZAR CACHE ---
-        if (mensajesServidor.length >= cacheActual.length) {
-            chatCache[chatConUsuario.correo] = mensajesServidor;
-        }
 
-        // --- 4. MOSTRAR INDICADOR "ESCRIBIENDO..." ---
-        const typingDiv = document.getElementById("chatEscribiendo");
 
-        if (!window.typingTimeout) window.typingTimeout = null;
+        // ==========================================
+        // AGREGAR MENSAJES NUEVOS
+        // ==========================================
 
-        if (json.typing === true) {
 
-            typingDiv.style.display = "block";
-            typingDiv.innerHTML = `Escribiendo<span class="typing-dots">...</span>`;
+        if(
+            mensajesServidor.length >
+            cacheActual.length
+        ){
 
-            clearTimeout(window.typingTimeout);
-            window.typingTimeout = setTimeout(() => {
-                typingDiv.style.display = "none";
-                typingDiv.innerHTML = "";
-            }, 6000);
 
-        } else {
-            typingDiv.style.display = "none";
-            typingDiv.innerHTML = "";
-
-            clearTimeout(window.typingTimeout);
-            window.typingTimeout = null;
-        }
-
-        // --- 5. SCROLL INTELIGENTE ---
-        if (huboCambios) {
-
-            // 🟦 Si el chat acaba de abrirse, forzamos que "sí estaba abajo"
-            const estabaAbajo = (
-                cont.dataset.abierto === "1" ||
-                (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 100)
+            const nuevos =
+            mensajesServidor.slice(
+                cacheActual.length
             );
 
-            if (estabaAbajo) {
-                setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
-            }
+
+            nuevos.forEach(msg=>{
+
+
+                agregarMensajeIndividual(msg);
+
+
+                huboCambios=true;
+
+
+            });
+
+
         }
 
-        // 🟩 Después del primer refresh, ya no forzamos
-        cont.dataset.abierto = "0";
-
-      // Si estoy abajo después del primer refresh → ocultar indicador
-if (estoyAbajo()) {
-    nuevosMensajes = 0;
-    document.getElementById("newMsgCount").innerText = "";
-    document.getElementById("newMsgIndicator").style.display = "none";
-}
 
 
-    } catch (err) {
-        console.warn("Error en refresh:", err);
+
+
+        // ACTUALIZAR CACHE
+
+        if(
+            mensajesServidor.length >=
+            cacheActual.length
+        ){
+
+            chatCache[chatConUsuario.correo] =
+            mensajesServidor;
+
+        }
+
+
+
+
+
+
+        // ==========================================
+        // TEMPORALMENTE DESACTIVAMOS TYPING
+        // (todavía viene de Google)
+        // ==========================================
+
+
+        const typingDiv =
+        document.getElementById("chatEscribiendo");
+
+
+        if(typingDiv){
+
+            typingDiv.style.display="none";
+
+            typingDiv.innerHTML="";
+
+        }
+
+
+
+
+
+
+        // ==========================================
+        // SCROLL INTELIGENTE
+        // ==========================================
+
+
+        if(huboCambios){
+
+
+            const estabaAbajo = (
+
+                cont.dataset.abierto === "1"
+
+                ||
+
+                (
+                cont.scrollTop +
+                cont.clientHeight >=
+                cont.scrollHeight - 100
+                )
+
+            );
+
+
+
+            if(estabaAbajo){
+
+
+                setTimeout(()=>{
+
+                    cont.scrollTop =
+                    cont.scrollHeight;
+
+                },100);
+
+
+            }
+
+
+        }
+
+
+
+
+
+        cont.dataset.abierto="0";
+
+
+
+
+
+        if(estoyAbajo()){
+
+
+            nuevosMensajes=0;
+
+
+            document.getElementById(
+                "newMsgCount"
+            ).innerText="";
+
+
+            document.getElementById(
+                "newMsgIndicator"
+            ).style.display="none";
+
+
+        }
+
+
+
+
+
+    }catch(err){
+
+
+        console.warn(
+            "Error cargando chat Supabase:",
+            err
+        );
+
+
     }
+
 }
 
 
 
+async function obtenerIdUsuarioPorCorreo(correo){
+
+    if(!correo) return null;
+
+
+    const {data,error} =
+    await supabaseClient
+
+    .from("usuarios")
+
+    .select("id")
+
+    .ilike(
+        "correo",
+        correo.trim()
+    )
+
+    .single();
+
+
+
+    if(error){
+
+        console.error(
+            "Error buscando usuario:",
+            correo,
+            error
+        );
+
+        return null;
+
+    }
+
+
+    return data.id;
+
+}
     
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
 function activarCerrarAfuera() {
