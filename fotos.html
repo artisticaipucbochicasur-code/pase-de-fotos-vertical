@@ -5527,6 +5527,14 @@ function iniciarChatCon(info) {
                 chatCache[info.correo]
             );
 
+            console.log(
+    "💾 CHAT MOSTRADO DESDE CACHE:",
+    {
+        usuario: info.correo,
+        mensajesCache: chatCache[info.correo].length
+    }
+);
+
 
         }else{
 
@@ -6374,6 +6382,11 @@ async function cargarConversacion() {
 const ultimaFecha =
 chatUltimaFecha[chatConUsuario.correo];
 
+console.log(
+    "🔎 SINCRONIZANDO CHAT DESDE:",
+    ultimaFecha || "PRIMERA CARGA"
+);
+
 
 if(ultimaFecha){
 
@@ -6389,7 +6402,13 @@ if(ultimaFecha){
 const { data: mensajes, error } =
 await query;
 
-
+console.log(
+    "📡 MENSAJES RECIBIDOS DESDE SUPABASE:",
+    {
+        cantidad: mensajes?.length || 0,
+        desde: ultimaFecha || "todo el historial"
+    }
+);
 
 
         if(error)
