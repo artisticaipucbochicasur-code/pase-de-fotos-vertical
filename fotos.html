@@ -5430,6 +5430,7 @@ function iniciarChatCon(info) {
 
 
 
+
     // =====================================
     // 1. RECUPERAR CACHE RAM / LOCAL
     // =====================================
@@ -5460,6 +5461,8 @@ function iniciarChatCon(info) {
 
 
 
+
+
     // =====================================
     // 2. NORMALIZAR FECHAS DEL CACHE
     // =====================================
@@ -5470,25 +5473,63 @@ function iniciarChatCon(info) {
     chatCache[info.correo].map(m=>{
 
 
-        if(!m.fechaOrden && m.fecha){
+        if(!m.fechaOrden){
 
 
-            const fecha =
-            new Date(m.fecha);
+            let fechaConvertida = null;
 
 
 
-            if(!isNaN(fecha)){
+            // Primero intenta fechaOriginal
+            if(m.fechaOriginal){
+
+                const f =
+                new Date(m.fechaOriginal);
+
+
+                if(!isNaN(f.getTime())){
+
+                    fechaConvertida = f;
+
+                }
+
+            }
+
+
+
+            // Luego intenta fecha visible
+            if(!fechaConvertida && m.fecha){
+
+
+                const f =
+                new Date(m.fecha);
+
+
+
+                if(!isNaN(f.getTime())){
+
+                    fechaConvertida = f;
+
+                }
+
+
+            }
+
+
+
+
+            if(fechaConvertida){
 
 
                 m.fechaOrden =
-                fecha.toISOString();
+                fechaConvertida.toISOString();
 
 
             }
 
 
         }
+
 
 
         return m;
@@ -5502,8 +5543,12 @@ function iniciarChatCon(info) {
 
 
 
+
+
+
     // =====================================
     // 3. GUARDAR ULTIMA FECHA DE CHAT
+    //    SIEMPRE EN FORMATO ISO
     // =====================================
 
 
@@ -5521,36 +5566,91 @@ function iniciarChatCon(info) {
 
 
 
-        const ultimaFecha =
-
-        ultimoMensaje.fechaOriginal ||
-
-        ultimoMensaje.fechaOrden ||
-
-        null;
+        let ultimaFechaISO = null;
 
 
 
-
-        if(ultimaFecha){
-
-
-            chatUltimaFecha[info.correo] =
-            ultimaFecha;
+        if(ultimoMensaje.fechaOrden){
 
 
-
-            localStorage.setItem(
-                "chatUltimaFecha",
-                JSON.stringify(chatUltimaFecha)
-            );
+            ultimaFechaISO =
+            ultimoMensaje.fechaOrden;
 
 
         }
 
 
 
+        else if(ultimoMensaje.fechaOriginal){
+
+
+            const f =
+            new Date(
+                ultimoMensaje.fechaOriginal
+            );
+
+
+            if(!isNaN(f.getTime())){
+
+
+                ultimaFechaISO =
+                f.toISOString();
+
+
+            }
+
+
+        }
+
+
+
+        else if(ultimoMensaje.fecha){
+
+
+            const f =
+            new Date(
+                ultimoMensaje.fecha
+            );
+
+
+            if(!isNaN(f.getTime())){
+
+
+                ultimaFechaISO =
+                f.toISOString();
+
+
+            }
+
+
+        }
+
+
+
+
+
+        if(ultimaFechaISO){
+
+
+            chatUltimaFecha[info.correo] =
+            ultimaFechaISO;
+
+
+
+            localStorage.setItem(
+
+                "chatUltimaFecha",
+
+                JSON.stringify(chatUltimaFecha)
+
+            );
+
+
+        }
+
+
     }
+
 
 
 
@@ -5588,16 +5688,24 @@ function iniciarChatCon(info) {
             );
 
 
+
             console.log(
+
                 "💾 CHAT MOSTRADO DESDE CACHE:",
+
                 {
+
                     usuario:info.correo,
+
                     mensajesCache:
                     chatCache[info.correo].length,
 
+
                     ultimaFecha:
                     chatUltimaFecha[info.correo]
+
                 }
+
             );
 
 
@@ -5628,6 +5736,8 @@ function iniciarChatCon(info) {
 
 
 
+
+
     // =====================================
     // 5. ABRIR CHAT
     // =====================================
@@ -5641,12 +5751,17 @@ function iniciarChatCon(info) {
 
 
 
+
+
     // =====================================
     // 6. SINCRONIZAR EN SEGUNDO PLANO
     // =====================================
 
 
     cargarConversacion();
+
+
+
 
 
 
