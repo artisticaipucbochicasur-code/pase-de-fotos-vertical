@@ -5579,82 +5579,204 @@ function cerrarChat() {
 
 
 document.getElementById("chatEnviar").onclick = async () => {
+
+
     const input = document.getElementById("chatInput");
+
     const btn = document.getElementById("chatEnviar");
+
     const cont = document.getElementById("chatMensajes");
+
     const txt = input.value.trim();
+
+
 
     if (!txt || !chatConUsuario || !usuarioActual) return;
 
+
+
     btn.style.transform = "scale(0.88)";
+
     btn.style.transition = "transform 0.18s ease";
+
     setTimeout(() => btn.style.transform = "scale(1)", 180);
 
-    const estabaAlFinal = (cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 50);
 
-    const tempId = "temp_" + Date.now();
+
+
+    const estabaAlFinal =
+    (
+        cont.scrollTop +
+        cont.clientHeight >=
+        cont.scrollHeight - 50
+    );
+
+
+
+
+
+    // =====================================
+    // CREAR MENSAJE TEMPORAL
+    // =====================================
+
+
+    const tempId =
+    "temp_" + Date.now();
+
+
+
     const mensajeTemp = {
+
         id: tempId,
+
         de: usuarioActual.correo,
+
         mensaje: txt,
+
         fecha: "Enviando..."
+
     };
 
-    if (!chatCache[chatConUsuario.correo]) chatCache[chatConUsuario.correo] = [];
-    chatCache[chatConUsuario.correo].push(mensajeTemp);
-    agregarMensajeIndividual(mensajeTemp);
 
-    if (estabaAlFinal) {
-        setTimeout(() => cont.scrollTop = cont.scrollHeight, 100);
+
+
+
+    if(!chatCache[chatConUsuario.correo]){
+
+        chatCache[chatConUsuario.correo] = [];
+
     }
 
+
+
+    chatCache[chatConUsuario.correo]
+    .push(mensajeTemp);
+
+
+
+
+
+    // 💾 GUARDAR CACHE LOCAL INMEDIATO
+
+    guardarChatLocal(
+
+        chatConUsuario.correo,
+
+        chatCache[chatConUsuario.correo]
+
+    );
+
+
+
+
+
+    agregarMensajeIndividual(
+        mensajeTemp
+    );
+
+
+
+
+
+    if(estabaAlFinal){
+
+        setTimeout(()=>{
+
+            cont.scrollTop =
+            cont.scrollHeight;
+
+        },100);
+
+    }
+
+
+
+
+
     input.value = "";
+
     input.focus();
+
+
+
+
+
+
 
 // =====================================
 // ENVIAR MENSAJE A SUPABASE
 // =====================================
 
+
 try {
 
 
+
     const remitenteId =
+
     await obtenerIdUsuarioPorCorreo(
+
         usuarioActual.correo
+
     );
+
+
+
 
 
     const destinatarioId =
+
     await obtenerIdUsuarioPorCorreo(
+
         chatConUsuario.correo
+
     );
+
+
 
 
 
     if(!remitenteId || !destinatarioId){
 
+
         throw new Error(
             "No se encontraron usuarios"
         );
+
 
     }
 
 
 
 
-    const {error} = await supabaseClient
+
+
+
+    const {error} =
+
+    await supabaseClient
 
     .from("chat_mensajes")
 
     .insert({
 
-        remitente_id: remitenteId,
 
-        destinatario_id: destinatarioId,
+        remitente_id:
+        remitenteId,
 
-        mensaje: txt
+
+        destinatario_id:
+        destinatarioId,
+
+
+        mensaje:
+        txt
+
 
     });
+
+
+
 
 
 
@@ -5666,53 +5788,136 @@ try {
 
 
 
+
+
+
     console.log(
         "✅ Mensaje guardado en Supabase"
     );
 
-    // actualizar mensaje temporal
-const cache =
-chatCache[chatConUsuario.correo] || [];
 
 
-const ultimo =
-cache.find(
-m => m.id && m.id.startsWith("temp_")
-);
 
 
-if(ultimo){
 
-    ultimo.fecha =
-    new Date().toLocaleString();
 
-    delete ultimo.id;
+    // =====================================
+    // CONFIRMAR MENSAJE TEMPORAL
+    // =====================================
 
-}
+
+    const cache =
+
+    chatCache[chatConUsuario.correo] || [];
+
+
+
+
+
+    const ultimo =
+
+    cache.find(
+
+        m =>
+
+        m.id &&
+
+        m.id.startsWith("temp_")
+
+    );
+
+
+
+
+
+
+    if(ultimo){
+
+
+        ultimo.fecha =
+
+        new Date()
+        .toLocaleString();
+
+
+
+        delete ultimo.id;
+
+
+
+    }
+
+
+
+
+
+
+    // 💾 ACTUALIZAR CACHE LOCAL
+
+    guardarChatLocal(
+
+        chatConUsuario.correo,
+
+        cache
+
+    );
+
+
+
 
 
 
 }catch(err){
 
 
+
     console.error(
+
         "❌ Error enviando mensaje:",
+
         err
+
     );
+
+
+
 
 
     actualizarUltimoMensaje({
 
+
         mensaje:
+
         txt + " (No enviado)",
 
+
         fecha:
+
         "Error"
+
 
     });
 
 
+
+
+
+    // 💾 Guardar estado fallido local
+
+    guardarChatLocal(
+
+        chatConUsuario.correo,
+
+        chatCache[chatConUsuario.correo]
+
+    );
+
+
+
 }
+
+
+
 };
 
     // AVISAR QUE ESTÁS ESCRIBIENDO
