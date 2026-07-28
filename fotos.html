@@ -5473,23 +5473,30 @@ function iniciarChatCon(info) {
     ){
 
 
-        const ultimoMensaje =
-
-        chatCache[info.correo]
-        [
-            chatCache[info.correo].length - 1
-        ];
-
+      const ultimoMensaje =
+chatCache[info.correo]
+[
+ chatCache[info.correo].length - 1
+];
 
 
-        if(ultimoMensaje.fecha){
+if(ultimoMensaje.fechaOrden){
+
+    chatUltimaFecha[info.correo] =
+    ultimoMensaje.fechaOrden;
+
+}
 
 
-            chatUltimaFecha[info.correo] =
-            ultimoMensaje.fecha;
 
+      if(ultimoMensaje.fecha){
 
-        }
+    chatUltimaFecha[info.correo] =
+    new Date(
+        ultimoMensaje.fecha
+    ).toISOString();
+
+}
 
 
     }
@@ -6419,32 +6426,35 @@ console.log(
 
 
 
-        const mensajesServidor =
+    const mensajesServidor =
 
-        (mensajes || []).map(m=>({
+(mensajes || []).map(m=>({
 
-            id:m.id,
+    id:m.id,
 
-            mensaje:m.mensaje,
-
-
-            fecha:
-            new Date(
-                m.fecha_creacion
-            ).toLocaleString(),
+    mensaje:m.mensaje,
 
 
-
-            de:
-
-            m.remitente_id === usuarioId
-
-            ? usuarioActual.correo
-
-            : chatConUsuario.correo
+    fecha:
+    new Date(
+        m.fecha_creacion
+    ).toLocaleString(),
 
 
-        }));
+    fechaOrden:
+    m.fecha_creacion,
+
+
+    de:
+
+    m.remitente_id === usuarioId
+
+    ? usuarioActual.correo
+
+    : chatConUsuario.correo
+
+
+}));
 
 
 // =====================================
