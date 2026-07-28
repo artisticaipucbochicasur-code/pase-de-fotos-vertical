@@ -5460,7 +5460,34 @@ function iniciarChatCon(info) {
 
 
 
+// Normalizar mensajes antiguos del cache
+chatCache[info.correo] =
+chatCache[info.correo].map(m => {
 
+
+    if(!m.fechaOrden && m.fecha){
+
+
+        const posibleFecha =
+        new Date(m.fecha);
+
+
+        if(!isNaN(posibleFecha)){
+
+
+            m.fechaOrden =
+            posibleFecha.toISOString();
+
+
+        }
+
+    }
+
+
+    return m;
+
+
+});
 
 
     // =====================================
@@ -5489,12 +5516,30 @@ if(ultimoMensaje.fechaOrden){
 
 
 
-      if(ultimoMensaje.fecha){
+if(ultimoMensaje.fechaOrden){
 
     chatUltimaFecha[info.correo] =
+    ultimoMensaje.fechaOrden;
+
+
+} else if(ultimoMensaje.fecha){
+
+
+    const fechaConvertida =
     new Date(
         ultimoMensaje.fecha
-    ).toISOString();
+    );
+
+
+    if(!isNaN(fechaConvertida)){
+
+
+        chatUltimaFecha[info.correo] =
+        fechaConvertida.toISOString();
+
+
+    }
+
 
 }
 
