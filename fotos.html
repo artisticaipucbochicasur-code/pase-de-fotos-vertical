@@ -5329,19 +5329,30 @@ async function precargarTodosLosChats(){
 
 
 
-            chats[otroCorreo].push({
+    chats[otroCorreo].push({
 
-                id:m.id,
+    id:m.id,
 
-                mensaje:m.mensaje,
-
-                fecha:
-                new Date(
-                    m.fecha_creacion
-                ).toLocaleString(),
+    mensaje:m.mensaje,
 
 
-                de:
+    // fecha visible
+    fecha:
+    new Date(
+        m.fecha_creacion
+    ).toLocaleString(),
+
+
+    // fecha real para consultas
+    fechaOrden:
+    m.fecha_creacion,
+
+
+    fechaOriginal:
+    m.fecha_creacion,
+
+
+    de:
                 m.remitente_id === usuarioId
                 ?
                 usuarioActual.correo
@@ -6608,7 +6619,6 @@ const mensajesServidor =
 // =====================================
 // ACTUALIZAR CURSOR DE SINCRONIZACIÓN
 // =====================================
-
 if(mensajesServidor.length > 0){
 
     const ultimo =
@@ -6620,7 +6630,15 @@ if(mensajesServidor.length > 0){
     chatUltimaFecha[
         chatConUsuario.correo
     ] =
-    ultimo.fecha;
+    ultimo.fechaOriginal;
+
+
+
+    localStorage.setItem(
+        "chatUltimaFecha",
+        JSON.stringify(chatUltimaFecha)
+    );
+
 
 }
 
