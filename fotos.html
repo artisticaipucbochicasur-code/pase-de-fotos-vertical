@@ -2768,6 +2768,44 @@ Guardar cambios
 
 </div>
 
+
+<!-- LISTA DE CHATS -->
+
+<div id="listaChatsBox"
+style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:white;
+z-index:999998;
+overflow-y:auto;
+font-family:system-ui;
+">
+
+<div style="
+padding:15px;
+background:#3B82F6;
+color:white;
+font-size:18px;
+font-weight:bold;
+">
+Mensajes
+</div>
+
+
+<div id="listaChatsContenido">
+
+</div>
+
+
+</div>
+
+
+
+
 <!-- CAJA DE CHAT -->
 <div id="chatBox" onclick="event.stopPropagation()" style="
   display:none;
@@ -5148,7 +5186,7 @@ function cargarChatLocal(correo){
 }
 
 
-
+let chatsOrdenados = [];
 let listaChatsCache = {};
 let chatAutoRefresh = null;
 
@@ -5541,7 +5579,7 @@ async function precargarResumenChats(){
             resumen
         );
 
-
+renderizarListaChats();
 
     }catch(e){
 
@@ -7164,6 +7202,147 @@ if(!existe){
     }
 
 }
+
+
+
+
+function renderizarListaChats(){
+
+    const cont =
+    document.getElementById(
+        "listaChatsContenido"
+    );
+
+
+    if(!cont) return;
+
+
+    cont.innerHTML="";
+
+
+    const chats =
+    Object.entries(listaChatsCache);
+
+
+
+    if(chats.length===0){
+
+        cont.innerHTML=
+        `
+        <div style="
+        text-align:center;
+        color:#999;
+        padding:30px;
+        ">
+        No tienes conversaciones todavía
+        </div>
+        `;
+
+        return;
+
+    }
+
+
+
+    chats
+    .sort(
+        (a,b)=>
+        new Date(b[1].fecha)
+        -
+        new Date(a[1].fecha)
+    )
+    .forEach(([correo,data])=>{
+
+
+        const div =
+        document.createElement("div");
+
+
+        div.style.display="flex";
+        div.style.alignItems="center";
+        div.style.padding="15px";
+        div.style.borderBottom=
+        "1px solid #eee";
+        div.style.cursor="pointer";
+
+
+
+        div.innerHTML=
+        `
+
+        <div style="
+        width:45px;
+        height:45px;
+        border-radius:50%;
+        background:#ddd;
+        margin-right:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        ">
+        👤
+        </div>
+
+
+        <div style="flex:1">
+
+            <div style="
+            font-weight:600;
+            ">
+            ${correo}
+            </div>
+
+
+            <div style="
+            color:#666;
+            font-size:13px;
+            ">
+            ${data.ultimoMensaje}
+            </div>
+
+        </div>
+
+
+        <div style="
+        font-size:11px;
+        color:#999;
+        ">
+        ${new Date(data.fecha)
+        .toLocaleDateString()}
+        </div>
+
+        `;
+
+
+
+        div.onclick=()=>{
+
+
+            iniciarChatCon({
+
+                nombre:
+                correo,
+
+                correo:
+                correo,
+
+                foto:""
+
+            });
+
+
+        };
+
+
+
+        cont.appendChild(div);
+
+
+    });
+
+
+}
+
 
 
 
