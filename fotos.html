@@ -5473,62 +5473,31 @@ function iniciarChatCon(info) {
     chatCache[info.correo].map(m=>{
 
 
-        if(!m.fechaOrden){
+  if(!m.fechaOrden){
 
 
-            let fechaConvertida = null;
+    // Si ya existe fechaOriginal válida
+    if(m.fechaOriginal){
 
 
-
-            // Primero intenta fechaOriginal
-            if(m.fechaOriginal){
-
-                const f =
-                new Date(m.fechaOriginal);
+        const f =
+        new Date(m.fechaOriginal);
 
 
-                if(!isNaN(f.getTime())){
-
-                    fechaConvertida = f;
-
-                }
-
-            }
+        if(!isNaN(f.getTime())){
 
 
-
-            // Luego intenta fecha visible
-            if(!fechaConvertida && m.fecha){
-
-
-                const f =
-                new Date(m.fecha);
-
-
-
-                if(!isNaN(f.getTime())){
-
-                    fechaConvertida = f;
-
-                }
-
-
-            }
-
-
-
-
-            if(fechaConvertida){
-
-
-                m.fechaOrden =
-                fechaConvertida.toISOString();
-
-
-            }
+            m.fechaOrden =
+            f.toISOString();
 
 
         }
+
+
+    }
+
+
+}
 
 
 
