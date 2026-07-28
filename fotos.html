@@ -2957,87 +2957,219 @@ Guardar cambios
 async function abrirPerfilPorCorreo(correo) {
 
 
-  console.log("📌 ABRIENDO PERFIL CON CORREO:", correo);
+  console.log(
+    "📌 ABRIENDO PERFIL CON CORREO:",
+    correo
+  );
+
 
   if (!correo || correo.trim() === "") {
-    console.warn("abrirPerfilPorCorreo → correo vacío");
+
+    console.warn(
+      "abrirPerfilPorCorreo → correo vacío"
+    );
+
     return;
+
   }
+
 
 
   try {
 
-    const correoNorm = normalizeText(correo.trim());
+
+    const correoLimpio = correo
+      .trim()
+      .toLowerCase();
 
 
-    // Revisar caché primero
+
+    const correoNorm = normalizeText(correoLimpio);
+
+
+
+    // ===============================
+    // REVISAR CACHE
+    // ===============================
+
     if (perfilCache[correoNorm]) {
 
-      mostrarPerfilAutor(perfilCache[correoNorm]);
+
+      console.log(
+        "⚡ Perfil desde cache:",
+        perfilCache[correoNorm]
+      );
+
+
+      mostrarPerfilAutor(
+        perfilCache[correoNorm]
+      );
+
+
       return;
 
     }
 
 
-    // Buscar directamente en Supabase
+
+
+
+    // ===============================
+    // BUSCAR EN SUPABASE
+    // ===============================
+
+
     const { data, error } = await supabaseClient
+
       .from("usuarios")
+
       .select("*")
-      .eq("correo", correo.trim())
-      .single();
+
+      .ilike(
+        "correo",
+        correoLimpio
+      )
+
+      .maybeSingle();
 
 
 
-    if (error || !data) {
 
-      console.error("Perfil no encontrado:", error);
-      mostrarAviso("Perfil no encontrado");
+
+    if(error){
+
+      console.error(
+        "❌ Error buscando perfil Supabase:",
+        error
+      );
+
+      mostrarAviso(
+        "Error cargando perfil"
+      );
+
       return;
 
     }
+
+
+
+
+
+    if(!data){
+
+
+      console.error(
+        "❌ Perfil no encontrado en Supabase para:",
+        correoLimpio
+      );
+
+
+      mostrarAviso(
+        "Perfil no encontrado"
+      );
+
+
+      return;
+
+
+    }
+
+
+
+
+
+    console.log(
+      "✅ Perfil encontrado Supabase:",
+      data
+    );
+
+
+
 
 
 
     const perfil = {
 
-      nombre: data.nombre || "Anónimo",
 
-      correo: data.correo || "",
+      nombre:
+      data.nombre ||
+      "Anónimo",
 
-      telefono: data.telefono || "",
 
-      ciudad: data.ciudad || "",
+      correo:
+      data.correo ||
+      "",
 
-      congregacion: data.congregacion || "",
 
-      cargo: data.cargo || "",
+      telefono:
+      data.telefono ||
+      "",
 
-      fotoPerfil: data.foto_perfil || "img/default-user.png"
+
+      ciudad:
+      data.ciudad ||
+      "",
+
+
+      congregacion:
+      data.congregacion ||
+      "",
+
+
+      cargo:
+      data.cargo ||
+      "",
+
+
+      fotoPerfil:
+      data.foto_perfil ||
+      "img/default-user.png"
+
 
     };
 
 
 
-    // Guardar cache
+
+
+
+    // ===============================
+    // GUARDAR CACHE
+    // ===============================
+
+
     perfilCache[correoNorm] = perfil;
 
 
 
-    mostrarPerfilAutor(perfil);
+
+
+    mostrarPerfilAutor(
+      perfil
+    );
+
+
 
 
 
   } catch(err){
 
-    console.error("Error abriendo perfil:",err);
 
-    mostrarAviso("Error cargando perfil");
+    console.error(
+      "🔥 Error abriendo perfil:",
+      err
+    );
+
+
+    mostrarAviso(
+      "Error cargando perfil"
+    );
+
 
   }
 
 
 }
-
 
 
 
