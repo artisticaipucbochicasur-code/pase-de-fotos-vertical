@@ -5405,16 +5405,52 @@ function iniciarChatCon(info) {
 
    
 
-    abrirVentanaChat();
+ abrirVentanaChat();
 
-    if (chatCache[info.correo]) {
-        renderizarMensajes(chatCache[info.correo]);
-    } else {
-        document.getElementById("chatMensajes").innerHTML =
-            "<div style='text-align:center;color:#999;padding:20px;'>Cargando mensajes...</div>";
-    }
 
-    cargarConversacion();
+// =====================================
+// ⚡ MOSTRAR CACHE LOCAL INMEDIATO
+// =====================================
+
+const mensajesCache =
+chatCache[info.correo] ||
+cargarChatLocal(info.correo);
+
+
+
+if(mensajesCache && mensajesCache.length){
+
+
+    chatCache[info.correo] =
+    mensajesCache;
+
+
+    renderizarMensajes(
+        mensajesCache
+    );
+
+
+}else{
+
+
+    document.getElementById("chatMensajes").innerHTML =
+    `
+    <div style="
+    text-align:center;
+    color:#999;
+    padding:20px;
+    ">
+    Cargando mensajes...
+    </div>
+    `;
+
+
+}
+
+
+// Luego sincroniza con Supabase
+
+cargarConversacion();
 }
 
 
