@@ -5230,11 +5230,60 @@ function cargarChatLocal(correo){
 
 
 let chatsOrdenados = [];
+
+// La lista se recupera al instante al abrir o recargar la app.
 let listaChatsCache = {};
+
+try {
+
+    const listaGuardada = JSON.parse(
+        localStorage.getItem("listaChatsCache") || "{}"
+    );
+
+    if (
+        listaGuardada &&
+        typeof listaGuardada === "object" &&
+        !Array.isArray(listaGuardada)
+    ) {
+
+        listaChatsCache = listaGuardada;
+
+    }
+
+} catch (error) {
+
+    console.warn(
+        "No se pudo recuperar la lista local de chats:",
+        error
+    );
+
+    listaChatsCache = {};
+
+}
+
 let chatAutoRefresh = null;
 
 let usuarioActual = JSON.parse(localStorage.getItem("usuario")) || null;
 let chatConUsuario = null;
+
+// Mostrar primero el cache local y sincronizar después, sin depender
+// de que terminen de cargar imágenes, comentarios o guardados.
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        renderizarListaChats();
+
+        if (usuarioActual) {
+
+            precargarResumenChats();
+            activarRealtimeGlobalChats();
+
+        }
+
+    },
+    { once: true }
+);
 // ===============================
 // 🔴 CANAL REALTIME CHAT
 // ===============================
@@ -5567,7 +5616,7 @@ renderizarListaChats();
 
 async function precargarResumenChats(){
 
-    if(!usuarioActual) return;
+    if(!usuarioActual?.correo) return;
 
 
     try{
@@ -5583,24 +5632,25 @@ async function precargarResumenChats(){
 
 
 
-        const {data: mensajes,error} =
-
+        // 1 consulta para obtener los mensajes recientes
+        const {
+            data: mensajes = [],
+            error: errorMensajes
+        } =
         await supabaseClient
 
         .from("chat_mensajes")
 
-        .select(
-            `
+        .select(`
             id,
             remitente_id,
             destinatario_id,
             mensaje,
             fecha_creacion
-            `
-        )
+        `)
 
         .or(
-        `remitente_id.eq.${usuarioId},destinatario_id.eq.${usuarioId}`
+            `remitente_id.eq.${usuarioId},destinatario_id.eq.${usuarioId}`
         )
 
         .order(
@@ -5614,118 +5664,173 @@ async function precargarResumenChats(){
 
 
 
-        if(error)
-            throw error;
+        if(errorMensajes)
+            throw errorMensajes;
 
 
 
-        const resumen={};
+        // IDs únicos de las otras personas de cada conversación
+        const otrosIds = [
+            ...new Set(
+                mensajes
+                .map(m =>
+                    m.remitente_id === usuarioId
+                    ? m.destinatario_id
+                    : m.remitente_id
+                )
+                .filter(Boolean)
+            )
+        ];
 
 
 
-        for(const m of mensajes){
+        // 1 sola consulta para resolver todos los usuarios.
+        // Antes se hacía una consulta por cada mensaje.
+        const usuariosPorId = {};
 
 
-            const otroId =
-
-            m.remitente_id === usuarioId
-
-            ?
-
-            m.destinatario_id
-
-            :
-
-            m.remitente_id;
+        if(otrosIds.length > 0){
 
 
+            const {
+                data: usuarios = [],
+                error: errorUsuarios
+            } =
+            await supabaseClient
 
-            const correo =
+            .from("usuarios")
 
-            await obtenerCorreoUsuarioPorId(
-                otroId
+            .select(
+                "id, correo, nombre, foto_perfil"
+            )
+
+            .in(
+                "id",
+                otrosIds
             );
 
 
- if(!correo)
-    continue;
+            if(errorUsuarios)
+                throw errorUsuarios;
 
 
-const correoNorm =
-normalizeText(correo);
+            usuarios.forEach(usuario => {
 
+                usuariosPorId[usuario.id] = usuario;
 
-
-if(
-    !resumen[correo]
-    ||
-    new Date(m.fecha_creacion)
-    >
-    new Date(resumen[correo].fecha)
-){
-
-    resumen[correo]={
-
-        ultimoMensaje:m.mensaje,
-
-        fecha:m.fecha_creacion,
-
-        id:m.id,
-
-        nombre:
-        perfilCache[correoNorm]?.nombre ||
-        correo,
-
-        foto:
-        perfilCache[correoNorm]?.fotoPerfil ||
-        ""
-
-    };
-
-}
-
+            });
 
 
         }
 
 
 
-// =====================================
-// FUSIONAR CON CACHE EXISTENTE
-// NO BORRAR ACTUALIZACIONES REALTIME
-// =====================================
+        const resumen = {};
 
 
-listaChatsCache = {
 
-    ...listaChatsCache,
-
-    ...resumen
-
-};
+        // Los mensajes ya vienen del más nuevo al más antiguo.
+        // El primero encontrado de cada correo es su último mensaje.
+        for(const m of mensajes){
 
 
-localStorage.setItem(
+            const otroId =
+            m.remitente_id === usuarioId
+            ? m.destinatario_id
+            : m.remitente_id;
 
-    "listaChatsCache",
 
-    JSON.stringify(listaChatsCache)
+            const otroUsuario =
+            usuariosPorId[otroId];
 
-);
+
+            const correo =
+            otroUsuario?.correo?.trim();
+
+
+            if(!correo || resumen[correo])
+                continue;
+
+
+            const correoNorm =
+            normalizeText(correo);
+
+
+            const nombre =
+            otroUsuario.nombre || correo;
+
+
+            const foto =
+            otroUsuario.foto_perfil || "";
+
+
+            perfilCache[correoNorm] = {
+
+                ...(perfilCache[correoNorm] || {}),
+
+                nombre,
+                correo,
+                fotoPerfil: foto
+
+            };
+
+
+            resumen[correo] = {
+
+                ultimoMensaje:
+                m.mensaje,
+
+                fecha:
+                m.fecha_creacion,
+
+                id:
+                m.id,
+
+                nombre,
+
+                foto
+
+            };
+
+
+        }
+
+
+
+        // Mantener lo que ya llegó por Realtime y actualizar
+        // solamente los resúmenes encontrados en el servidor.
+        listaChatsCache = {
+
+            ...listaChatsCache,
+
+            ...resumen
+
+        };
+
+
+        localStorage.setItem(
+
+            "listaChatsCache",
+
+            JSON.stringify(listaChatsCache)
+
+        );
+
+
+        renderizarListaChats();
 
 
         console.log(
-            "✅ Resumen chats cargado:",
+            "✅ Resumen de chats cargado con 2 consultas:",
             resumen
         );
 
-renderizarListaChats();
 
     }catch(e){
 
 
         console.error(
-            "Error resumen chats:",
+            "Error cargando resumen de chats:",
             e
         );
 
@@ -13060,15 +13165,8 @@ autor:a.autor
 
 
 
-        // Precargar chats sin bloquear
-
-      if (usuarioActual) {
-
-    precargarResumenChats();
-
-    activarRealtimeGlobalChats();
-
-}
+        // Los chats se cargan al iniciar la página desde su propio cache.
+        // No dependen de la carga de imágenes.
 
 
 
