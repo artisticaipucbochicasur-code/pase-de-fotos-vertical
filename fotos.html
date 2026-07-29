@@ -5645,42 +5645,31 @@ async function precargarResumenChats(){
 
 
 
-     if(!resumen[correo]){
-
-
-    const correoNorm =
-    normalizeText(correo);
-
-
+   if(
+    !resumen[correo]
+    ||
+    new Date(m.fecha_creacion)
+    >
+    new Date(resumen[correo].fecha)
+){
 
     resumen[correo]={
 
+        ultimoMensaje:m.mensaje,
 
-        ultimoMensaje:
-        m.mensaje,
+        fecha:m.fecha_creacion,
 
-
-        fecha:
-        m.fecha_creacion,
-
-
-        id:
-        m.id,
-
+        id:m.id,
 
         nombre:
         perfilCache[correoNorm]?.nombre ||
         correo,
 
-
         foto:
         perfilCache[correoNorm]?.fotoPerfil ||
-        "img/default-user.png"
-
-
+        ""
 
     };
-
 
 }
 
@@ -5690,18 +5679,28 @@ async function precargarResumenChats(){
 
 
 
-        listaChatsCache = resumen;
+// =====================================
+// FUSIONAR CON CACHE EXISTENTE
+// NO BORRAR ACTUALIZACIONES REALTIME
+// =====================================
 
 
+listaChatsCache = {
 
-        localStorage.setItem(
+    ...listaChatsCache,
 
-            "listaChatsCache",
+    ...resumen
 
-            JSON.stringify(resumen)
+};
 
-        );
 
+localStorage.setItem(
+
+    "listaChatsCache",
+
+    JSON.stringify(listaChatsCache)
+
+);
 
 
         console.log(
@@ -7417,8 +7416,11 @@ formatearFechaChat(
 div.innerHTML =
 `
 
+${
+data.foto
+?
+`
 <img src="${data.foto}"
-onerror="this.src='img/default-user.png'"
 style="
 width:48px;
 height:48px;
@@ -7426,6 +7428,32 @@ border-radius:50%;
 object-fit:cover;
 margin-right:12px;
 ">
+`
+:
+`
+<div style="
+width:48px;
+height:48px;
+border-radius:50%;
+background:#3B82F6;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:600;
+font-size:18px;
+margin-right:12px;
+">
+${(data.nombre || data.correo)
+    .split(" ")
+    .map(x=>x[0])
+    .slice(0,2)
+    .join("")
+    .toUpperCase()
+}
+</div>
+`
+}
 
 
 <div style="
@@ -8166,31 +8194,50 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
     chatCache[chatConUsuario.correo]
-    .push(mensaje);
+.push(mensaje);
 
 
-    // Actualizar resumen del chat
+// =====================================
+// ACTUALIZAR RESUMEN DEL CHAT
+// =====================================
 
-listaChatsCache[chatConUsuario.correo] = {
+const correoChat = chatConUsuario.correo;
 
-    ...(listaChatsCache[chatConUsuario.correo] || {}),
+
+listaChatsCache[correoChat] = {
+
+    ...(listaChatsCache[correoChat] || {}),
 
     ultimoMensaje: mensaje.mensaje,
 
     fecha: mensaje.fechaOriginal,
 
-    id: mensaje.id
+    id: mensaje.id,
+
+    nombre:
+    listaChatsCache[correoChat]?.nombre
+    ||
+    correoChat,
+
+    foto:
+    listaChatsCache[correoChat]?.foto
+    ||
+    ""
 
 };
 
+
+// Guardar resumen actualizado
 
 localStorage.setItem(
     "listaChatsCache",
     JSON.stringify(listaChatsCache)
 );
 
-// Actualizar cursor de sincronización
-chatUltimaFecha[chatConUsuario.correo] =
+
+// actualizar última fecha
+
+chatUltimaFecha[correoChat] =
 mensaje.fechaOriginal;
 
 
@@ -8199,12 +8246,14 @@ localStorage.setItem(
     JSON.stringify(chatUltimaFecha)
 );
 
-    guardarChatLocal(
-        chatConUsuario.correo,
-        chatCache[chatConUsuario.correo]
-    );
+
+guardarChatLocal(
+    correoChat,
+    chatCache[correoChat]
+);
 
 
+renderizarListaChats();
 
     agregarMensajeIndividual(mensaje);
 
