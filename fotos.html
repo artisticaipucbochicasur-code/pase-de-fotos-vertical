@@ -8491,9 +8491,13 @@ async function activarRealtimeGlobalChats(){
 
             };
 
+            // Si no está en memoria, recuperar el historial
+            // guardado localmente ANTES de agregar el mensaje
+            // nuevo, para no perder la conversación completa
             if(!chatCache[correoRemitente]){
 
-                chatCache[correoRemitente] = [];
+                chatCache[correoRemitente] =
+                cargarChatLocal(correoRemitente) || [];
 
             }
 
