@@ -5162,7 +5162,10 @@ JSON.parse(
     localStorage.getItem("chatUltimaFecha") || "{}"
 );
 
-
+let mensajesNoLeidos =
+JSON.parse(
+localStorage.getItem("mensajesNoLeidos") || "{}"
+);
 
 // =====================================
 // 💾 CACHE LOCAL DE CHATS
@@ -5230,6 +5233,8 @@ function cargarChatLocal(correo){
 }
 
 
+
+
 let chatsOrdenados = [];
 let listaChatsCache = {};
 let chatAutoRefresh = null;
@@ -5242,7 +5247,14 @@ let chatConUsuario = null;
 
 let chatRealtimeChannel = null;
 
+function guardarNoLeidos(){
 
+    localStorage.setItem(
+        "mensajesNoLeidos",
+        JSON.stringify(mensajesNoLeidos)
+    );
+
+}
 
     function estoyAbajo() {
     const cont = document.getElementById("chatMensajes");
@@ -8072,7 +8084,46 @@ localStorage.setItem(
 
     agregarMensajeIndividual(mensaje);
 
+// =====================================
+// CONTADOR DE MENSAJES NO LEÍDOS
+// =====================================
 
+
+const estoyEnEsteChat =
+
+chatConUsuario &&
+
+chatConUsuario.correo ===
+mensaje.de;
+
+
+
+if(
+mensaje.de !== usuarioActual.correo
+&&
+!estoyEnEsteChat
+){
+
+
+    if(
+        !mensajesNoLeidos[mensaje.de]
+    ){
+
+        mensajesNoLeidos[mensaje.de]=0;
+
+    }
+
+
+    mensajesNoLeidos[mensaje.de]++;
+
+
+    guardarNoLeidos();
+
+
+    renderizarListaChats();
+
+
+}
 
 
     const cont =
