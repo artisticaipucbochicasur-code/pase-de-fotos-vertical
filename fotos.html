@@ -5246,7 +5246,6 @@ let chatConUsuario = null;
 // ===============================
 
 let chatRealtimeChannel = null;
-let typingIndicadorTimeout = null;
 
 function guardarNoLeidos(){
 
@@ -6742,66 +6741,26 @@ burbujas.forEach(b=>{
 
 };
 
-    // AVISAR QUE ESTÁS ESCRIBIENDO (Supabase: chat_typing)
+    // AVISAR QUE ESTÁS ESCRIBIENDO
 let typingTimeout = null;
-let typingEnviando = false;
-document.getElementById("chatInput").addEventListener("input", async () => {
+document.getElementById("chatInput").addEventListener("input", () => {
     if (!chatConUsuario || !usuarioActual) return;
 
-    clearTimeout(typingTimeout);
-
-    // Avisar que estoy escribiendo (evita spamear si ya se avisó)
-    if (!typingEnviando) {
-
-        typingEnviando = true;
-
-        const miId = await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
-        const otroId = await obtenerIdUsuarioPorCorreo(chatConUsuario.correo);
-
-        if (miId && otroId) {
-
-            await supabaseClient
-            .from("chat_typing")
-            .delete()
-            .eq("usuario_id", miId)
-            .eq("escribiendo_para", otroId);
-
-            const { error: errorTyping } = await supabaseClient
-            .from("chat_typing")
-            .insert({
-                usuario_id: miId,
-                escribiendo_para: otroId,
-                actualizado: new Date().toISOString()
-            });
-
-            if (errorTyping) {
-                console.error("❌ Error insertando chat_typing:", errorTyping);
-            } else {
-                console.log("⌨️ Aviso de 'escribiendo' enviado a Supabase");
-            }
-
-        }
-
-    }
+    // Avisar al servidor que estás escribiendo
+    const body = new FormData();
+    body.append("accion", "typing");
+    body.append("de", usuarioActual.correo);
+    body.append("para", chatConUsuario.correo);
+    fetch(SCRIPT_URL, { method: "POST", body });
 
     // Si pasan 2s sin escribir → avisar que ya no
-    typingTimeout = setTimeout(async () => {
-
-        typingEnviando = false;
-
-        const miId = await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
-        const otroId = await obtenerIdUsuarioPorCorreo(chatConUsuario.correo);
-
-        if (miId && otroId) {
-
-            await supabaseClient
-            .from("chat_typing")
-            .delete()
-            .eq("usuario_id", miId)
-            .eq("escribiendo_para", otroId);
-
-        }
-
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        const body2 = new FormData();
+        body2.append("accion", "notTyping");
+        body2.append("de", usuarioActual.correo);
+        body2.append("para", chatConUsuario.correo);
+        fetch(SCRIPT_URL, { method: "POST", body: body2 });
     }, 2000);
 });
 
@@ -8156,95 +8115,6 @@ function activarRealtimeChat(){
 
         }
 
-
-    )
-
-
-    // =====================================
-    // ESCUCHAR "ESCRIBIENDO..." (chat_typing)
-    // =====================================
-
-    .on(
-
-        "postgres_changes",
-
-        {
-
-            event:"*",
-
-            schema:"public",
-
-            table:"chat_typing"
-
-        },
-
-        async(payload)=>{
-
-            console.log("⌨️ Evento chat_typing recibido:", payload);
-
-            if(!chatConUsuario || !usuarioActual) return;
-
-            const miId =
-            await obtenerIdUsuarioPorCorreo(
-                usuarioActual.correo
-            );
-
-            const otroId =
-            await obtenerIdUsuarioPorCorreo(
-                chatConUsuario.correo
-            );
-
-            const typingDiv =
-            document.getElementById(
-                "chatEscribiendo"
-            );
-
-            if(!typingDiv) return;
-
-            // DELETE: Supabase no siempre manda la fila completa,
-            // así que ante cualquier DELETE en esta tabla mientras
-            // tengo este chat abierto, oculto el indicador
-            // (el auto-ocultado de 3s ya cubre el resto de casos).
-            if(payload.eventType === "DELETE"){
-
-                typingDiv.style.display = "none";
-
-                clearTimeout(typingIndicadorTimeout);
-
-                return;
-
-            }
-
-            const fila = payload.new;
-
-            if(!fila) return;
-
-            console.log(
-                "⌨️ Comparando:",
-                "fila.usuario_id=", fila.usuario_id,
-                "otroId=", otroId,
-                "fila.escribiendo_para=", fila.escribiendo_para,
-                "miId=", miId
-            );
-
-            if(
-                fila.usuario_id === otroId &&
-                fila.escribiendo_para === miId
-            ){
-
-                typingDiv.style.display = "flex";
-
-                clearTimeout(typingIndicadorTimeout);
-
-                typingIndicadorTimeout = setTimeout(() => {
-
-                    typingDiv.style.display = "none";
-
-                }, 3000);
-
-            }
-
-        }
 
     )
 
