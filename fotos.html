@@ -2839,19 +2839,19 @@ Mensajes
 ">
 
 <!-- ✅ HEADER AZUL MODERNO -->
-<div style="
+<div id="chatHeaderBar" style="
   padding:14px;
   display:flex;
   align-items:center;
   gap:10px;
   background:linear-gradient(90deg, #3B82F6, #60A5FA); /* azul moderno y luminoso */
   position:relative;
+  flex-shrink:0;
 z-index:2;
   color:white;
   box-shadow:0 3px 10px rgba(0,0,0,0.18);
   backdrop-filter:blur(6px);
 ">
-
 
     <img id="chatFoto" src="" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">
     <div>
@@ -2883,7 +2883,8 @@ z-index:2;
 
   <!-- ✅ AREA DE MENSAJES -->
 <div id="chatMensajes" style="
-    flex:1;
+    flex:1 1 auto;
+    min-height:0;
     overflow-y:auto;
     padding:12px;
     background-color:#efeae2;
@@ -2898,13 +2899,14 @@ z-index:2;
 ">
 </div>
 
-  <!-- ✅ INPUT -->
+<!-- ✅ INPUT -->
   <div style="
     padding:8px;
     display:flex;
     align-items:center;
     gap:10px;
     background:#ffffff;
+    flex-shrink:0;
 padding-bottom:env(safe-area-inset-bottom);
   ">
     <input id="chatInput" type="text" placeholder="Mensaje"
@@ -3010,7 +3012,7 @@ padding-bottom:env(safe-area-inset-bottom);
 <div id="abrirListaChats"
 style="
 position:fixed;
-bottom:500px;
+bottom:90px;
 right:20px;
 width:55px;
 height:55px;
@@ -6162,7 +6164,112 @@ requestAnimationFrame(()=>{
 }
 
 
-    
+    // =====================================
+// 📱 MANTENER HEADER FIJO CUANDO SALE EL TECLADO
+// =====================================
+
+let chatTecladoListenerActivo = false;
+let chatScrollBodyGuardado = 0;
+
+function bloquearScrollBody(){
+
+    chatScrollBodyGuardado =
+    window.scrollY || window.pageYOffset || 0;
+
+    document.body.style.position = "fixed";
+    document.body.style.top = (-chatScrollBodyGuardado) + "px";
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+
+}
+
+function desbloquearScrollBody(){
+
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+
+    window.scrollTo(0, chatScrollBodyGuardado);
+
+}
+
+function ajustarChatBoxViewport(){
+
+    const box = document.getElementById("chatBox");
+
+    if(!box) return;
+
+    if(window.visualViewport){
+
+        const vv = window.visualViewport;
+
+        box.style.height = vv.height + "px";
+        box.style.top = vv.offsetTop + "px";
+
+        window.scrollTo(0, 0);
+
+    }
+
+}
+
+function activarAjusteTecladoChat(){
+
+    if(chatTecladoListenerActivo) return;
+
+    chatTecladoListenerActivo = true;
+
+    if(window.visualViewport){
+
+        window.visualViewport.addEventListener(
+            "resize",
+            ajustarChatBoxViewport
+        );
+
+        window.visualViewport.addEventListener(
+            "scroll",
+            ajustarChatBoxViewport
+        );
+
+    }
+
+    ajustarChatBoxViewport();
+
+}
+
+function desactivarAjusteTecladoChat(){
+
+    chatTecladoListenerActivo = false;
+
+    if(window.visualViewport){
+
+        window.visualViewport.removeEventListener(
+            "resize",
+            ajustarChatBoxViewport
+        );
+
+        window.visualViewport.removeEventListener(
+            "scroll",
+            ajustarChatBoxViewport
+        );
+
+    }
+
+    const box = document.getElementById("chatBox");
+
+    if(box){
+
+        box.style.height = "";
+        box.style.top = "";
+
+    }
+
+}
+
+
+
 
 function abrirVentanaChat() {
 
@@ -6170,6 +6277,9 @@ function abrirVentanaChat() {
 
     // Mostrar chat
     box.style.display = "flex";
+
+    bloquearScrollBody();
+    activarAjusteTecladoChat();
 
     // El indicador solo aparece cuando llegue un evento Realtime válido
     mostrarIndicadorEscribiendo(false);
@@ -6275,7 +6385,7 @@ function abrirVentanaChat() {
 function cerrarChat() {
 
 
-    const box =
+ const box =
     document.getElementById("chatBox");
 
 
@@ -6284,6 +6394,10 @@ function cerrarChat() {
         box.style.display = "none";
 
     }
+
+
+    desactivarAjusteTecladoChat();
+    desbloquearScrollBody();
 
 
 
