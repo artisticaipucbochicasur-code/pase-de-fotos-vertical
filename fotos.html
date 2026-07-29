@@ -5689,13 +5689,7 @@ if(
 // =====================================
 
 
-listaChatsCache = {
-
-    ...listaChatsCache,
-
-    ...resumen
-
-};
+listaChatsCache = resumen;
 
 
 localStorage.setItem(
@@ -6608,7 +6602,26 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
+listaChatsCache[chatConUsuario.correo] = {
 
+    ...(listaChatsCache[chatConUsuario.correo] || {}),
+
+    ultimoMensaje: mensajeReal.mensaje,
+
+    fecha: data.fecha_creacion,
+
+    id:data.id
+
+};
+
+
+localStorage.setItem(
+    "listaChatsCache",
+    JSON.stringify(listaChatsCache)
+);
+
+
+renderizarListaChats();
 
 
 // =====================================
@@ -8257,9 +8270,11 @@ guardarChatLocal(
 );
 
 
-renderizarListaChats();
+
 
     agregarMensajeIndividual(mensaje);
+
+    renderizarListaChats();
 
 // =====================================
 // CONTADOR DE MENSAJES NO LEÍDOS
@@ -8273,9 +8288,7 @@ renderizarListaChats();
 
 
 const chatAbierto =
-
 document.getElementById("chatBox")?.style.display === "flex";
-
 
 
 const estoyViendoEsteChat =
@@ -8284,7 +8297,9 @@ chatAbierto &&
 
 chatConUsuario &&
 
-chatConUsuario.correo === mensaje.de;
+chatConUsuario.correo === mensaje.de &&
+
+document.visibilityState === "visible";
 
 
 
