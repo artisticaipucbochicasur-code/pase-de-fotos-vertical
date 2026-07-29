@@ -5462,19 +5462,77 @@ async function precargarTodosLosChats(){
 
 
 
-        Object.keys(chats).forEach(correo=>{
+    Object.keys(chats).forEach(correo=>{
 
 
-            chatCache[correo]=chats[correo];
+    chatCache[correo] = chats[correo];
 
 
-            guardarChatLocal(
-                correo,
-                chats[correo]
-            );
+    guardarChatLocal(
+        correo,
+        chats[correo]
+    );
 
 
-        });
+
+    // =====================================
+    // ACTUALIZAR RESUMEN DE LISTA DE CHATS
+    // =====================================
+
+
+    const ultimo =
+    chats[correo][
+        chats[correo].length - 1
+    ];
+
+
+
+    if(ultimo){
+
+
+        listaChatsCache[correo] = {
+
+
+            ...(listaChatsCache[correo] || {}),
+
+
+
+            ultimoMensaje:
+            ultimo.mensaje,
+
+
+
+            fecha:
+            ultimo.fechaOriginal ||
+            ultimo.fechaOrden,
+
+
+
+            id:
+            ultimo.id
+
+
+
+        };
+
+
+    }
+
+
+
+});
+
+
+
+// Guardar lista actualizada
+
+localStorage.setItem(
+    "listaChatsCache",
+    JSON.stringify(listaChatsCache)
+);
+
+
+renderizarListaChats();
 
 
 
