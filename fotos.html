@@ -5690,12 +5690,44 @@ if(
 
 
 listaChatsCache = {
-
     ...listaChatsCache,
-
     ...resumen
-
 };
+
+
+// Mantener mensajes más recientes recibidos por realtime
+Object.keys(listaChatsCache).forEach(correo=>{
+
+    const actual = listaChatsCache[correo];
+
+    const cache = chatCache[correo];
+
+    if(cache && cache.length){
+
+        const ultimo =
+        cache[cache.length - 1];
+
+
+        if(
+            ultimo.fechaOriginal &&
+            (!actual.fecha ||
+            new Date(ultimo.fechaOriginal) > new Date(actual.fecha))
+        ){
+
+            listaChatsCache[correo].ultimoMensaje =
+            ultimo.mensaje;
+
+            listaChatsCache[correo].fecha =
+            ultimo.fechaOriginal;
+
+            listaChatsCache[correo].id =
+            ultimo.id;
+
+        }
+
+    }
+
+});
 
 
 localStorage.setItem(
@@ -5770,12 +5802,15 @@ function iniciarChatCon(info) {
 // Limpiar mensajes pendientes al abrir conversación
 
 if(
-mensajesNoLeidos[info.correo]
+    mensajesNoLeidos[info.correo]
 ){
 
     mensajesNoLeidos[info.correo]=0;
 
     guardarNoLeidos();
+
+    // Actualizar contador visual inmediatamente
+    renderizarListaChats();
 
 }
 
@@ -6308,11 +6343,6 @@ function cerrarChat() {
         "click",
         cerrarClickAfuera
     );
-
-
-    // Repintar la lista para reflejar el contador
-    // ya reseteado y el último mensaje actualizado
-    renderizarListaChats();
 
 
 }
@@ -7216,42 +7246,6 @@ if(!existe){
             chatCache[correoChat]
 
         );
-
-
-        // =====================================
-        // SINCRONIZAR VISTA PREVIA DE LA LISTA
-        // CON EL ÚLTIMO MENSAJE REAL DEL CHAT
-        // =====================================
-
-        if(huboCambios && chatCache[correoChat].length > 0){
-
-            const ultimoReal =
-            chatCache[correoChat][
-                chatCache[correoChat].length - 1
-            ];
-
-            listaChatsCache[correoChat] = {
-
-                ...(listaChatsCache[correoChat] || {}),
-
-                ultimoMensaje: ultimoReal.mensaje,
-
-                fecha:
-                ultimoReal.fechaOriginal ||
-                ultimoReal.fechaOrden,
-
-                id: ultimoReal.id
-
-            };
-
-            localStorage.setItem(
-                "listaChatsCache",
-                JSON.stringify(listaChatsCache)
-            );
-
-            renderizarListaChats();
-
-        }
 
 
 
@@ -8302,6 +8296,8 @@ renderizarListaChats();
 
     agregarMensajeIndividual(mensaje);
 
+    renderizarListaChats();
+
 // =====================================
 // CONTADOR DE MENSAJES NO LEÍDOS
 // =====================================
@@ -8468,59 +8464,6 @@ async function activarRealtimeGlobalChats(){
             if(estoyViendoEsteChat){
 
                 return;
-
-            }
-
-            // Guardar también en el cache de mensajes del chat
-            // para que, al abrirlo, ya aparezca sin esperar
-            // la sincronización de fondo
-            const mensajeGlobal = {
-
-                id: nuevo.id,
-
-                mensaje: mensajeTexto,
-
-                fecha:
-                new Date(fechaOriginal).toLocaleString(),
-
-                fechaOrden: fechaOriginal,
-
-                fechaOriginal: fechaOriginal,
-
-                de: correoRemitente
-
-            };
-
-            // Si no está en memoria, recuperar el historial
-            // guardado localmente ANTES de agregar el mensaje
-            // nuevo, para no perder la conversación completa
-            if(!chatCache[correoRemitente]){
-
-                chatCache[correoRemitente] =
-                cargarChatLocal(correoRemitente) || [];
-
-            }
-
-            const yaExiste =
-            chatCache[correoRemitente].some(
-                m => m.id === mensajeGlobal.id
-            );
-
-            if(!yaExiste){
-
-                chatCache[correoRemitente].push(mensajeGlobal);
-
-                guardarChatLocal(
-                    correoRemitente,
-                    chatCache[correoRemitente]
-                );
-
-                chatUltimaFecha[correoRemitente] = fechaOriginal;
-
-                localStorage.setItem(
-                    "chatUltimaFecha",
-                    JSON.stringify(chatUltimaFecha)
-                );
 
             }
 
