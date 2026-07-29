@@ -5689,7 +5689,13 @@ if(
 // =====================================
 
 
-listaChatsCache = resumen;
+listaChatsCache = {
+
+    ...listaChatsCache,
+
+    ...resumen
+
+};
 
 
 localStorage.setItem(
@@ -6602,26 +6608,7 @@ document.getElementById("chatEnviar").onclick = async () => {
 
 
 
-listaChatsCache[chatConUsuario.correo] = {
 
-    ...(listaChatsCache[chatConUsuario.correo] || {}),
-
-    ultimoMensaje: mensajeReal.mensaje,
-
-    fecha: data.fecha_creacion,
-
-    id:data.id
-
-};
-
-
-localStorage.setItem(
-    "listaChatsCache",
-    JSON.stringify(listaChatsCache)
-);
-
-
-renderizarListaChats();
 
 
 // =====================================
@@ -8270,11 +8257,9 @@ guardarChatLocal(
 );
 
 
-
+renderizarListaChats();
 
     agregarMensajeIndividual(mensaje);
-
-    renderizarListaChats();
 
 // =====================================
 // CONTADOR DE MENSAJES NO LEÍDOS
@@ -8288,7 +8273,9 @@ guardarChatLocal(
 
 
 const chatAbierto =
+
 document.getElementById("chatBox")?.style.display === "flex";
+
 
 
 const estoyViendoEsteChat =
@@ -8297,9 +8284,7 @@ chatAbierto &&
 
 chatConUsuario &&
 
-chatConUsuario.correo === mensaje.de &&
-
-document.visibilityState === "visible";
+chatConUsuario.correo === mensaje.de;
 
 
 
@@ -8352,6 +8337,159 @@ if(
 
     }
 
+
+}
+
+
+
+// =====================================
+// GLOBAL CANAL REALTIME DE CHATS
+// Escucha TODOS los mensajes nuevos
+// dirigidos a mi, sin importar si tengo
+// esa conversacion abierta o no.
+// Actualiza la lista (ultimo mensaje)
+// y el contador de no leidos al instante.
+// =====================================
+
+let chatRealtimeGlobalChannel = null;
+
+async function activarRealtimeGlobalChats(){
+
+    if(!usuarioActual) return;
+
+    if(chatRealtimeGlobalChannel){
+
+        supabaseClient
+        .removeChannel(chatRealtimeGlobalChannel);
+
+        chatRealtimeGlobalChannel = null;
+
+    }
+
+    const miId =
+    await obtenerIdUsuarioPorCorreo(
+        usuarioActual.correo
+    );
+
+    if(!miId) return;
+
+    chatRealtimeGlobalChannel = supabaseClient
+
+    .channel(
+        "chat-global-" + usuarioActual.correo
+    )
+
+    .on(
+
+        "postgres_changes",
+
+        {
+
+            event:"INSERT",
+
+            schema:"public",
+
+            table:"chat_mensajes"
+
+        },
+
+        async(payload)=>{
+
+            const nuevo = payload.new;
+
+            if(!nuevo) return;
+
+            if(nuevo.destinatario_id !== miId){
+
+                return;
+
+            }
+
+            const correoRemitente =
+            await obtenerCorreoUsuarioPorId(
+                nuevo.remitente_id
+            );
+
+            if(!correoRemitente) return;
+
+            const mensajeTexto = nuevo.mensaje;
+
+            const fechaOriginal = nuevo.fecha_creacion;
+
+            const chatAbierto =
+            document.getElementById("chatBox")?.style.display === "flex";
+
+            const estoyViendoEsteChat =
+            chatAbierto &&
+            chatConUsuario &&
+            chatConUsuario.correo === correoRemitente;
+
+            if(estoyViendoEsteChat){
+
+                return;
+
+            }
+
+            listaChatsCache[correoRemitente] = {
+
+                ...(listaChatsCache[correoRemitente] || {}),
+
+                ultimoMensaje: mensajeTexto,
+
+                fecha: fechaOriginal,
+
+                id: nuevo.id,
+
+                nombre:
+                listaChatsCache[correoRemitente]?.nombre
+                ||
+                correoRemitente,
+
+                foto:
+                listaChatsCache[correoRemitente]?.foto
+                ||
+                ""
+
+            };
+
+            localStorage.setItem(
+                "listaChatsCache",
+                JSON.stringify(listaChatsCache)
+            );
+
+            if(!mensajesNoLeidos[correoRemitente]){
+
+                mensajesNoLeidos[correoRemitente] = 0;
+
+            }
+
+            mensajesNoLeidos[correoRemitente]++;
+
+            guardarNoLeidos();
+
+            console.log(
+                "[GLOBAL] Mensaje nuevo de:",
+                correoRemitente,
+                "Total no leidos:",
+                mensajesNoLeidos[correoRemitente]
+            );
+
+            renderizarListaChats();
+
+        }
+
+    )
+
+    .subscribe(
+        status=>{
+
+            console.log(
+                "Estado Realtime GLOBAL:",
+                status
+            );
+
+        }
+    );
 
 }
 
@@ -12300,6 +12438,8 @@ autor:a.autor
       if (usuarioActual) {
 
     precargarResumenChats();
+
+    activarRealtimeGlobalChats();
 
 }
 
