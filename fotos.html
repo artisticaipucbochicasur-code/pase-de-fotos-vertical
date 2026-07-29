@@ -5246,6 +5246,7 @@ let chatConUsuario = null;
 // ===============================
 
 let chatRealtimeChannel = null;
+let typingIndicadorTimeout = null;
 
 function guardarNoLeidos(){
 
@@ -6741,26 +6742,60 @@ burbujas.forEach(b=>{
 
 };
 
-    // AVISAR QUE ESTÁS ESCRIBIENDO
+    // AVISAR QUE ESTÁS ESCRIBIENDO (Supabase: chat_typing)
 let typingTimeout = null;
-document.getElementById("chatInput").addEventListener("input", () => {
+let typingEnviando = false;
+document.getElementById("chatInput").addEventListener("input", async () => {
     if (!chatConUsuario || !usuarioActual) return;
 
-    // Avisar al servidor que estás escribiendo
-    const body = new FormData();
-    body.append("accion", "typing");
-    body.append("de", usuarioActual.correo);
-    body.append("para", chatConUsuario.correo);
-    fetch(SCRIPT_URL, { method: "POST", body });
+    clearTimeout(typingTimeout);
+
+    // Avisar que estoy escribiendo (evita spamear si ya se avisó)
+    if (!typingEnviando) {
+
+        typingEnviando = true;
+
+        const miId = await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
+        const otroId = await obtenerIdUsuarioPorCorreo(chatConUsuario.correo);
+
+        if (miId && otroId) {
+
+            await supabaseClient
+            .from("chat_typing")
+            .delete()
+            .eq("usuario_id", miId)
+            .eq("escribiendo_para", otroId);
+
+            await supabaseClient
+            .from("chat_typing")
+            .insert({
+                usuario_id: miId,
+                escribiendo_para: otroId,
+                actualizado: new Date().toISOString()
+            });
+
+        }
+
+    }
 
     // Si pasan 2s sin escribir → avisar que ya no
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-        const body2 = new FormData();
-        body2.append("accion", "notTyping");
-        body2.append("de", usuarioActual.correo);
-        body2.append("para", chatConUsuario.correo);
-        fetch(SCRIPT_URL, { method: "POST", body: body2 });
+    typingTimeout = setTimeout(async () => {
+
+        typingEnviando = false;
+
+        const miId = await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
+        const otroId = await obtenerIdUsuarioPorCorreo(chatConUsuario.correo);
+
+        if (miId && otroId) {
+
+            await supabaseClient
+            .from("chat_typing")
+            .delete()
+            .eq("usuario_id", miId)
+            .eq("escribiendo_para", otroId);
+
+        }
+
     }, 2000);
 });
 
@@ -8115,6 +8150,89 @@ function activarRealtimeChat(){
 
         }
 
+
+    )
+
+
+    // =====================================
+    // ESCUCHAR "ESCRIBIENDO..." (chat_typing)
+    // =====================================
+
+    .on(
+
+        "postgres_changes",
+
+        {
+
+            event:"*",
+
+            schema:"public",
+
+            table:"chat_typing"
+
+        },
+
+        async(payload)=>{
+
+            if(!chatConUsuario || !usuarioActual) return;
+
+            const miId =
+            await obtenerIdUsuarioPorCorreo(
+                usuarioActual.correo
+            );
+
+            const otroId =
+            await obtenerIdUsuarioPorCorreo(
+                chatConUsuario.correo
+            );
+
+            const typingDiv =
+            document.getElementById(
+                "chatEscribiendo"
+            );
+
+            if(!typingDiv) return;
+
+            if(payload.eventType === "DELETE"){
+
+                const fila = payload.old;
+
+                if(
+                    fila &&
+                    fila.usuario_id === otroId &&
+                    fila.escribiendo_para === miId
+                ){
+
+                    typingDiv.style.display = "none";
+
+                }
+
+                return;
+
+            }
+
+            const fila = payload.new;
+
+            if(!fila) return;
+
+            if(
+                fila.usuario_id === otroId &&
+                fila.escribiendo_para === miId
+            ){
+
+                typingDiv.style.display = "flex";
+
+                clearTimeout(typingIndicadorTimeout);
+
+                typingIndicadorTimeout = setTimeout(() => {
+
+                    typingDiv.style.display = "none";
+
+                }, 3000);
+
+            }
+
+        }
 
     )
 
