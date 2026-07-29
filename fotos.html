@@ -5706,7 +5706,17 @@ function iniciarChatCon(info) {
     };
 
 
+// Limpiar mensajes pendientes al abrir conversación
 
+if(
+mensajesNoLeidos[info.correo]
+){
+
+    mensajesNoLeidos[info.correo]=0;
+
+    guardarNoLeidos();
+
+}
 
 
 
@@ -7379,13 +7389,48 @@ ${data.nombre}
 
 
 <div style="
+display:flex;
+align-items:center;
+justify-content:space-between;
 color:#666;
 font-size:13px;
-white-space:nowrap;
+">
+
+
+<div style="
 overflow:hidden;
 text-overflow:ellipsis;
+white-space:nowrap;
+max-width:220px;
 ">
 ${data.ultimoMensaje}
+</div>
+
+
+
+${
+mensajesNoLeidos[correo]
+?
+`
+<div style="
+background:#3B82F6;
+color:white;
+width:20px;
+height:20px;
+border-radius:50%;
+font-size:12px;
+display:flex;
+align-items:center;
+justify-content:center;
+">
+${mensajesNoLeidos[correo]}
+</div>
+`
+:
+""
+}
+
+
 </div>
 
 
