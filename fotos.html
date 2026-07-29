@@ -6766,13 +6766,19 @@ document.getElementById("chatInput").addEventListener("input", async () => {
             .eq("usuario_id", miId)
             .eq("escribiendo_para", otroId);
 
-            await supabaseClient
+            const { error: errorTyping } = await supabaseClient
             .from("chat_typing")
             .insert({
                 usuario_id: miId,
                 escribiendo_para: otroId,
                 actualizado: new Date().toISOString()
             });
+
+            if (errorTyping) {
+                console.error("❌ Error insertando chat_typing:", errorTyping);
+            } else {
+                console.log("⌨️ Aviso de 'escribiendo' enviado a Supabase");
+            }
 
         }
 
@@ -8174,6 +8180,8 @@ function activarRealtimeChat(){
 
         async(payload)=>{
 
+            console.log("⌨️ Evento chat_typing recibido:", payload);
+
             if(!chatConUsuario || !usuarioActual) return;
 
             const miId =
@@ -8193,19 +8201,15 @@ function activarRealtimeChat(){
 
             if(!typingDiv) return;
 
+            // DELETE: Supabase no siempre manda la fila completa,
+            // así que ante cualquier DELETE en esta tabla mientras
+            // tengo este chat abierto, oculto el indicador
+            // (el auto-ocultado de 3s ya cubre el resto de casos).
             if(payload.eventType === "DELETE"){
 
-                const fila = payload.old;
+                typingDiv.style.display = "none";
 
-                if(
-                    fila &&
-                    fila.usuario_id === otroId &&
-                    fila.escribiendo_para === miId
-                ){
-
-                    typingDiv.style.display = "none";
-
-                }
+                clearTimeout(typingIndicadorTimeout);
 
                 return;
 
@@ -8214,6 +8218,14 @@ function activarRealtimeChat(){
             const fila = payload.new;
 
             if(!fila) return;
+
+            console.log(
+                "⌨️ Comparando:",
+                "fila.usuario_id=", fila.usuario_id,
+                "otroId=", otroId,
+                "fila.escribiendo_para=", fila.escribiendo_para,
+                "miId=", miId
+            );
 
             if(
                 fila.usuario_id === otroId &&
