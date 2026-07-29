@@ -8110,6 +8110,27 @@ async function agregarMensajeRealtime(mensajeSupabase){
     chatCache[chatConUsuario.correo]
     .push(mensaje);
 
+
+    // Actualizar resumen del chat
+
+listaChatsCache[chatConUsuario.correo] = {
+
+    ...(listaChatsCache[chatConUsuario.correo] || {}),
+
+    ultimoMensaje: mensaje.mensaje,
+
+    fecha: mensaje.fechaOriginal,
+
+    id: mensaje.id
+
+};
+
+
+localStorage.setItem(
+    "listaChatsCache",
+    JSON.stringify(listaChatsCache)
+);
+
 // Actualizar cursor de sincronización
 chatUltimaFecha[chatConUsuario.correo] =
 mensaje.fechaOriginal;
@@ -8134,19 +8155,32 @@ localStorage.setItem(
 // =====================================
 
 
-const estoyEnEsteChat =
+// =====================================
+// CONTADOR DE MENSAJES NO LEÍDOS
+// SOLO CUENTA SI EL CHAT ESTÁ CERRADO
+// =====================================
+
+
+const chatAbierto =
+
+document.getElementById("chatBox")?.style.display === "flex";
+
+
+
+const estoyViendoEsteChat =
+
+chatAbierto &&
 
 chatConUsuario &&
 
-chatConUsuario.correo ===
-mensaje.de;
+chatConUsuario.correo === mensaje.de;
 
 
 
 if(
-mensaje.de !== usuarioActual.correo
-&&
-!estoyEnEsteChat
+    mensaje.de !== usuarioActual.correo
+    &&
+    !estoyViendoEsteChat
 ){
 
 
@@ -8154,7 +8188,7 @@ mensaje.de !== usuarioActual.correo
         !mensajesNoLeidos[mensaje.de]
     ){
 
-        mensajesNoLeidos[mensaje.de]=0;
+        mensajesNoLeidos[mensaje.de] = 0;
 
     }
 
@@ -8163,6 +8197,15 @@ mensaje.de !== usuarioActual.correo
 
 
     guardarNoLeidos();
+
+
+    console.log(
+        "🔔 Mensaje no leído:",
+        {
+            usuario: mensaje.de,
+            total: mensajesNoLeidos[mensaje.de]
+        }
+    );
 
 
     renderizarListaChats();
