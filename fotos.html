@@ -5247,6 +5247,15 @@ let chatConUsuario = null;
 
 let chatRealtimeChannel = null;
 
+// ===============================
+// 🟡 CANAL REALTIME "ESCRIBIENDO..."
+// ===============================
+let chatTypingChannel = null;
+let miIdChatActual = null;
+let otroIdChatActual = null;
+let typingLocalTimeout = null;
+let typingHideTimeout = null;
+
 function guardarNoLeidos(){
 
     localStorage.setItem(
@@ -6084,8 +6093,12 @@ mensajesNoLeidos[info.correo]
     // 7. REALTIME
     // =====================================
 
+    // Al cambiar de conversación, reseteamos los IDs cacheados de typing
+    miIdChatActual = null;
+    otroIdChatActual = null;
 
     activarRealtimeChat();
+    activarRealtimeTyping();
 
 
 
@@ -6290,6 +6303,44 @@ function cerrarChat() {
         );
 
     }
+
+
+    // ===============================
+    // DETENER REALTIME TYPING
+    // ===============================
+
+    if(chatTypingChannel){
+
+        supabaseClient
+        .removeChannel(chatTypingChannel);
+
+        chatTypingChannel = null;
+
+        console.log(
+            "🟡 Canal realtime typing cerrado"
+        );
+
+    }
+
+    clearTimeout(typingLocalTimeout);
+    clearTimeout(typingHideTimeout);
+
+    // Borrar mi propio aviso de "escribiendo" para esta conversación
+    if(miIdChatActual && otroIdChatActual){
+
+        supabaseClient
+        .from("chat_typing")
+        .delete()
+        .eq("usuario_id", miIdChatActual)
+        .eq("escribiendo_para", otroIdChatActual)
+        .then(()=>{});
+
+    }
+
+    ocultarEscribiendo();
+
+    miIdChatActual = null;
+    otroIdChatActual = null;
 
 
 
@@ -6741,26 +6792,45 @@ burbujas.forEach(b=>{
 
 };
 
-    // AVISAR QUE ESTÁS ESCRIBIENDO
-let typingTimeout = null;
-document.getElementById("chatInput").addEventListener("input", () => {
+    // ================= AVISAR QUE ESTÁS ESCRIBIENDO (SUPABASE REALTIME) =================
+document.getElementById("chatInput").addEventListener("input", async () => {
     if (!chatConUsuario || !usuarioActual) return;
 
-    // Avisar al servidor que estás escribiendo
-    const body = new FormData();
-    body.append("accion", "typing");
-    body.append("de", usuarioActual.correo);
-    body.append("para", chatConUsuario.correo);
-    fetch(SCRIPT_URL, { method: "POST", body });
+    // Aseguramos tener los IDs de la conversación actual
+    if (!miIdChatActual || !otroIdChatActual) {
+        miIdChatActual = await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
+        otroIdChatActual = await obtenerIdUsuarioPorCorreo(chatConUsuario.correo);
+    }
 
-    // Si pasan 2s sin escribir → avisar que ya no
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-        const body2 = new FormData();
-        body2.append("accion", "notTyping");
-        body2.append("de", usuarioActual.correo);
-        body2.append("para", chatConUsuario.correo);
-        fetch(SCRIPT_URL, { method: "POST", body: body2 });
+    if (!miIdChatActual || !otroIdChatActual) return;
+
+    // Intentamos actualizar el registro existente (evita duplicados)
+    const { data: filasActualizadas } = await supabaseClient
+        .from("chat_typing")
+        .update({ actualizado: new Date().toISOString() })
+        .eq("usuario_id", miIdChatActual)
+        .eq("escribiendo_para", otroIdChatActual)
+        .select();
+
+    // Si no existía ninguna fila, la creamos
+    if (!filasActualizadas || filasActualizadas.length === 0) {
+        await supabaseClient
+            .from("chat_typing")
+            .insert({
+                usuario_id: miIdChatActual,
+                escribiendo_para: otroIdChatActual,
+                actualizado: new Date().toISOString()
+            });
+    }
+
+    // Si pasan 2s sin escribir → borrar el aviso (ya no estoy escribiendo)
+    clearTimeout(typingLocalTimeout);
+    typingLocalTimeout = setTimeout(async () => {
+        await supabaseClient
+            .from("chat_typing")
+            .delete()
+            .eq("usuario_id", miIdChatActual)
+            .eq("escribiendo_para", otroIdChatActual);
     }, 2000);
 });
 
@@ -8149,6 +8219,119 @@ function activarRealtimeChat(){
         }
 
     );
+
+}
+
+
+// =====================================
+// 🟡 REALTIME "ESCRIBIENDO..."
+// =====================================
+async function activarRealtimeTyping(){
+
+    if(!chatConUsuario || !usuarioActual) return;
+
+    // Eliminar canal anterior si existe
+    if(chatTypingChannel){
+
+        supabaseClient
+        .removeChannel(chatTypingChannel);
+
+        chatTypingChannel = null;
+
+        console.log(
+            "🧹 Canal typing anterior eliminado"
+        );
+
+    }
+
+    // Resolver y cachear los IDs de la conversación actual
+    miIdChatActual = await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
+    otroIdChatActual = await obtenerIdUsuarioPorCorreo(chatConUsuario.correo);
+
+    if(!miIdChatActual || !otroIdChatActual){
+        console.warn(
+            "No se pudieron resolver IDs para typing"
+        );
+        return;
+    }
+
+    chatTypingChannel = supabaseClient
+
+    .channel(
+        "typing-" +
+        usuarioActual.correo +
+        "-" +
+        chatConUsuario.correo
+    )
+
+    .on(
+        "postgres_changes",
+        {
+            event:"*",
+            schema:"public",
+            table:"chat_typing",
+            filter:"escribiendo_para=eq." + miIdChatActual
+        },
+        (payload)=>{
+
+            const fila =
+                (payload.new && Object.keys(payload.new).length)
+                    ? payload.new
+                    : payload.old;
+
+            // Solo nos interesa si quien escribe es la persona con la
+            // que tengo abierta la conversación
+            if(!fila || fila.usuario_id !== otroIdChatActual) return;
+
+            if(payload.eventType === "DELETE"){
+                ocultarEscribiendo();
+                return;
+            }
+
+            mostrarEscribiendo();
+
+        }
+    )
+
+    .subscribe(
+        status=>{
+
+            console.log(
+                "📡 Estado Realtime Typing:",
+                status
+            );
+
+        }
+    );
+
+}
+
+function mostrarEscribiendo(){
+
+    const typingDiv =
+    document.getElementById("chatEscribiendo");
+
+    if(typingDiv){
+        typingDiv.style.display = "flex";
+    }
+
+    // Salvaguarda: si por algún motivo no llega el evento DELETE
+    // (ej. se cae la conexión), ocultamos el indicador solo a los 4s
+    clearTimeout(typingHideTimeout);
+    typingHideTimeout = setTimeout(ocultarEscribiendo, 4000);
+
+}
+
+function ocultarEscribiendo(){
+
+    const typingDiv =
+    document.getElementById("chatEscribiendo");
+
+    if(typingDiv){
+        typingDiv.style.display = "none";
+    }
+
+    clearTimeout(typingHideTimeout);
 
 }
 
