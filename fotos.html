@@ -9831,9 +9831,23 @@ function adjuntarEventosMensaje(div, m){
 // 📌 MENÚ CONTEXTUAL
 // =====================================
 
+function obtenerMensajeActualDelChat(id){
+
+    if(!chatConUsuario || !id) return null;
+
+    const cache = chatCache[chatConUsuario.correo] || [];
+
+    return cache.find(
+        item => String(item.id) === String(id)
+    ) || null;
+
+}
+
 function abrirMenuMensaje(x, y, m){
 
     if(estaOcultoParaMi(m.id)) return;
+
+    m = obtenerMensajeActualDelChat(m.id) || m;
 
     mensajeSeleccionadoMenu = m;
 
@@ -9936,45 +9950,76 @@ function cancelarEdicionMensaje(){
 
 async function guardarEdicionMensaje(nuevoTexto){
 
-    if(!mensajeEnEdicion || !chatConUsuario) return;
+    if(!mensajeEnEdicion || !chatConUsuario || !usuarioActual) return;
 
+    const textoLimpio = String(nuevoTexto || "").trim();
     const idMensaje = mensajeEnEdicion.id;
+    const input = document.getElementById("chatInput");
+
+    if(!textoLimpio) return;
 
     if(!idMensaje || String(idMensaje).startsWith("temp_")){
-        console.warn("No se puede editar un mensaje aún no confirmado");
+        mostrarAviso("Espera a que el mensaje termine de enviarse");
         return;
     }
 
-    const input = document.getElementById("chatInput");
-
     try{
+
+        const miId = await obtenerIdUsuarioPorCorreo(
+            usuarioActual.correo
+        );
+
+        if(!miId){
+            throw new Error("No se encontró el usuario actual");
+        }
 
         const { data, error } =
         await supabaseClient
         .from("chat_mensajes")
         .update({
-            mensaje: nuevoTexto,
+            mensaje: textoLimpio,
             editado: true
         })
         .eq("id", idMensaje)
-        .select()
-        .single();
+        .eq("remitente_id", miId)
+        .select("*")
+        .maybeSingle();
 
         if(error) throw error;
 
+        if(!data){
+            throw new Error(
+                "Supabase no actualizó ninguna fila. Revisa la política UPDATE de chat_mensajes."
+            );
+        }
+
         aplicarActualizacionMensaje(data);
 
-        console.log("✅ Mensaje editado:", data);
+        if(
+            mensajeSeleccionadoMenu &&
+            String(mensajeSeleccionadoMenu.id) === String(data.id)
+        ){
+            mensajeSeleccionadoMenu = {
+                ...mensajeSeleccionadoMenu,
+                mensaje: data.mensaje,
+                editado: true
+            };
+        }
+
+        console.log("✅ Mensaje editado en Supabase:", data);
+        mostrarAviso("Mensaje editado correctamente");
 
     }catch(err){
 
         console.error("❌ Error editando mensaje:", err);
 
-    }finally{
+        mostrarAviso(
+            "No se pudo editar el mensaje: " +
+            (err?.message || "error desconocido")
+        );
 
-        mensajeEnEdicion = null;
-        document.getElementById("bannerEditandoMensaje").style.display = "none";
-        input.value = "";
+        input.value = textoLimpio;
+        document.getElementById("bannerEditandoMensaje").style.display = "flex";
 
     }
 
@@ -10004,50 +10049,62 @@ function cerrarModalEliminarMensaje(){
 async function confirmarEliminarMensaje(paraTodos){
 
     const m = mensajeSeleccionadoMenu;
+    const modal = document.getElementById("modalEliminarMensaje");
 
-    document.getElementById("modalEliminarMensaje").style.display = "none";
+    if(modal) modal.style.display = "none";
 
-    if(!m) return;
+    if(!m || !usuarioActual) return;
 
+    const correoChat = chatConUsuario?.correo;
     const esMio = m.de === usuarioActual.correo;
 
-    // =====================================
-    // ELIMINAR SOLO PARA MÍ (local, no toca Supabase)
-    // =====================================
+    // ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
     if(!paraTodos){
 
         ocultarMensajeLocalmente(m.id);
 
-        const cache = chatCache[chatConUsuario?.correo] || [];
-        const idx = cache.findIndex(x => x.id === m.id);
+        const cache = chatCache[correoChat] || [];
+        const idx = cache.findIndex(
+            x => String(x.id) === String(m.id)
+        );
+
         if(idx !== -1){
             cache.splice(idx, 1);
-            guardarChatLocal(chatConUsuario.correo, cache);
+            guardarChatLocal(correoChat, cache);
         }
 
-        const burbuja =
-        document.querySelector(`#chatMensajes [data-id="${CSS.escape(String(m.id))}"]`);
+        const burbuja = document.querySelector(
+            `#chatMensajes [data-id="${CSS.escape(String(m.id))}"]`
+        );
 
         if(burbuja) burbuja.remove();
 
+        mensajeSeleccionadoMenu = null;
+        mostrarAviso("Mensaje eliminado para ti");
         return;
 
     }
 
-    // =====================================
-    // ELIMINAR PARA TODOS (solo el dueño del mensaje)
-    // =====================================
+    // ELIMINAR PARA TODOS: borrado lógico mediante UPDATE
     if(!esMio){
-        console.warn("Solo puedes eliminar para todos tus propios mensajes");
+        mostrarAviso("Solo puedes eliminar para todos tus propios mensajes");
         return;
     }
 
     if(!m.id || String(m.id).startsWith("temp_")){
-        console.warn("No se puede eliminar un mensaje aún no confirmado");
+        mostrarAviso("Espera a que el mensaje termine de enviarse");
         return;
     }
 
     try{
+
+        const miId = await obtenerIdUsuarioPorCorreo(
+            usuarioActual.correo
+        );
+
+        if(!miId){
+            throw new Error("No se encontró el usuario actual");
+        }
 
         const { data, error } =
         await supabaseClient
@@ -10057,18 +10114,32 @@ async function confirmarEliminarMensaje(paraTodos){
             eliminado_para_todos: true
         })
         .eq("id", m.id)
-        .select()
-        .single();
+        .eq("remitente_id", miId)
+        .select("*")
+        .maybeSingle();
 
         if(error) throw error;
 
+        if(!data){
+            throw new Error(
+                "Supabase no actualizó ninguna fila. Revisa la política UPDATE de chat_mensajes."
+            );
+        }
+
         aplicarActualizacionMensaje(data);
+        mensajeSeleccionadoMenu = null;
 
         console.log("✅ Mensaje eliminado para todos:", data);
+        mostrarAviso("Mensaje eliminado para todos");
 
     }catch(err){
 
         console.error("❌ Error eliminando mensaje:", err);
+
+        mostrarAviso(
+            "No se pudo eliminar el mensaje: " +
+            (err?.message || "error desconocido")
+        );
 
     }
 
@@ -10387,28 +10458,48 @@ async function reenviarMensajeAUsuario(mensaje, usuarioDestino){
 
         console.error("❌ Error reenviando mensaje:", err);
 
+        mostrarAviso(
+            "No se pudo reenviar el mensaje: " +
+            (err?.message || "error desconocido")
+        );
+
     }
 
 }
 
 
-   // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
+// ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN CERRARLO
+// AL USAR EDITAR / ELIMINAR / REENVIAR
 function activarCerrarAfuera() {
-  // Esperamos a que termine el click que abrió el chat
-  setTimeout(() => {
-    document.addEventListener("click", cerrarClickAfuera);
-  }, 50);
+
+    document.removeEventListener("click", cerrarClickAfuera);
+
+    setTimeout(() => {
+        document.addEventListener("click", cerrarClickAfuera);
+    }, 50);
+
 }
 
 function cerrarClickAfuera(e) {
-  const box = document.getElementById("chatBox");
 
-  if (!box || box.style.display !== "flex") return;
+    const box = document.getElementById("chatBox");
 
-  // Si el clic NO fue dentro → cerrar
-  if (!box.contains(e.target)) {
-    cerrarChat();
-  }
+    if(!box || box.style.display !== "flex") return;
+
+    const capaDelChat = e.target.closest(`
+        #menuMensajeChat,
+        #overlayMenuMensaje,
+        #modalEliminarMensaje,
+        #modalReenviarMensaje,
+        #custommostrarAvisoOverlay
+    `);
+
+    if(capaDelChat) return;
+
+    if(!box.contains(e.target)){
+        cerrarChat();
+    }
+
 }
 
 
