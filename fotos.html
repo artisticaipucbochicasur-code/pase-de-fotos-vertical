@@ -2898,6 +2898,20 @@ z-index:2;
 ">
 </div>
 
+  <!-- ✅ BANNER DE EDICIÓN -->
+  <div id="bannerEditandoMensaje" style="
+    display:none;
+    align-items:center;
+    gap:10px;
+    padding:8px 14px;
+    background:#f5f5f5;
+    border-top:1px solid #e2e2e2;
+  ">
+    <i class="fas fa-pen" style="color:#3B82F6; font-size:13px;"></i>
+    <div style="flex:1; font-size:12.5px; color:#444;">Editando mensaje</div>
+    <div onclick="cancelarEdicionMensaje()" style="cursor:pointer; font-size:18px; color:#999;">×</div>
+  </div>
+
   <!-- ✅ INPUT -->
   <div style="
     padding:8px;
@@ -3004,6 +3018,158 @@ padding-bottom:env(safe-area-inset-bottom);
 <div id="messagesBtn" style="display:none;"></div>
 <audio id="chatSound" src="./sonidos/newmsg.mp3" preload="auto"></audio>
 
+<!-- =====================================
+     MENÚ CONTEXTUAL DE MENSAJE (estilo WhatsApp)
+===================================== -->
+<div id="overlayMenuMensaje" onclick="cerrarMenuMensaje()" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.25);
+  z-index:1000000;
+"></div>
+
+<div id="menuMensajeChat" style="
+  display:none;
+  position:fixed;
+  z-index:1000001;
+  background:#ffffff;
+  border-radius:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.35);
+  overflow:hidden;
+  min-width:180px;
+  font-family:system-ui;
+">
+  <div id="btnMenuEditar" onclick="onClickEditarMensaje()" style="
+    display:flex; align-items:center; gap:10px;
+    padding:13px 16px; font-size:14px; color:#222;
+    cursor:pointer; border-bottom:1px solid #eee;
+  ">
+    <i class="fas fa-pen" style="width:16px; color:#555;"></i> Editar
+  </div>
+  <div id="btnMenuReenviar" onclick="onClickReenviarMensaje()" style="
+    display:flex; align-items:center; gap:10px;
+    padding:13px 16px; font-size:14px; color:#222;
+    cursor:pointer; border-bottom:1px solid #eee;
+  ">
+    <i class="fas fa-share" style="width:16px; color:#555;"></i> Reenviar
+  </div>
+  <div id="btnMenuEliminar" onclick="onClickEliminarMensaje()" style="
+    display:flex; align-items:center; gap:10px;
+    padding:13px 16px; font-size:14px; color:#e74c3c;
+    cursor:pointer;
+  ">
+    <i class="fas fa-trash" style="width:16px; color:#e74c3c;"></i> Eliminar
+  </div>
+</div>
+
+<!-- =====================================
+     MODAL ELIMINAR MENSAJE
+===================================== -->
+<div id="modalEliminarMensaje" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  z-index:1000002;
+  align-items:center;
+  justify-content:center;
+  font-family:system-ui;
+">
+  <div style="
+    width:88%;
+    max-width:340px;
+    background:#ffffff;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,.4);
+  ">
+    <div style="padding:18px 18px 6px 18px; font-size:16px; font-weight:600; color:#222;">
+      Eliminar mensaje
+    </div>
+    <div style="padding:0 18px 16px 18px; font-size:13px; color:#666;">
+      Elige cómo quieres eliminar este mensaje.
+    </div>
+
+    <div id="opcionEliminarParaTodos" onclick="confirmarEliminarMensaje(true)" style="
+      padding:14px 18px; font-size:14px; color:#e74c3c;
+      cursor:pointer; border-top:1px solid #eee;
+    ">
+      Eliminar para todos
+    </div>
+
+    <div onclick="confirmarEliminarMensaje(false)" style="
+      padding:14px 18px; font-size:14px; color:#e74c3c;
+      cursor:pointer; border-top:1px solid #eee;
+    ">
+      Eliminar para mí
+    </div>
+
+    <div onclick="cerrarModalEliminarMensaje()" style="
+      padding:14px 18px; font-size:14px; color:#3B82F6; font-weight:600;
+      cursor:pointer; border-top:1px solid #eee; text-align:center;
+    ">
+      Cancelar
+    </div>
+  </div>
+</div>
+
+<!-- =====================================
+     MODAL REENVIAR MENSAJE
+===================================== -->
+<div id="modalReenviarMensaje" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  z-index:1000002;
+  align-items:flex-end;
+  justify-content:center;
+  font-family:system-ui;
+">
+  <div style="
+    width:100%;
+    max-width:480px;
+    max-height:80vh;
+    background:#ffffff;
+    border-radius:16px 16px 0 0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  ">
+    <div style="
+      padding:16px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid #eee;
+    ">
+      <div style="font-size:16px; font-weight:600; color:#222;">Reenviar mensaje</div>
+      <div onclick="cerrarModalReenviarMensaje()" style="cursor:pointer; font-size:20px; color:#999;">×</div>
+    </div>
+
+    <div style="padding:10px 14px;">
+      <input id="buscarUsuarioReenviar" type="text" placeholder="Buscar persona..."
+        oninput="filtrarListaReenviar()"
+        style="
+          width:100%;
+          box-sizing:border-box;
+          padding:10px 14px;
+          border:1px solid #ddd;
+          border-radius:20px;
+          font-size:14px;
+          outline:none;
+        ">
+    </div>
+
+    <div id="listaUsuariosReenviar" style="
+      overflow-y:auto;
+      flex:1;
+      padding:4px 6px 16px 6px;
+    ">
+    </div>
+  </div>
+</div>
 
 <!-- BOTÓN ABRIR MENSAJES -->
 
@@ -5507,7 +5673,13 @@ async function precargarTodosLosChats(){
                 ?
                 usuarioActual.correo
                 :
-                otroCorreo
+                otroCorreo,
+
+    editado: m.editado || false,
+    eliminado: m.eliminado || false,
+    eliminado_para_todos: m.eliminado_para_todos || false,
+    reenviado: m.reenviado || false,
+    mensaje_original_id: m.mensaje_original_id || null
 
             });
 
@@ -5646,7 +5818,11 @@ async function precargarResumenChats(){
             remitente_id,
             destinatario_id,
             mensaje,
-            fecha_creacion
+            fecha_creacion,
+            editado,
+            eliminado,
+            eliminado_para_todos,
+            reenviado
         `)
 
         .or(
@@ -5751,6 +5927,9 @@ async function precargarResumenChats(){
             if(!correo || resumen[correo])
                 continue;
 
+            if(estaOcultoParaMi(m.id))
+                continue;
+
 
             const correoNorm =
             normalizeText(correo);
@@ -5778,7 +5957,7 @@ async function precargarResumenChats(){
             resumen[correo] = {
 
                 ultimoMensaje:
-                m.mensaje,
+                m.eliminado_para_todos ? "🚫 Mensaje eliminado" : m.mensaje,
 
                 fecha:
                 m.fecha_creacion,
@@ -6217,40 +6396,11 @@ function renderizarMensajes(mensajes) {
     const cont = document.getElementById("chatMensajes");
     cont.innerHTML = "";  // Solo se usa en carga inicial
     mensajes.forEach((m, index) => {
-        const div = document.createElement("div");
-        // (todo el estilo igual que antes)
-        div.style.maxWidth = "75%";
-        div.style.margin = "6px 0";
-        div.style.padding = "8px 12px";
-        div.style.borderRadius = "12px";
-        div.style.fontSize = "14px";
-        div.style.lineHeight = "1.3";
-        div.style.wordBreak = "break-word";
-     div.style.opacity = "1";
-div.style.transform = "translateY(0)";
 
-        if (m.de === usuarioActual.correo) {
-            div.style.background = "#6FA3FF";
-            div.style.color = "#000";
-            div.style.marginLeft = "auto";
-            div.style.border = "1px solid #5A8DEE";
-            div.style.borderBottomRightRadius = "4px";
-        } else {
-            div.style.background = "#CFCFCF";
-            div.style.color = "#000";
-            div.style.border = "1px solid #b6b6b6";
-            div.style.borderBottomLeftRadius = "4px";
-        }
+        if(estaOcultoParaMi(m.id)) return;
 
-        div.innerHTML = `
-            <div>${m.mensaje}</div>
-            <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
-                ${m.fecha}
-            </small>
-        `;
-
+        const div = crearBurbujaMensaje(m);
         cont.appendChild(div);
-
 
     });
 
@@ -6264,6 +6414,102 @@ requestAnimationFrame(()=>{
 });
 
 
+}
+
+// =====================================
+// 💬 CREAR / ACTUALIZAR BURBUJA DE MENSAJE
+// (soporta editar / eliminar / reenviar)
+// =====================================
+
+function crearBurbujaMensaje(m) {
+    const div = document.createElement("div");
+    div.classList.add("mensaje");
+    div.dataset.id = m.id;
+    div.dataset.de = m.de;
+
+    div.style.maxWidth = "75%";
+    div.style.margin = "6px 0";
+    div.style.padding = "8px 12px";
+    div.style.borderRadius = "12px";
+    div.style.fontSize = "14px";
+    div.style.lineHeight = "1.3";
+    div.style.wordBreak = "break-word";
+    div.style.opacity = "1";
+    div.style.transform = "translateY(0)";
+    div.style.position = "relative";
+    div.style.userSelect = "none";
+    div.style.cursor = "pointer";
+
+    if (m.de === usuarioActual.correo) {
+        div.style.background = "#6FA3FF";
+        div.style.color = "#000";
+        div.style.marginLeft = "auto";
+        div.style.border = "1px solid #5A8DEE";
+        div.style.borderBottomRightRadius = "4px";
+    } else {
+        div.style.background = "#CFCFCF";
+        div.style.color = "#000";
+        div.style.border = "1px solid #b6b6b6";
+        div.style.borderBottomLeftRadius = "4px";
+    }
+
+    actualizarContenidoBurbuja(div, m);
+    adjuntarEventosMensaje(div, m);
+
+    return div;
+}
+
+function actualizarContenidoBurbuja(div, m) {
+
+    div.dataset.mensaje = m.mensaje || "";
+    div.dataset.eliminado = m.eliminado ? "1" : "0";
+    div.dataset.eliminadoParaTodos = m.eliminado_para_todos ? "1" : "0";
+    div.dataset.editado = m.editado ? "1" : "0";
+    div.dataset.reenviado = m.reenviado ? "1" : "0";
+
+    let etiquetaReenviado = "";
+    if (m.reenviado && !m.eliminado_para_todos) {
+        etiquetaReenviado = `
+            <div style="font-size:11px; color:#00000088; font-style:italic; margin-bottom:3px; display:flex; align-items:center; gap:4px;">
+                <i class="fas fa-share" style="font-size:10px;"></i> Reenviado
+            </div>
+        `;
+    }
+
+    let contenidoTexto = "";
+    let etiquetaEditado = "";
+
+    if (m.eliminado_para_todos) {
+        div.style.fontStyle = "italic";
+        div.style.opacity = "0.75";
+        contenidoTexto = `
+            <div style="display:flex; align-items:center; gap:6px; color:#00000099;">
+                <i class="fas fa-ban" style="font-size:12px;"></i> Mensaje eliminado
+            </div>
+        `;
+    } else {
+        div.style.fontStyle = "normal";
+        div.style.opacity = "1";
+        contenidoTexto = `<div>${escaparHtmlMensaje(m.mensaje)}</div>`;
+
+        if (m.editado) {
+            etiquetaEditado = `<span style="font-style:italic;">· editado</span>`;
+        }
+    }
+
+    div.innerHTML = `
+        ${etiquetaReenviado}
+        ${contenidoTexto}
+        <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
+            ${m.fecha} ${etiquetaEditado}
+        </small>
+    `;
+}
+
+function escaparHtmlMensaje(texto) {
+    const d = document.createElement("div");
+    d.textContent = texto == null ? "" : texto;
+    return d.innerHTML;
 }
 
 
@@ -6474,6 +6720,20 @@ document.getElementById("chatEnviar").onclick = async () => {
     if (!txt || !chatConUsuario || !usuarioActual)
         return;
 
+
+    // =====================================
+    // MODO EDICIÓN: no crear mensaje nuevo,
+    // actualizar el mensaje seleccionado
+    // =====================================
+    if(mensajeEnEdicion){
+
+        btn.style.transform = "scale(0.88)";
+        setTimeout(() => { btn.style.transform = "scale(1)"; },180);
+
+        await guardarEdicionMensaje(txt);
+        return;
+
+    }
 
 
     btn.style.transform = "scale(0.88)";
@@ -7404,38 +7664,13 @@ document.addEventListener(
 
   function agregarMensajeIndividual(m) {
     const cont = document.getElementById("chatMensajes");
-    const div = document.createElement("div");
-    div.classList.add("mensaje");
-    div.style.maxWidth = "75%";
-    div.style.margin = "6px 0";
-    div.style.padding = "8px 12px";
-    div.style.borderRadius = "12px";
-    div.style.fontSize = "14px";
-    div.style.lineHeight = "1.3";
-    div.style.wordBreak = "break-word";
+
+    if(estaOcultoParaMi(m.id)) return;
+
+    const div = crearBurbujaMensaje(m);
     div.style.opacity = "0";
     div.style.transform = "translateY(10px)";
     div.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-
-    if (m.de === usuarioActual.correo) {
-        div.style.background = "#6FA3FF";
-        div.style.color = "#000";
-        div.style.marginLeft = "auto";
-        div.style.border = "1px solid #5A8DEE";
-        div.style.borderBottomRightRadius = "4px";
-    } else {
-        div.style.background = "#CFCFCF";
-        div.style.color = "#000";
-        div.style.border = "1px solid #b6b6b6";
-        div.style.borderBottomLeftRadius = "4px";
-    }
-
-div.innerHTML = `
-        <div>${m.mensaje}</div>
-        <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
-            ${m.fecha}
-        </small>
-`;
 
     cont.appendChild(div);
 
@@ -7616,10 +7851,16 @@ const mensajesServidor =
 
     :
 
-    chatConUsuario.correo
+    chatConUsuario.correo,
 
+    editado: m.editado || false,
+    eliminado: m.eliminado || false,
+    eliminado_para_todos: m.eliminado_para_todos || false,
+    reenviado: m.reenviado || false,
+    mensaje_original_id: m.mensaje_original_id || null
 
-}));
+}))
+.filter(m => !estaOcultoParaMi(m.id));
 
 
 // =====================================
@@ -8731,10 +8972,56 @@ function activarRealtimeChat(){
 
     )
 
+    .on(
 
+        "postgres_changes",
 
+        {
 
+            event:"UPDATE",
 
+            schema:"public",
+
+            table:"chat_mensajes"
+
+        },
+
+        async(payload)=>{
+
+            const actualizado = payload.new;
+
+            if(!actualizado) return;
+
+            const miId =
+            await obtenerIdUsuarioPorCorreo(
+                usuarioActual.correo
+            );
+
+            const otroId =
+            await obtenerIdUsuarioPorCorreo(
+                chatConUsuario.correo
+            );
+
+            if(!miId || !otroId) return;
+
+            const pertenece =
+            (
+                actualizado.remitente_id === miId &&
+                actualizado.destinatario_id === otroId
+            )
+            ||
+            (
+                actualizado.remitente_id === otroId &&
+                actualizado.destinatario_id === miId
+            );
+
+            if(!pertenece) return;
+
+            aplicarActualizacionMensaje(actualizado);
+
+        }
+
+    )
 
     .subscribe(
 
@@ -8836,11 +9123,18 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
         :
 
-        chatConUsuario.correo
+        chatConUsuario.correo,
 
-
+        editado: mensajeSupabase.editado || false,
+        eliminado: mensajeSupabase.eliminado || false,
+        eliminado_para_todos: mensajeSupabase.eliminado_para_todos || false,
+        reenviado: mensajeSupabase.reenviado || false,
+        mensaje_original_id: mensajeSupabase.mensaje_original_id || null
 
     };
+
+    if(estaOcultoParaMi(mensaje.id))
+        return;
 
 
 
@@ -9212,6 +9506,113 @@ async function activarRealtimeGlobalChats(){
 
     )
 
+    .on(
+
+        "postgres_changes",
+
+        {
+
+            event:"UPDATE",
+
+            schema:"public",
+
+            table:"chat_mensajes"
+
+        },
+
+        async(payload)=>{
+
+            const actualizado = payload.new;
+
+            if(!actualizado) return;
+
+            if(
+                actualizado.remitente_id !== miId &&
+                actualizado.destinatario_id !== miId
+            ){
+                return;
+            }
+
+            const otroIdConversacion =
+            actualizado.remitente_id === miId
+            ? actualizado.destinatario_id
+            : actualizado.remitente_id;
+
+            const correoOtro =
+            await obtenerCorreoUsuarioPorId(otroIdConversacion);
+
+            if(!correoOtro) return;
+
+            const chatAbierto =
+            document.getElementById("chatBox")?.style.display === "flex";
+
+            const estoyViendoEsteChat =
+            chatAbierto &&
+            chatConUsuario &&
+            chatConUsuario.correo === correoOtro;
+
+            // Si tengo esta conversación abierta, el canal
+            // por-conversación (activarRealtimeChat) ya se encarga
+            // de refrescar la burbuja en pantalla.
+            if(!estoyViendoEsteChat){
+
+                if(!chatCache[correoOtro]){
+                    chatCache[correoOtro] =
+                    cargarChatLocal(correoOtro) || [];
+                }
+
+                const idx =
+                chatCache[correoOtro].findIndex(
+                    m => m.id === actualizado.id
+                );
+
+                if(idx !== -1){
+
+                    chatCache[correoOtro][idx] = {
+                        ...chatCache[correoOtro][idx],
+                        mensaje: actualizado.mensaje,
+                        editado: actualizado.editado || false,
+                        eliminado: actualizado.eliminado || false,
+                        eliminado_para_todos: actualizado.eliminado_para_todos || false,
+                        reenviado: actualizado.reenviado || false
+                    };
+
+                    guardarChatLocal(
+                        correoOtro,
+                        chatCache[correoOtro]
+                    );
+
+                }
+            }
+
+            // Actualizar la vista previa de la lista de chats
+            // si el mensaje editado/eliminado era el último
+            const esUltimoDeLaLista =
+            listaChatsCache[correoOtro]?.id === actualizado.id;
+
+            if(esUltimoDeLaLista){
+
+                listaChatsCache[correoOtro] = {
+                    ...listaChatsCache[correoOtro],
+                    ultimoMensaje:
+                    actualizado.eliminado_para_todos
+                    ? "🚫 Mensaje eliminado"
+                    : actualizado.mensaje
+                };
+
+                localStorage.setItem(
+                    "listaChatsCache",
+                    JSON.stringify(listaChatsCache)
+                );
+
+                renderizarListaChats();
+
+            }
+
+        }
+
+    )
+
     .subscribe(
         status=>{
 
@@ -9313,6 +9714,684 @@ async function obtenerCorreoUsuarioPorId(id){
 
 
     
+
+
+// =====================================================
+// 💬 MÓDULO: EDITAR / ELIMINAR / REENVIAR MENSAJES
+// (estilo WhatsApp)
+// =====================================================
+
+// IDs de mensajes eliminados "solo para mí" (persistido localmente,
+// ya que en un chat 1 a 1 la fila es compartida por ambos usuarios
+// y "eliminar para mí" únicamente puede ocultarse en mi propio
+// dispositivo, no en el del otro usuario).
+let mensajesOcultosParaMi =
+JSON.parse(
+    localStorage.getItem("chatOcultosParaMi") || "[]"
+);
+
+function estaOcultoParaMi(id){
+    if(!id) return false;
+    return mensajesOcultosParaMi.includes(id);
+}
+
+function ocultarMensajeLocalmente(id){
+    if(!id || estaOcultoParaMi(id)) return;
+    mensajesOcultosParaMi.push(id);
+    localStorage.setItem(
+        "chatOcultosParaMi",
+        JSON.stringify(mensajesOcultosParaMi)
+    );
+}
+
+// Mensaje actualmente seleccionado por el menú contextual
+let mensajeSeleccionadoMenu = null;
+
+// Mensaje que se está editando actualmente (objeto completo o null)
+let mensajeEnEdicion = null;
+
+// Mensaje que se va a reenviar (objeto completo o null)
+let mensajeAReenviar = null;
+
+// Cache de usuarios disponibles para reenviar
+let usuariosParaReenviarCache = [];
+
+
+// =====================================
+// 📌 LONG PRESS SOBRE UNA BURBUJA
+// =====================================
+
+function adjuntarEventosMensaje(div, m){
+
+    let pressTimer = null;
+    let startX = 0;
+    let startY = 0;
+    let cancelado = false;
+
+    const iniciar = (x, y) => {
+        cancelado = false;
+        startX = x;
+        startY = y;
+
+        pressTimer = setTimeout(() => {
+            if(!cancelado){
+                abrirMenuMensaje(x, y, m);
+            }
+        }, 450);
+    };
+
+    const cancelar = () => {
+        cancelado = true;
+        clearTimeout(pressTimer);
+    };
+
+    const moverCancela = (x, y) => {
+        if(
+            Math.abs(x - startX) > 12 ||
+            Math.abs(y - startY) > 12
+        ){
+            cancelar();
+        }
+    };
+
+    div.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        iniciar(t.clientX, t.clientY);
+    }, { passive:true });
+
+    div.addEventListener("touchmove", (e) => {
+        const t = e.touches[0];
+        moverCancela(t.clientX, t.clientY);
+    }, { passive:true });
+
+    div.addEventListener("touchend", cancelar);
+    div.addEventListener("touchcancel", cancelar);
+
+    div.addEventListener("mousedown", (e) => {
+        iniciar(e.clientX, e.clientY);
+    });
+
+    div.addEventListener("mousemove", (e) => {
+        moverCancela(e.clientX, e.clientY);
+    });
+
+    div.addEventListener("mouseup", cancelar);
+    div.addEventListener("mouseleave", cancelar);
+
+    // Evitar el menú contextual nativo del navegador (click derecho)
+    div.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        abrirMenuMensaje(e.clientX, e.clientY, m);
+    });
+
+}
+
+
+// =====================================
+// 📌 MENÚ CONTEXTUAL
+// =====================================
+
+function abrirMenuMensaje(x, y, m){
+
+    if(estaOcultoParaMi(m.id)) return;
+
+    mensajeSeleccionadoMenu = m;
+
+    const esMio = m.de === usuarioActual.correo;
+    const yaEliminado = !!m.eliminado_para_todos;
+
+    const menu = document.getElementById("menuMensajeChat");
+    const overlay = document.getElementById("overlayMenuMensaje");
+
+    const btnEditar = document.getElementById("btnMenuEditar");
+    const btnReenviar = document.getElementById("btnMenuReenviar");
+    const btnEliminar = document.getElementById("btnMenuEliminar");
+
+    // Editar: solo mis mensajes y si no fue eliminado
+    btnEditar.style.display =
+    (esMio && !yaEliminado) ? "flex" : "none";
+
+    // Reenviar: cualquier mensaje que no esté eliminado
+    btnReenviar.style.display =
+    (!yaEliminado) ? "flex" : "none";
+
+    // Eliminar: siempre disponible (para mí, y si es mío también para todos)
+    btnEliminar.style.display = "flex";
+
+    // Mostrar/ocultar la opción "eliminar para todos" según corresponda
+    document.getElementById("opcionEliminarParaTodos").style.display =
+    (esMio && !yaEliminado) ? "block" : "none";
+
+    menu.style.display = "block";
+    overlay.style.display = "block";
+
+    // Posicionar el menú cerca del punto de toque, sin salirse de pantalla
+    const menuWidth = 200;
+    const menuHeight = 160;
+
+    let left = x;
+    let top = y;
+
+    if(left + menuWidth > window.innerWidth - 10){
+        left = window.innerWidth - menuWidth - 10;
+    }
+
+    if(top + menuHeight > window.innerHeight - 10){
+        top = window.innerHeight - menuHeight - 10;
+    }
+
+    menu.style.left = Math.max(10, left) + "px";
+    menu.style.top = Math.max(10, top) + "px";
+
+    if(navigator.vibrate){
+        navigator.vibrate(30);
+    }
+
+}
+
+function cerrarMenuMensaje(){
+
+    document.getElementById("menuMensajeChat").style.display = "none";
+    document.getElementById("overlayMenuMensaje").style.display = "none";
+
+}
+
+
+// =====================================
+// ✏️ EDITAR MENSAJE
+// =====================================
+
+function onClickEditarMensaje(){
+
+    cerrarMenuMensaje();
+
+    if(!mensajeSeleccionadoMenu) return;
+
+    iniciarEdicionMensaje(mensajeSeleccionadoMenu);
+
+}
+
+function iniciarEdicionMensaje(m){
+
+    mensajeEnEdicion = m;
+
+    const input = document.getElementById("chatInput");
+    const banner = document.getElementById("bannerEditandoMensaje");
+
+    input.value = m.mensaje || "";
+    input.focus();
+
+    banner.style.display = "flex";
+
+}
+
+function cancelarEdicionMensaje(){
+
+    mensajeEnEdicion = null;
+
+    document.getElementById("bannerEditandoMensaje").style.display = "none";
+    document.getElementById("chatInput").value = "";
+
+}
+
+async function guardarEdicionMensaje(nuevoTexto){
+
+    if(!mensajeEnEdicion || !chatConUsuario) return;
+
+    const idMensaje = mensajeEnEdicion.id;
+
+    if(!idMensaje || String(idMensaje).startsWith("temp_")){
+        console.warn("No se puede editar un mensaje aún no confirmado");
+        return;
+    }
+
+    const input = document.getElementById("chatInput");
+
+    try{
+
+        const { data, error } =
+        await supabaseClient
+        .from("chat_mensajes")
+        .update({
+            mensaje: nuevoTexto,
+            editado: true
+        })
+        .eq("id", idMensaje)
+        .select()
+        .single();
+
+        if(error) throw error;
+
+        aplicarActualizacionMensaje(data);
+
+        console.log("✅ Mensaje editado:", data);
+
+    }catch(err){
+
+        console.error("❌ Error editando mensaje:", err);
+
+    }finally{
+
+        mensajeEnEdicion = null;
+        document.getElementById("bannerEditandoMensaje").style.display = "none";
+        input.value = "";
+
+    }
+
+}
+
+
+// =====================================
+// 🗑️ ELIMINAR MENSAJE
+// =====================================
+
+function onClickEliminarMensaje(){
+
+    cerrarMenuMensaje();
+
+    if(!mensajeSeleccionadoMenu) return;
+
+    document.getElementById("modalEliminarMensaje").style.display = "flex";
+
+}
+
+function cerrarModalEliminarMensaje(){
+
+    document.getElementById("modalEliminarMensaje").style.display = "none";
+
+}
+
+async function confirmarEliminarMensaje(paraTodos){
+
+    const m = mensajeSeleccionadoMenu;
+
+    document.getElementById("modalEliminarMensaje").style.display = "none";
+
+    if(!m) return;
+
+    const esMio = m.de === usuarioActual.correo;
+
+    // =====================================
+    // ELIMINAR SOLO PARA MÍ (local, no toca Supabase)
+    // =====================================
+    if(!paraTodos){
+
+        ocultarMensajeLocalmente(m.id);
+
+        const cache = chatCache[chatConUsuario?.correo] || [];
+        const idx = cache.findIndex(x => x.id === m.id);
+        if(idx !== -1){
+            cache.splice(idx, 1);
+            guardarChatLocal(chatConUsuario.correo, cache);
+        }
+
+        const burbuja =
+        document.querySelector(`#chatMensajes [data-id="${CSS.escape(String(m.id))}"]`);
+
+        if(burbuja) burbuja.remove();
+
+        return;
+
+    }
+
+    // =====================================
+    // ELIMINAR PARA TODOS (solo el dueño del mensaje)
+    // =====================================
+    if(!esMio){
+        console.warn("Solo puedes eliminar para todos tus propios mensajes");
+        return;
+    }
+
+    if(!m.id || String(m.id).startsWith("temp_")){
+        console.warn("No se puede eliminar un mensaje aún no confirmado");
+        return;
+    }
+
+    try{
+
+        const { data, error } =
+        await supabaseClient
+        .from("chat_mensajes")
+        .update({
+            eliminado: true,
+            eliminado_para_todos: true
+        })
+        .eq("id", m.id)
+        .select()
+        .single();
+
+        if(error) throw error;
+
+        aplicarActualizacionMensaje(data);
+
+        console.log("✅ Mensaje eliminado para todos:", data);
+
+    }catch(err){
+
+        console.error("❌ Error eliminando mensaje:", err);
+
+    }
+
+}
+
+
+// =====================================
+// 🔁 APLICAR UNA ACTUALIZACIÓN (edición o eliminación)
+// llegada desde Supabase (propia o por Realtime)
+// =====================================
+
+function aplicarActualizacionMensaje(actualizado){
+
+    if(!actualizado || !actualizado.id) return;
+
+    const camposNuevos = {
+        mensaje: actualizado.mensaje,
+        editado: actualizado.editado || false,
+        eliminado: actualizado.eliminado || false,
+        eliminado_para_todos: actualizado.eliminado_para_todos || false,
+        reenviado: actualizado.reenviado || false,
+        mensaje_original_id: actualizado.mensaje_original_id || null
+    };
+
+    // Actualizar en el cache de la conversación abierta (si aplica)
+    if(chatConUsuario){
+
+        const cache = chatCache[chatConUsuario.correo] || [];
+        const idx = cache.findIndex(x => x.id === actualizado.id);
+
+        if(idx !== -1){
+
+            cache[idx] = { ...cache[idx], ...camposNuevos };
+
+            guardarChatLocal(chatConUsuario.correo, cache);
+
+            // Actualizar visualmente la burbuja si está en pantalla
+            const burbuja =
+            document.querySelector(`#chatMensajes [data-id="${CSS.escape(String(actualizado.id))}"]`);
+
+            if(burbuja){
+
+                if(estaOcultoParaMi(actualizado.id)){
+                    burbuja.remove();
+                }else{
+                    actualizarContenidoBurbuja(burbuja, cache[idx]);
+                }
+
+            }
+
+        }
+
+        // Actualizar la vista previa de la lista si era el último mensaje
+        const esUltimoDeLaLista =
+        listaChatsCache[chatConUsuario.correo]?.id === actualizado.id;
+
+        if(esUltimoDeLaLista){
+
+            listaChatsCache[chatConUsuario.correo] = {
+                ...listaChatsCache[chatConUsuario.correo],
+                ultimoMensaje:
+                camposNuevos.eliminado_para_todos
+                ? "🚫 Mensaje eliminado"
+                : camposNuevos.mensaje
+            };
+
+            localStorage.setItem(
+                "listaChatsCache",
+                JSON.stringify(listaChatsCache)
+            );
+
+            renderizarListaChats();
+
+        }
+
+    }
+
+    // Si el mensaje que se estaba editando fue el que cambió
+    // (por ejemplo editado desde otro dispositivo), cancelar edición local
+    if(mensajeEnEdicion && mensajeEnEdicion.id === actualizado.id){
+        cancelarEdicionMensaje();
+    }
+
+}
+
+
+// =====================================
+// ↪️ REENVIAR MENSAJE
+// =====================================
+
+function onClickReenviarMensaje(){
+
+    cerrarMenuMensaje();
+
+    if(!mensajeSeleccionadoMenu) return;
+
+    if(!mensajeSeleccionadoMenu.id || String(mensajeSeleccionadoMenu.id).startsWith("temp_")){
+        console.warn("No se puede reenviar un mensaje aún no confirmado");
+        return;
+    }
+
+    mensajeAReenviar = mensajeSeleccionadoMenu;
+
+    abrirModalReenviarMensaje();
+
+}
+
+async function abrirModalReenviarMensaje(){
+
+    document.getElementById("modalReenviarMensaje").style.display = "flex";
+    document.getElementById("buscarUsuarioReenviar").value = "";
+
+    const cont = document.getElementById("listaUsuariosReenviar");
+    cont.innerHTML = `
+        <div style="text-align:center; color:#999; padding:20px; font-size:13px;">
+            Cargando personas...
+        </div>
+    `;
+
+    try{
+
+        const { data: usuarios, error } =
+        await supabaseClient
+        .from("usuarios")
+        .select("id, correo, nombre, foto_perfil")
+        .neq("correo", usuarioActual.correo)
+        .order("nombre", { ascending:true });
+
+        if(error) throw error;
+
+        usuariosParaReenviarCache = usuarios || [];
+
+        renderizarListaReenviar(usuariosParaReenviarCache);
+
+    }catch(err){
+
+        console.error("❌ Error cargando usuarios para reenviar:", err);
+
+        cont.innerHTML = `
+            <div style="text-align:center; color:#999; padding:20px; font-size:13px;">
+                No se pudo cargar la lista de personas.
+            </div>
+        `;
+
+    }
+
+}
+
+function cerrarModalReenviarMensaje(){
+
+    document.getElementById("modalReenviarMensaje").style.display = "none";
+    mensajeAReenviar = null;
+
+}
+
+function renderizarListaReenviar(usuarios){
+
+    const cont = document.getElementById("listaUsuariosReenviar");
+    cont.innerHTML = "";
+
+    if(!usuarios || usuarios.length === 0){
+        cont.innerHTML = `
+            <div style="text-align:center; color:#999; padding:20px; font-size:13px;">
+                No se encontraron personas.
+            </div>
+        `;
+        return;
+    }
+
+    usuarios.forEach(u => {
+
+        const item = document.createElement("div");
+        item.style.display = "flex";
+        item.style.alignItems = "center";
+        item.style.gap = "12px";
+        item.style.padding = "10px 8px";
+        item.style.cursor = "pointer";
+        item.style.borderRadius = "10px";
+
+        const nombre = u.nombre || u.correo;
+        const iniciales =
+        nombre.split(" ").map(x => x[0]).slice(0,2).join("").toUpperCase();
+
+        item.innerHTML = `
+            ${
+                u.foto_perfil
+                ? `<img src="${u.foto_perfil}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;">`
+                : `<div style="width:42px;height:42px;border-radius:50%;background:#3B82F6;color:white;display:flex;align-items:center;justify-content:center;font-weight:600;">${iniciales}</div>`
+            }
+            <div style="flex:1; overflow:hidden;">
+                <div style="font-weight:600; font-size:14px; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nombre}</div>
+                <div style="font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.correo}</div>
+            </div>
+        `;
+
+        item.onclick = () => {
+            reenviarMensajeAUsuario(mensajeAReenviar, u);
+        };
+
+        cont.appendChild(item);
+
+    });
+
+}
+
+function filtrarListaReenviar(){
+
+    const texto =
+    normalizeText(
+        document.getElementById("buscarUsuarioReenviar").value || ""
+    );
+
+    if(!texto){
+        renderizarListaReenviar(usuariosParaReenviarCache);
+        return;
+    }
+
+    const filtrados =
+    usuariosParaReenviarCache.filter(u =>
+        normalizeText(u.nombre || "").includes(texto) ||
+        normalizeText(u.correo || "").includes(texto)
+    );
+
+    renderizarListaReenviar(filtrados);
+
+}
+
+async function reenviarMensajeAUsuario(mensaje, usuarioDestino){
+
+    if(!mensaje || !usuarioDestino || !usuarioActual) return;
+
+    try{
+
+        const remitenteId =
+        await obtenerIdUsuarioPorCorreo(usuarioActual.correo);
+
+        const destinatarioId =
+        usuarioDestino.id ||
+        await obtenerIdUsuarioPorCorreo(usuarioDestino.correo);
+
+        if(!remitenteId || !destinatarioId){
+            throw new Error("No se encontraron usuarios");
+        }
+
+        const { data, error } =
+        await supabaseClient
+        .from("chat_mensajes")
+        .insert({
+            remitente_id: remitenteId,
+            destinatario_id: destinatarioId,
+            mensaje: mensaje.mensaje,
+            reenviado: true,
+            mensaje_original_id: mensaje.id
+        })
+        .select()
+        .single();
+
+        if(error) throw error;
+
+        console.log("✅ Mensaje reenviado:", data);
+
+        const correoDestino = usuarioDestino.correo;
+
+        const mensajeReenviado = {
+            id: data.id,
+            de: usuarioActual.correo,
+            mensaje: data.mensaje,
+            fecha: new Date(data.fecha_creacion).toLocaleString(),
+            fechaOrden: data.fecha_creacion,
+            fechaOriginal: data.fecha_creacion,
+            editado: false,
+            eliminado: false,
+            eliminado_para_todos: false,
+            reenviado: true,
+            mensaje_original_id: mensaje.id
+        };
+
+        if(!chatCache[correoDestino]){
+            chatCache[correoDestino] =
+            cargarChatLocal(correoDestino) || [];
+        }
+
+        chatCache[correoDestino].push(mensajeReenviado);
+        guardarChatLocal(correoDestino, chatCache[correoDestino]);
+
+        listaChatsCache[correoDestino] = {
+            ...(listaChatsCache[correoDestino] || {}),
+            ultimoMensaje: mensajeReenviado.mensaje,
+            fecha: data.fecha_creacion,
+            id: mensajeReenviado.id,
+            nombre:
+            listaChatsCache[correoDestino]?.nombre ||
+            usuarioDestino.nombre ||
+            correoDestino,
+            foto:
+            listaChatsCache[correoDestino]?.foto ||
+            usuarioDestino.foto_perfil ||
+            ""
+        };
+
+        localStorage.setItem(
+            "listaChatsCache",
+            JSON.stringify(listaChatsCache)
+        );
+
+        // Si ya tengo esa conversación abierta, pintar el mensaje al instante
+        if(chatConUsuario && chatConUsuario.correo === correoDestino){
+            agregarMensajeIndividual(mensajeReenviado);
+        }
+
+        renderizarListaChats();
+
+        cerrarModalReenviarMensaje();
+
+    }catch(err){
+
+        console.error("❌ Error reenviando mensaje:", err);
+
+    }
+
+}
+
+
    // ✅ CERRAR CHAT AL HACER CLICK AFUERA SIN BLOQUEAR LA APERTURA
 function activarCerrarAfuera() {
   // Esperamos a que termine el click que abrió el chat
