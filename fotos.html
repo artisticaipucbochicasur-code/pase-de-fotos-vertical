@@ -7489,57 +7489,14 @@ document.addEventListener(
         div.style.borderBottomLeftRadius = "4px";
     }
 
-let textoMensaje = m.mensaje;
-
-
-if(m.eliminado){
-
-    textoMensaje =
-    "🚫 Mensaje eliminado";
-
-}
-else{
-
-
-    if(m.editado){
-
-        textoMensaje +=
-        ' <small style="font-size:10px;">(editado)</small>';
-
-    }
-
-
-    if(m.reenviado){
-
-        textoMensaje =
-        "↪ Reenviado<br>" +
-        textoMensaje;
-
-    }
-
-
-}
-
-
-
 div.innerHTML = `
-        <div>${textoMensaje}</div>
-
+        <div>${m.mensaje}</div>
         <small style="font-size:10px; color:#00000099; display:block; margin-top:4px; text-align:right;">
             ${m.fecha}
         </small>
 `;
 
     cont.appendChild(div);
-
-    // =====================================
-// MENÚ DE ACCIONES DEL MENSAJE
-// =====================================
-
-activarMenuMensaje(
-    div,
-    m
-);
 
     // 🌟 Animación
     setTimeout(() => {
@@ -8376,7 +8333,6 @@ mensajeSeleccionado=null;
 
 
 
-
 function renderizarListaChats(){
 
     const cont =
@@ -8880,19 +8836,19 @@ function activarRealtimeChat(){
 
 
 
-   .on(
+    .on(
 
-"postgres_changes",
+        "postgres_changes",
 
-{
+        {
 
-    event:"*",
+            event:"INSERT",
 
-    schema:"public",
+            schema:"public",
 
-    table:"chat_mensajes"
+            table:"chat_mensajes"
 
-},
+        },
 
 
 
@@ -8907,7 +8863,7 @@ function activarRealtimeChat(){
 
 
             const nuevo = payload.new;
-const tipoEvento = payload.eventType;
+
 
 
             if(!nuevo){
@@ -8917,26 +8873,7 @@ const tipoEvento = payload.eventType;
             }
 
 
-// =====================================
-// ACTUALIZACIÓN DE MENSAJE
-// EDITAR / ELIMINAR
-// =====================================
 
-if(tipoEvento === "UPDATE"){
-
-
-    if(
-        typeof actualizarMensajeRealtime === "function"
-    ){
-
-        actualizarMensajeRealtime(nuevo);
-
-    }
-
-
-    return;
-
-}
 
 
 
@@ -9134,70 +9071,6 @@ if(tipoEvento === "UPDATE"){
 }
 
 
-function actualizarMensajeRealtime(mensajeActualizado){
-
-
-
-if(!chatConUsuario)
-return;
-
-
-
-const mensajes =
-chatCache[chatConUsuario.correo] || [];
-
-
-
-const index = mensajes.findIndex(
-
-m =>
-m.id === mensajeActualizado.id
-
-);
-
-
-
-if(index === -1)
-return;
-
-
-
-mensajes[index].mensaje =
-mensajeActualizado.mensaje;
-
-
-
-mensajes[index].editado =
-mensajeActualizado.editado || false;
-
-
-
-mensajes[index].eliminado =
-mensajeActualizado.eliminado || false;
-
-
-
-mensajes[index].reenviado =
-mensajeActualizado.reenviado || false;
-
-
-
-guardarChatLocal(
-
-chatConUsuario.correo,
-
-mensajes
-
-);
-
-
-
-renderizarMensajes();
-
-
-
-}
-
 // =====================================
 // AGREGAR MENSAJE RECIBIDO EN REALTIME
 // =====================================
@@ -9225,31 +9098,16 @@ async function agregarMensajeRealtime(mensajeSupabase){
 
 
 
-  const mensaje = {
+    const mensaje = {
 
 
-id:
-mensajeSupabase.id,
+        id:
+        mensajeSupabase.id,
 
 
-mensaje:
-mensajeSupabase.mensaje,
 
-
-editado:
-mensajeSupabase.editado || false,
-
-
-eliminado:
-mensajeSupabase.eliminado || false,
-
-
-reenviado:
-mensajeSupabase.reenviado || false,
-
-
-mensajeOriginal:
-mensajeSupabase.mensaje_original_id || null,
+        mensaje:
+        mensajeSupabase.mensaje,
 
 
 
