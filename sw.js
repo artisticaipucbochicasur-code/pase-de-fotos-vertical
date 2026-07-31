@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-31-2";
+const CACHE_VERSION = "2026-07-31-3";
 
 
 self.addEventListener("install", (event) => {
