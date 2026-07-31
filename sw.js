@@ -9,7 +9,6 @@
 
 self.addEventListener("install", (event) => {
 
-  // ✅ Asegura que el SW nuevo tome control lo antes posible
   self.skipWaiting();
 
 });
@@ -21,11 +20,28 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
 
-  // ✅ Asegura que controle clientes existentes
-  // (evita reinicios raros)
-
   event.waitUntil(
-    self.clients.claim()
+
+    (async()=>{
+
+      await self.clients.claim();
+
+
+      const cacheNames =
+        await caches.keys();
+
+
+      await Promise.all(
+
+        cacheNames.map(
+          cache => caches.delete(cache)
+        )
+
+      );
+
+
+    })()
+
   );
 
 });
