@@ -19637,6 +19637,141 @@ window.location.href
 
 }
 
+
+<script>
+
+(async()=>{
+
+
+alert("🚀 INICIANDO LIMPIEZA DE DECOM");
+
+
+/*
+=====================================
+1. REVISAR SERVICE WORKERS ACTIVOS
+=====================================
+*/
+
+if("serviceWorker" in navigator){
+
+    const registrations =
+        await navigator.serviceWorker.getRegistrations();
+
+
+    alert(
+        "Service Workers encontrados: "
+        + registrations.length
+    );
+
+
+    for(const registration of registrations){
+
+        alert(
+            "Eliminando SW:\n\n" +
+            registration.scope
+        );
+
+
+        await registration.unregister();
+
+    }
+
+}else{
+
+    alert(
+        "Este navegador no soporta Service Worker"
+    );
+
+}
+
+
+
+/*
+=====================================
+2. LIMPIAR CACHE
+=====================================
+*/
+
+if(window.caches){
+
+    const cacheNames =
+        await caches.keys();
+
+
+    alert(
+        "Caches encontrados: "
+        + cacheNames.length
+    );
+
+
+    for(const cache of cacheNames){
+
+        alert(
+            "Eliminando cache:\n\n" +
+            cache
+        );
+
+
+        await caches.delete(cache);
+
+    }
+
+}
+
+
+
+/*
+=====================================
+3. LIMPIAR MARCAS LOCALES
+=====================================
+*/
+
+localStorage.removeItem(
+    "decomPwaInstalada"
+);
+
+
+alert(
+    "LocalStorage limpiado"
+);
+
+
+
+/*
+=====================================
+4. ESTADO ACTUAL DE LA APP
+=====================================
+*/
+
+
+alert(
+"Estado final:\n\n" +
+
+"URL:\n" +
+window.location.href +
+
+"\n\nStandalone:\n" +
+window.matchMedia("(display-mode: standalone)").matches +
+
+"\n\nReferrer:\n" +
+document.referrer
+
+);
+
+
+
+alert(
+"✅ LIMPIEZA TERMINADA.\n\nAhora cierre completamente Chrome y vuelva a abrir."
+);
+
+
+
+})();
+
+</script>
+
+
+
 </script>
 </body>
 </html>
