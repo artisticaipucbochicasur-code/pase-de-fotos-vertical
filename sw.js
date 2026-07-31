@@ -1,8 +1,13 @@
-const CACHE_VERSION = "decom-v2.4.2";
+const CACHE_VERSION = "2026-07-31-2";
+
+
 self.addEventListener("install", (event) => {
+
   // ✅ Asegura que el SW nuevo tome control lo antes posible
   self.skipWaiting();
+
 });
+
 
 self.addEventListener("activate", (event) => {
 
