@@ -10655,6 +10655,18 @@ let base64Imagen = "";
 publishBtn.addEventListener("click", (e) => {
   e.preventDefault();
 
+  // Cerrar menú de usuario si está abierto
+const userMenu = document.getElementById("userMenu");
+const userOverlay = document.getElementById("userOverlay");
+
+if(userMenu){
+    userMenu.style.display = "none";
+}
+
+if(userOverlay){
+    userOverlay.style.display = "none";
+}
+
   // Cerrar el modal de búsqueda SI está abierto
   if (searchOverlay && searchOverlay.style.display === "flex") {
     searchOverlay.style.display = "none";
@@ -19381,13 +19393,17 @@ function obtenerFotoUsuario(){
 
   </script>
 
-  <script>
+<script>
 
 if ("serviceWorker" in navigator) {
 
-    navigator.serviceWorker.ready.then(registration => {
+    window.addEventListener("load", () => {
 
-        registration.update();
+        navigator.serviceWorker.ready.then(registration => {
+
+            registration.update();
+
+        });
 
     });
 
