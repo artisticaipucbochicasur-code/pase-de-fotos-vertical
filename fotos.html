@@ -10137,7 +10137,7 @@ async function confirmarEliminarMensaje(paraTodos){
     const esMio = m.de === usuarioActual.correo;
 
 // ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
-if(!paraTodos){
+if(!paraTodos){ 
 
     ocultarMensajeLocalmente(m.id);
 
@@ -10158,27 +10158,25 @@ if(!paraTodos){
 
     // =====================================
     // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
-    // CUANDO SE ELIMINA PARA MÍ
+    // CUANDO SE ELIMINA SOLO PARA MÍ
     // =====================================
 
     if(listaChatsCache[correoChat]){
 
-        const mensajesVisibles = cache
+        // Buscar el último mensaje que aún existe
+        const mensajesRestantes = cache
         .filter(x => !estaOcultoParaMi(x.id))
         .sort((a,b)=>
-            new Date(b.created_at) -
-            new Date(a.created_at)
+            new Date(b.created_at) - new Date(a.created_at)
         );
 
 
-        if(mensajesVisibles.length > 0){
+        if(mensajesRestantes.length > 0){
 
-            const ultimo = mensajesVisibles[0];
-
+            const ultimo = mensajesRestantes[0];
 
             listaChatsCache[correoChat].ultimoMensaje =
             ultimo.mensaje || "";
-
 
             listaChatsCache[correoChat].ultimaFecha =
             ultimo.created_at;
@@ -10186,6 +10184,7 @@ if(!paraTodos){
 
         }else{
 
+            // Si ya no quedan mensajes visibles
             listaChatsCache[correoChat].ultimoMensaje = "";
 
             listaChatsCache[correoChat].ultimaFecha = "";
@@ -10204,8 +10203,17 @@ if(!paraTodos){
     }
 
 
+    const burbuja =
+    obtenerBurbujaMensajePorId(m.id);
 
-    const
+    if(burbuja) burbuja.remove();
+
+
+    mensajeSeleccionadoMenu = null;
+    mostrarAviso("Mensaje eliminado para ti");
+    return;
+
+}
 
     // ELIMINAR PARA TODOS: borrado lógico mediante UPDATE
     if(!esMio){
