@@ -30,9 +30,7 @@
 
   <title>DECOM - Fotos</title>
 
-  <script>
-alert("ESTOY EJECUTANDO FOTOS.HTML VERSION NUEVA");
-</script>
+  
   <style>
     body {
         margin: 0;
@@ -19348,9 +19346,13 @@ function esStandalone() {
         ||
         window.matchMedia("(display-mode: fullscreen)").matches
         ||
+        window.matchMedia("(display-mode: minimal-ui)").matches
+        ||
         window.navigator.standalone === true
         ||
-        document.referrer.startsWith("android-app://")
+        document.referrer.includes("android-app://")
+        ||
+        window.location.search.includes("utm_source=pwa")
     );
 
 }
@@ -19402,7 +19404,13 @@ function mostrarBtnInstalar() {
     }
 
 
+   if(
+    !esStandalone()
+){
+
     btn.style.display = "flex";
+
+}
 
 }
 
@@ -19585,6 +19593,25 @@ if ("serviceWorker" in navigator) {
  "\nreferrer: " +
  document.referrer
 );
+
+
+alert(
+"standalone: " + 
+window.matchMedia("(display-mode: standalone)").matches
++
+"\nfullscreen: " +
+window.matchMedia("(display-mode: fullscreen)").matches
++
+"\nminimal: " +
+window.matchMedia("(display-mode: minimal-ui)").matches
++
+"\nreferrer: " +
+document.referrer
++
+"\nURL: " +
+window.location.href
+);
+
 
         navigator.serviceWorker.register("sw.js")
         .then(registration => {
