@@ -1717,9 +1717,28 @@ font-weight:600;
 <!-- BOTÓN DE MENSAJES -->
 <button id="abrirListaChats" 
 class="header-btn"
-title="Mensajes">
+title="Mensajes"
+style="position:relative;">
 
   <i class="fas fa-comment"></i>
+
+  <span id="contadorChatsHeader"
+  style="
+  display:none;
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  background:#3B82F6;
+  color:white;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  font-size:12px;
+  font-weight:bold;
+  align-items:center;
+  justify-content:center;
+  ">
+  </span>
 
 </button>
 
@@ -5506,6 +5525,52 @@ function guardarNoLeidos(){
 
 }
 
+
+function actualizarContadorChatsHeader(){
+
+    const contador =
+    document.getElementById(
+        "contadorChatsHeader"
+    );
+
+
+    if(!contador) return;
+
+
+    let total = 0;
+
+
+    Object.values(mensajesNoLeidos)
+    .forEach(cantidad=>{
+
+        total += cantidad || 0;
+
+    });
+
+
+
+    if(total > 0){
+
+        contador.innerText =
+        total;
+
+        contador.style.display =
+        "flex";
+
+    }else{
+
+        contador.innerText =
+        "";
+
+        contador.style.display =
+        "none";
+
+    }
+
+}
+
+
+
     function estoyAbajo() {
     const cont = document.getElementById("chatMensajes");
     return cont.scrollTop + cont.clientHeight >= cont.scrollHeight - 10;
@@ -6100,6 +6165,8 @@ mensajesNoLeidos[info.correo]
     mensajesNoLeidos[info.correo]=0;
 
     guardarNoLeidos();
+
+    actualizarContadorChatsHeader();
 
 }
 
@@ -8350,6 +8417,7 @@ if(!existe){
 
 
 function renderizarListaChats(){
+      actualizarContadorChatsHeader();
 
     const cont =
     document.getElementById(
