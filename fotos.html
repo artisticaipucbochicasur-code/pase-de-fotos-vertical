@@ -19308,15 +19308,25 @@ async function updateUserUI(u) {
   let deferredPrompt = null;
 
 
-  function esStandalone() {
+function esStandalone() {
 
     return (
-      window.matchMedia("(display-mode: standalone)").matches
-      ||
-      window.navigator.standalone === true
+        window.matchMedia("(display-mode: standalone)").matches
+        ||
+        window.matchMedia("(display-mode: fullscreen)").matches
+        ||
+        window.navigator.standalone === true
+        ||
+        document.referrer.startsWith("android-app://")
     );
 
-  }
+}
+
+function yaFueInstalada(){
+
+    return localStorage.getItem("decomPwaInstalada") === "true";
+
+}
 
 
   function obtenerBtnInstalar() {
@@ -19339,27 +19349,29 @@ async function updateUserUI(u) {
   }
 
 
-  function mostrarBtnInstalar() {
+function mostrarBtnInstalar() {
 
     const btn = obtenerBtnInstalar();
 
     if(!btn) return;
 
 
-    // Si ya está instalada nunca mostrar
+    if(
+        esStandalone()
+        ||
+        yaFueInstalada()
+    ){
 
-    if(esStandalone()){
+        ocultarBtnInstalar();
 
-      ocultarBtnInstalar();
-
-      return;
+        return;
 
     }
 
 
     btn.style.display = "flex";
 
-  }
+}
 
 
 
@@ -19403,16 +19415,20 @@ async function updateUserUI(u) {
   // CUANDO SE INSTALA
   // =====================================
 
-  window.addEventListener(
-    "appinstalled",
-    function(){
+window.addEventListener(
+"appinstalled",
+function(){
 
-      deferredPrompt = null;
+  deferredPrompt = null;
 
-      ocultarBtnInstalar();
-
-    }
+  localStorage.setItem(
+    "decomPwaInstalada",
+    "true"
   );
+
+  ocultarBtnInstalar();
+
+});
 
 
 
