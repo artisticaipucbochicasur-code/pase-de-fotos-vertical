@@ -10166,46 +10166,46 @@ if(!paraTodos){
     // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
     // =====================================
 
-    if(listaChatsCache[correoChat]){
+if(listaChatsCache[correoChat]){
 
 
-        // Tomar el último mensaje disponible,
-        // respetando el orden real del chat
+    // Buscar el último mensaje visible real
+    // respetando la conversación
 
-        const ultimoMensajeVisible =
-        cache.length > 0
-        ? cache[cache.length - 1]
-        : null;
-
-
-        if(ultimoMensajeVisible){
-
-            listaChatsCache[correoChat].ultimoMensaje =
-            ultimoMensajeVisible.mensaje || "";
+    const ultimoMensajeVisible =
+    [...cache]
+    .reverse()
+    .find(x => !estaOcultoParaMi(x.id));
 
 
-            listaChatsCache[correoChat].ultimaFecha =
-            ultimoMensajeVisible.created_at;
+    if(ultimoMensajeVisible){
+
+        listaChatsCache[correoChat].ultimoMensaje =
+        ultimoMensajeVisible.mensaje || "";
 
 
-        }else{
-
-            listaChatsCache[correoChat].ultimoMensaje = "";
-
-            listaChatsCache[correoChat].ultimaFecha = "";
-
-        }
+        listaChatsCache[correoChat].ultimaFecha =
+        ultimoMensajeVisible.created_at;
 
 
-        localStorage.setItem(
-            "listaChatsCache",
-            JSON.stringify(listaChatsCache)
-        );
+    }else{
 
+        listaChatsCache[correoChat].ultimoMensaje = "";
 
-        renderizarListaChats();
+        listaChatsCache[correoChat].ultimaFecha = "";
 
     }
+
+
+    localStorage.setItem(
+        "listaChatsCache",
+        JSON.stringify(listaChatsCache)
+    );
+
+
+    renderizarListaChats();
+
+}
 
 
     const burbuja =
