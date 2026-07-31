@@ -3039,6 +3039,10 @@ padding-bottom:env(safe-area-inset-bottom);
   overflow:hidden;
   min-width:180px;
   font-family:system-ui;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  touch-action:manipulation;
 ">
   <div id="btnMenuEditar" onclick="onClickEditarMensaje()" style="
     display:flex; align-items:center; gap:10px;
@@ -6461,6 +6465,14 @@ function crearBurbujaMensaje(m) {
 
 function actualizarContenidoBurbuja(div, m) {
 
+    if(m.id !== null && m.id !== undefined){
+        div.dataset.id = String(m.id);
+    }
+
+    if(m.de){
+        div.dataset.de = m.de;
+    }
+
     div.dataset.mensaje = m.mensaje || "";
     div.dataset.eliminado = m.eliminado ? "1" : "0";
     div.dataset.eliminadoParaTodos = m.eliminado_para_todos ? "1" : "0";
@@ -6510,6 +6522,75 @@ function escaparHtmlMensaje(texto) {
     const d = document.createElement("div");
     d.textContent = texto == null ? "" : texto;
     return d.innerHTML;
+}
+
+// Buscar una burbuja sin depender de CSS.escape (compatibilidad PWA/iOS).
+function obtenerBurbujaMensajePorId(id){
+
+    if(id === null || id === undefined) return null;
+
+    return Array.from(
+        document.querySelectorAll("#chatMensajes .mensaje")
+    ).find(
+        burbuja => String(burbuja.dataset.id) === String(id)
+    ) || null;
+
+}
+
+// Cuando Supabase confirma un mensaje recién enviado, actualiza la MISMA
+// burbuja temporal y deja asociados el ID y los datos reales.
+function sincronizarBurbujaTemporal(tempId, mensajeReal){
+
+    if(!mensajeReal || !mensajeReal.id) return;
+
+    const burbuja =
+    obtenerBurbujaMensajePorId(tempId) ||
+    obtenerBurbujaMensajePorId(mensajeReal.id);
+
+    if(!burbuja) return;
+
+    burbuja.dataset.id = String(mensajeReal.id);
+    burbuja.dataset.de = mensajeReal.de || burbuja.dataset.de || "";
+    delete burbuja.dataset.temp;
+
+    actualizarContenidoBurbuja(burbuja, mensajeReal);
+
+    // Si el menú ya estaba abierto mientras el mensaje seguía temporal,
+    // también reemplazar allí la referencia para que editar/eliminar funcione
+    // sin tener que cerrar y volver a abrir el chat.
+    if(
+        mensajeSeleccionadoMenu &&
+        (
+            String(mensajeSeleccionadoMenu.id) === String(tempId) ||
+            String(mensajeSeleccionadoMenu.id) === String(mensajeReal.id)
+        )
+    ){
+        mensajeSeleccionadoMenu = {
+            ...mensajeSeleccionadoMenu,
+            ...mensajeReal
+        };
+    }
+
+    if(
+        mensajeEnEdicion &&
+        String(mensajeEnEdicion.id) === String(tempId)
+    ){
+        mensajeEnEdicion = {
+            ...mensajeEnEdicion,
+            ...mensajeReal
+        };
+    }
+
+    if(
+        mensajeAReenviar &&
+        String(mensajeAReenviar.id) === String(tempId)
+    ){
+        mensajeAReenviar = {
+            ...mensajeAReenviar,
+            ...mensajeReal
+        };
+    }
+
 }
 
 
@@ -6939,8 +7020,12 @@ document.getElementById("chatEnviar").onclick = async () => {
         cache.findIndex(
 
             m =>
-            m.temporal === true &&
-            m.mensaje === txt
+            String(m.id) === String(tempId)
+            ||
+            (
+                String(m.id) === String(data.id) &&
+                m.mensaje === txt
+            )
 
         );
 
@@ -6965,7 +7050,23 @@ document.getElementById("chatEnviar").onclick = async () => {
             fecha:
             new Date(
                 data.fecha_creacion
-            ).toLocaleString()
+            ).toLocaleString(),
+
+
+            fechaOrden:
+            data.fecha_creacion,
+
+
+            fechaOriginal:
+            data.fecha_creacion,
+
+
+            temporal:false,
+            editado:data.editado || false,
+            eliminado:data.eliminado || false,
+            eliminado_para_todos:data.eliminado_para_todos || false,
+            reenviado:data.reenviado || false,
+            mensaje_original_id:data.mensaje_original_id || null
 
         };
 
@@ -7046,55 +7147,10 @@ document.getElementById("chatEnviar").onclick = async () => {
 // REEMPLAZAR MENSAJE TEMPORAL VISUAL
 // =====================================
 
-const burbujas =
-document.querySelectorAll(
-    "#chatMensajes > div"
+sincronizarBurbujaTemporal(
+    tempId,
+    mensajeReal
 );
-
-
-
-burbujas.forEach(b=>{
-
-
-    const contenido =
-    b.querySelector("div");
-
-
-    const hora =
-    b.querySelector("small");
-
-
-
-    if(
-        contenido &&
-        contenido.textContent === txt &&
-        hora &&
-        hora.textContent.includes("Enviando")
-    ){
-
-
-        // actualizar la misma burbuja
-
-        hora.textContent =
-        mensajeReal.fecha;
-
-
-
-        b.dataset.id =
-        mensajeReal.id;
-
-
-
-        b.dataset.temp = "";
-
-
-
-        return;
-
-    }
-
-
-});
 
 
 
@@ -8628,85 +8684,57 @@ document.getElementById(
 
 function confirmarMensajeRealtime(nuevo){
 
+    if(!nuevo || !chatConUsuario) return;
 
     const cache =
     chatCache[chatConUsuario.correo] || [];
 
-
-
-    const temporal =
-    cache.find(m=>
-
+    // Tomar el temporal más reciente que coincida. Esto evita confirmar
+    // por error un mensaje antiguo cuando se envía el mismo texto.
+    const temporal = [...cache]
+    .reverse()
+    .find(m =>
         m.id &&
-        m.id.startsWith("temp_") &&
-
+        String(m.id).startsWith("temp_") &&
         m.mensaje === nuevo.mensaje
-
     );
 
+    if(!temporal) return;
 
+    const tempId = temporal.id;
 
-    if(!temporal)
-        return;
+    const mensajeReal = {
+        ...temporal,
+        id:nuevo.id,
+        mensaje:nuevo.mensaje,
+        fecha:new Date(nuevo.fecha_creacion).toLocaleString(),
+        fechaOrden:nuevo.fecha_creacion,
+        fechaOriginal:nuevo.fecha_creacion,
+        temporal:false,
+        estado:"enviado",
+        editado:nuevo.editado || false,
+        eliminado:nuevo.eliminado || false,
+        eliminado_para_todos:nuevo.eliminado_para_todos || false,
+        reenviado:nuevo.reenviado || false,
+        mensaje_original_id:nuevo.mensaje_original_id || null
+    };
 
+    Object.assign(temporal, mensajeReal);
 
-
-    temporal.id = nuevo.id;
-
-
-    temporal.fecha =
-    new Date(
-        nuevo.fecha_creacion
-    ).toLocaleString();
-
-
-
-    temporal.estado =
-    "enviado";
-
-
-
-    // Actualizar solamente la hora visual
-
-    const mensajes =
-    document.querySelectorAll(
-        "#chatMensajes small"
+    sincronizarBurbujaTemporal(
+        tempId,
+        mensajeReal
     );
-
-
-    mensajes.forEach(s=>{
-
-
-        if(
-            s.textContent.includes(
-                "Enviando"
-            )
-        ){
-
-            s.textContent =
-            temporal.fecha;
-
-        }
-
-
-    });
-
-
 
     guardarChatLocal(
-
         chatConUsuario.correo,
-
         cache
-
     );
-
 
     console.log(
         "✅ Mensaje temporal confirmado",
-        temporal
+        mensajeReal
     );
-
 
 }
 
@@ -9767,15 +9795,52 @@ function adjuntarEventosMensaje(div, m){
     let startX = 0;
     let startY = 0;
     let cancelado = false;
+    let ultimoTouch = 0;
+
+    // No usar directamente el objeto capturado "m": al enviar un mensaje
+    // ese objeto comienza con un ID temp_ y luego Supabase entrega el ID real.
+    // Siempre resolvemos el objeto vigente usando el data-id de la burbuja.
+    const resolverMensajeActual = () => {
+
+        const actual =
+        obtenerMensajeActualDelChat(div.dataset.id);
+
+        if(actual) return actual;
+
+        return {
+            ...m,
+            id:div.dataset.id || m.id,
+            de:div.dataset.de || m.de,
+            mensaje:div.dataset.mensaje || m.mensaje,
+            editado:div.dataset.editado === "1",
+            eliminado:div.dataset.eliminado === "1",
+            eliminado_para_todos:
+            div.dataset.eliminadoParaTodos === "1",
+            reenviado:div.dataset.reenviado === "1"
+        };
+
+    };
+
+    const abrirMenuActual = (x, y) => {
+
+        const mensajeActual = resolverMensajeActual();
+
+        if(!mensajeActual || !mensajeActual.id) return;
+
+        abrirMenuMensaje(x, y, mensajeActual);
+
+    };
 
     const iniciar = (x, y) => {
         cancelado = false;
         startX = x;
         startY = y;
 
+        clearTimeout(pressTimer);
+
         pressTimer = setTimeout(() => {
             if(!cancelado){
-                abrirMenuMensaje(x, y, m);
+                abrirMenuActual(x, y);
             }
         }, 450);
     };
@@ -9783,6 +9848,7 @@ function adjuntarEventosMensaje(div, m){
     const cancelar = () => {
         cancelado = true;
         clearTimeout(pressTimer);
+        pressTimer = null;
     };
 
     const moverCancela = (x, y) => {
@@ -9794,7 +9860,15 @@ function adjuntarEventosMensaje(div, m){
         }
     };
 
+    div.style.webkitUserSelect = "none";
+    div.style.webkitTouchCallout = "none";
+
+    div.addEventListener("selectstart", (e) => {
+        e.preventDefault();
+    });
+
     div.addEventListener("touchstart", (e) => {
+        ultimoTouch = Date.now();
         const t = e.touches[0];
         iniciar(t.clientX, t.clientY);
     }, { passive:true });
@@ -9808,6 +9882,9 @@ function adjuntarEventosMensaje(div, m){
     div.addEventListener("touchcancel", cancelar);
 
     div.addEventListener("mousedown", (e) => {
+        // Evita el evento mouse fantasma que algunos móviles disparan
+        // inmediatamente después de touchend.
+        if(Date.now() - ultimoTouch < 800) return;
         iniciar(e.clientX, e.clientY);
     });
 
@@ -9821,7 +9898,8 @@ function adjuntarEventosMensaje(div, m){
     // Evitar el menú contextual nativo del navegador (click derecho)
     div.addEventListener("contextmenu", (e) => {
         e.preventDefault();
-        abrirMenuMensaje(e.clientX, e.clientY, m);
+        cancelar();
+        abrirMenuActual(e.clientX, e.clientY);
     });
 
 }
@@ -10073,9 +10151,8 @@ async function confirmarEliminarMensaje(paraTodos){
             guardarChatLocal(correoChat, cache);
         }
 
-        const burbuja = document.querySelector(
-            `#chatMensajes [data-id="${CSS.escape(String(m.id))}"]`
-        );
+        const burbuja =
+        obtenerBurbujaMensajePorId(m.id);
 
         if(burbuja) burbuja.remove();
 
@@ -10168,7 +10245,9 @@ function aplicarActualizacionMensaje(actualizado){
     if(chatConUsuario){
 
         const cache = chatCache[chatConUsuario.correo] || [];
-        const idx = cache.findIndex(x => x.id === actualizado.id);
+        const idx = cache.findIndex(
+            x => String(x.id) === String(actualizado.id)
+        );
 
         if(idx !== -1){
 
@@ -10178,7 +10257,7 @@ function aplicarActualizacionMensaje(actualizado){
 
             // Actualizar visualmente la burbuja si está en pantalla
             const burbuja =
-            document.querySelector(`#chatMensajes [data-id="${CSS.escape(String(actualizado.id))}"]`);
+            obtenerBurbujaMensajePorId(actualizado.id);
 
             if(burbuja){
 
@@ -10194,7 +10273,8 @@ function aplicarActualizacionMensaje(actualizado){
 
         // Actualizar la vista previa de la lista si era el último mensaje
         const esUltimoDeLaLista =
-        listaChatsCache[chatConUsuario.correo]?.id === actualizado.id;
+        String(listaChatsCache[chatConUsuario.correo]?.id) ===
+        String(actualizado.id);
 
         if(esUltimoDeLaLista){
 
@@ -10219,7 +10299,10 @@ function aplicarActualizacionMensaje(actualizado){
 
     // Si el mensaje que se estaba editando fue el que cambió
     // (por ejemplo editado desde otro dispositivo), cancelar edición local
-    if(mensajeEnEdicion && mensajeEnEdicion.id === actualizado.id){
+    if(
+        mensajeEnEdicion &&
+        String(mensajeEnEdicion.id) === String(actualizado.id)
+    ){
         cancelarEdicionMensaje();
     }
 
