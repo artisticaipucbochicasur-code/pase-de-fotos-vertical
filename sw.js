@@ -53,7 +53,8 @@ self.addEventListener("push", (event) => {
 
   // ✅ Normalizamos a URL absoluta
 
-  const rawUrl = data.url || "/feed.html";
+  const rawUrl = data.url || "/fotos.html";
+
 
   const targetUrl = new URL(
     rawUrl,
@@ -104,12 +105,12 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
 
-  // Si no viene URL, mandamos al feed
+  // Si no viene URL, mandamos a fotos.html
 
   const raw =
     (event.notification.data &&
      event.notification.data.url)
-     || "/feed.html";
+     || "/fotos.html";
 
 
   const targetUrl = new URL(
@@ -135,9 +136,6 @@ self.addEventListener("notificationclick", (event) => {
 
       // ✅ Si ya hay una ventana abierta:
       // SOLO focus + postMessage
-      //
-      // ❌ NO navigate
-      // (evita doble header)
 
       for (const client of allClients) {
 
@@ -155,7 +153,7 @@ self.addEventListener("notificationclick", (event) => {
 
 
 
-            // Le decimos al FEED qué abrir
+            // Le enviamos la acción a fotos.html
 
             client.postMessage({
 
@@ -179,7 +177,7 @@ self.addEventListener("notificationclick", (event) => {
 
 
       // ✅ Si NO hay ventana:
-      // abrimos UNA sola vez feed.html con open
+      // abre directamente fotos.html
 
 
       const openParam =
@@ -190,7 +188,7 @@ self.addEventListener("notificationclick", (event) => {
 
       const openUrl =
         new URL(
-          `feed.html?open=${openParam}`,
+          `fotos.html?open=${openParam}`,
           self.registration.scope
         ).href;
 
