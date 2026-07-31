@@ -10137,19 +10137,25 @@ async function confirmarEliminarMensaje(paraTodos){
     const esMio = m.de === usuarioActual.correo;
 
 // ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
+// ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
 if(!paraTodos){ 
 
     ocultarMensajeLocalmente(m.id);
 
     const cache = chatCache[correoChat] || [];
 
-    const idx = cache.findIndex(
+
+    // Guardar posición del mensaje eliminado
+    const posicionEliminado = cache.findIndex(
         x => String(x.id) === String(m.id)
     );
 
-    if(idx !== -1){
 
-        cache.splice(idx, 1);
+    if(posicionEliminado !== -1){
+
+        cache.splice(posicionEliminado, 1);
+
+        console.log(cache);
 
         guardarChatLocal(correoChat, cache);
 
@@ -10158,33 +10164,32 @@ if(!paraTodos){
 
     // =====================================
     // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
-    // CUANDO SE ELIMINA SOLO PARA MÍ
     // =====================================
 
     if(listaChatsCache[correoChat]){
 
-        // Buscar el último mensaje que aún existe
-        const mensajesRestantes = cache
-        .filter(x => !estaOcultoParaMi(x.id))
-        .sort((a,b)=>
-            new Date(b.created_at) - new Date(a.created_at)
-        );
+
+        // Tomar el último mensaje disponible,
+        // respetando el orden real del chat
+
+        const ultimoMensajeVisible =
+        cache.length > 0
+        ? cache[cache.length - 1]
+        : null;
 
 
-        if(mensajesRestantes.length > 0){
-
-            const ultimo = mensajesRestantes[0];
+        if(ultimoMensajeVisible){
 
             listaChatsCache[correoChat].ultimoMensaje =
-            ultimo.mensaje || "";
+            ultimoMensajeVisible.mensaje || "";
+
 
             listaChatsCache[correoChat].ultimaFecha =
-            ultimo.created_at;
+            ultimoMensajeVisible.created_at;
 
 
         }else{
 
-            // Si ya no quedan mensajes visibles
             listaChatsCache[correoChat].ultimoMensaje = "";
 
             listaChatsCache[correoChat].ultimaFecha = "";
