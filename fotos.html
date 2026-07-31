@@ -30,7 +30,9 @@
 
   <title>DECOM - Fotos</title>
 
-  
+  <script>
+alert("ESTOY EJECUTANDO FOTOS.HTML VERSION NUEVA");
+</script>
   <style>
     body {
         margin: 0;
@@ -1190,7 +1192,7 @@ body {
 
   /* 🔹 Botón instalar PWA (elegante, visible pero no exagerado) */
 .install-btn {
-  display: inline-flex !important;
+  display: none;
   align-items: center;
   justify-content: center;
 
@@ -19346,13 +19348,9 @@ function esStandalone() {
         ||
         window.matchMedia("(display-mode: fullscreen)").matches
         ||
-        window.matchMedia("(display-mode: minimal-ui)").matches
-        ||
         window.navigator.standalone === true
         ||
-        document.referrer.includes("android-app://")
-        ||
-        window.location.search.includes("utm_source=pwa")
+        document.referrer.startsWith("android-app://")
     );
 
 }
@@ -19404,13 +19402,7 @@ function mostrarBtnInstalar() {
     }
 
 
-   if(
-    !esStandalone()
-){
-
     btn.style.display = "flex";
-
-}
 
 }
 
@@ -19594,25 +19586,6 @@ if ("serviceWorker" in navigator) {
  document.referrer
 );
 
-
-alert(
-"standalone: " + 
-window.matchMedia("(display-mode: standalone)").matches
-+
-"\nfullscreen: " +
-window.matchMedia("(display-mode: fullscreen)").matches
-+
-"\nminimal: " +
-window.matchMedia("(display-mode: minimal-ui)").matches
-+
-"\nreferrer: " +
-document.referrer
-+
-"\nURL: " +
-window.location.href
-);
-
-
         navigator.serviceWorker.register("sw.js")
         .then(registration => {
 
@@ -19636,140 +19609,6 @@ window.location.href
     });
 
 }
-
-
-
-</script>
-
-<script>
-
-(async()=>{
-
-
-alert("🚀 INICIANDO LIMPIEZA DE DECOM");
-
-
-/*
-=====================================
-1. REVISAR SERVICE WORKERS ACTIVOS
-=====================================
-*/
-
-if("serviceWorker" in navigator){
-
-    const registrations =
-        await navigator.serviceWorker.getRegistrations();
-
-
-    alert(
-        "Service Workers encontrados: "
-        + registrations.length
-    );
-
-
-    for(const registration of registrations){
-
-        alert(
-            "Eliminando SW:\n\n" +
-            registration.scope
-        );
-
-
-        await registration.unregister();
-
-    }
-
-}else{
-
-    alert(
-        "Este navegador no soporta Service Worker"
-    );
-
-}
-
-
-
-/*
-=====================================
-2. LIMPIAR CACHE
-=====================================
-*/
-
-if(window.caches){
-
-    const cacheNames =
-        await caches.keys();
-
-
-    alert(
-        "Caches encontrados: "
-        + cacheNames.length
-    );
-
-
-    for(const cache of cacheNames){
-
-        alert(
-            "Eliminando cache:\n\n" +
-            cache
-        );
-
-
-        await caches.delete(cache);
-
-    }
-
-}
-
-
-
-/*
-=====================================
-3. LIMPIAR MARCAS LOCALES
-=====================================
-*/
-
-localStorage.removeItem(
-    "decomPwaInstalada"
-);
-
-
-alert(
-    "LocalStorage limpiado"
-);
-
-
-
-/*
-=====================================
-4. ESTADO ACTUAL DE LA APP
-=====================================
-*/
-
-
-alert(
-"Estado final:\n\n" +
-
-"URL:\n" +
-window.location.href +
-
-"\n\nStandalone:\n" +
-window.matchMedia("(display-mode: standalone)").matches +
-
-"\n\nReferrer:\n" +
-document.referrer
-
-);
-
-
-
-alert(
-"✅ LIMPIEZA TERMINADA.\n\nAhora cierre completamente Chrome y vuelva a abrir."
-);
-
-
-
-})();
 
 </script>
 </body>
