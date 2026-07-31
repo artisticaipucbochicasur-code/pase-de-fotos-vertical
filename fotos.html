@@ -10136,31 +10136,76 @@ async function confirmarEliminarMensaje(paraTodos){
     const correoChat = chatConUsuario?.correo;
     const esMio = m.de === usuarioActual.correo;
 
-    // ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
-    if(!paraTodos){
+// ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
+if(!paraTodos){
 
-        ocultarMensajeLocalmente(m.id);
+    ocultarMensajeLocalmente(m.id);
 
-        const cache = chatCache[correoChat] || [];
-        const idx = cache.findIndex(
-            x => String(x.id) === String(m.id)
-        );
+    const cache = chatCache[correoChat] || [];
 
-        if(idx !== -1){
-            cache.splice(idx, 1);
-            guardarChatLocal(correoChat, cache);
-        }
+    const idx = cache.findIndex(
+        x => String(x.id) === String(m.id)
+    );
 
-        const burbuja =
-        obtenerBurbujaMensajePorId(m.id);
+    if(idx !== -1){
 
-        if(burbuja) burbuja.remove();
+        cache.splice(idx, 1);
 
-        mensajeSeleccionadoMenu = null;
-        mostrarAviso("Mensaje eliminado para ti");
-        return;
+        guardarChatLocal(correoChat, cache);
 
     }
+
+
+    // =====================================
+    // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
+    // CUANDO SE ELIMINA PARA MÍ
+    // =====================================
+
+    if(listaChatsCache[correoChat]){
+
+        const mensajesVisibles = cache
+        .filter(x => !estaOcultoParaMi(x.id))
+        .sort((a,b)=>
+            new Date(b.created_at) -
+            new Date(a.created_at)
+        );
+
+
+        if(mensajesVisibles.length > 0){
+
+            const ultimo = mensajesVisibles[0];
+
+
+            listaChatsCache[correoChat].ultimoMensaje =
+            ultimo.mensaje || "";
+
+
+            listaChatsCache[correoChat].ultimaFecha =
+            ultimo.created_at;
+
+
+        }else{
+
+            listaChatsCache[correoChat].ultimoMensaje = "";
+
+            listaChatsCache[correoChat].ultimaFecha = "";
+
+        }
+
+
+        localStorage.setItem(
+            "listaChatsCache",
+            JSON.stringify(listaChatsCache)
+        );
+
+
+        renderizarListaChats();
+
+    }
+
+
+
+    const
 
     // ELIMINAR PARA TODOS: borrado lógico mediante UPDATE
     if(!esMio){
