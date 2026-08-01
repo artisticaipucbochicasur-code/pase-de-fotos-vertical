@@ -1614,7 +1614,10 @@ body:not(.dark-mode) .chat-list-nombre {
 }
 
 
-
+/* Permitir swipe vertical aunque exista iframe YouTube */
+.swiper-slide.video iframe{
+    pointer-events: none;
+}
 
 
   </style>
@@ -15113,9 +15116,13 @@ function obtenerIdAnuncioActivo(){
 
 function crearSlideAnuncio(anuncio){
 
-    const slide = document.createElement("div");
-    slide.classList.add("swiper-slide");
-    slide.dataset.id = String(anuncio.id);
+   const slide = document.createElement("div");
+slide.classList.add("swiper-slide");
+slide.dataset.id = String(anuncio.id);
+
+if(anuncio.tipo_media === "video"){
+    slide.classList.add("video");
+}
 
     const zoomContainer = document.createElement("div");
     zoomContainer.classList.add("swiper-zoom-container");
@@ -15135,6 +15142,11 @@ function crearSlideAnuncio(anuncio){
         "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
 
         iframe.allowFullscreen = true;
+
+        iframe.setAttribute(
+    "playsinline",
+    "true"
+);
 
         iframe.style.width = "100%";
         iframe.style.height = "100%";
@@ -16426,6 +16438,7 @@ function initSwiper(initialIndex = 0) {
             direction: 'vertical',
             slidesPerView: 1,
             spaceBetween: 10,
+            touchStartPreventDefault:false,
             zoom: { 
                 maxRatio: 3, 
                 minRatio: 1 
