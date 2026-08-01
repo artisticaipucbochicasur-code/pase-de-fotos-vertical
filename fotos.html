@@ -5818,8 +5818,12 @@ async function precargarTodosLosChats(){
 
 
 
-            ultimoMensaje:
-            ultimo.mensaje,
+         ultimoMensaje:
+estaOcultoParaMi(ultimo.id)
+?
+""
+:
+ultimo.mensaje,
 
 
 
@@ -8561,7 +8565,32 @@ text-overflow:ellipsis;
 white-space:nowrap;
 max-width:220px;
 ">
-${data.ultimoMensaje}
+${
+(() => {
+
+    const mensajes =
+    data.mensajes || [];
+
+
+    const visibles =
+    mensajes.filter(m =>
+        !estaOcultoParaMi(m.id)
+    );
+
+
+    if(visibles.length > 0){
+
+        return visibles[
+            visibles.length - 1
+        ].mensaje;
+
+    }
+
+
+    return "";
+
+})()
+}
 </div>
 
 
