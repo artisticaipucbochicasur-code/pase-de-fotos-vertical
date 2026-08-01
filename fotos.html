@@ -15218,27 +15218,31 @@ function actualizarPublicacionLocal(pub, opciones = {}){
     }
 
     const anterior = anunciosData[indice];
-    const actualizado = normalizarPublicacionAnuncio({
-        id: anterior.id,
-        titulo: pub.titulo ?? anterior.titulo,
-        descripcion: pub.descripcion ?? anterior.descripcion,
-        url_media: pub.url_media ?? pub.url ?? anterior.url,
-        correo: pub.correo ?? anterior.correo,
-        autor: pub.autor ?? anterior.autor,
-        fecha_creacion: pub.fecha_creacion ?? pub.fecha ?? anterior.fecha,
-        tipo_media: pub.tipo_media ?? anterior.tipo_media
-    });
+const actualizado = normalizarPublicacionAnuncio({
+    id: anterior.id,
+    titulo: pub.titulo ?? anterior.titulo,
+    descripcion: pub.descripcion ?? anterior.descripcion,
+    url_media: pub.url_media ?? pub.url ?? anterior.url,
+    correo: pub.correo ?? anterior.correo,
+    autor: pub.autor ?? anterior.autor,
+    fecha_creacion: pub.fecha_creacion ?? pub.fecha ?? anterior.fecha,
+    tipo_media: pub.tipo_media ?? anterior.tipo_media,
+    youtube_id: pub.youtube_id ?? anterior.youtube_id ?? "",
+    thumbnail: pub.thumbnail ?? anterior.thumbnail ?? ""
+});
 
     if(!actualizado) return false;
 
-    const sinCambios =
-        anterior.titulo === actualizado.titulo &&
-        anterior.descripcion === actualizado.descripcion &&
-        anterior.url === actualizado.url &&
-        anterior.correo === actualizado.correo &&
-        anterior.autor === actualizado.autor &&
-        anterior.fecha === actualizado.fecha &&
-        anterior.tipo_media === actualizado.tipo_media;
+const sinCambios =
+    anterior.titulo === actualizado.titulo &&
+    anterior.descripcion === actualizado.descripcion &&
+    anterior.url === actualizado.url &&
+    anterior.correo === actualizado.correo &&
+    anterior.autor === actualizado.autor &&
+    anterior.fecha === actualizado.fecha &&
+    anterior.tipo_media === actualizado.tipo_media &&
+    anterior.youtube_id === actualizado.youtube_id &&
+    anterior.thumbnail === actualizado.thumbnail;
 
     if(sinCambios) return false;
 
