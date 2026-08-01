@@ -12569,9 +12569,9 @@ savedSearchInputEl.addEventListener("blur", () => {
     
 
     let swiperInstance = null;
-    let contadorTotalAnterior = -1;
     let contadorAcumulado = 0;
-    let nuevosTitulos = []; 
+    // Ahora cada notificación conserva el ID real de Supabase para abrir el anuncio correcto.
+    let nuevosTitulos = []; // [{ id, titulo, fecha }]
     const loader = document.getElementById('loader');
     const lblContador = document.getElementById("lblContador");
 
@@ -13701,125 +13701,220 @@ function normalizarComentarios(lista) {
 
 }
 
-    const INTERVALO_VERIFICACION = 5000;
+    // =====================================================
+    // 🔔 NOTIFICACIONES DE ANUNCIOS CON SUPABASE
+    // Reemplaza por completo el contador del antiguo Google Script.
+    // =====================================================
 
-   // Evento para mostrar los títulos de nuevos anuncios al pulsar el botón
-lblContador.addEventListener("click", () => {
-    if (nuevosTitulos.length === 0) {
-        showCustommostrarAviso("Nuevos anuncios", []);
-    } else {
-        showCustommostrarAviso("Nuevos anuncios", nuevosTitulos);
+    const NOTIF_ANUNCIOS_CURSOR = "ultimaPublicacionRevisadaSupabase";
+    const NOTIF_ANUNCIOS_LISTA = "notificacionesAnunciosSupabase";
+
+    function obtenerCorreoNotificaciones() {
+        try {
+            const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+            return normalizeText(
+                usuario?.correo ||
+                localStorage.getItem("correo") ||
+                currentAuthorEmail ||
+                "anonimo"
+            );
+        } catch (e) {
+            return normalizeText(
+                localStorage.getItem("correo") ||
+                currentAuthorEmail ||
+                "anonimo"
+            );
+        }
     }
-});
 
-// 🔹 Guardamos los IDs ya vistos
-let anunciosVistosIds = new Set();
+    function claveNotificaciones(base) {
+        return `${base}_${obtenerCorreoNotificaciones()}`;
+    }
 
-// Modificamos actualizarContador para guardar títulos nuevos
-// Modificamos actualizarContador para actualizar ambos botones
-async function actualizarContador() {
-    try {
-        const response = await fetch(`${SCRIPT_URL}?accion=obtenerContador`);
-        const data = await response.json();
-        const totalActual = data.contador || 0;
-        const notificationCount = document.getElementById('notificationCount');
-        const imagesNotificationCount = document.getElementById('imagesNotificationCount');
+    function cargarNotificacionesGuardadas() {
+        try {
+            const guardadas = JSON.parse(
+                localStorage.getItem(claveNotificaciones(NOTIF_ANUNCIOS_LISTA)) || "[]"
+            );
 
-        if (contadorTotalAnterior === -1) {
-            contadorTotalAnterior = totalActual;
+            nuevosTitulos = Array.isArray(guardadas)
+                ? guardadas.filter(item => item && item.id)
+                : [];
+        } catch (e) {
+            console.warn("No se pudieron recuperar las notificaciones de anuncios:", e);
+            nuevosTitulos = [];
         }
 
-        // === DETECTAR NUEVOS ANUNCIOS ===
-        if (totalActual !== contadorTotalAnterior) {
-            const diferencia = totalActual - contadorTotalAnterior;
-            if (diferencia > 0) {
-               supabase
-.from("publicaciones")
-.select("*")
-                const dataAnuncios = await responseAnuncios.json();
-                const ultimosIds = dataAnuncios.id.slice(-diferencia);
-                const ultimosTitulos = dataAnuncios.titulo.slice(-diferencia);
-                const nuevos = [];
-                ultimosIds.forEach((id, idx) => {
-                    if (!anunciosVistosIds.has(id)) {
-                        nuevos.push(ultimosTitulos[idx]);
-                        anunciosVistosIds.add(id);
-                    }
-                });
-                if (nuevos.length > 0) {
-                    nuevosTitulos = [...nuevos.reverse(), ...nuevosTitulos];
-                    nuevosTitulos = [...new Set(nuevosTitulos)];
-                    contadorAcumulado = nuevosTitulos.length;
-                    cargarImagenes(true);
-                }
-            } else if (diferencia < 0) {
-                contadorAcumulado = 0;
-                nuevosTitulos = [];
-                anunciosVistosIds.clear();
-                cargarImagenes(true);
-            }
-            contadorTotalAnterior = totalActual;
-        }
+        contadorAcumulado = nuevosTitulos.length;
+        actualizarBadgesAnuncios();
+    }
 
-        // === ACTUALIZAR BADGE EN AMBOS BOTONES ===
+    function guardarNotificacionesAnuncios() {
+        contadorAcumulado = nuevosTitulos.length;
+
+        localStorage.setItem(
+            claveNotificaciones(NOTIF_ANUNCIOS_LISTA),
+            JSON.stringify(nuevosTitulos)
+        );
+
+        // Se conserva esta clave porque otras vistas de la app ya la consultan.
+        localStorage.setItem("nuevosAnunciosCount", String(contadorAcumulado));
+
+        actualizarBadgesAnuncios();
+    }
+
+    function actualizarBadgesAnuncios() {
+        const notificationCount = document.getElementById("notificationCount");
+        const imagesNotificationCount = document.getElementById("imagesNotificationCount");
         const mostrarBadge = contadorAcumulado > 0;
 
-        // Campana
         if (notificationCount) {
             notificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
             notificationCount.style.display = mostrarBadge ? "flex" : "none";
-            const icon = document.querySelector("#lblContador i");
-            if (icon) icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
         }
 
-        // Botón Imágenes
         if (imagesNotificationCount) {
             imagesNotificationCount.textContent = mostrarBadge ? contadorAcumulado : "";
             imagesNotificationCount.style.display = mostrarBadge ? "flex" : "none";
         }
-      // === AL FINAL DE LA FUNCIÓN ===
-localStorage.setItem("nuevosAnunciosCount", contadorAcumulado);
 
-    } catch (e) {
-        console.error("Error al obtener contador:", e);
-    }
-}
-
-setInterval(actualizarContador, INTERVALO_VERIFICACION);
-
-
-
-// ✅ Polling: detectar cambios por edición de anuncios (timestamp global)
-let ultimaActualizacionAnunciosAnterior = "";
-
-// ✅ Saber si hubo cambios (edición/actualización) y refrescar en segundo plano
-async function verificarActualizacionAnuncios() {
-  try {
-    const resp = await fetch(`${SCRIPT_URL}?accion=ultimaActualizacionAnuncios`);
-    const json = await resp.json();
-    const ts = (json.timestamp || "").toString();
-
-    // Primera vez: solo guardar
-    if (!ultimaActualizacionAnunciosAnterior) {
-      ultimaActualizacionAnunciosAnterior = ts;
-      return;
+        const icon = document.querySelector("#lblContador i");
+        if (icon) {
+            icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
+        }
     }
 
-    // Si cambió: recargar anuncios manteniendo el slide actual (tu cargarImagenes ya lo hace)
-    if (ts && ts !== ultimaActualizacionAnunciosAnterior) {
-      console.log("📝 Cambio detectado en anuncios (edición), recargando en segundo plano...");
-      ultimaActualizacionAnunciosAnterior = ts;
+    function registrarNuevoAnuncioSupabase(publicacion) {
+        if (!publicacion?.id) return;
 
-      // Recarga lista + overlay sin cerrar app
-      await cargarImagenes(true);
+        // Esta pantalla corresponde a anuncios con imagen.
+        if (publicacion.tipo_media && publicacion.tipo_media !== "imagen") return;
+
+        const id = String(publicacion.id);
+        const yaExiste = nuevosTitulos.some(item => String(item.id) === id);
+
+        if (!yaExiste) {
+            nuevosTitulos.unshift({
+                id,
+                titulo: publicacion.titulo || "Anuncio sin título",
+                fecha: publicacion.fecha_creacion || new Date().toISOString()
+            });
+
+            guardarNotificacionesAnuncios();
+        }
+
+        if (publicacion.fecha_creacion) {
+            localStorage.setItem(
+                claveNotificaciones(NOTIF_ANUNCIOS_CURSOR),
+                publicacion.fecha_creacion
+            );
+        }
     }
-  } catch (e) {
-    console.error("Error verificando ultimaActualizacionAnuncios:", e);
-  }
-}
 
-// ⏱️ Usa el mismo intervalo que ya manejas (5s)
-setInterval(verificarActualizacionAnuncios, INTERVALO_VERIFICACION);
+    function marcarAnuncioComoVisto(id) {
+        const idBuscado = String(id || "");
+
+        nuevosTitulos = nuevosTitulos.filter(
+            item => String(item.id) !== idBuscado
+        );
+
+        guardarNotificacionesAnuncios();
+    }
+
+    function eliminarNotificacionAnuncio(id) {
+        const antes = nuevosTitulos.length;
+        nuevosTitulos = nuevosTitulos.filter(
+            item => String(item.id) !== String(id)
+        );
+
+        if (nuevosTitulos.length !== antes) {
+            guardarNotificacionesAnuncios();
+        }
+    }
+
+    async function irAAnuncioNotificado(id) {
+        if (!id) return false;
+
+        let selectedIndex = anunciosData.findIndex(
+            anuncio => String(anuncio.id) === String(id)
+        );
+
+        // Si el anuncio llegó por Realtime antes de terminar de reconstruir el Swiper,
+        // se vuelve a cargar desde Supabase y luego se busca nuevamente por ID.
+        if (selectedIndex === -1) {
+            await cargarImagenes(true);
+            selectedIndex = anunciosData.findIndex(
+                anuncio => String(anuncio.id) === String(id)
+            );
+        }
+
+        if (selectedIndex === -1 || !swiperInstance) {
+            showInfoDialog("Anuncio no disponible", "El anuncio ya no está disponible.");
+            eliminarNotificacionAnuncio(id);
+            return false;
+        }
+
+        swiperInstance.slideToLoop(selectedIndex, 500);
+        marcarAnuncioComoVisto(id);
+
+        setTimeout(() => {
+            const titleElement = document.getElementById("currentTitle");
+            if (!titleElement) return;
+
+            titleElement.classList.remove("highlight-title-zoom");
+            void titleElement.offsetWidth;
+            titleElement.classList.add("highlight-title-zoom");
+
+            setTimeout(() => {
+                titleElement.classList.remove("highlight-title-zoom");
+            }, 1500);
+        }, 600);
+
+        return true;
+    }
+
+    async function inicializarNotificacionesSupabase() {
+        cargarNotificacionesGuardadas();
+
+        const claveCursor = claveNotificaciones(NOTIF_ANUNCIOS_CURSOR);
+        const cursorGuardado = localStorage.getItem(claveCursor);
+
+        try {
+            // Primera ejecución después de migrar: tomar el anuncio más reciente
+            // como punto de partida, sin convertir todo el historial en notificaciones.
+            if (!cursorGuardado) {
+                const { data, error } = await supabaseClient
+                    .from("publicaciones")
+                    .select("id,titulo,fecha_creacion,tipo_media")
+                    .order("fecha_creacion", { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                const ultimaFecha = data?.[0]?.fecha_creacion || new Date().toISOString();
+                localStorage.setItem(claveCursor, ultimaFecha);
+                return;
+            }
+
+            // Recuperar también anuncios creados mientras la app estuvo cerrada.
+            const { data, error } = await supabaseClient
+                .from("publicaciones")
+                .select("id,titulo,fecha_creacion,tipo_media")
+                .gt("fecha_creacion", cursorGuardado)
+                .order("fecha_creacion", { ascending: true });
+
+            if (error) throw error;
+
+            (data || []).forEach(registrarNuevoAnuncioSupabase);
+
+            const ultimaFecha = data?.[data.length - 1]?.fecha_creacion;
+            if (ultimaFecha) {
+                localStorage.setItem(claveCursor, ultimaFecha);
+            }
+        } catch (e) {
+            console.error("Error inicializando notificaciones desde Supabase:", e);
+        }
+    }
 
 
 
@@ -14299,6 +14394,8 @@ function iniciarRealtimeSupabase(){
         if(tipo === "INSERT"){
 
 
+            registrarNuevoAnuncioSupabase(payload.new);
+
             await cargarImagenes(true);
 
 
@@ -14376,6 +14473,8 @@ function iniciarRealtimeSupabase(){
 
             const eliminado =
             payload.old.id;
+
+            eliminarNotificacionAnuncio(eliminado);
 
 
 
@@ -15800,58 +15899,57 @@ function showCustommostrarAviso(title, titlesList) {
     const mostrarAvisoDiv = overlay.querySelector('.custom-mostrarAviso');
     const mostrarAvisoTitle = document.getElementById('mostrarAvisoTitle');
     const mostrarAvisoMessage = document.getElementById('mostrarAvisoMessage');
-    const notificationCount = document.getElementById('notificationCount'); // span del contador
 
     mostrarAvisoDiv.className = 'custom-mostrarAviso';
     mostrarAvisoMessage.innerHTML = '';
-
     mostrarAvisoTitle.textContent = title;
 
-    if (titlesList.length > 0) {
+    const items = Array.isArray(titlesList) ? titlesList : [];
+
+    if (items.length > 0) {
         const list = document.createElement('ul');
         list.className = 'titles-list';
-        titlesList.forEach((titulo, index) => {
+
+        items.forEach((item) => {
+            const notificacion = typeof item === 'string'
+                ? { id: null, titulo: item }
+                : item;
+
             const li = document.createElement('li');
-            li.textContent = titulo;
-            li.dataset.index = index;
-            li.addEventListener('click', () => {
-                const selectedIndex = anunciosData.findIndex(a => a.titulo === titulo);
-                if (selectedIndex !== -1 && swiperInstance) {
-                    // Desplazar al anuncio
-                    swiperInstance.slideToLoop(selectedIndex, 500);
+            li.textContent = notificacion.titulo || 'Anuncio sin título';
+            li.dataset.id = notificacion.id || '';
 
-                    // === EFECTO DE RESALTADO + ZOOM EN EL TÍTULO ===
-                    setTimeout(() => {
-                        const titleElement = document.getElementById('currentTitle');
-                        if (titleElement) {
-                            // Forzar reflow para reiniciar animación
-                            titleElement.classList.remove('highlight-title-zoom');
-                            void titleElement.offsetWidth;
-                            titleElement.classList.add('highlight-title-zoom');
+            li.addEventListener('click', async () => {
+                li.style.pointerEvents = 'none';
+                li.style.opacity = '0.65';
 
-                            // Quitar el efecto después de 1.5 segundos
-                            setTimeout(() => {
-                                titleElement.classList.remove('highlight-title-zoom');
-                            }, 1500);
-                        }
-                    }, 600); // Esperar a que termine el deslizamiento
+                let abierto = false;
 
-                    // === ACTUALIZAR CONTADOR ===
-                    nuevosTitulos.splice(nuevosTitulos.indexOf(titulo), 1);
-                    contadorAcumulado = nuevosTitulos.length;
-                    if (contadorAcumulado > 0) {
-                        notificationCount.textContent = contadorAcumulado;
-                        notificationCount.style.display = "flex";
-                    } else {
-                        notificationCount.textContent = "";
-                        notificationCount.style.display = "none";
+                if (notificacion.id) {
+                    abierto = await irAAnuncioNotificado(notificacion.id);
+                } else {
+                    // Compatibilidad con cualquier notificación antigua guardada solo por título.
+                    const selectedIndex = anunciosData.findIndex(
+                        anuncio => anuncio.titulo === notificacion.titulo
+                    );
+
+                    if (selectedIndex !== -1 && swiperInstance) {
+                        swiperInstance.slideToLoop(selectedIndex, 500);
+                        abierto = true;
                     }
+                }
 
-                    document.getElementById('custommostrarAvisoOverlay').style.display = 'none';
+                if (abierto) {
+                    overlay.style.display = 'none';
+                } else {
+                    li.style.pointerEvents = '';
+                    li.style.opacity = '1';
                 }
             });
+
             list.appendChild(li);
         });
+
         mostrarAvisoMessage.appendChild(list);
     } else {
         const p = document.createElement('p');
@@ -15927,9 +16025,9 @@ function showCustommostrarAviso(title, titlesList) {
 
     verificarLikes();
 
-verificarComentarios().then(() => {
+verificarComentarios().then(async () => {
 
-    cargarImagenes();
+    await cargarImagenes();
 
     cargarGuardadosUsuario();
 
@@ -15938,6 +16036,8 @@ verificarComentarios().then(() => {
     verificarGuardados();
 
     iniciarRealtimeSupabase();
+
+    await inicializarNotificacionesSupabase();
 
 });
 
@@ -15979,8 +16079,8 @@ if (imagesBtn) {
  const notificationCount = document.getElementById("notificationCount");
   const imagesNotificationCount = document.getElementById("imagesNotificationCount");
 
-  if (notificationCount) notificationCount.style.display = "none";
-  if (imagesNotificationCount) imagesNotificationCount.style.display = "none";
+  // El estado real del badge se restaura desde localStorage/Supabase.
+  actualizarBadgesAnuncios();
 
    
  
