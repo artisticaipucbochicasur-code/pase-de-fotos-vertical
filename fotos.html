@@ -2876,7 +2876,7 @@ Mensajes
 ">
 
 <!-- ✅ HEADER AZUL MODERNO -->
-<div style="
+<div id="chatHeaderNormal" style="
   padding:14px;
   display:flex;
   align-items:center;
@@ -2916,6 +2916,56 @@ z-index:2;
     <div style="margin-left:auto; cursor:pointer;" onclick="cerrarChat()">
       <i class="fas fa-xmark" style="font-size:20px;"></i>
     </div>
+  </div>
+
+  <!-- ✅ HEADER DE SELECCIÓN MÚLTIPLE TIPO WHATSAPP -->
+  <div id="chatSeleccionHeader" style="
+    display:none;
+    padding:12px 14px;
+    align-items:center;
+    gap:14px;
+    background:linear-gradient(90deg, #3B82F6, #60A5FA);
+    color:white;
+    position:relative;
+    z-index:3;
+    box-shadow:0 3px 10px rgba(0,0,0,0.18);
+  ">
+    <button type="button" onclick="salirModoSeleccionMensajes()" aria-label="Cancelar selección" style="
+      width:38px;
+      height:38px;
+      border:none;
+      border-radius:50%;
+      background:transparent;
+      color:white;
+      font-size:22px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    ">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+
+    <div style="flex:1; min-width:0;">
+      <div id="chatSeleccionCantidad" style="font-size:17px; font-weight:700;">0</div>
+      <div style="font-size:12px; opacity:.9;">mensajes seleccionados</div>
+    </div>
+
+    <button type="button" onclick="abrirModalEliminarSeleccion()" aria-label="Eliminar seleccionados" style="
+      width:42px;
+      height:42px;
+      border:none;
+      border-radius:50%;
+      background:rgba(255,255,255,.16);
+      color:white;
+      font-size:18px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    ">
+      <i class="fas fa-trash"></i>
+    </button>
   </div>
 
   <!-- ✅ AREA DE MENSAJES -->
@@ -3055,6 +3105,52 @@ padding-bottom:env(safe-area-inset-bottom);
 <div id="messagesBtn" style="display:none;"></div>
 <audio id="chatSound" src="./sonidos/newmsg.mp3" preload="auto"></audio>
 
+<style>
+/* =====================================
+   SELECCIÓN MÚLTIPLE DE MENSAJES
+===================================== */
+#chatMensajes.chat-selection-mode .mensaje {
+  cursor: pointer !important;
+  transition: outline .18s ease, transform .18s ease, background-color .18s ease;
+}
+
+#chatMensajes.chat-selection-mode .mensaje::before {
+  content: "";
+  position: absolute;
+  left: -36px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  border: 2px solid #64748b;
+  background: rgba(255,255,255,.92);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+}
+
+#chatMensajes.chat-selection-mode .mensaje-recibido {
+  margin-left: 42px !important;
+}
+
+#chatMensajes.chat-selection-mode .mensaje.seleccionado {
+  outline: 3px solid rgba(59,130,246,.55);
+  transform: scale(.985);
+}
+
+#chatMensajes.chat-selection-mode .mensaje.seleccionado::before {
+  content: "✓";
+  background: #3B82F6;
+  border-color: #3B82F6;
+}
+</style>
+
 <!-- =====================================
      MENÚ CONTEXTUAL DE MENSAJE (estilo WhatsApp)
 ===================================== -->
@@ -3125,10 +3221,10 @@ padding-bottom:env(safe-area-inset-bottom);
     overflow:hidden;
     box-shadow:0 10px 40px rgba(0,0,0,.4);
   ">
-    <div style="padding:18px 18px 6px 18px; font-size:16px; font-weight:600; color:#222;">
+    <div id="tituloEliminarMensaje" style="padding:18px 18px 6px 18px; font-size:16px; font-weight:600; color:#222;">
       Eliminar mensaje
     </div>
-    <div style="padding:0 18px 16px 18px; font-size:13px; color:#666;">
+    <div id="textoEliminarMensaje" style="padding:0 18px 16px 18px; font-size:13px; color:#666;">
       Elige cómo quieres eliminar este mensaje.
     </div>
 
@@ -6119,6 +6215,7 @@ async function precargarResumenChats(){
 
 function iniciarChatCon(info) {
 
+    salirModoSeleccionMensajes();
 
     const correoNorm =
     normalizeText(info.correo);
@@ -6536,12 +6633,14 @@ function crearBurbujaMensaje(m) {
     div.style.cursor = "pointer";
 
     if (m.de === usuarioActual.correo) {
+        div.classList.add("mensaje-mio");
         div.style.background = "#6FA3FF";
         div.style.color = "#000";
         div.style.marginLeft = "auto";
         div.style.border = "1px solid #5A8DEE";
         div.style.borderBottomRightRadius = "4px";
     } else {
+        div.classList.add("mensaje-recibido");
         div.style.background = "#CFCFCF";
         div.style.color = "#000";
         div.style.border = "1px solid #b6b6b6";
@@ -6797,6 +6896,8 @@ function abrirVentanaChat() {
 
 function cerrarChat() {
 
+    salirModoSeleccionMensajes();
+    cerrarModalEliminarMensaje();
 
     const box =
     document.getElementById("chatBox");
@@ -9865,8 +9966,10 @@ JSON.parse(
 );
 
 function estaOcultoParaMi(id){
-    if(!id) return false;
-    return mensajesOcultosParaMi.includes(id);
+    if(id === null || id === undefined) return false;
+    return mensajesOcultosParaMi.some(
+        ocultoId => String(ocultoId) === String(id)
+    );
 }
 
 function ocultarMensajeLocalmente(id){
@@ -9890,6 +9993,152 @@ let mensajeAReenviar = null;
 // Cache de usuarios disponibles para reenviar
 let usuariosParaReenviarCache = [];
 
+// Estado de selección múltiple tipo WhatsApp
+let modoSeleccionMensajes = false;
+const idsMensajesSeleccionados = new Set();
+
+function obtenerMensajesSeleccionados(){
+
+    if(!chatConUsuario) return [];
+
+    const cache = chatCache[chatConUsuario.correo] || [];
+
+    return cache.filter(
+        m => idsMensajesSeleccionados.has(String(m.id))
+    );
+
+}
+
+function actualizarVistaSeleccionMensajes(){
+
+    const cont = document.getElementById("chatMensajes");
+    const cantidad = document.getElementById("chatSeleccionCantidad");
+
+    if(cantidad){
+        cantidad.textContent = String(idsMensajesSeleccionados.size);
+    }
+
+    if(!cont) return;
+
+    cont.querySelectorAll(".mensaje").forEach(burbuja => {
+        burbuja.classList.toggle(
+            "seleccionado",
+            idsMensajesSeleccionados.has(String(burbuja.dataset.id))
+        );
+    });
+
+}
+
+function entrarModoSeleccionMensajes(mensajeInicial){
+
+    if(!mensajeInicial?.id || estaOcultoParaMi(mensajeInicial.id)) return;
+
+    modoSeleccionMensajes = true;
+    idsMensajesSeleccionados.clear();
+    idsMensajesSeleccionados.add(String(mensajeInicial.id));
+
+    const headerNormal = document.getElementById("chatHeaderNormal");
+    const headerSeleccion = document.getElementById("chatSeleccionHeader");
+    const cont = document.getElementById("chatMensajes");
+
+    if(headerNormal) headerNormal.style.display = "none";
+    if(headerSeleccion) headerSeleccion.style.display = "flex";
+    if(cont) cont.classList.add("chat-selection-mode");
+
+    actualizarVistaSeleccionMensajes();
+
+}
+
+function alternarSeleccionMensaje(m){
+
+    if(!modoSeleccionMensajes || !m?.id) return;
+
+    const id = String(m.id);
+
+    if(idsMensajesSeleccionados.has(id)){
+        idsMensajesSeleccionados.delete(id);
+    }else{
+        idsMensajesSeleccionados.add(id);
+    }
+
+    if(idsMensajesSeleccionados.size === 0){
+        salirModoSeleccionMensajes();
+        return;
+    }
+
+    actualizarVistaSeleccionMensajes();
+
+}
+
+function salirModoSeleccionMensajes(){
+
+    modoSeleccionMensajes = false;
+    idsMensajesSeleccionados.clear();
+
+    const headerNormal = document.getElementById("chatHeaderNormal");
+    const headerSeleccion = document.getElementById("chatSeleccionHeader");
+    const cont = document.getElementById("chatMensajes");
+
+    if(headerNormal) headerNormal.style.display = "flex";
+    if(headerSeleccion) headerSeleccion.style.display = "none";
+
+    if(cont){
+        cont.classList.remove("chat-selection-mode");
+        cont.querySelectorAll(".mensaje.seleccionado").forEach(
+            burbuja => burbuja.classList.remove("seleccionado")
+        );
+    }
+
+    const cantidad = document.getElementById("chatSeleccionCantidad");
+    if(cantidad) cantidad.textContent = "0";
+
+}
+
+function abrirModalEliminarSeleccion(){
+
+    const seleccionados = obtenerMensajesSeleccionados();
+
+    if(seleccionados.length === 0) return;
+
+    const todosSonMios = seleccionados.every(
+        m => m.de === usuarioActual?.correo
+    );
+
+    const todosPermitenEliminarParaTodos =
+    todosSonMios &&
+    seleccionados.every(
+        m =>
+        !m.eliminado_para_todos &&
+        m.id &&
+        !String(m.id).startsWith("temp_")
+    );
+
+    const opcionTodos = document.getElementById("opcionEliminarParaTodos");
+    const titulo = document.getElementById("tituloEliminarMensaje");
+    const texto = document.getElementById("textoEliminarMensaje");
+
+    if(opcionTodos){
+        opcionTodos.style.display =
+        todosPermitenEliminarParaTodos ? "block" : "none";
+    }
+
+    if(titulo){
+        titulo.textContent =
+        seleccionados.length === 1
+        ? "Eliminar mensaje"
+        : `Eliminar ${seleccionados.length} mensajes`;
+    }
+
+    if(texto){
+        texto.textContent = todosPermitenEliminarParaTodos
+        ? "Puedes eliminarlos para todos o solamente para ti."
+        : "Estos mensajes solo se pueden eliminar para ti.";
+    }
+
+    document.getElementById("modalEliminarMensaje").style.display = "flex";
+
+}
+
 
 // =====================================
 // 📌 LONG PRESS SOBRE UNA BURBUJA
@@ -9902,6 +10151,7 @@ function adjuntarEventosMensaje(div, m){
     let startY = 0;
     let cancelado = false;
     let ultimoTouch = 0;
+    let ignorarSiguienteClickSeleccion = false;
 
     // No usar directamente el objeto capturado "m": al enviar un mensaje
     // ese objeto comienza con un ID temp_ y luego Supabase entrega el ID real.
@@ -9932,6 +10182,17 @@ function adjuntarEventosMensaje(div, m){
         const mensajeActual = resolverMensajeActual();
 
         if(!mensajeActual || !mensajeActual.id) return;
+
+        if(modoSeleccionMensajes){
+            ignorarSiguienteClickSeleccion = true;
+            alternarSeleccionMensaje(mensajeActual);
+
+            setTimeout(() => {
+                ignorarSiguienteClickSeleccion = false;
+            }, 700);
+
+            return;
+        }
 
         abrirMenuMensaje(x, y, mensajeActual);
 
@@ -9971,6 +10232,26 @@ function adjuntarEventosMensaje(div, m){
 
     div.addEventListener("selectstart", (e) => {
         e.preventDefault();
+    });
+
+    div.addEventListener("click", (e) => {
+
+        if(!modoSeleccionMensajes) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if(ignorarSiguienteClickSeleccion){
+            ignorarSiguienteClickSeleccion = false;
+            return;
+        }
+
+        const mensajeActual = resolverMensajeActual();
+
+        if(mensajeActual){
+            alternarSeleccionMensaje(mensajeActual);
+        }
+
     });
 
     div.addEventListener("touchstart", (e) => {
@@ -10032,6 +10313,11 @@ function abrirMenuMensaje(x, y, m){
     if(estaOcultoParaMi(m.id)) return;
 
     m = obtenerMensajeActualDelChat(m.id) || m;
+
+    if(modoSeleccionMensajes){
+        alternarSeleccionMensaje(m);
+        return;
+    }
 
     mensajeSeleccionadoMenu = m;
 
@@ -10220,28 +10506,9 @@ function onClickEliminarMensaje(){
 
     if(!mensajeSeleccionadoMenu) return;
 
-
-    const opcionEliminarTodos =
-    document.getElementById("opcionEliminarParaTodos");
-
-
-    if(opcionEliminarTodos){
-
-        const esMio =
-        mensajeSeleccionadoMenu.de === usuarioActual.correo;
-
-
-        // Si el mensaje es mío:
-        // muestra "Eliminar para todos"
-        // Si es recibido:
-        // lo oculta
-        opcionEliminarTodos.style.display =
-        esMio ? "block" : "none";
-
-    }
-
-
-    document.getElementById("modalEliminarMensaje").style.display = "flex";
+    // El botón Eliminar inicia la selección múltiple.
+    // El primer mensaje queda marcado automáticamente.
+    entrarModoSeleccionMensajes(mensajeSeleccionadoMenu);
 
 }
 
@@ -10251,62 +10518,17 @@ function cerrarModalEliminarMensaje(){
 
 }
 
-async function confirmarEliminarMensaje(paraTodos){
+function actualizarResumenChatDespuesDeEliminarParaMi(correoChat, cache){
 
-    const m = mensajeSeleccionadoMenu;
-    const modal = document.getElementById("modalEliminarMensaje");
+    if(!correoChat || !listaChatsCache[correoChat]) return;
 
-    if(modal) modal.style.display = "none";
-
-    if(!m || !usuarioActual) return;
-
-    const correoChat = chatConUsuario?.correo;
-    const esMio = m.de === usuarioActual.correo;
-
-// ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
-// ELIMINAR SOLO PARA MÍ: es local y no modifica Supabase
-if(!paraTodos){ 
-
-    ocultarMensajeLocalmente(m.id);
-
-    const cache = chatCache[correoChat] || [];
-
-
-    // Guardar posición del mensaje eliminado
-    const posicionEliminado = cache.findIndex(
-        x => String(x.id) === String(m.id)
-    );
-
-
-    if(posicionEliminado !== -1){
-
-        cache.splice(posicionEliminado, 1);
-
-        console.log(cache);
-
-        guardarChatLocal(correoChat, cache);
-
-    }
-
-
-    // =====================================
-    // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
-    // =====================================
-
-if(listaChatsCache[correoChat]){
-
-
-    // Buscar el último mensaje que todavía es visible para mí
     const ultimoMensajeVisible =
     [...cache]
     .reverse()
     .find(x => !estaOcultoParaMi(x.id));
 
-
     if(ultimoMensajeVisible){
 
-        // Si el mensaje anterior fue eliminado para todos,
-        // mostrar el aviso inmediatamente y no su texto original.
         listaChatsCache[correoChat] = {
 
             ...listaChatsCache[correoChat],
@@ -10316,17 +10538,14 @@ if(listaChatsCache[correoChat]){
             ? "🚫 Mensaje eliminado"
             : (ultimoMensajeVisible.mensaje || ""),
 
-            // La lista usa las propiedades "fecha" e "id".
             fecha:
             ultimoMensajeVisible.fechaOriginal ||
             ultimoMensajeVisible.fechaOrden ||
             listaChatsCache[correoChat].fecha,
 
-            id:
-            ultimoMensajeVisible.id
+            id: ultimoMensajeVisible.id
 
         };
-
 
     }else{
 
@@ -10342,38 +10561,104 @@ if(listaChatsCache[correoChat]){
 
     }
 
-
     localStorage.setItem(
         "listaChatsCache",
         JSON.stringify(listaChatsCache)
     );
 
-
     renderizarListaChats();
 
 }
 
+async function confirmarEliminarMensaje(paraTodos){
 
-    const burbuja =
-    obtenerBurbujaMensajePorId(m.id);
+    const modal = document.getElementById("modalEliminarMensaje");
 
-    if(burbuja) burbuja.remove();
+    if(modal) modal.style.display = "none";
 
+    if(!usuarioActual || !chatConUsuario) return;
 
-    mensajeSeleccionadoMenu = null;
-    mostrarAviso("Mensaje eliminado para ti");
-    return;
+    const seleccionados = obtenerMensajesSeleccionados();
 
-}
+    if(seleccionados.length === 0) return;
 
-    // ELIMINAR PARA TODOS: borrado lógico mediante UPDATE
-    if(!esMio){
-        mostrarAviso("Solo puedes eliminar para todos tus propios mensajes");
+    const correoChat = chatConUsuario.correo;
+    const idsSeleccionados = new Set(
+        seleccionados.map(m => String(m.id))
+    );
+
+    // =====================================
+    // ELIMINAR PARA MÍ
+    // Funciona con mensajes propios, recibidos o mezclados.
+    // No modifica Supabase.
+    // =====================================
+    if(!paraTodos){
+
+        seleccionados.forEach(
+            m => ocultarMensajeLocalmente(m.id)
+        );
+
+        const cacheActual = chatCache[correoChat] || [];
+
+        const cacheNuevo = cacheActual.filter(
+            m => !idsSeleccionados.has(String(m.id))
+        );
+
+        chatCache[correoChat] = cacheNuevo;
+
+        guardarChatLocal(
+            correoChat,
+            cacheNuevo
+        );
+
+        seleccionados.forEach(m => {
+
+            const burbuja = obtenerBurbujaMensajePorId(m.id);
+
+            if(burbuja) burbuja.remove();
+
+        });
+
+        actualizarResumenChatDespuesDeEliminarParaMi(
+            correoChat,
+            cacheNuevo
+        );
+
+        const cantidad = seleccionados.length;
+
+        mensajeSeleccionadoMenu = null;
+        salirModoSeleccionMensajes();
+
+        mostrarAviso(
+            cantidad === 1
+            ? "Mensaje eliminado para ti"
+            : `${cantidad} mensajes eliminados para ti`
+        );
+
         return;
+
     }
 
-    if(!m.id || String(m.id).startsWith("temp_")){
-        mostrarAviso("Espera a que el mensaje termine de enviarse");
+    // =====================================
+    // ELIMINAR PARA TODOS
+    // Solo aparece y se ejecuta si TODOS los seleccionados
+    // son mensajes propios, confirmados y no eliminados antes.
+    // =====================================
+    const todosSonMios = seleccionados.every(
+        m => m.de === usuarioActual.correo
+    );
+
+    const todosSonValidos = seleccionados.every(
+        m =>
+        m.id &&
+        !String(m.id).startsWith("temp_") &&
+        !m.eliminado_para_todos
+    );
+
+    if(!todosSonMios || !todosSonValidos){
+        mostrarAviso(
+            "Eliminar para todos solo está disponible cuando todos los mensajes seleccionados son tuyos"
+        );
         return;
     }
 
@@ -10387,6 +10672,8 @@ if(listaChatsCache[correoChat]){
             throw new Error("No se encontró el usuario actual");
         }
 
+        const idsSupabase = seleccionados.map(m => m.id);
+
         const { data, error } =
         await supabaseClient
         .from("chat_mensajes")
@@ -10394,31 +10681,47 @@ if(listaChatsCache[correoChat]){
             eliminado: true,
             eliminado_para_todos: true
         })
-        .eq("id", m.id)
+        .in("id", idsSupabase)
         .eq("remitente_id", miId)
-        .select("*")
-        .maybeSingle();
+        .select("*");
 
         if(error) throw error;
 
-        if(!data){
+        if(!data || data.length !== idsSupabase.length){
             throw new Error(
-                "Supabase no actualizó ninguna fila. Revisa la política UPDATE de chat_mensajes."
+                "Supabase no actualizó todos los mensajes. Revisa la política UPDATE de chat_mensajes."
             );
         }
 
-        aplicarActualizacionMensaje(data);
-        mensajeSeleccionadoMenu = null;
+        data.forEach(
+            actualizado => aplicarActualizacionMensaje(actualizado)
+        );
 
-        console.log("✅ Mensaje eliminado para todos:", data);
-        mostrarAviso("Mensaje eliminado para todos");
+        const cantidad = data.length;
+
+        mensajeSeleccionadoMenu = null;
+        salirModoSeleccionMensajes();
+
+        console.log(
+            "✅ Mensajes eliminados para todos:",
+            data
+        );
+
+        mostrarAviso(
+            cantidad === 1
+            ? "Mensaje eliminado para todos"
+            : `${cantidad} mensajes eliminados para todos`
+        );
 
     }catch(err){
 
-        console.error("❌ Error eliminando mensaje:", err);
+        console.error(
+            "❌ Error eliminando mensajes:",
+            err
+        );
 
         mostrarAviso(
-            "No se pudo eliminar el mensaje: " +
+            "No se pudieron eliminar los mensajes: " +
             (err?.message || "error desconocido")
         );
 
