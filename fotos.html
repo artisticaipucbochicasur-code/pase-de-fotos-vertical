@@ -7926,13 +7926,27 @@ async function cargarConversacion() {
 const ultimaFecha =
 chatUltimaFecha[chatConUsuario.correo];
 
+
+// Detectar si el chat ya fue cargado correctamente antes
+const primeraCargaChat =
+!chatCache[chatConUsuario.correo] ||
+chatCache[chatConUsuario.correo].length === 0;
+
+
 console.log(
-    "🔎 SINCRONIZANDO CHAT DESDE:",
-    ultimaFecha || "PRIMERA CARGA"
+    "🔎 SINCRONIZANDO CHAT:",
+    {
+        primeraCarga: primeraCargaChat,
+        ultimaFecha: ultimaFecha || "sin fecha"
+    }
 );
 
 
-if(ultimaFecha){
+// Solo aplicar filtro cuando YA existe historial cargado
+if(
+    ultimaFecha &&
+    !primeraCargaChat
+){
 
     query = query.gt(
         "fecha_creacion",
