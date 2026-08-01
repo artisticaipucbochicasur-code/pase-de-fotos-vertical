@@ -13055,22 +13055,29 @@ async function verificarLikes() {
 const refreshBtn = document.getElementById("refreshBtn");
 
 if (refreshBtn) {
-refreshBtn.addEventListener("click", () => {
-  // 🧹 Limpiar caché RAM
-  for (const key in fotoCache) delete fotoCache[key];
+  refreshBtn.addEventListener("click", async () => {
+    const icono = refreshBtn.querySelector("i");
 
-  // 🧹 Limpiar caché local
-  localStorage.removeItem("fotoLocal");
+    refreshBtn.disabled = true;
+    if(icono) icono.classList.add("fa-spin");
 
-  // 🔄 Ahora sí
-  location.reload();
-});
+    try {
+      // Reconciliación manual: revisa metadatos en Supabase, pero no
+      // vuelve a descargar las imágenes que ya existen en Cache Storage.
+      await Promise.all([
+        cargarImagenes(true),
+        verificarComentarios(),
+        verificarLikes()
+      ]);
 
-}
-
-if (refreshBtn) {
-  refreshBtn.addEventListener("click", () => {
-    hardRefresh();
+      recargarComentariosDelAnuncioActual();
+      console.log("✅ Feed reconciliado manualmente sin recargar la página.");
+    } catch(error) {
+      console.error("Error actualizando el feed:", error);
+    } finally {
+      refreshBtn.disabled = false;
+      if(icono) icono.classList.remove("fa-spin");
+    }
   });
 }
 
@@ -14485,724 +14492,780 @@ async function verificarComentarios() {
 
 
 
-    // ==========================================
-// ⚡ SUPABASE REALTIME
-// Actualización automática entre dispositivos
-// ==========================================
+    // =====================================================
+// ⚡ FEED DE ANUNCIOS OPTIMIZADO
+// localStorage = metadatos del feed
+// Cache Storage = archivos de imagen
+// Supabase = sincronización incremental + Realtime
+// =====================================================
+
+const ANUNCIOS_CACHE_VERSION = 4;
+const ANUNCIOS_CACHE_KEY = "decom_anuncios_cache_v4";
+const ANUNCIOS_CURSOR_KEY = "decom_anuncios_cursor_v4";
+const ANUNCIOS_LAST_FULL_SYNC_KEY = "decom_anuncios_full_sync_v4";
+const ANUNCIOS_LAST_VIEWED_KEY = "decom_anuncios_last_viewed_v4";
+const ANUNCIOS_IMAGE_CACHE = "decom-anuncios-images-v4";
+const ANUNCIOS_RECONCILIACION_MS = 24 * 60 * 60 * 1000;
+const ANUNCIOS_SELECT = "id,titulo,descripcion,url_media,correo,autor,fecha_creacion,tipo_media";
+
+let sincronizacionAnunciosPromise = null;
+let anunciosCacheRestaurada = false;
+let publicacionesRealtimeChannel = null;
+let comentariosRealtimeChannel = null;
+let likesRealtimeChannel = null;
+
+const objectUrlsImagenes = new Map();
+const promesasImagenes = new Map();
+
+function fechaValidaAnuncio(valor){
+    const fecha = new Date(valor || "");
+    return Number.isFinite(fecha.getTime()) ? fecha : null;
+}
+
+function ordenarAnunciosPorFecha(a,b){
+    const fa = fechaValidaAnuncio(a?.fecha)?.getTime() || 0;
+    const fb = fechaValidaAnuncio(b?.fecha)?.getTime() || 0;
+
+    if(fa !== fb) return fa - fb;
+
+    return String(a?.id || "").localeCompare(
+        String(b?.id || ""),
+        undefined,
+        {numeric:true}
+    );
+}
+
+function normalizarPublicacionAnuncio(pub){
+    if(!pub || pub.id === null || pub.id === undefined) return null;
+
+    const idAnuncio = pub.id;
+    const comentarios = comentariosPorAnuncio[idAnuncio] || [];
+
+    return {
+        titulo: pub.titulo || "",
+        descripcion: pub.descripcion || "",
+        comentarios: normalizarComentarios(comentarios),
+        url: pub.url_media ?? pub.url ?? "",
+        deleteurl: pub.url_media ?? pub.deleteurl ?? pub.url ?? "",
+        autor: pub.autor || pub.correo || "Anónimo",
+        correo: pub.correo || "",
+        fecha: pub.fecha_creacion ?? pub.fecha ?? "",
+        tipo_media: pub.tipo_media || "imagen",
+        id: pub.id
+    };
+}
+
+function obtenerCursorMasReciente(){
+    const fechas = anunciosData
+        .map(a => fechaValidaAnuncio(a?.fecha))
+        .filter(Boolean)
+        .sort((a,b) => b - a);
+
+    return fechas[0]?.toISOString() || "";
+}
+
+function actualizarCursorAnuncios(){
+    const cursor = obtenerCursorMasReciente();
+
+    if(cursor){
+        localStorage.setItem(ANUNCIOS_CURSOR_KEY, cursor);
+    }
+}
+
+function guardarCacheAnuncios(){
+    try{
+        const items = anunciosData.map(a => ({
+            id: a.id,
+            titulo: a.titulo || "",
+            descripcion: a.descripcion || "",
+            url_media: a.url || "",
+            correo: a.correo || "",
+            autor: a.autor || "Anónimo",
+            fecha_creacion: a.fecha || "",
+            tipo_media: a.tipo_media || "imagen"
+        }));
+
+        localStorage.setItem(
+            ANUNCIOS_CACHE_KEY,
+            JSON.stringify({
+                version: ANUNCIOS_CACHE_VERSION,
+                guardadoEn: new Date().toISOString(),
+                items
+            })
+        );
+
+        actualizarCursorAnuncios();
+    }catch(error){
+        console.warn("No se pudo guardar el cache local de anuncios:", error);
+    }
+}
+
+function obtenerIdAnuncioActivo(){
+    if(!swiperInstance || anunciosData.length === 0) return null;
+    return anunciosData[swiperInstance.realIndex]?.id ?? null;
+}
+
+function crearSlideAnuncio(anuncio){
+    const slide = document.createElement("div");
+    slide.classList.add("swiper-slide");
+    slide.dataset.id = String(anuncio.id);
+
+    const zoomContainer = document.createElement("div");
+    zoomContainer.classList.add("swiper-zoom-container");
+
+    const img = document.createElement("img");
+    img.alt = anuncio.titulo || "Anuncio";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.dataset.src = anuncio.url || "";
+    img.dataset.anuncioId = String(anuncio.id);
+
+    zoomContainer.appendChild(img);
+    slide.appendChild(zoomContainer);
+
+    return slide;
+}
+
+async function eliminarUrlDeCacheImagen(url){
+    if(!url) return;
+
+    const objectUrl = objectUrlsImagenes.get(url);
+
+    if(objectUrl){
+        URL.revokeObjectURL(objectUrl);
+        objectUrlsImagenes.delete(url);
+    }
+
+    promesasImagenes.delete(url);
+
+    if("caches" in window){
+        try{
+            const cache = await caches.open(ANUNCIOS_IMAGE_CACHE);
+            await cache.delete(url);
+        }catch(error){
+            console.warn("No se pudo eliminar la imagen del cache:", error);
+        }
+    }
+}
+
+async function obtenerSrcImagenCacheada(url){
+    if(!url) return "";
+
+    if(objectUrlsImagenes.has(url)){
+        return objectUrlsImagenes.get(url);
+    }
+
+    if(promesasImagenes.has(url)){
+        return promesasImagenes.get(url);
+    }
+
+    const promesa = (async()=>{
+        try{
+            if(!("caches" in window)) return url;
+
+            const cache = await caches.open(ANUNCIOS_IMAGE_CACHE);
+            let respuesta = await cache.match(url);
+
+            if(!respuesta){
+                const respuestaRed = await fetch(url, {
+                    cache: "force-cache",
+                    credentials: "omit"
+                });
+
+                if(!respuestaRed.ok){
+                    throw new Error(`HTTP ${respuestaRed.status}`);
+                }
+
+                respuesta = respuestaRed.clone();
+                await cache.put(url, respuestaRed.clone());
+            }
+
+            const blob = await respuesta.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            objectUrlsImagenes.set(url, objectUrl);
+            return objectUrl;
+
+        }catch(error){
+            console.warn("Imagen fuera de Cache Storage; se usará URL directa:", url, error);
+            return url;
+        }finally{
+            promesasImagenes.delete(url);
+        }
+    })();
+
+    promesasImagenes.set(url, promesa);
+    return promesa;
+}
+
+async function cargarImagenElemento(img){
+    if(!img || img.dataset.cargando === "1") return;
+
+    const url = img.dataset.src || "";
+    if(!url) return;
+
+    if(img.src && img.dataset.urlCargada === url) return;
+
+    img.dataset.cargando = "1";
+
+    try{
+        const src = await obtenerSrcImagenCacheada(url);
+
+        if((img.dataset.src || "") !== url) return;
+
+        img.src = src || url;
+        img.dataset.urlCargada = url;
+    }catch(error){
+        img.src = url;
+        img.dataset.urlCargada = url;
+    }finally{
+        img.dataset.cargando = "0";
+    }
+}
+
+function cargarImagenesCercanas(indice, radio = 2){
+    if(!anunciosData.length) return;
+
+    const total = anunciosData.length;
+    const ids = new Set();
+
+    for(let desplazamiento = -radio; desplazamiento <= radio; desplazamiento++){
+        const real = ((indice + desplazamiento) % total + total) % total;
+        ids.add(String(anunciosData[real]?.id ?? ""));
+    }
+
+    document
+        .querySelectorAll(".swiper-slide[data-id]")
+        .forEach(slide => {
+            if(!ids.has(String(slide.dataset.id))) return;
+            const img = slide.querySelector("img[data-src]");
+            cargarImagenElemento(img);
+        });
+}
+
+function precargarPerfilesCercanos(indice, radio = 7){
+    if(!anunciosData.length) return;
+
+    const total = anunciosData.length;
+    const correos = new Set();
+
+    for(let desplazamiento = -radio; desplazamiento <= radio; desplazamiento++){
+        const real = ((indice + desplazamiento) % total + total) % total;
+        const anuncio = anunciosData[real];
+        const correoNorm = normalizeText(anuncio?.correo || "");
+
+        if(!correoNorm || correos.has(correoNorm)) continue;
+        correos.add(correoNorm);
+
+        if(!fotoCache[correoNorm]) resolveFotoPerfil(correoNorm);
+        if(!perfilCache[correoNorm]) resolvePerfil(correoNorm);
+    }
+}
+
+function actualizarVistaFeed(indicePreferido = 0){
+    if(!anunciosData.length){
+        document.querySelector(".swiper-wrapper")?.replaceChildren();
+        currentTitle.textContent = "";
+        currentDescription.textContent = "";
+        commentsList.innerHTML = "";
+        commentCountValue.textContent = "0";
+        return;
+    }
+
+    const indice = Math.max(
+        0,
+        Math.min(indicePreferido, anunciosData.length - 1)
+    );
+
+    updateContentOverlay(indice);
+    reconstruirIndiceBusqueda();
+    cargarImagenesCercanas(indice);
+    precargarPerfilesCercanos(indice);
+
+    if(typeof actualizarEstadoGuardado === "function"){
+        actualizarEstadoGuardado();
+    }
+}
+
+function renderizarFeedCompleto(idPreferido = null){
+    anunciosData.sort(ordenarAnunciosPorFecha);
+
+    const idObjetivo = idPreferido ??
+        localStorage.getItem(ANUNCIOS_LAST_VIEWED_KEY) ??
+        anunciosData[0]?.id ?? null;
+
+    const indiceObjetivo = Math.max(
+        0,
+        anunciosData.findIndex(a => String(a.id) === String(idObjetivo))
+    );
+
+    if(swiperInstance){
+        swiperInstance.removeAllSlides();
+
+        anunciosData.forEach(anuncio => {
+            swiperInstance.appendSlide(crearSlideAnuncio(anuncio));
+        });
+
+        swiperInstance.update();
+
+        if(anunciosData.length){
+            swiperInstance.slideToLoop(indiceObjetivo, 0, false);
+        }
+    }else{
+        const wrapper = document.querySelector(".swiper-wrapper");
+        wrapper.replaceChildren(
+            ...anunciosData.map(crearSlideAnuncio)
+        );
+
+        if(anunciosData.length){
+            initSwiper(indiceObjetivo);
+        }
+    }
+
+    actualizarVistaFeed(indiceObjetivo);
+}
+
+function restaurarAnunciosDesdeCache(){
+    if(anunciosCacheRestaurada) return anunciosData.length > 0;
+    anunciosCacheRestaurada = true;
+
+    try{
+        const raw = localStorage.getItem(ANUNCIOS_CACHE_KEY);
+        if(!raw) return false;
+
+        const cache = JSON.parse(raw);
+
+        if(
+            cache?.version !== ANUNCIOS_CACHE_VERSION ||
+            !Array.isArray(cache?.items)
+        ){
+            return false;
+        }
+
+        anunciosData = cache.items
+            .map(normalizarPublicacionAnuncio)
+            .filter(Boolean)
+            .sort(ordenarAnunciosPorFecha);
+
+        if(anunciosData.length){
+            renderizarFeedCompleto();
+            console.log(`⚡ ${anunciosData.length} anuncios mostrados desde cache local.`);
+            return true;
+        }
+    }catch(error){
+        console.warn("No se pudo restaurar el cache de anuncios:", error);
+    }
+
+    return false;
+}
+
+function conservarAnuncioActivo(callback){
+    const idActivo = obtenerIdAnuncioActivo();
+    const indiceAnterior = swiperInstance?.realIndex || 0;
+
+    callback();
+
+    if(!swiperInstance || !anunciosData.length) return;
+
+    let indice = anunciosData.findIndex(
+        a => String(a.id) === String(idActivo)
+    );
+
+    if(indice === -1){
+        indice = Math.min(indiceAnterior, anunciosData.length - 1);
+    }
+
+    swiperInstance.update();
+    swiperInstance.slideToLoop(Math.max(indice, 0), 0, false);
+    actualizarVistaFeed(Math.max(indice, 0));
+}
+
+function insertarPublicacionLocal(pub, opciones = {}){
+    const anuncio = normalizarPublicacionAnuncio(pub);
+    if(!anuncio) return false;
+
+    const existente = anunciosData.findIndex(
+        a => String(a.id) === String(anuncio.id)
+    );
+
+    if(existente !== -1){
+        return actualizarPublicacionLocal(pub, opciones);
+    }
+
+    anunciosData.push(anuncio);
+    anunciosData.sort(ordenarAnunciosPorFecha);
+
+    const indice = anunciosData.findIndex(
+        a => String(a.id) === String(anuncio.id)
+    );
+
+    if(swiperInstance){
+        conservarAnuncioActivo(()=>{
+            swiperInstance.addSlide(indice, crearSlideAnuncio(anuncio));
+        });
+    }else{
+        renderizarFeedCompleto(anuncio.id);
+    }
+
+    reconstruirIndiceBusqueda();
+
+    if(opciones.guardar !== false){
+        guardarCacheAnuncios();
+    }
+
+    cargarImagenesCercanas(swiperInstance?.realIndex || indice);
+    return true;
+}
+
+function actualizarPublicacionLocal(pub, opciones = {}){
+    if(!pub || pub.id === null || pub.id === undefined) return false;
+
+    const indice = anunciosData.findIndex(
+        a => String(a.id) === String(pub.id)
+    );
+
+    if(indice === -1){
+        return insertarPublicacionLocal(pub, opciones);
+    }
+
+    const anterior = anunciosData[indice];
+    const actualizado = normalizarPublicacionAnuncio({
+        id: anterior.id,
+        titulo: pub.titulo ?? anterior.titulo,
+        descripcion: pub.descripcion ?? anterior.descripcion,
+        url_media: pub.url_media ?? pub.url ?? anterior.url,
+        correo: pub.correo ?? anterior.correo,
+        autor: pub.autor ?? anterior.autor,
+        fecha_creacion: pub.fecha_creacion ?? pub.fecha ?? anterior.fecha,
+        tipo_media: pub.tipo_media ?? anterior.tipo_media
+    });
+
+    if(!actualizado) return false;
+
+    const sinCambios =
+        anterior.titulo === actualizado.titulo &&
+        anterior.descripcion === actualizado.descripcion &&
+        anterior.url === actualizado.url &&
+        anterior.correo === actualizado.correo &&
+        anterior.autor === actualizado.autor &&
+        anterior.fecha === actualizado.fecha &&
+        anterior.tipo_media === actualizado.tipo_media;
+
+    if(sinCambios) return false;
+
+    actualizado.comentarios = anterior.comentarios || [];
+    anunciosData[indice] = actualizado;
+
+    const cambioImagen = anterior.url !== actualizado.url;
+
+    document
+        .querySelectorAll(".swiper-slide[data-id]")
+        .forEach(slide => {
+            if(String(slide.dataset.id) !== String(actualizado.id)) return;
+
+            const img = slide.querySelector("img");
+            if(!img) return;
+
+            img.alt = actualizado.titulo || "Anuncio";
+
+            if(cambioImagen){
+                img.removeAttribute("src");
+                delete img.dataset.urlCargada;
+                img.dataset.src = actualizado.url || "";
+            }
+        });
+
+    if(cambioImagen){
+        eliminarUrlDeCacheImagen(anterior.url);
+    }
+
+    reconstruirIndiceBusqueda();
+
+    if(swiperInstance?.realIndex === indice){
+        updateContentOverlay(indice);
+    }
+
+    if(opciones.guardar !== false){
+        guardarCacheAnuncios();
+    }
+
+    cargarImagenesCercanas(swiperInstance?.realIndex || indice);
+    return true;
+}
+
+function eliminarPublicacionLocal(id, opciones = {}){
+    const indice = anunciosData.findIndex(
+        a => String(a.id) === String(id)
+    );
+
+    if(indice === -1) return false;
+
+    const eliminado = anunciosData[indice];
+
+    conservarAnuncioActivo(()=>{
+        anunciosData.splice(indice, 1);
+
+        if(swiperInstance){
+            swiperInstance.removeSlide(indice);
+        }else{
+            document
+                .querySelectorAll(".swiper-slide[data-id]")
+                .forEach(slide => {
+                    if(String(slide.dataset.id) === String(id)) slide.remove();
+                });
+        }
+    });
+
+    eliminarUrlDeCacheImagen(eliminado.url);
+    eliminarNotificacionAnuncio(id);
+    delete comentariosPorAnuncio[id];
+    reconstruirIndiceBusqueda();
+
+    if(opciones.guardar !== false){
+        guardarCacheAnuncios();
+    }
+
+    if(!anunciosData.length){
+        actualizarVistaFeed(0);
+    }
+
+    return true;
+}
+
+function reemplazarFeedDesdeServidor(publicaciones){
+    const idActivo = obtenerIdAnuncioActivo();
+
+    anunciosData = (publicaciones || [])
+        .map(normalizarPublicacionAnuncio)
+        .filter(Boolean)
+        .sort(ordenarAnunciosPorFecha);
+
+    renderizarFeedCompleto(idActivo);
+    guardarCacheAnuncios();
+}
+
+function reconciliarFeedConServidor(publicaciones){
+    const servidor = new Map();
+
+    (publicaciones || []).forEach(pub => {
+        if(pub?.id === null || pub?.id === undefined) return;
+        servidor.set(String(pub.id), pub);
+    });
+
+    (publicaciones || []).forEach(pub => {
+        const existe = anunciosData.some(
+            a => String(a.id) === String(pub.id)
+        );
+
+        if(existe){
+            actualizarPublicacionLocal(pub, {guardar:false});
+        }else{
+            insertarPublicacionLocal(pub, {guardar:false});
+        }
+    });
+
+    [...anunciosData].forEach(anuncio => {
+        if(!servidor.has(String(anuncio.id))){
+            eliminarPublicacionLocal(anuncio.id, {guardar:false});
+        }
+    });
+
+    guardarCacheAnuncios();
+}
+
+async function consultarPublicacionesSupabase({completa = false} = {}){
+    let query = supabaseClient
+        .from("publicaciones")
+        .select(ANUNCIOS_SELECT)
+        .order("fecha_creacion", {ascending:true});
+
+    const cursor = localStorage.getItem(ANUNCIOS_CURSOR_KEY) ||
+        obtenerCursorMasReciente();
+
+    if(!completa && cursor){
+        const fechaCursor = fechaValidaAnuncio(cursor);
+
+        if(fechaCursor){
+            // Solapamiento pequeño para no perder publicaciones con marcas
+            // de tiempo iguales. Los IDs evitan duplicados.
+            const desde = new Date(fechaCursor.getTime() - 2000).toISOString();
+            query = query.gte("fecha_creacion", desde);
+        }
+    }
+
+    const {data, error} = await query;
+
+    if(error) throw error;
+    return data || [];
+}
+
+async function cargarImagenes(forceRefresh = false){
+    if(sincronizacionAnunciosPromise){
+        return sincronizacionAnunciosPromise;
+    }
+
+    sincronizacionAnunciosPromise = (async()=>{
+        const habiaCache = restaurarAnunciosDesdeCache();
+
+        if(!habiaCache){
+            loader.style.display = "block";
+        }else{
+            loader.style.display = "none";
+        }
+
+        try{
+            const ultimaCompleta = Number(
+                localStorage.getItem(ANUNCIOS_LAST_FULL_SYNC_KEY) || 0
+            );
+
+            const requiereCompleta =
+                forceRefresh ||
+                !habiaCache ||
+                !ultimaCompleta ||
+                (Date.now() - ultimaCompleta > ANUNCIOS_RECONCILIACION_MS);
+
+            const publicaciones = await consultarPublicacionesSupabase({
+                completa: requiereCompleta
+            });
+
+            if(requiereCompleta){
+                // Si Realtime insertó algo durante la primera consulta, se
+                // reconcilia en vez de reemplazar para evitar perder ese evento.
+                if(!habiaCache && anunciosData.length === 0){
+                    reemplazarFeedDesdeServidor(publicaciones);
+                }else{
+                    reconciliarFeedConServidor(publicaciones);
+                }
+
+                localStorage.setItem(
+                    ANUNCIOS_LAST_FULL_SYNC_KEY,
+                    String(Date.now())
+                );
+            }else{
+                publicaciones.forEach(pub => {
+                    const existe = anunciosData.some(
+                        a => String(a.id) === String(pub.id)
+                    );
+
+                    if(existe){
+                        actualizarPublicacionLocal(pub, {guardar:false});
+                    }else{
+                        insertarPublicacionLocal(pub, {guardar:false});
+                    }
+                });
+
+                guardarCacheAnuncios();
+            }
+
+            console.log(
+                requiereCompleta
+                    ? `✅ Reconciliación de anuncios completada (${publicaciones.length} metadatos; imágenes no recargadas).`
+                    : `✅ Sincronización incremental completada (${publicaciones.length} registros revisados).`
+            );
+
+        }catch(error){
+            console.error("Error sincronizando anuncios desde Supabase:", error);
+
+            if(!habiaCache){
+                showInfoDialog(
+                    "Sin conexión",
+                    "No fue posible cargar los anuncios y todavía no existe un cache local."
+                );
+            }
+        }finally{
+            loader.style.display = "none";
+            sincronizacionAnunciosPromise = null;
+        }
+    })();
+
+    return sincronizacionAnunciosPromise;
+}
 
 function iniciarRealtimeSupabase(){
+    console.log("⚡ Iniciando Supabase Realtime optimizado...");
 
-
-    console.log("⚡ Iniciando Supabase Realtime...");
-
-
-
-    // ===============================
-    // PUBLICACIONES
-    // ===============================
-
-    supabaseClient
-
-    .channel("publicaciones-realtime")
-
-.on(
-    "postgres_changes",
-    {
-        event:"*",
-        schema:"public",
-        table:"publicaciones"
-    },
-    async payload=>{
-
-
-        console.log(
-            "📢 Cambio en publicaciones:",
-            payload
-        );
-
-
-
-        const tipo =
-        payload.eventType;
-
-
-
-        // ===============================
-        // NUEVA PUBLICACIÓN
-        // ===============================
-
-        if(tipo === "INSERT"){
-
-
-            registrarNuevoAnuncioSupabase(payload.new);
-
-            await cargarImagenes(true);
-
-
-            return;
-
-        }
-
-
-
-        // ===============================
-        // EDICIÓN
-        // ===============================
-
-        if(tipo === "UPDATE"){
-
-
-            const actualizado =
-            payload.new;
-
-
-
-            const index =
-            anunciosData.findIndex(
-                a=>a.id === actualizado.id
-            );
-
-
-
-            if(index !== -1){
-
-
-                anunciosData[index].titulo =
-                actualizado.titulo;
-
-
-
-                anunciosData[index].descripcion =
-                actualizado.descripcion;
-
-
-
-                anunciosData[index].url =
-                actualizado.url_media;
-
-
-
-                updateContentOverlay(
-                    swiperInstance.realIndex
-                );
-
-
-            }else{
-
-
-                await cargarImagenes(true);
-
-
-            }
-
-
-
-            return;
-
-        }
-
-
-
-
-        // ===============================
-        // ELIMINACIÓN
-        // ===============================
-
-        if(tipo === "DELETE"){
-
-
-            const eliminado =
-            payload.old.id;
-
-            eliminarNotificacionAnuncio(eliminado);
-
-
-
-            const index =
-            anunciosData.findIndex(
-                a=>a.id === eliminado
-            );
-
-
-
-            if(index !== -1){
-
-
-                anunciosData.splice(
-                    index,
-                    1
-                );
-
-
-                await cargarImagenes(true);
-
-
-            }
-
-
-        }
-
-
-
+    if(publicacionesRealtimeChannel){
+        supabaseClient.removeChannel(publicacionesRealtimeChannel);
     }
-)
 
-    .subscribe();
+    publicacionesRealtimeChannel = supabaseClient
+        .channel("publicaciones-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event:"*",
+                schema:"public",
+                table:"publicaciones"
+            },
+            payload => {
+                console.log("📢 Cambio incremental en publicaciones:", payload);
 
+                if(payload.eventType === "INSERT"){
+                    registrarNuevoAnuncioSupabase(payload.new);
+                    insertarPublicacionLocal(payload.new);
+                    return;
+                }
 
+                if(payload.eventType === "UPDATE"){
+                    actualizarPublicacionLocal(payload.new);
+                    return;
+                }
 
-
-
-    // ===============================
-    // COMENTARIOS
-    // ===============================
-
-    supabaseClient
-
-    .channel("comentarios-realtime")
-
-    .on(
-        "postgres_changes",
-        {
-            event:"*",
-            schema:"public",
-            table:"comentarios"
-        },
-        payload=>{
-
-
-            console.log(
-                "💬 Cambio en comentarios:",
-                payload
-            );
-
-
-
-            if(typeof verificarComentarios === "function"){
-
-                verificarComentarios();
-
+                if(payload.eventType === "DELETE"){
+                    eliminarPublicacionLocal(payload.old?.id);
+                }
             }
+        )
+        .subscribe(status => {
+            console.log("📡 Realtime publicaciones:", status);
+        });
 
+    if(comentariosRealtimeChannel){
+        supabaseClient.removeChannel(comentariosRealtimeChannel);
+    }
 
-        }
-    )
-
-    .subscribe();
-
-
-
-
-
-    // ===============================
-    // LIKES
-    // ===============================
-
-    supabaseClient
-
-    .channel("likes-realtime")
-
-    .on(
-        "postgres_changes",
-        {
-            event:"*",
-            schema:"public",
-            table:"likes"
-        },
-        payload=>{
-
-
-            console.log(
-                "❤️ Cambio en likes:",
-                payload
-            );
-
-
-
-            if(typeof verificarLikes === "function"){
-
-                verificarLikes();
-
+    comentariosRealtimeChannel = supabaseClient
+        .channel("comentarios-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event:"*",
+                schema:"public",
+                table:"comentarios"
+            },
+            () => {
+                if(typeof verificarComentarios === "function"){
+                    verificarComentarios();
+                }
             }
+        )
+        .subscribe();
 
+    if(likesRealtimeChannel){
+        supabaseClient.removeChannel(likesRealtimeChannel);
+    }
 
-        }
-    )
-
-    .subscribe();
-
-
-
+    likesRealtimeChannel = supabaseClient
+        .channel("likes-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event:"*",
+                schema:"public",
+                table:"likes"
+            },
+            () => {
+                if(typeof verificarLikes === "function"){
+                    verificarLikes();
+                }
+            }
+        )
+        .subscribe();
 }
 
-
-
-
-async function cargarImagenes(forceRefresh = false) {
-
-    loader.style.display = 'block';
-
-    const currentIndex = swiperInstance ? swiperInstance.realIndex : 0;
-
-    const currentId = swiperInstance && anunciosData.length > 0 
-        ? anunciosData[swiperInstance.realIndex].id 
-        : null;
-
-
-    try {
-
-        // ==========================================
-        // NUEVO: CARGAR PUBLICACIONES DESDE SUPABASE
-        // ==========================================
-
-        const { data: publicaciones, error } = await supabaseClient
-            .from("publicaciones")
-            .select("*")
-            .order("fecha_creacion", { ascending: false });
-
-
-        if (error) {
-            throw new Error(error.message);
-        }
-
-
-        let newAnunciosData = [];
-
-
-        if (publicaciones && publicaciones.length > 0) {
-
-
-            publicaciones.forEach((pub)=>{
-
-
-                const idAnuncio = pub.id;
-
-
-                const comentarios = comentariosPorAnuncio[idAnuncio] || [];
-
-                const comentariosFormateados = normalizarComentarios(comentarios);
-
-
-newAnunciosData.push({
-
-    titulo: pub.titulo || "",
-
-    descripcion: pub.descripcion || "",
-
-    comentarios: comentariosFormateados,
-
-    url: pub.url_media || "", 
-
-    deleteurl: pub.url_media || "",
-
-
-    // NUEVO: autor visible
-    autor:
-    pub.autor ||
-    pub.nombre_autor ||
-    pub.correo ||
-    "Anónimo",
-
-
-    correo:
-    pub.correo || "",
-
-
-    fecha:
-    pub.fecha_creacion || "",
-
-
-    id:
-    pub.id || ""
-
+window.addEventListener("beforeunload", ()=>{
+    objectUrlsImagenes.forEach(url => URL.revokeObjectURL(url));
+    objectUrlsImagenes.clear();
 });
-
-
-            });
-
-        }
-
-
-
-        newAnunciosData.reverse();
-
-
-
-        // ==========================================
-        // PRECARGA DE PERFILES
-        // ==========================================
-
-
-        {
-
-            const activeIndex = swiperInstance 
-                ? swiperInstance.realIndex 
-                : 0;
-
-
-            const vecinos = [];
-
-
-            // precargar 7 anteriores y 7 posteriores + actual
-
-            for (
-                let i = activeIndex - 7; 
-                i <= activeIndex + 7; 
-                i++
-            ) {
-
-                if (i >= 0 && i < newAnunciosData.length) {
-
-                    vecinos.push(newAnunciosData[i]);
-
-                }
-
-            }
-
-
-
-            const seen = new Set();
-
-
-
-            vecinos.forEach(a => {
-
-
-                if (!a) return;
-
-
-                const correoNorm = normalizeText(a.correo);
-
-                console.log(
-"🔍 ANUNCIO AUTOR:",
-{
-titulo:a.titulo,
-correo:a.correo,
-autor:a.autor
-}
-);
-
-
-
-                if (!seen.has(correoNorm)) {
-
-
-                    seen.add(correoNorm);
-
-
-
-                    if (!fotoCache[correoNorm]) {
-
-                        resolveFotoPerfil(correoNorm);
-
-                    }
-
-
-
-                    if (!perfilCache[correoNorm]) {
-
-                        resolvePerfil(correoNorm);
-
-                    }
-
-                }
-
-
-            });
-
-
-        }
-
-
-
-
-
-        const oldAnunciosIds = anunciosData.map(a => a.id);
-
-        const newAnunciosIds = newAnunciosData.map(a => a.id);
-
-
-
-        const idsIguales = JSON.stringify(oldAnunciosIds) === JSON.stringify(newAnunciosIds);
-
-
-
-        // Actualizar contenido si solo cambió información
-
-        if (idsIguales && !forceRefresh) {
-
-
-            anunciosData = newAnunciosData;
-
-
-            reconstruirIndiceBusqueda();
-
-
-            const activeIndex = swiperInstance 
-                ? swiperInstance.realIndex 
-                : 0;
-
-
-            updateContentOverlay(activeIndex);
-
-            actualizarEstadoGuardado();
-
-
-
-            loader.style.display = 'none';
-
-            return;
-
-        }
-
-
-
-
-
-        const currentSlideId = currentId;
-
-
-
-        anunciosData = newAnunciosData;
-
-
-
-        reconstruirIndiceBusqueda();
-
-
-
-
-
-        // ==========================================
-        // RECONSTRUIR SWIPER
-        // ==========================================
-
-
-        if (swiperInstance) {
-
-
-
-            swiperInstance.removeAllSlides();
-
-
-
-            anunciosData.forEach(anuncio => {
-
-
-
-                const slide = document.createElement('div');
-
-
-                slide.classList.add('swiper-slide');
-
-
-                slide.dataset.id = anuncio.id;
-
-
-
-
-                const zoomContainer = document.createElement('div');
-
-
-                zoomContainer.classList.add('swiper-zoom-container');
-
-
-
-
-                const img = document.createElement('img');
-
-
-                img.src = anuncio.url;
-
-
-                img.alt = anuncio.titulo;
-
-
-
-
-                zoomContainer.appendChild(img);
-
-
-                slide.appendChild(zoomContainer);
-
-
-
-                swiperInstance.appendSlide(slide);
-
-
-
-            });
-
-
-
-
-
-            let newIndex = anunciosData.findIndex(
-                a => a.id === currentSlideId
-            );
-
-
-
-            if (newIndex !== -1) {
-
-
-                swiperInstance.slideToLoop(
-                    newIndex,
-                    0,
-                    false
-                );
-
-
-            } else {
-
-
-
-                if (currentIndex < anunciosData.length) {
-
-
-                    swiperInstance.slideToLoop(
-                        currentIndex,
-                        0,
-                        false
-                    );
-
-
-                } else {
-
-
-
-                    swiperInstance.slideToLoop(
-                        anunciosData.length - 1,
-                        0,
-                        false
-                    );
-
-
-                }
-
-
-            }
-
-
-
-
-            swiperInstance.update();
-
-
-
-
-        } else {
-
-
-
-            const swiperWrapper = document.querySelector('.swiper-wrapper');
-
-
-
-            swiperWrapper.innerHTML = '';
-
-
-
-
-            anunciosData.forEach(anuncio => {
-
-
-
-                const slide = document.createElement('div');
-
-
-                slide.classList.add('swiper-slide');
-
-
-                slide.dataset.id = anuncio.id;
-
-
-
-
-                const zoomContainer = document.createElement('div');
-
-
-                zoomContainer.classList.add('swiper-zoom-container');
-
-
-
-
-                const img = document.createElement('img');
-
-
-                img.src = anuncio.url;
-
-
-                img.alt = anuncio.titulo;
-
-
-
-
-                zoomContainer.appendChild(img);
-
-
-                slide.appendChild(zoomContainer);
-
-
-
-                swiperWrapper.appendChild(slide);
-
-
-
-            });
-
-
-
-
-            initSwiper(0);
-
-
-
-        }
-
-
-
-
-
-        const activeIndex = swiperInstance 
-            ? swiperInstance.realIndex 
-            : 0;
-
-
-
-        updateContentOverlay(activeIndex);
-
-
-
-
-
-        // Los chats se cargan al iniciar la página desde su propio cache.
-        // No dependen de la carga de imágenes.
-
-
-
-
-
-    } catch(error) {
-
-
-        console.error(
-            "Error al cargar las imágenes:",
-            error
-        );
-
-
-    } finally {
-
-
-        loader.style.display = 'none';
-
-
-    }
-
-}
-
-
 
 // 🗑️ Eliminar anuncio usando Supabase
 
@@ -15339,9 +15402,9 @@ if(nombreArchivo){
             "Anuncio eliminado correctamente."
         );
 
-
-
-        await cargarImagenes();
+        // Actualización local inmediata. El evento Realtime posterior
+        // se deduplica y no vuelve a consultar todas las publicaciones.
+        eliminarPublicacionLocal(anuncioId);
 
 
 
@@ -15828,6 +15891,18 @@ function initSwiper(initialIndex = 0) {
 
             const activeIndex = swiperInstance.realIndex;
 
+            const anuncioActivo = anunciosData[activeIndex];
+
+            if(anuncioActivo?.id !== undefined){
+                localStorage.setItem(
+                    ANUNCIOS_LAST_VIEWED_KEY,
+                    String(anuncioActivo.id)
+                );
+            }
+
+            // Solo cargar la imagen visible y las cercanas.
+            cargarImagenesCercanas(activeIndex);
+            precargarPerfilesCercanos(activeIndex);
 
             updateContentOverlay(activeIndex);
 
@@ -15933,6 +16008,16 @@ function initSwiper(initialIndex = 0) {
 
 
         updateContentOverlay(initialSlideIndex);
+        cargarImagenesCercanas(initialSlideIndex);
+        precargarPerfilesCercanos(initialSlideIndex);
+
+        const anuncioInicialCache = anunciosData[initialSlideIndex];
+        if(anuncioInicialCache?.id !== undefined){
+            localStorage.setItem(
+                ANUNCIOS_LAST_VIEWED_KEY,
+                String(anuncioInicialCache.id)
+            );
+        }
 
 
 
@@ -16165,21 +16250,39 @@ function showCustommostrarAviso(title, titlesList) {
 
     verificarLikes();
 
-verificarComentarios().then(async () => {
-
-    await cargarImagenes();
-
-    cargarGuardadosUsuario();
-
-    verificarLikes();
-
-    verificarGuardados();
+// Mostrar el cache de anuncios inmediatamente y sincronizar en segundo plano.
+// Los comentarios, likes y guardados mantienen sus flujos independientes.
+(async function iniciarFeedAnunciosOptimizado(){
 
     iniciarRealtimeSupabase();
 
-    await inicializarNotificacionesSupabase();
+    const sincronizacionFeed = cargarImagenes(false);
 
-});
+    cargarGuardadosUsuario();
+    verificarGuardados();
+
+    verificarComentarios()
+        .then(() => {
+            anunciosData.forEach(anuncio => {
+                anuncio.comentarios = normalizarComentarios(
+                    comentariosPorAnuncio[anuncio.id] || []
+                );
+            });
+
+            recargarComentariosDelAnuncioActual();
+        })
+        .catch(error => {
+            console.warn("No se pudieron actualizar comentarios al iniciar:", error);
+        });
+
+    verificarLikes();
+
+    await Promise.allSettled([
+        sincronizacionFeed,
+        inicializarNotificacionesSupabase()
+    ]);
+
+})();
 
 
     if (lblContador) {
@@ -19655,9 +19758,15 @@ function agregarEfectoRipple(boton) {
 
     
     
-    function recargarDatos() {
-      verificarComentarios().then(() => cargarImagenes());
-      console.log("Datos recargados por solicitud externa.");
+    async function recargarDatos() {
+      await Promise.all([
+        cargarImagenes(true),
+        verificarComentarios(),
+        verificarLikes()
+      ]);
+
+      recargarComentariosDelAnuncioActual();
+      console.log("Datos reconciliados desde Supabase sin recargar imágenes existentes.");
     }
 
 
