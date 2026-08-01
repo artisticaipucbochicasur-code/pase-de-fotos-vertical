@@ -164,6 +164,35 @@
 }
 
 
+/* Botón de sonido (silenciar/activar) del video activo */
+.video-mute-btn {
+  width: 40px;
+  height: 40px;
+  position: fixed;
+  bottom: 100px; /* debajo del botón de eliminar */
+  right: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: none;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 22px;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.video-mute-btn.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+
 
 /* Asegura que el overlay de búsqueda quede arriba y pegado al top */
 #searchOverlay {
@@ -2437,6 +2466,12 @@ Volver al inicio
 <button id="editAnnouncementBtn" class="edit-announcement-btn">
   <i class="fas fa-pen"></i>
 </button>
+
+<!-- Botón fijo para silenciar/activar el sonido del video activo -->
+<button id="videoMuteBtn" class="video-mute-btn" title="Sonido">
+  <i class="fas fa-volume-mute"></i>
+</button>
+
 
 <!-- MODAL PERFIL (FULLSCREEN) - AHORA SIEMPRE ENCIMA -->
 <div id="modalPerfil" style="
@@ -15222,6 +15257,7 @@ function cargarVideoElemento(iframe){
     if(!videoId) return;
 
     iframe.dataset.cargado = "1";
+    iframe.dataset.muted = "true"; // arranca silenciado (autoplay lo requiere)
 
     iframe.src =
     `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1`;
@@ -15281,6 +15317,50 @@ function obtenerIframeVideoDeAnuncio(id){
     });
 
     return iframeEncontrado;
+}
+
+// 🔊 Actualiza el icono del botón de sonido según el estado real del iframe
+function actualizarIconoSonidoVideo(iframe){
+
+    if(!videoMuteBtn) return;
+
+    const icon = videoMuteBtn.querySelector("i");
+    if(!icon) return;
+
+    // Por defecto (o si no hay iframe todavía) se muestra como silenciado,
+    // ya que los videos siempre arrancan con mute=1.
+    const silenciado = !iframe || iframe.dataset.muted !== "false";
+
+    icon.className = silenciado ? "fas fa-volume-mute" : "fas fa-volume-up";
+}
+
+// 🔊 Muestra/oculta el botón de sonido y lo conecta al video activo
+function actualizarBotonSonidoVideo(anuncio){
+
+    if(!videoMuteBtn) return;
+
+    if(!anuncio || anuncio.tipo_media !== "video"){
+        videoMuteBtn.classList.remove("visible");
+        videoMuteBtn.onclick = null;
+        return;
+    }
+
+    const iframe = obtenerIframeVideoDeAnuncio(anuncio.id);
+
+    videoMuteBtn.classList.add("visible");
+    actualizarIconoSonidoVideo(iframe);
+
+    videoMuteBtn.onclick = () => {
+
+        if(!iframe) return;
+
+        const silenciado = iframe.dataset.muted !== "false";
+
+        enviarComandoYoutube(iframe, silenciado ? "unMute" : "mute");
+        iframe.dataset.muted = silenciado ? "false" : "true";
+
+        actualizarIconoSonidoVideo(iframe);
+    };
 }
 
 // 🎥 Pausa el video que esté sonando actualmente (al salir de su slide)
@@ -16324,6 +16404,9 @@ function updateContentOverlay(index) {
         const anuncio = anunciosData[index];
 
         updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
+
+        // 🔊 Botón de sonido: solo visible en videos, refleja si está silenciado
+        actualizarBotonSonidoVideo(anuncio);
 
 if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
 
