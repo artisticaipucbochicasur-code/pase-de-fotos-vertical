@@ -3457,7 +3457,7 @@ padding-bottom:env(safe-area-inset-bottom);
     let indiceBusqueda = []; // [{ i, key, titulo }]
 
 console.log(
-  "%c🚀 DECOM FOTOS.HTML ACTUALIZADO - VERSION 2026-07-31-A",
+  "%c🚀 DECOM FOTOS.HTML ACTUALIZADO - VERSION 2026-08-01-CHAT-FIX",
   "background:#2563eb;color:white;font-size:16px;font-weight:bold;padding:8px;"
 );
 
@@ -5597,11 +5597,122 @@ document.addEventListener("click", function(e){
     let nuevosMensajes = 0;
 let forzarBajarAlFinal = false; // evita conflicto cuando YO envío mensajes
 
+// =====================================
+// 🔐 AISLAMIENTO DE CACHE DE CHATS POR USUARIO
+// Evita que los chats de una cuenta aparezcan en otra.
+// =====================================
+
+function normalizarCorreoCacheChat(correo){
+    return String(correo || "").trim().toLowerCase();
+}
+
+function hayCacheLocalDeChats(){
+    const clavesDirectas = [
+        "listaChatsCache",
+        "chatUltimaFecha",
+        "chatHistorialCompleto",
+        "mensajesNoLeidos",
+        "chatOcultosParaMi"
+    ];
+
+    if(clavesDirectas.some(clave => localStorage.getItem(clave) !== null)){
+        return true;
+    }
+
+    for(let i = 0; i < localStorage.length; i++){
+        const clave = localStorage.key(i);
+        if(clave && clave.startsWith("chat_")){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function limpiarDatosLocalesChats(){
+    const clavesDirectas = [
+        "listaChatsCache",
+        "chatUltimaFecha",
+        "chatHistorialCompleto",
+        "mensajesNoLeidos",
+        "chatOcultosParaMi"
+    ];
+
+    clavesDirectas.forEach(clave => localStorage.removeItem(clave));
+
+    // Crear primero la lista para no alterar localStorage mientras se recorre.
+    const clavesChat = [];
+    for(let i = 0; i < localStorage.length; i++){
+        const clave = localStorage.key(i);
+        if(clave && clave.startsWith("chat_")){
+            clavesChat.push(clave);
+        }
+    }
+
+    clavesChat.forEach(clave => localStorage.removeItem(clave));
+
+    console.log("🧹 Cache local de chats limpiado");
+}
+
+function prepararCacheChatsParaUsuario(correo, opciones = {}){
+    const nuevoCorreo = normalizarCorreoCacheChat(correo);
+    if(!nuevoCorreo) return;
+
+    const propietario = normalizarCorreoCacheChat(
+        localStorage.getItem("chatCacheOwner")
+    );
+
+    let debeLimpiar = false;
+
+    if(propietario && propietario !== nuevoCorreo){
+        debeLimpiar = true;
+    }
+
+    // Compatibilidad con versiones anteriores que todavía no tenían
+    // chatCacheOwner. Ese cache antiguo no puede atribuirse con seguridad
+    // a una cuenta concreta, así que se reconstruye una sola vez desde Supabase.
+    if(
+        !propietario &&
+        hayCacheLocalDeChats()
+    ){
+        debeLimpiar = true;
+    }
+
+    if(debeLimpiar){
+        limpiarDatosLocalesChats();
+    }
+
+    localStorage.setItem("chatCacheOwner", nuevoCorreo);
+}
+
+// En una recarga normal conserva el cache solamente para su dueño.
+try{
+    const usuarioCacheActual = JSON.parse(
+        localStorage.getItem("usuario") || "null"
+    );
+
+    if(usuarioCacheActual?.correo){
+        prepararCacheChatsParaUsuario(
+            usuarioCacheActual.correo,
+            { desdeLogin:false }
+        );
+    }
+}catch(error){
+    console.warn("No se pudo validar el propietario del cache de chats:", error);
+}
+
 const chatCache = {};
 // Guarda hasta qué fecha está sincronizada cada conversación
 const chatUltimaFecha = 
 JSON.parse(
     localStorage.getItem("chatUltimaFecha") || "{}"
+);
+
+// Marca si una conversación ya fue reconstruida COMPLETA desde Supabase.
+// Tener uno o varios mensajes en cache no garantiza que exista todo el historial.
+const chatHistorialCompleto =
+JSON.parse(
+    localStorage.getItem("chatHistorialCompleto") || "{}"
 );
 
 let mensajesNoLeidos =
@@ -8167,25 +8278,38 @@ const ultimaFecha =
 chatUltimaFecha[chatConUsuario.correo];
 
 
-// Detectar si el chat ya fue cargado correctamente antes
-const primeraCargaChat =
-!chatCache[chatConUsuario.correo] ||
-chatCache[chatConUsuario.correo].length === 0;
+// IMPORTANTE: que haya mensajes en cache NO significa que el historial
+// esté completo. El cache global puede contener solamente mensajes recibidos
+// recientemente. Por eso usamos una marca independiente de hidratación total.
+const historialYaCompleto =
+chatHistorialCompleto[chatConUsuario.correo] === true;
+
+const cacheTieneMensajes =
+Array.isArray(chatCache[chatConUsuario.correo]) &&
+chatCache[chatConUsuario.correo].length > 0;
+
+const primeraCargaCompleta =
+!historialYaCompleto;
 
 
 console.log(
     "🔎 SINCRONIZANDO CHAT:",
     {
-        primeraCarga: primeraCargaChat,
+        primeraCargaCompleta,
+        historialYaCompleto,
+        mensajesEnCache:
+        chatCache[chatConUsuario.correo]?.length || 0,
         ultimaFecha: ultimaFecha || "sin fecha"
     }
 );
 
 
-// Solo aplicar filtro cuando YA existe historial cargado
+// Solo usar sincronización incremental DESPUÉS de haber reconstruido
+// una vez el historial completo de esta conversación desde Supabase.
 if(
-    ultimaFecha &&
-    !primeraCargaChat
+    historialYaCompleto &&
+    cacheTieneMensajes &&
+    ultimaFecha
 ){
 
     query = query.gt(
@@ -8204,7 +8328,10 @@ console.log(
     "📡 MENSAJES RECIBIDOS DESDE SUPABASE:",
     {
         cantidad: mensajes?.length || 0,
-        desde: ultimaFecha || "todo el historial"
+        desde:
+        historialYaCompleto && cacheTieneMensajes && ultimaFecha
+        ? ultimaFecha
+        : "todo el historial"
     }
 );
 
@@ -8520,6 +8647,46 @@ if(!existe){
             chatCache[correoChat]
 
         );
+
+
+        // =====================================
+        // PRIMERA HIDRATACIÓN COMPLETA
+        // =====================================
+        // En la primera carga Supabase devolvió TODO el historial bilateral.
+        // Repintamos desde el cache ya combinado para mostrar tanto los mensajes
+        // enviados por mí como los recibidos. Después dejamos activa la carga
+        // incremental por fecha para las siguientes aperturas.
+        if(primeraCargaCompleta){
+
+            chatCache[correoChat].sort((a,b)=>{
+                const fa = new Date(a.fechaOriginal || a.fechaOrden || 0).getTime();
+                const fb = new Date(b.fechaOriginal || b.fechaOrden || 0).getTime();
+                return fa - fb;
+            });
+
+            renderizarMensajes(
+                chatCache[correoChat]
+            );
+
+            chatHistorialCompleto[correoChat] = true;
+
+            localStorage.setItem(
+                "chatHistorialCompleto",
+                JSON.stringify(chatHistorialCompleto)
+            );
+
+            huboCambios =
+            huboCambios || chatCache[correoChat].length > 0;
+
+            console.log(
+                "✅ Historial completo reconstruido:",
+                {
+                    chat: correoChat,
+                    mensajes: chatCache[correoChat].length
+                }
+            );
+
+        }
 
 
         // =====================================
@@ -9031,7 +9198,7 @@ document.getElementById(
 
 function confirmarMensajeRealtime(nuevo){
 
-    if(!nuevo || !chatConUsuario) return;
+    if(!nuevo || !chatConUsuario) return false;
 
     const cache =
     chatCache[chatConUsuario.correo] || [];
@@ -9046,7 +9213,7 @@ function confirmarMensajeRealtime(nuevo){
         m.mensaje === nuevo.mensaje
     );
 
-    if(!temporal) return;
+    if(!temporal) return false;
 
     const tempId = temporal.id;
 
@@ -9082,6 +9249,8 @@ function confirmarMensajeRealtime(nuevo){
         "✅ Mensaje temporal confirmado",
         mensajeReal
     );
+
+    return true;
 
 }
 
@@ -9298,22 +9467,30 @@ function activarRealtimeChat(){
 
             if(nuevo.remitente_id === miId){
 
-
+                let confirmadoLocalmente = false;
 
                 if(
                     typeof confirmarMensajeRealtime === "function"
                 ){
 
-
-                    confirmarMensajeRealtime(nuevo);
-
+                    confirmadoLocalmente =
+                    confirmarMensajeRealtime(nuevo) === true;
 
                 }
 
+                // Si no existe una burbuja temporal, el mensaje fue enviado
+                // desde otro dispositivo con esta misma cuenta. En ese caso
+                // hay que agregarlo normalmente al chat actual.
+                if(
+                    !confirmadoLocalmente &&
+                    typeof agregarMensajeRealtime === "function"
+                ){
 
+                    await agregarMensajeRealtime(nuevo);
+
+                }
 
                 return;
-
 
             }
 
@@ -9747,21 +9924,32 @@ async function activarRealtimeGlobalChats(){
 
             if(!nuevo) return;
 
-            if(nuevo.destinatario_id !== miId){
+            // Escuchar tanto mensajes RECIBIDOS como mensajes ENVIADOS desde
+            // otro dispositivo que use esta misma cuenta.
+            const participaMiUsuario =
+            nuevo.destinatario_id === miId ||
+            nuevo.remitente_id === miId;
 
+            if(!participaMiUsuario){
                 return;
-
             }
 
-            const correoRemitente =
+            const esMensajeMio =
+            nuevo.remitente_id === miId;
+
+            const otroIdConversacion =
+            esMensajeMio
+            ? nuevo.destinatario_id
+            : nuevo.remitente_id;
+
+            const correoOtro =
             await obtenerCorreoUsuarioPorId(
-                nuevo.remitente_id
+                otroIdConversacion
             );
 
-            if(!correoRemitente) return;
+            if(!correoOtro) return;
 
             const mensajeTexto = nuevo.mensaje;
-
             const fechaOriginal = nuevo.fecha_creacion;
 
             const chatAbierto =
@@ -9770,59 +9958,63 @@ async function activarRealtimeGlobalChats(){
             const estoyViendoEsteChat =
             chatAbierto &&
             chatConUsuario &&
-            chatConUsuario.correo === correoRemitente;
+            chatConUsuario.correo === correoOtro;
 
+            // Si está abierto, el canal específico de la conversación se
+            // encarga de actualizar la burbuja y evita duplicados.
             if(estoyViendoEsteChat){
-
                 return;
-
             }
 
-            // Guardar también en el cache de mensajes del chat
-            // para que, al abrirlo, ya aparezca sin esperar
-            // la sincronización de fondo
             const mensajeGlobal = {
 
                 id: nuevo.id,
-
                 mensaje: mensajeTexto,
 
                 fecha:
                 new Date(fechaOriginal).toLocaleString(),
 
                 fechaOrden: fechaOriginal,
-
                 fechaOriginal: fechaOriginal,
 
-                de: correoRemitente
+                de:
+                esMensajeMio
+                ? usuarioActual.correo
+                : correoOtro,
+
+                editado: nuevo.editado || false,
+                eliminado: nuevo.eliminado || false,
+                eliminado_para_todos: nuevo.eliminado_para_todos || false,
+                reenviado: nuevo.reenviado || false,
+                mensaje_original_id: nuevo.mensaje_original_id || null
 
             };
 
-            // Si no está en memoria, recuperar el historial
-            // guardado localmente ANTES de agregar el mensaje
-            // nuevo, para no perder la conversación completa
-            if(!chatCache[correoRemitente]){
+            // Este cache puede ser parcial. NO marcamos chatHistorialCompleto
+            // aquí; esa marca solamente se activa después de consultar todo
+            // el historial bilateral en cargarConversacion().
+            if(!chatCache[correoOtro]){
 
-                chatCache[correoRemitente] =
-                cargarChatLocal(correoRemitente) || [];
+                chatCache[correoOtro] =
+                cargarChatLocal(correoOtro) || [];
 
             }
 
             const yaExiste =
-            chatCache[correoRemitente].some(
+            chatCache[correoOtro].some(
                 m => m.id === mensajeGlobal.id
             );
 
             if(!yaExiste){
 
-                chatCache[correoRemitente].push(mensajeGlobal);
+                chatCache[correoOtro].push(mensajeGlobal);
 
                 guardarChatLocal(
-                    correoRemitente,
-                    chatCache[correoRemitente]
+                    correoOtro,
+                    chatCache[correoOtro]
                 );
 
-                chatUltimaFecha[correoRemitente] = fechaOriginal;
+                chatUltimaFecha[correoOtro] = fechaOriginal;
 
                 localStorage.setItem(
                     "chatUltimaFecha",
@@ -9831,25 +10023,25 @@ async function activarRealtimeGlobalChats(){
 
             }
 
-            listaChatsCache[correoRemitente] = {
+            listaChatsCache[correoOtro] = {
 
-                ...(listaChatsCache[correoRemitente] || {}),
+                ...(listaChatsCache[correoOtro] || {}),
 
-                ultimoMensaje: mensajeTexto,
+                ultimoMensaje:
+                nuevo.eliminado_para_todos
+                ? "🚫 Mensaje eliminado"
+                : mensajeTexto,
 
                 fecha: fechaOriginal,
-
                 id: nuevo.id,
 
                 nombre:
-                listaChatsCache[correoRemitente]?.nombre
-                ||
-                correoRemitente,
+                listaChatsCache[correoOtro]?.nombre
+                || correoOtro,
 
                 foto:
-                listaChatsCache[correoRemitente]?.foto
-                ||
-                ""
+                listaChatsCache[correoOtro]?.foto
+                || ""
 
             };
 
@@ -9858,22 +10050,31 @@ async function activarRealtimeGlobalChats(){
                 JSON.stringify(listaChatsCache)
             );
 
-            if(!mensajesNoLeidos[correoRemitente]){
+            // Solo los mensajes que llegan DESDE la otra persona son no leídos.
+            if(!esMensajeMio){
 
-                mensajesNoLeidos[correoRemitente] = 0;
+                if(!mensajesNoLeidos[correoOtro]){
+                    mensajesNoLeidos[correoOtro] = 0;
+                }
+
+                mensajesNoLeidos[correoOtro]++;
+                guardarNoLeidos();
+
+                console.log(
+                    "[GLOBAL] Mensaje recibido de:",
+                    correoOtro,
+                    "Total no leídos:",
+                    mensajesNoLeidos[correoOtro]
+                );
+
+            }else{
+
+                console.log(
+                    "[GLOBAL] Mensaje enviado desde otro dispositivo hacia:",
+                    correoOtro
+                );
 
             }
-
-            mensajesNoLeidos[correoRemitente]++;
-
-            guardarNoLeidos();
-
-            console.log(
-                "[GLOBAL] Mensaje nuevo de:",
-                correoRemitente,
-                "Total no leidos:",
-                mensajesNoLeidos[correoRemitente]
-            );
 
             renderizarListaChats();
 
@@ -17110,6 +17311,14 @@ document.getElementById("btnLogin")?.addEventListener("click", async (e) => {
     // GUARDAR SESIÓN LOCAL
     // =====================================
 
+    // Antes de guardar la nueva sesión, verificar que cualquier cache de chat
+    // existente pertenezca a esta misma cuenta. Si viene de otro perfil,
+    // se elimina y Supabase lo reconstruirá correctamente.
+    prepararCacheChatsParaUsuario(
+      usuario.correo,
+      { desdeLogin:true }
+    );
+
     localStorage.setItem(
       "usuario",
       JSON.stringify(usuario)
@@ -18572,7 +18781,38 @@ if (userBtn && userMenu) {
 })();
 
 if (logoutBtn) {
-  logoutBtn.addEventListener("click", () => {
+  logoutBtn.addEventListener("click", async () => {
+   // Detener canales del usuario saliente antes de borrar el cache.
+   // Así un evento Realtime tardío no vuelve a guardar chats de la cuenta anterior.
+   try {
+     if(chatRealtimeGlobalChannel){
+       await supabaseClient.removeChannel(chatRealtimeGlobalChannel);
+       chatRealtimeGlobalChannel = null;
+     }
+     if(chatRealtimeChannel){
+       await supabaseClient.removeChannel(chatRealtimeChannel);
+       chatRealtimeChannel = null;
+     }
+     if(typingRealtimeChannel){
+       await supabaseClient.removeChannel(typingRealtimeChannel);
+       typingRealtimeChannel = null;
+     }
+   } catch(error) {
+     console.warn("No se pudieron cerrar todos los canales de chat:", error);
+   }
+
+   // Cerrar también la sesión real de Supabase Auth.
+   try {
+     await supabaseClient.auth.signOut();
+   } catch(error) {
+     console.warn("No se pudo cerrar Supabase Auth limpiamente:", error);
+   }
+
+   // Limpiar toda la información local de chats de esta cuenta.
+   // Así el siguiente usuario nunca hereda conversaciones, cursores ni no-leídos.
+   limpiarDatosLocalesChats();
+   localStorage.removeItem("chatCacheOwner");
+
    localStorage.removeItem("usuario");
 localStorage.removeItem("autor");
 localStorage.removeItem("correo");
@@ -18628,7 +18868,13 @@ if (fondo) {
     if (userMenu) userMenu.style.display = "none";
     mostrarAviso("Sesión cerrada", "info");
 
-    setTimeout(() => location.reload(), 1200);
+    setTimeout(() => {
+      // Segunda pasada por seguridad frente a cualquier escritura asíncrona
+      // que hubiera terminado justo durante el cierre de sesión.
+      limpiarDatosLocalesChats();
+      localStorage.removeItem("chatCacheOwner");
+      location.reload();
+    }, 1200);
   });
 }
 
