@@ -14572,7 +14572,7 @@ function actualizarCursorAnuncios(){
     }
 }
 
-function guardarCacheAnuncios(){
+function guardarCacheAnuncios(){ 
     try{
         const items = anunciosData.map(a => ({
             id: a.id,
@@ -14598,6 +14598,53 @@ function guardarCacheAnuncios(){
     }catch(error){
         console.warn("No se pudo guardar el cache local de anuncios:", error);
     }
+}
+
+
+async function cachearImagenes(lista){
+
+    if(!("caches" in window)) return;
+
+    const cache = await caches.open(
+        "anuncios-imagenes-v1"
+    );
+
+    for(const anuncio of lista){
+
+        if(!anuncio.url) continue;
+
+        try{
+
+            const existe = await cache.match(
+                anuncio.url
+            );
+
+            if(!existe){
+
+                await cache.add(
+                    anuncio.url
+                );
+
+                console.log(
+                    "🖼️ Imagen guardada:",
+                    anuncio.titulo
+                );
+
+            }
+
+        }catch(error){
+
+            console.warn(
+                "No se pudo guardar imagen:",
+                anuncio.url
+            );
+
+        }
+    }
+
+    console.log(
+        "✅ Caché imágenes actualizado"
+    );
 }
 
 function obtenerIdAnuncioActivo(){
@@ -15041,6 +15088,9 @@ function reemplazarFeedDesdeServidor(publicaciones){
 
     renderizarFeedCompleto(idActivo);
     guardarCacheAnuncios();
+
+        // 🖼️ Guardar imágenes nuevas en caché
+    cachearImagenes(anunciosData);
 }
 
 function reconciliarFeedConServidor(publicaciones){
@@ -15154,6 +15204,7 @@ async function cargarImagenes(forceRefresh = false){
                 });
 
                 guardarCacheAnuncios();
+                cachearImagenes(anunciosData);
             }
 
             console.log(
