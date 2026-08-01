@@ -1616,7 +1616,7 @@ body:not(.dark-mode) .chat-list-nombre {
 
 /* Permitir swipe vertical aunque exista iframe YouTube */
 .swiper-slide.video iframe{
-    pointer-events: none;
+    pointer-events:auto;
 }
 
 
@@ -13720,7 +13720,13 @@ currentDescription.addEventListener("click", function () {
 
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
-document.querySelector('.swiper').addEventListener('click', () => {
+document.querySelector('.swiper').addEventListener('click', (e) => {
+
+    // 🎥 Si el click viene de un video YouTube,
+    // no ejecutar ocultar/mostrar overlays
+    if(e.target.closest("iframe")){
+        return;
+    }
   const currentTime = new Date().getTime();
   if (currentTime - lastTapTime > 300) {
     // ✅ Estos se alternan normal
@@ -15133,8 +15139,8 @@ if(anuncio.tipo_media === "video"){
 
         const iframe = document.createElement("iframe");
 
-        iframe.src =
-        `https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0`;
+      iframe.src =
+`https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0&playsinline=1&enablejsapi=1`;
 
         iframe.title = anuncio.titulo || "Video";
 
