@@ -3,15 +3,19 @@
 // =====================================
 
 
+const CACHE_IMAGENES = "anuncios-imagenes-v1";
+
+
 // =====================================
 // INSTALACIÓN DEL SERVICE WORKER
 // =====================================
 
 self.addEventListener("install", (event) => {
 
-  self.skipWaiting();
+    self.skipWaiting();
 
 });
+
 
 
 // =====================================
@@ -20,31 +24,136 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
 
-  event.waitUntil(
+    event.waitUntil(
 
-    (async()=>{
+        (async()=>{
 
-      await self.clients.claim();
-
-
-      const cacheNames =
-        await caches.keys();
+            await self.clients.claim();
 
 
-      await Promise.all(
-
-        cacheNames.map(
-          cache => caches.delete(cache)
-        )
-
-      );
+            const cacheNames = await caches.keys();
 
 
-    })()
+            await Promise.all(
 
-  );
+                cacheNames.map(cache => {
+
+
+                    // ⚠️ Conservamos imágenes de anuncios
+
+                    if(cache === CACHE_IMAGENES){
+
+                        return;
+
+                    }
+
+
+                    return caches.delete(cache);
+
+
+                })
+
+            );
+
+
+        })()
+
+    );
 
 });
+
+
+
+
+// =====================================
+// 🖼️ CACHE INTELIGENTE DE IMÁGENES
+// =====================================
+
+self.addEventListener("fetch", (event)=>{
+
+
+    const request = event.request;
+
+
+    const url = request.url;
+
+
+
+    // Solo imágenes provenientes de Supabase Storage
+
+    if(
+
+        request.destination === "image" &&
+
+        url.includes("supabase.co/storage")
+
+    ){
+
+
+        event.respondWith(
+
+            caches.open(CACHE_IMAGENES)
+
+            .then(async(cache)=>{
+
+
+                // Buscar primero en caché
+
+                const cached = await cache.match(request);
+
+
+
+                if(cached){
+
+                    return cached;
+
+                }
+
+
+
+                // Si no existe, pedir a internet
+
+                const response = await fetch(request);
+
+
+
+                // Guardar copia
+
+                if(
+
+                    response &&
+
+                    response.status === 200
+
+                ){
+
+                    cache.put(
+
+                        request,
+
+                        response.clone()
+
+                    );
+
+                }
+
+
+
+                return response;
+
+
+
+            })
+
+        );
+
+
+    }
+
+
+});
+
+
 
 
 // =====================================
@@ -53,169 +162,233 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("push", (event) => {
 
-  let data = {};
 
-  try {
-
-    data = event.data
-      ? event.data.json()
-      : {};
-
-  } catch (e) {}
+    let data = {};
 
 
-  const title = data.title || "DECOM";
+    try {
 
 
-  // ✅ Normalizamos a URL absoluta
+        data = event.data
 
-  const rawUrl = data.url || "/fotos.html";
+            ? event.data.json()
+
+            : {};
 
 
-  const targetUrl = new URL(
-    rawUrl,
-    self.registration.scope
-  ).href;
+    } catch (e) {}
 
 
 
-  const options = {
-
-    body: data.body || "",
-
-    icon: data.icon || "/icon-192.png",
-
-    badge: data.badge || "/icon-192.png",
+    const title = data.title || "DECOM";
 
 
-    // ✅ Guardamos destino para el click
 
-    data: {
-      url: targetUrl
-    },
+    const rawUrl = data.url || "/fotos.html";
 
 
-    // Opcional:
-    // tag: data.type || "decom",
-    // renotify: true,
 
-  };
+    const targetUrl = new URL(
+
+        rawUrl,
+
+        self.registration.scope
+
+    ).href;
 
 
-  event.waitUntil(
-    self.registration.showNotification(
-      title,
-      options
-    )
-  );
+
+
+    const options = {
+
+
+        body: data.body || "",
+
+
+        icon: data.icon || "/icon-192.png",
+
+
+        badge: data.badge || "/icon-192.png",
+
+
+
+        data: {
+
+            url: targetUrl
+
+        }
+
+
+
+    };
+
+
+
+
+    event.waitUntil(
+
+        self.registration.showNotification(
+
+            title,
+
+            options
+
+        )
+
+    );
+
 
 });
+
+
+
 
 
 // =====================================
 // 👆 CLICK EN NOTIFICACIÓN
 // =====================================
 
-self.addEventListener("notificationclick", (event) => {
-
-  event.notification.close();
+self.addEventListener("notificationclick", (event)=>{
 
 
-  // Si no viene URL, mandamos a fotos.html
-
-  const raw =
-    (event.notification.data &&
-     event.notification.data.url)
-     || "/fotos.html";
-
-
-  const targetUrl = new URL(
-    raw,
-    self.location.origin
-  );
-
-
-  event.waitUntil(
-    (async () => {
-
-
-      const allClients =
-        await self.clients.matchAll({
-
-          type: "window",
-
-          includeUncontrolled: true,
-
-        });
+    event.notification.close();
 
 
 
-      // ✅ Si ya hay una ventana abierta:
-      // SOLO focus + postMessage
+    const raw =
 
-      for (const client of allClients) {
+        (
 
-        try {
+            event.notification.data &&
 
+            event.notification.data.url
 
-          const clientUrl =
-            new URL(client.url);
+        )
 
-
-          if (clientUrl.origin === targetUrl.origin) {
-
-
-            await client.focus();
+        || "/fotos.html";
 
 
 
-            // Le enviamos la acción a fotos.html
 
-            client.postMessage({
+    const targetUrl = new URL(
 
-              type: "DECOM_PUSH_OPEN",
+        raw,
 
-              url: targetUrl.href,
+        self.location.origin
 
-            });
-
-
-
-            return;
-
-          }
-
-
-        } catch (e) {}
-
-      }
+    );
 
 
 
-      // ✅ Si NO hay ventana:
-      // abre directamente fotos.html
+
+    event.waitUntil(
+
+        (async()=>{
 
 
-      const openParam =
-        encodeURIComponent(
-          targetUrl.href
-        );
+            const allClients =
+
+                await self.clients.matchAll({
+
+                    type:"window",
+
+                    includeUncontrolled:true
+
+                });
 
 
-      const openUrl =
-        new URL(
-          `fotos.html?open=${openParam}`,
-          self.registration.scope
-        ).href;
 
 
 
-      await self.clients.openWindow(
-        openUrl
-      );
+            for(const client of allClients){
 
 
-    })()
-  );
+                try{
+
+
+                    const clientUrl =
+
+                        new URL(client.url);
+
+
+
+                    if(
+
+                        clientUrl.origin === targetUrl.origin
+
+                    ){
+
+
+                        await client.focus();
+
+
+
+                        client.postMessage({
+
+
+                            type:"DECOM_PUSH_OPEN",
+
+
+                            url:targetUrl.href
+
+
+                        });
+
+
+
+                        return;
+
+
+                    }
+
+
+
+                }catch(e){}
+
+
+
+            }
+
+
+
+
+
+            const openParam =
+
+                encodeURIComponent(
+
+                    targetUrl.href
+
+                );
+
+
+
+
+            const openUrl =
+
+                new URL(
+
+                    `fotos.html?open=${openParam}`,
+
+                    self.registration.scope
+
+                ).href;
+
+
+
+
+            await self.clients.openWindow(
+
+                openUrl
+
+            );
+
+
+
+
+        })()
+
+    );
+
 
 });
