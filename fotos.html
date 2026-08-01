@@ -14854,6 +14854,7 @@ function obtenerIdAnuncioActivo(){
 }
 
 function crearSlideAnuncio(anuncio){
+
     const slide = document.createElement("div");
     slide.classList.add("swiper-slide");
     slide.dataset.id = String(anuncio.id);
@@ -14861,14 +14862,47 @@ function crearSlideAnuncio(anuncio){
     const zoomContainer = document.createElement("div");
     zoomContainer.classList.add("swiper-zoom-container");
 
-    const img = document.createElement("img");
-    img.alt = anuncio.titulo || "Anuncio";
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.dataset.src = anuncio.url || "";
-    img.dataset.anuncioId = String(anuncio.id);
 
-    zoomContainer.appendChild(img);
+    // 🎥 VIDEO YOUTUBE
+    if(anuncio.tipo_media === "video" && anuncio.youtube_id){
+
+        const iframe = document.createElement("iframe");
+
+        iframe.src =
+        `https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0`;
+
+        iframe.title = anuncio.titulo || "Video";
+
+        iframe.allow =
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+
+        iframe.allowFullscreen = true;
+
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "0";
+
+
+        zoomContainer.appendChild(iframe);
+
+
+    }else{
+
+        // 🖼️ IMAGEN (MISMA LOGICA ACTUAL)
+
+        const img = document.createElement("img");
+
+        img.alt = anuncio.titulo || "Anuncio";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.dataset.src = anuncio.url || "";
+        img.dataset.anuncioId = String(anuncio.id);
+
+        zoomContainer.appendChild(img);
+
+    }
+
+
     slide.appendChild(zoomContainer);
 
     return slide;
@@ -14985,8 +15019,11 @@ function cargarImagenesCercanas(indice, radio = 2){
         .querySelectorAll(".swiper-slide[data-id]")
         .forEach(slide => {
             if(!ids.has(String(slide.dataset.id))) return;
-            const img = slide.querySelector("img[data-src]");
-            cargarImagenElemento(img);
+          const img = slide.querySelector("img[data-src]");
+
+if(img){
+    cargarImagenElemento(img);
+}
         });
 }
 
