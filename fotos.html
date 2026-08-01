@@ -10243,13 +10243,16 @@ if(!paraTodos){
     );
 
 
-if(posicionEliminado !== -1){
+    if(posicionEliminado !== -1){
 
-    cache[posicionEliminado].ocultoParaMi = true;
+        cache.splice(posicionEliminado, 1);
 
-    guardarChatLocal(correoChat, cache);
+        console.log(cache);
 
-}
+        guardarChatLocal(correoChat, cache);
+
+    }
+
 
     // =====================================
     // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
@@ -10258,35 +10261,49 @@ if(posicionEliminado !== -1){
 if(listaChatsCache[correoChat]){
 
 
-    // Buscar el último mensaje visible real
-    // respetando la conversación
-
-   const ultimoMensajeVisible =
-[...cache]
-.reverse()
-.find(x =>
-    !estaOcultoParaMi(x.id)
-    &&
-    !x.ocultoParaMi
-);
+    // Buscar el último mensaje que todavía es visible para mí
+    const ultimoMensajeVisible =
+    [...cache]
+    .reverse()
+    .find(x => !estaOcultoParaMi(x.id));
 
 
     if(ultimoMensajeVisible){
 
-        listaChatsCache[correoChat].ultimoMensaje =
-        ultimoMensajeVisible.mensaje || "";
+        // Si el mensaje anterior fue eliminado para todos,
+        // mostrar el aviso inmediatamente y no su texto original.
+        listaChatsCache[correoChat] = {
 
+            ...listaChatsCache[correoChat],
 
-       listaChatsCache[correoChat].fecha =
-ultimoMensajeVisible.fechaOriginal ||
-ultimoMensajeVisible.fechaOrden;
+            ultimoMensaje:
+            ultimoMensajeVisible.eliminado_para_todos
+            ? "🚫 Mensaje eliminado"
+            : (ultimoMensajeVisible.mensaje || ""),
+
+            // La lista usa las propiedades "fecha" e "id".
+            fecha:
+            ultimoMensajeVisible.fechaOriginal ||
+            ultimoMensajeVisible.fechaOrden ||
+            listaChatsCache[correoChat].fecha,
+
+            id:
+            ultimoMensajeVisible.id
+
+        };
 
 
     }else{
 
-        listaChatsCache[correoChat].ultimoMensaje = "";
+        listaChatsCache[correoChat] = {
 
-        listaChatsCache[correoChat].ultimaFecha = "";
+            ...listaChatsCache[correoChat],
+
+            ultimoMensaje: "",
+            fecha: "",
+            id: null
+
+        };
 
     }
 
