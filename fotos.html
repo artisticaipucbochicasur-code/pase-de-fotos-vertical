@@ -12448,9 +12448,10 @@ btnUploadVideo.addEventListener("click", async () => {
 
 
 
-        // Actualizar feed DECOM
-
-        await cargarImagenes(true);
+        // Actualizar feed DECOM de forma incremental.
+        // Realtime normalmente ya insertó el video; esta llamada solo revisa
+        // registros nuevos desde el cursor y NO vuelve a traer todo el historial.
+        await cargarImagenes(false);
 
 
 
@@ -15149,8 +15150,14 @@ function obtenerIdAnuncioActivo(){
     return anunciosData[swiperInstance.realIndex]?.id ?? null;
 }
 
-// 🎥 Control de reproducción de videos YouTube dentro del carrusel
-// (usa la IFrame API de YouTube vía postMessage, sin bloquear el swipe)
+// 🎥 VIDEO YOUTUBE OPTIMIZADO
+// - Los metadatos del video ya viajan en el mismo cache incremental del feed.
+// - El iframe NO se crea para todos los videos al iniciar.
+// - Se crea solamente para el video visible y los cercanos (precarga).
+// - El video activo se reproduce automáticamente en silencio y los demás se pausan.
+//   El mute inicial es necesario para respetar las políticas de autoplay de los navegadores.
+const ANUNCIOS_VIDEO_PRELOAD_RADIUS = 2;
+
 if(!window.__decomYoutubeMsgListener){
 
     window.__decomYoutubeMsgListener = true;
@@ -15168,7 +15175,6 @@ if(!window.__decomYoutubeMsgListener){
         }
 
         if(!data || typeof data !== "object") return;
-
         if(data.event !== "onStateChange" && data.event !== "infoDelivery") return;
 
         const estado =
@@ -15185,7 +15191,7 @@ if(!window.__decomYoutubeMsgListener){
 
             if(estado === 1){
                 ifr.dataset.playing = "true";
-            }else if(estado === 2 || estado === 0){
+            }else if(estado === 2 || estado === 0 || estado === -1){
                 ifr.dataset.playing = "false";
             }
 
@@ -15206,93 +15212,277 @@ function enviarComandoYoutube(iframe, comando){
 
 }
 
+function obtenerSlideActivoSwiper(){
+    if(swiperInstance?.slides?.length){
+        return swiperInstance.slides[swiperInstance.activeIndex] || null;
+    }
+
+    return document.querySelector(".swiper-slide-active");
+}
+
+function esIframeYoutubeActivo(iframe){
+    const slide = iframe?.closest(".swiper-slide");
+    const activo = obtenerSlideActivoSwiper();
+    return !!slide && !!activo && slide === activo;
+}
+
+function reproducirIframeYoutube(iframe){
+    if(!iframe) return;
+
+    // Autoplay moderno: primero mute y luego play.
+    enviarComandoYoutube(iframe, "mute");
+    enviarComandoYoutube(iframe, "playVideo");
+    iframe.dataset.playing = "true";
+}
+
+function pausarIframeYoutube(iframe){
+    if(!iframe) return;
+
+    enviarComandoYoutube(iframe, "pauseVideo");
+    iframe.dataset.playing = "false";
+}
+
+function pausarVideosYoutubeNoActivos(){
+    const slideActivo = obtenerSlideActivoSwiper();
+
+    document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
+    .forEach(iframe => {
+        const slide = iframe.closest(".swiper-slide");
+        if(slide !== slideActivo){
+            pausarIframeYoutube(iframe);
+        }
+    });
+}
+
 function vincularControlVideoYoutube(iframe, overlay){
 
-    // Registrar el iframe como "escuchando" para recibir su estado real
+    // Registrar el iframe como "escuchando" para recibir su estado real.
     iframe.addEventListener("load", function(){
+
+        iframe.dataset.ready = "true";
+
         if(iframe.contentWindow){
             iframe.contentWindow.postMessage(
                 JSON.stringify({ event: "listening", id: iframe.title || "" }),
                 "*"
             );
         }
+
+        // Ocultar la miniatura cuando el reproductor ya está listo.
+        const slide = iframe.closest(".swiper-slide");
+        const miniatura = slide?.querySelector(".video-thumbnail");
+        if(miniatura){
+            miniatura.style.opacity = "0";
+            miniatura.style.visibility = "hidden";
+        }
+
+        // Si terminó de cargar justo cuando este slide está visible,
+        // iniciar reproducción inmediatamente.
+        if(esIframeYoutubeActivo(iframe) && !document.hidden){
+            setTimeout(() => reproducirIframeYoutube(iframe), 60);
+        }else{
+            pausarIframeYoutube(iframe);
+        }
     });
 
-    // El evento "click" solo se dispara cuando es un tap real (no cuando
-    // hubo un desplazamiento/swipe), así que no interfiere con Swiper.
+    // Tap real: conserva el control play/pausa sin bloquear el swipe vertical.
     overlay.addEventListener("click", function(e){
 
         e.stopPropagation();
 
         const reproduciendo = iframe.dataset.playing === "true";
 
-        enviarComandoYoutube(iframe, reproduciendo ? "pauseVideo" : "playVideo");
-
-        // Optimista: se corrige solo si YouTube reporta otro estado real
-        iframe.dataset.playing = reproduciendo ? "false" : "true";
+        if(reproduciendo){
+            pausarIframeYoutube(iframe);
+        }else{
+            reproducirIframeYoutube(iframe);
+        }
 
     });
 
 }
 
+function obtenerThumbnailVideo(anuncio){
+    if(anuncio?.thumbnail) return anuncio.thumbnail;
+    if(anuncio?.youtube_id){
+        return `https://img.youtube.com/vi/${anuncio.youtube_id}/hqdefault.jpg`;
+    }
+    return "";
+}
+
+function preconectarYoutube(){
+    if(window.__decomYoutubePreconnect) return;
+    window.__decomYoutubePreconnect = true;
+
+    [
+        "https://www.youtube.com",
+        "https://i.ytimg.com",
+        "https://www.googlevideo.com"
+    ].forEach(href => {
+        const link = document.createElement("link");
+        link.rel = "preconnect";
+        link.href = href;
+        link.crossOrigin = "anonymous";
+        document.head.appendChild(link);
+    });
+}
+
+function crearIframeYoutubeEnSlide(slide, anuncio){
+
+    if(!slide || !anuncio?.youtube_id) return null;
+
+    preconectarYoutube();
+
+    const existente = slide.querySelector("iframe.youtube-player");
+    if(existente) return existente;
+
+    const zoomContainer = slide.querySelector(".swiper-zoom-container");
+    if(!zoomContainer) return null;
+
+    const iframe = document.createElement("iframe");
+    iframe.classList.add("youtube-player");
+    iframe.title = anuncio.titulo || "Video";
+    iframe.loading = "eager";
+    iframe.dataset.playing = "false";
+    iframe.dataset.ready = "false";
+
+    const esActivo = slide === obtenerSlideActivoSwiper();
+
+    iframe.src =
+    `https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0&playsinline=1&enablejsapi=1&autoplay=${esActivo ? 1 : 0}&mute=1`;
+
+    iframe.allow =
+    "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+
+    iframe.allowFullscreen = true;
+    iframe.setAttribute("playsinline", "true");
+
+    iframe.style.position = "absolute";
+    iframe.style.inset = "0";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "0";
+    iframe.style.zIndex = "2";
+
+    zoomContainer.appendChild(iframe);
+
+    const videoOverlay = document.createElement("div");
+    videoOverlay.classList.add("video-touch-overlay");
+    videoOverlay.style.zIndex = "5";
+    zoomContainer.appendChild(videoOverlay);
+
+    vincularControlVideoYoutube(iframe, videoOverlay);
+
+    return iframe;
+}
+
+function cargarVideosCercanos(indice, radio = ANUNCIOS_VIDEO_PRELOAD_RADIUS){
+    if(!anunciosData.length) return;
+
+    const total = anunciosData.length;
+    const ids = new Set();
+
+    for(let desplazamiento = -radio; desplazamiento <= radio; desplazamiento++){
+        const real = ((indice + desplazamiento) % total + total) % total;
+        const anuncio = anunciosData[real];
+
+        if(anuncio?.tipo_media === "video" && anuncio.youtube_id){
+            ids.add(String(anuncio.id));
+        }
+    }
+
+    document
+        .querySelectorAll(".swiper-slide.video[data-id]")
+        .forEach(slide => {
+            if(!ids.has(String(slide.dataset.id))) return;
+
+            const anuncio = anunciosData.find(
+                a => String(a.id) === String(slide.dataset.id)
+            );
+
+            if(anuncio){
+                crearIframeYoutubeEnSlide(slide, anuncio);
+            }
+        });
+}
+
+function sincronizarReproduccionVideoActivo(indice = swiperInstance?.realIndex || 0){
+
+    cargarVideosCercanos(indice);
+    pausarVideosYoutubeNoActivos();
+
+    const slideActivo = obtenerSlideActivoSwiper();
+    if(!slideActivo || !slideActivo.classList.contains("video")) return;
+
+    const anuncioActivo = anunciosData[indice];
+    if(!anuncioActivo?.youtube_id) return;
+
+    const iframe =
+        slideActivo.querySelector("iframe.youtube-player") ||
+        crearIframeYoutubeEnSlide(slideActivo, anuncioActivo);
+
+    if(!iframe || document.hidden) return;
+
+    // Si aún está cargando, su evento load volverá a intentar el autoplay.
+    // Si ya está listo, reproducir inmediatamente.
+    if(iframe.dataset.ready === "true"){
+        setTimeout(() => reproducirIframeYoutube(iframe), 40);
+    }
+}
+
+if(!window.__decomYoutubeVisibilityListener){
+    window.__decomYoutubeVisibilityListener = true;
+
+    document.addEventListener("visibilitychange", () => {
+        if(document.hidden){
+            document.querySelectorAll("iframe.youtube-player")
+            .forEach(pausarIframeYoutube);
+        }else if(swiperInstance && anunciosData.length){
+            sincronizarReproduccionVideoActivo(swiperInstance.realIndex);
+        }
+    });
+}
+
 function crearSlideAnuncio(anuncio){
 
-   const slide = document.createElement("div");
-slide.classList.add("swiper-slide");
-slide.dataset.id = String(anuncio.id);
-
-if(anuncio.tipo_media === "video"){
-    slide.classList.add("video");
-}
+    const slide = document.createElement("div");
+    slide.classList.add("swiper-slide");
+    slide.dataset.id = String(anuncio.id);
+    slide.dataset.tipoMedia = anuncio.tipo_media || "imagen";
 
     const zoomContainer = document.createElement("div");
     zoomContainer.classList.add("swiper-zoom-container");
 
-
-    // 🎥 VIDEO YOUTUBE
     if(anuncio.tipo_media === "video" && anuncio.youtube_id){
 
-        const iframe = document.createElement("iframe");
+        slide.classList.add("video");
+        slide.dataset.youtubeId = anuncio.youtube_id;
 
-        iframe.classList.add("youtube-player");
+        // Miniatura ligera e inmediatamente cacheable. El iframe real se crea
+        // después, únicamente cuando este video queda cerca del slide activo.
+        const img = document.createElement("img");
+        img.classList.add("video-thumbnail");
+        img.alt = anuncio.titulo || "Video";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.dataset.src = obtenerThumbnailVideo(anuncio);
+        img.dataset.anuncioId = String(anuncio.id);
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "contain";
+        img.style.transition = "opacity .18s ease";
+        img.style.position = "relative";
+        img.style.zIndex = "1";
 
-      iframe.src =
-`https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0&playsinline=1&enablejsapi=1`;
+        zoomContainer.style.position = "relative";
+        zoomContainer.style.width = "100%";
+        zoomContainer.style.height = "100%";
 
-        iframe.title = anuncio.titulo || "Video";
-
-        iframe.allow =
-        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-
-        iframe.allowFullscreen = true;
-
-        iframe.setAttribute(
-    "playsinline",
-    "true"
-);
-
-        iframe.style.width = "100%";
-        iframe.style.height = "100%";
-        iframe.style.border = "0";
-
-
-        zoomContainer.appendChild(iframe);
-
-        // 🎥 Capa transparente encima del iframe:
-        // permite que Swiper detecte el deslizamiento (el iframe por sí
-        // solo lo bloquea) y controla el video (play/pausa) con un tap,
-        // sin interferir con el swipe.
-        const videoOverlay = document.createElement("div");
-        videoOverlay.classList.add("video-touch-overlay");
-        zoomContainer.appendChild(videoOverlay);
-
-        vincularControlVideoYoutube(iframe, videoOverlay);
-
+        zoomContainer.appendChild(img);
 
     }else{
 
-        // 🖼️ IMAGEN (MISMA LOGICA ACTUAL)
-
+        // 🖼️ IMAGEN: se mantiene exactamente la carga diferida/cacheada actual.
         const img = document.createElement("img");
 
         img.alt = anuncio.titulo || "Anuncio";
@@ -15305,9 +15495,7 @@ if(anuncio.tipo_media === "video"){
 
     }
 
-
     slide.appendChild(zoomContainer);
-
     return slide;
 }
 
@@ -15467,6 +15655,8 @@ function actualizarVistaFeed(indicePreferido = 0){
     updateContentOverlay(indice);
     reconstruirIndiceBusqueda();
     cargarImagenesCercanas(indice);
+    cargarVideosCercanos(indice);
+    sincronizarReproduccionVideoActivo(indice);
     precargarPerfilesCercanos(indice);
 
     if(typeof actualizarEstadoGuardado === "function"){
@@ -15600,7 +15790,10 @@ function insertarPublicacionLocal(pub, opciones = {}){
         guardarCacheAnuncios();
     }
 
-    cargarImagenesCercanas(swiperInstance?.realIndex || indice);
+    const indiceActivo = swiperInstance?.realIndex || indice;
+    cargarImagenesCercanas(indiceActivo);
+    cargarVideosCercanos(indiceActivo);
+    sincronizarReproduccionVideoActivo(indiceActivo);
     return true;
 }
 
@@ -15643,27 +15836,49 @@ const sinCambios =
     actualizado.comentarios = anterior.comentarios || [];
     anunciosData[indice] = actualizado;
 
-    const cambioImagen = anterior.url !== actualizado.url;
+    const cambioEstructuraMedia =
+        anterior.tipo_media !== actualizado.tipo_media ||
+        anterior.url !== actualizado.url ||
+        anterior.youtube_id !== actualizado.youtube_id ||
+        anterior.thumbnail !== actualizado.thumbnail;
 
     document
         .querySelectorAll(".swiper-slide[data-id]")
         .forEach(slide => {
             if(String(slide.dataset.id) !== String(actualizado.id)) return;
 
+            if(cambioEstructuraMedia){
+                const iframeAnterior = slide.querySelector("iframe.youtube-player");
+                if(iframeAnterior){
+                    enviarComandoYoutube(iframeAnterior, "stopVideo");
+                }
+
+                const nuevoSlide = crearSlideAnuncio(actualizado);
+                slide.classList.toggle("video", actualizado.tipo_media === "video");
+                slide.dataset.tipoMedia = actualizado.tipo_media || "imagen";
+                slide.dataset.youtubeId = actualizado.youtube_id || "";
+                slide.replaceChildren(...Array.from(nuevoSlide.childNodes));
+                return;
+            }
+
             const img = slide.querySelector("img");
-            if(!img) return;
+            if(img){
+                img.alt = actualizado.titulo ||
+                    (actualizado.tipo_media === "video" ? "Video" : "Anuncio");
+            }
 
-            img.alt = actualizado.titulo || "Anuncio";
-
-            if(cambioImagen){
-                img.removeAttribute("src");
-                delete img.dataset.urlCargada;
-                img.dataset.src = actualizado.url || "";
+            const iframe = slide.querySelector("iframe.youtube-player");
+            if(iframe){
+                iframe.title = actualizado.titulo || "Video";
             }
         });
 
-    if(cambioImagen){
+    if(anterior.url && anterior.url !== actualizado.url){
         eliminarUrlDeCacheImagen(anterior.url);
+    }
+
+    if(anterior.thumbnail && anterior.thumbnail !== actualizado.thumbnail){
+        eliminarUrlDeCacheImagen(anterior.thumbnail);
     }
 
     reconstruirIndiceBusqueda();
@@ -15676,7 +15891,10 @@ const sinCambios =
         guardarCacheAnuncios();
     }
 
-    cargarImagenesCercanas(swiperInstance?.realIndex || indice);
+    const indiceActivo = swiperInstance?.realIndex || indice;
+    cargarImagenesCercanas(indiceActivo);
+    cargarVideosCercanos(indiceActivo);
+    sincronizarReproduccionVideoActivo(indiceActivo);
     return true;
 }
 
@@ -15688,6 +15906,12 @@ function eliminarPublicacionLocal(id, opciones = {}){
     if(indice === -1) return false;
 
     const eliminado = anunciosData[indice];
+
+    document.querySelectorAll(".swiper-slide[data-id]").forEach(slide => {
+        if(String(slide.dataset.id) !== String(id)) return;
+        const iframe = slide.querySelector("iframe.youtube-player");
+        if(iframe) enviarComandoYoutube(iframe, "stopVideo");
+    });
 
     conservarAnuncioActivo(()=>{
         anunciosData.splice(indice, 1);
@@ -15704,6 +15928,7 @@ function eliminarPublicacionLocal(id, opciones = {}){
     });
 
     eliminarUrlDeCacheImagen(eliminado.url);
+    eliminarUrlDeCacheImagen(eliminado.thumbnail);
     eliminarNotificacionAnuncio(id);
     delete comentariosPorAnuncio[id];
     reconstruirIndiceBusqueda();
@@ -16604,8 +16829,11 @@ function initSwiper(initialIndex = 0) {
                 );
             }
 
-            // Solo cargar la imagen visible y las cercanas.
+            // Cargar únicamente el medio visible y los cercanos.
+            // Imágenes: Cache Storage. Videos: iframe YouTube precargado por cercanía.
             cargarImagenesCercanas(activeIndex);
+            cargarVideosCercanos(activeIndex);
+            sincronizarReproduccionVideoActivo(activeIndex);
             precargarPerfilesCercanos(activeIndex);
 
             updateContentOverlay(activeIndex);
@@ -16713,6 +16941,8 @@ function initSwiper(initialIndex = 0) {
 
         updateContentOverlay(initialSlideIndex);
         cargarImagenesCercanas(initialSlideIndex);
+        cargarVideosCercanos(initialSlideIndex);
+        sincronizarReproduccionVideoActivo(initialSlideIndex);
         precargarPerfilesCercanos(initialSlideIndex);
 
         const anuncioInicialCache = anunciosData[initialSlideIndex];
