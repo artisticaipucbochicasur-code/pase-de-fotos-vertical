@@ -5801,69 +5801,43 @@ async function precargarTodosLosChats(){
     // =====================================
 
 
-const ultimo =
-chats[correo]
-.filter(m =>
-    !estaOcultoParaMi(m.id)
-)
-[
-    chats[correo]
-    .filter(m =>
-        !estaOcultoParaMi(m.id)
-    )
-    .length - 1
-];
+    const ultimo =
+    chats[correo][
+        chats[correo].length - 1
+    ];
 
 
 
-if(ultimo){
+    if(ultimo){
 
 
-    listaChatsCache[correo] = {
+        listaChatsCache[correo] = {
 
 
-        ...(listaChatsCache[correo] || {}),
+            ...(listaChatsCache[correo] || {}),
 
 
-        ultimoMensaje:
-        ultimo.mensaje,
+
+            ultimoMensaje:
+            ultimo.mensaje,
 
 
-        fecha:
-        ultimo.fechaOriginal ||
-        ultimo.fechaOrden,
+
+            fecha:
+            ultimo.fechaOriginal ||
+            ultimo.fechaOrden,
 
 
-        id:
-        ultimo.id
+
+            id:
+            ultimo.id
 
 
-    };
+
+        };
 
 
-}else{
-
-
-    listaChatsCache[correo] = {
-
-
-        ...(listaChatsCache[correo] || {}),
-
-
-        ultimoMensaje:"",
-        
-
-        fecha:
-        listaChatsCache[correo]?.fecha || "",
-
-
-        id:null
-
-
-    };
-
-
-}
+    }
 
 
 
@@ -8041,18 +8015,10 @@ const mensajesServidor =
 // =====================================
 if(mensajesServidor.length > 0){
 
-const ultimo =
-chats[correo]
-.filter(m =>
-    !estaOcultoParaMi(m.id)
-)
-[
-    chats[correo]
-    .filter(m =>
-        !estaOcultoParaMi(m.id)
-    )
-    .length - 1
-];
+    const ultimo =
+    mensajesServidor[
+        mensajesServidor.length - 1
+    ];
 
 
     chatUltimaFecha[
@@ -10277,16 +10243,13 @@ if(!paraTodos){
     );
 
 
-    if(posicionEliminado !== -1){
+if(posicionEliminado !== -1){
 
-        cache.splice(posicionEliminado, 1);
+    cache[posicionEliminado].ocultoParaMi = true;
 
-        console.log(cache);
+    guardarChatLocal(correoChat, cache);
 
-        guardarChatLocal(correoChat, cache);
-
-    }
-
+}
 
     // =====================================
     // ACTUALIZAR PREVISUALIZACIÓN DEL CHAT
@@ -10298,10 +10261,14 @@ if(listaChatsCache[correoChat]){
     // Buscar el último mensaje visible real
     // respetando la conversación
 
-    const ultimoMensajeVisible =
-    [...cache]
-    .reverse()
-    .find(x => !estaOcultoParaMi(x.id));
+   const ultimoMensajeVisible =
+[...cache]
+.reverse()
+.find(x =>
+    !estaOcultoParaMi(x.id)
+    &&
+    !x.ocultoParaMi
+);
 
 
     if(ultimoMensajeVisible){
@@ -10310,8 +10277,9 @@ if(listaChatsCache[correoChat]){
         ultimoMensajeVisible.mensaje || "";
 
 
-        listaChatsCache[correoChat].ultimaFecha =
-        ultimoMensajeVisible.created_at;
+       listaChatsCache[correoChat].fecha =
+ultimoMensajeVisible.fechaOriginal ||
+ultimoMensajeVisible.fechaOrden;
 
 
     }else{
