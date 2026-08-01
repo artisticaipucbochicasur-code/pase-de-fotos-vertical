@@ -1615,10 +1615,14 @@ body:not(.dark-mode) .chat-list-nombre {
 
 
 /* Permitir swipe vertical aunque exista iframe YouTube */
+/* El iframe NO debe recibir toques directamente: al ser otro documento,
+   Swiper no puede detectar el deslizamiento si el gesto empieza sobre él.
+   Por eso se desactivan sus eventos y se usa una capa transparente encima
+   (.video-touch-overlay) que sí permite que Swiper detecte el swipe y,
+   además, controla el video (play/pausa) al hacer tap. */
 .swiper-slide.video iframe{
-    pointer-events:auto;
+    pointer-events:none;
 }
-
 
 .swiper-slide.video{
     touch-action: pan-y;
@@ -1628,22 +1632,18 @@ body:not(.dark-mode) .chat-list-nombre {
     touch-action: pan-y;
 }
 
-.video-wrapper{
-
-    width:100%;
-    height:100%;
-    position:relative;
-
+.video-touch-overlay{
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:5;
+    background:transparent;
+    touch-action: pan-y;
 }
 
 
-.video-wrapper iframe{
-
-    width:100%;
-    height:100%;
-    border:0;
-
-}
   </style>
 </head>
 
@@ -15144,6 +15144,92 @@ function obtenerIdAnuncioActivo(){
     return anunciosData[swiperInstance.realIndex]?.id ?? null;
 }
 
+// 🎥 Control de reproducción de videos YouTube dentro del carrusel
+// (usa la IFrame API de YouTube vía postMessage, sin bloquear el swipe)
+if(!window.__decomYoutubeMsgListener){
+
+    window.__decomYoutubeMsgListener = true;
+
+    window.addEventListener("message", function(e){
+
+        let data = e.data;
+
+        if(typeof data === "string"){
+            try{
+                data = JSON.parse(data);
+            }catch(err){
+                return;
+            }
+        }
+
+        if(!data || typeof data !== "object") return;
+
+        if(data.event !== "onStateChange" && data.event !== "infoDelivery") return;
+
+        const estado =
+        (data.info && typeof data.info === "object")
+        ? data.info.playerState
+        : data.info;
+
+        if(estado === undefined || estado === null) return;
+
+        document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
+        .forEach(function(ifr){
+
+            if(ifr.contentWindow !== e.source) return;
+
+            if(estado === 1){
+                ifr.dataset.playing = "true";
+            }else if(estado === 2 || estado === 0){
+                ifr.dataset.playing = "false";
+            }
+
+        });
+
+    });
+
+}
+
+function enviarComandoYoutube(iframe, comando){
+
+    if(!iframe || !iframe.contentWindow) return;
+
+    iframe.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: comando, args: [] }),
+        "*"
+    );
+
+}
+
+function vincularControlVideoYoutube(iframe, overlay){
+
+    // Registrar el iframe como "escuchando" para recibir su estado real
+    iframe.addEventListener("load", function(){
+        if(iframe.contentWindow){
+            iframe.contentWindow.postMessage(
+                JSON.stringify({ event: "listening", id: iframe.title || "" }),
+                "*"
+            );
+        }
+    });
+
+    // El evento "click" solo se dispara cuando es un tap real (no cuando
+    // hubo un desplazamiento/swipe), así que no interfiere con Swiper.
+    overlay.addEventListener("click", function(e){
+
+        e.stopPropagation();
+
+        const reproduciendo = iframe.dataset.playing === "true";
+
+        enviarComandoYoutube(iframe, reproduciendo ? "pauseVideo" : "playVideo");
+
+        // Optimista: se corrige solo si YouTube reporta otro estado real
+        iframe.dataset.playing = reproduciendo ? "false" : "true";
+
+    });
+
+}
+
 function crearSlideAnuncio(anuncio){
 
    const slide = document.createElement("div");
@@ -15158,57 +15244,47 @@ if(anuncio.tipo_media === "video"){
     zoomContainer.classList.add("swiper-zoom-container");
 
 
- // 🎥 VIDEO YOUTUBE 
-if(anuncio.tipo_media === "video" && anuncio.youtube_id){
+    // 🎥 VIDEO YOUTUBE
+    if(anuncio.tipo_media === "video" && anuncio.youtube_id){
+
+        const iframe = document.createElement("iframe");
+
+        iframe.classList.add("youtube-player");
+
+      iframe.src =
+`https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0&playsinline=1&enablejsapi=1`;
+
+        iframe.title = anuncio.titulo || "Video";
+
+        iframe.allow =
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+
+        iframe.allowFullscreen = true;
+
+        iframe.setAttribute(
+    "playsinline",
+    "true"
+);
+
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "0";
 
 
-    const videoWrapper = document.createElement("div");
+        zoomContainer.appendChild(iframe);
 
-    videoWrapper.classList.add("video-wrapper");
+        // 🎥 Capa transparente encima del iframe:
+        // permite que Swiper detecte el deslizamiento (el iframe por sí
+        // solo lo bloquea) y controla el video (play/pausa) con un tap,
+        // sin interferir con el swipe.
+        const videoOverlay = document.createElement("div");
+        videoOverlay.classList.add("video-touch-overlay");
+        zoomContainer.appendChild(videoOverlay);
 
-
-
-    const iframe = document.createElement("iframe");
-
-
-    iframe.classList.add("youtube-player");
-
-
-
-    iframe.src =
-    `https://www.youtube.com/embed/${anuncio.youtube_id}?rel=0&playsinline=1&enablejsapi=1`;
+        vincularControlVideoYoutube(iframe, videoOverlay);
 
 
-
-    iframe.title = anuncio.titulo || "Video";
-
-
-
-    iframe.allow =
-    "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-
-
-
-    iframe.allowFullscreen = true;
-
-
-
-    iframe.setAttribute(
-        "playsinline",
-        "true"
-    );
-
-
-
-    videoWrapper.appendChild(iframe);
-
-
-
-    zoomContainer.appendChild(videoWrapper);
-
-
-
-}else{
+    }else{
 
         // 🖼️ IMAGEN (MISMA LOGICA ACTUAL)
 
@@ -16493,8 +16569,7 @@ function initSwiper(initialIndex = 0) {
     slidesPerView: 1,
 
     spaceBetween: 10,
-    
-nested:true,
+
     touchStartPreventDefault: false,
 
     preventClicks: false,
