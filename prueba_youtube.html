@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Prueba YouTube DECOM</title>
+
+<script src="https://accounts.google.com/gsi/client"></script>
+
+<style>
+
+body{
+font-family:Arial;
+padding:30px;
+}
+
+button{
+padding:12px 20px;
+font-size:16px;
+cursor:pointer;
+}
+
+#resultado{
+margin-top:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Prueba subida YouTube DECOM</h2>
+
+
+<button id="loginYoutube">
+🔐 Conectar YouTube
+</button>
+
+
+<br><br>
+
+
+<input 
+type="file"
+id="videoFile"
+accept="video/*"
+/>
+
+
+<br><br>
+
+
+<button id="subirVideo">
+📤 Subir Video
+</button>
+
+
+<div id="resultado"></div>
+
+
+
+<script>
+
+
+const CLIENT_ID = 
+"601723417940-7f3je4p3n1of2ilceqqps45i6m19ktii.apps.googleusercontent.com";
+
+
+let accessToken = null;
+
+
+
+document
+.getElementById("loginYoutube")
+.onclick = async()=>{
+
+
+const client = google.accounts.oauth2.initTokenClient({
+
+client_id: CLIENT_ID,
+
+scope:
+"https://www.googleapis.com/auth/youtube.upload",
+
+callback:(response)=>{
+
+accessToken=response.access_token;
+
+document.getElementById("resultado").innerHTML=
+"✅ YouTube conectado";
+
+}
+
+});
+
+
+client.requestAccessToken();
+
+};
+
+
+
+
+
+
+document
+.getElementById("subirVideo")
+.onclick = async()=>{
+
+
+if(!accessToken){
+
+alert("Primero conecta YouTube");
+
+return;
+
+}
+
+
+const file =
+document.getElementById("videoFile").files[0];
+
+
+if(!file){
+
+alert("Selecciona un video");
+
+return;
+
+}
+
+
+
+document.getElementById("resultado").innerHTML=
+"Subiendo...";
+
+
+
+const metadata={
+
+snippet:{
+
+title:"Video prueba DECOM",
+
+description:"Prueba subida desde DECOM"
+
+},
+
+status:{
+
+privacyStatus:"unlisted"
+
+}
+
+};
+
+
+
+
+const formData =
+new FormData();
+
+
+formData.append(
+"metadata",
+new Blob(
+[JSON.stringify(metadata)],
+{
+type:"application/json"
+}
+)
+);
+
+
+formData.append(
+"file",
+file
+);
+
+
+
+
+
+const respuesta =
+await fetch(
+
+"https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status",
+
+{
+
+method:"POST",
+
+headers:{
+
+Authorization:
+"Bearer "+accessToken
+
+},
+
+body:formData
+
+}
+
+);
+
+
+
+
+const data =
+await respuesta.json();
+
+
+
+console.log(data);
+
+
+
+if(data.id){
+
+
+document.getElementById("resultado").innerHTML=
+
+`
+✅ Video subido<br><br>
+
+ID YouTube:<br>
+<b>${data.id}</b>
+
+<br><br>
+
+Link:
+<br>
+
+https://youtube.com/watch?v=${data.id}
+
+`;
+
+
+}else{
+
+
+document.getElementById("resultado").innerHTML=
+
+"❌ Error:<br>"+JSON.stringify(data);
+
+
+}
+
+
+
+};
+
+
+</script>
+
+
+</body>
+
+</html>
