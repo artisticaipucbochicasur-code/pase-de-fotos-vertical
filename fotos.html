@@ -2893,7 +2893,6 @@ body.dark-mode .likes-people-spinner {
       <!-- BOTÓN DE IMÁGENES -->
    <button id="imagesBtn" class="header-btn selected" title="Imágenes">
     <i class="fas fa-image"></i>
-    <span id="imagesNotificationCount"></span>
 </button>
 
       <!-- EL BOTÓN DE MENSAJES YA NO ESTÁ AQUÍ 
@@ -8659,7 +8658,7 @@ function abrirVentanaChat() {
 
 
             img.src =
-            fallbackName(nombre);
+            avatarInicialesDataUrl(nombre);
 
 
 
@@ -8674,7 +8673,7 @@ function abrirVentanaChat() {
 
 
             img.src =
-            fallbackName(nombre);
+            avatarInicialesDataUrl(nombre);
 
 
         };
@@ -19690,6 +19689,29 @@ function fallbackName(nombre="") {
 
 
     return iniciales || "?";
+
+}
+
+
+// Avatar de iniciales para el header del chat cuando el usuario no tiene foto.
+// Se genera como SVG embebido para conservar el mismo <img> y no alterar el resto del chat.
+function avatarInicialesDataUrl(nombre="") {
+
+    const iniciales = fallbackName(nombre);
+
+    const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+      <circle cx="40" cy="40" r="40" fill="#5468ff"/>
+      <text x="40" y="41"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            fill="#ffffff"
+            font-family="Arial, sans-serif"
+            font-size="28"
+            font-weight="700">${iniciales}</text>
+    </svg>`;
+
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
 
 }
 
