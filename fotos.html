@@ -14024,9 +14024,234 @@ savedSearchInputEl.addEventListener("blur", () => {
     let contadorLikesAnterior = -1;
     let likesPorAnuncio = {};     // { anuncioId: count }
     let likedPorAnuncio = {};     // { anuncioId: true/false } para el usuario actual
+    let likeIdUsuarioPorAnuncio = {}; // { anuncioId: likeId } del usuario actual
+
+    // =====================================================
+    // ❤️ CACHE LOCAL + REALTIME PARA LIKES
+    // localStorage pinta al instante; Realtime modifica solo
+    // la fila que cambió. No hay polling ni SELECT completo
+    // después de cada INSERT/DELETE.
+    // =====================================================
+    const LIKES_CACHE_VERSION = 1;
+    const LIKES_CACHE_KEY = "decom_likes_cache_v1";
+    const LIKES_LAST_FULL_SYNC_KEY = "decom_likes_full_sync_v1";
+    const LIKES_RECONCILIACION_MS = 24 * 60 * 60 * 1000;
+
+    let likesFilasCache = [];
+    let likesCacheRestaurada = false;
+    let sincronizacionLikesPromise = null;
+
+    function normalizarFilaLike(like){
+        if(!like || like.id === null || like.id === undefined) return null;
+
+        return {
+            id: like.id,
+            publicacion_id: like.publicacion_id,
+            correo: String(like.correo || "")
+        };
+    }
+
+    function recalcularLikesDesdeCache(){
+        likesPorAnuncio = {};
+        likedPorAnuncio = {};
+        likeIdUsuarioPorAnuncio = {};
+
+        const correoActual = normalizeText(currentAuthorEmail || "");
+
+        likesFilasCache.forEach(like => {
+            const id = like.publicacion_id;
+            if(id === null || id === undefined) return;
+
+            likesPorAnuncio[id] = (likesPorAnuncio[id] || 0) + 1;
+
+            if(
+                correoActual &&
+                normalizeText(like.correo) === correoActual
+            ){
+                likedPorAnuncio[id] = true;
+                likeIdUsuarioPorAnuncio[id] = like.id;
+            }
+        });
+    }
+
+    function guardarCacheLikes(){
+        try{
+            localStorage.setItem(
+                LIKES_CACHE_KEY,
+                JSON.stringify({
+                    version: LIKES_CACHE_VERSION,
+                    guardadoEn: new Date().toISOString(),
+                    items: likesFilasCache
+                })
+            );
+        }catch(error){
+            console.warn("No se pudo guardar cache local de likes:", error);
+        }
+    }
+
+    function restaurarLikesDesdeCache(){
+        if(likesCacheRestaurada) return likesFilasCache.length > 0;
+        likesCacheRestaurada = true;
+
+        try{
+            const raw = localStorage.getItem(LIKES_CACHE_KEY);
+            if(!raw) return false;
+
+            const cache = JSON.parse(raw);
+
+            if(
+                cache?.version !== LIKES_CACHE_VERSION ||
+                !Array.isArray(cache?.items)
+            ){
+                return false;
+            }
+
+            likesFilasCache = cache.items
+                .map(normalizarFilaLike)
+                .filter(Boolean);
+
+            recalcularLikesDesdeCache();
+
+            console.log(
+                `⚡ Likes restaurados desde localStorage: ${likesFilasCache.length} filas; sin consultar Supabase para pintar.`
+            );
+
+            return true;
+
+        }catch(error){
+            console.warn("No se pudo restaurar cache local de likes:", error);
+            return false;
+        }
+    }
+
+    function buscarLikeUsuarioEnCache(anuncioId){
+        const correoActual = normalizeText(currentAuthorEmail || "");
+
+        if(!correoActual) return null;
+
+        return likesFilasCache.find(like =>
+            String(like.publicacion_id) === String(anuncioId) &&
+            normalizeText(like.correo) === correoActual
+        ) || null;
+    }
+
+    function refrescarLikeActivoSiCorresponde(anuncioId){
+        if(!swiperInstance || !anunciosData?.length) return;
+
+        const activo = anunciosData[swiperInstance.realIndex];
+        if(
+            activo &&
+            String(activo.id) === String(anuncioId)
+        ){
+            actualizarLikeUI(activo.id);
+        }
+    }
+
+    function insertarLikeLocal(fila, opciones = {}){
+        const like = normalizarFilaLike(fila);
+        if(!like) return false;
+
+        const existe = likesFilasCache.some(
+            actual => String(actual.id) === String(like.id)
+        );
+
+        if(existe) return false;
+
+        likesFilasCache.push(like);
+        recalcularLikesDesdeCache();
+
+        if(opciones.guardar !== false){
+            guardarCacheLikes();
+        }
+
+        refrescarLikeActivoSiCorresponde(like.publicacion_id);
+        return true;
+    }
+
+    function actualizarLikeLocal(fila, opciones = {}){
+        const like = normalizarFilaLike(fila);
+        if(!like) return false;
+
+        const index = likesFilasCache.findIndex(
+            actual => String(actual.id) === String(like.id)
+        );
+
+        if(index === -1){
+            return insertarLikeLocal(like, opciones);
+        }
+
+        likesFilasCache[index] = like;
+        recalcularLikesDesdeCache();
+
+        if(opciones.guardar !== false){
+            guardarCacheLikes();
+        }
+
+        refrescarLikeActivoSiCorresponde(like.publicacion_id);
+        return true;
+    }
+
+    function eliminarLikeLocalPorId(likeId, publicacionIdFallback = null, opciones = {}){
+        const index = likesFilasCache.findIndex(
+            actual => String(actual.id) === String(likeId)
+        );
+
+        let publicacionId = publicacionIdFallback;
+
+        if(index !== -1){
+            publicacionId = likesFilasCache[index].publicacion_id;
+            likesFilasCache.splice(index, 1);
+        }else{
+            // Realtime DELETE puede llegar después de que la respuesta
+            // de nuestra propia operación ya haya actualizado el cache.
+            return false;
+        }
+
+        recalcularLikesDesdeCache();
+
+        if(opciones.guardar !== false){
+            guardarCacheLikes();
+        }
+
+        refrescarLikeActivoSiCorresponde(publicacionId);
+        return true;
+    }
+
+    function procesarCambioLikeRealtime(payload){
+        if(!payload) return;
+
+        if(payload.eventType === "INSERT"){
+            insertarLikeLocal(payload.new);
+            return;
+        }
+
+        if(payload.eventType === "UPDATE"){
+            actualizarLikeLocal(payload.new);
+            return;
+        }
+
+        if(payload.eventType === "DELETE"){
+            eliminarLikeLocalPorId(
+                payload.old?.id,
+                payload.old?.publicacion_id
+            );
+        }
+    }
 
 function actualizarLikeUI(anuncioId) {
-  // ✅ Si hay una operación pendiente, no repintar desde otros flujos (evita parpadeo)
+  // El usuario pudo cambiar de sesión después de restaurar el cache.
+  // Recalcular solo desde memoria local evita cualquier consulta de red.
+  const likeUsuario = buscarLikeUsuarioEnCache(anuncioId);
+
+  likedPorAnuncio[anuncioId] = !!likeUsuario;
+
+  if(likeUsuario){
+      likeIdUsuarioPorAnuncio[anuncioId] = likeUsuario.id;
+  }else{
+      delete likeIdUsuarioPorAnuncio[anuncioId];
+  }
+
+  // ✅ Si hay una operación pendiente, conservar el estado optimista.
   if (likePendingPorAnuncio && likePendingPorAnuncio[anuncioId]) return;
 
   const count = Number(likesPorAnuncio[anuncioId] || 0);
@@ -14051,273 +14276,218 @@ const likePendingPorAnuncio = {};
 
 async function toggleLikeAnuncioActual() {
 
+    if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
 
-if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
+    restaurarLikesDesdeCache();
 
+    const activeIndex = swiperInstance.realIndex;
+    const anuncioActual = anunciosData[activeIndex];
 
+    if(!anuncioActual || !anuncioActual.id) return;
 
-const activeIndex = swiperInstance.realIndex;
+    const anuncioId = anuncioActual.id;
 
-const anuncioActual = anunciosData[activeIndex];
+    if(likePendingPorAnuncio[anuncioId]) return;
 
+    const likeExistente = buscarLikeUsuarioEnCache(anuncioId);
+    const prevLiked = !!likeExistente;
+    const prevCount = Number(likesPorAnuncio[anuncioId] || 0);
 
-if(!anuncioActual || !anuncioActual.id) return;
-
-
-
-const anuncioId = anuncioActual.id;
-
-
-
-if(likePendingPorAnuncio[anuncioId]) return;
-
-
-
-const prevLiked =
-!!likedPorAnuncio[anuncioId];
-
-
-const prevCount =
-Number(likesPorAnuncio[anuncioId] || 0);
-
-
-
-// UI optimista
-
-const nextLiked = !prevLiked;
-
-
-const nextCount =
-Math.max(
-0,
-prevCount + (nextLiked ? 1 : -1)
-);
-
-
-
-likedPorAnuncio[anuncioId] = nextLiked;
-
-likesPorAnuncio[anuncioId] = nextCount;
-
-
-actualizarLikeUI(anuncioId);
-
-
-
-likePendingPorAnuncio[anuncioId] = true;
-
-
-
-try {
-
-
-    // Buscar si existe
-
-    const {data: existente,error:buscarError}=
-
-    await supabaseClient
-
-    .from("likes")
-
-    .select("id")
-
-    .eq("publicacion_id", anuncioId)
-
-    .eq("correo", currentAuthorEmail);
-
-
-
-    if(buscarError){
-
-        throw buscarError;
-
-    }
-
-
-
-    if(existente.length > 0){
-
-
-        // quitar like
-
-
-        const {error}=
-
-        await supabaseClient
-
-        .from("likes")
-
-        .delete()
-
-        .eq("id", existente[0].id);
-
-
-
-        if(error) throw error;
-
-
-
-    }else{
-
-
-        // agregar like
-
-
-        const {error}=
-
-        await supabaseClient
-
-        .from("likes")
-
-        .insert([{
-
-            publicacion_id: anuncioId,
-
-            correo: currentAuthorEmail
-
-        }]);
-
-
-
-        if(error) throw error;
-
-
-    }
-
-
-
-    // actualizar datos reales
-
-    await verificarLikes();
-
-
-
-}catch(error){
-
-
-    console.error(
-        "Error toggle like:",
-        error
+    // UI optimista
+    const nextLiked = !prevLiked;
+    const nextCount = Math.max(
+        0,
+        prevCount + (nextLiked ? 1 : -1)
     );
 
+    likedPorAnuncio[anuncioId] = nextLiked;
+    likesPorAnuncio[anuncioId] = nextCount;
 
+    likeCountValue.textContent = nextCount;
+    likeCountValue.style.display = nextCount > 0 ? "flex" : "none";
+    if(likeIcon){
+        likeIcon.className = nextLiked ? "fas fa-heart" : "far fa-heart";
+    }
 
-    // rollback
-
-    likedPorAnuncio[anuncioId]=prevLiked;
-
-    likesPorAnuncio[anuncioId]=prevCount;
-
-
-    actualizarLikeUI(anuncioId);
-
-
-
-}finally{
-
-
-    likePendingPorAnuncio[anuncioId]=false;
-
-
-}
-
-
-}
-
-
-
-async function verificarLikes() {
+    likePendingPorAnuncio[anuncioId] = true;
 
     try {
 
+        if(prevLiked){
 
-        const { data, error } = await supabaseClient
+            let likeId = likeExistente?.id || likeIdUsuarioPorAnuncio[anuncioId];
 
-            .from("likes")
+            // Fallback excepcional para caches antiguos/inconsistentes.
+            // No se usa en el flujo normal.
+            if(!likeId){
+                const {data: encontrado, error: buscarError} =
+                await supabaseClient
+                    .from("likes")
+                    .select("id,publicacion_id,correo")
+                    .eq("publicacion_id", anuncioId)
+                    .eq("correo", currentAuthorEmail)
+                    .maybeSingle();
 
-            .select("*");
+                if(buscarError) throw buscarError;
+                likeId = encontrado?.id || null;
 
-
-
-        if(error){
-
-            throw error;
-
-        }
-
-
-
-        likesPorAnuncio = {};
-        likedPorAnuncio = {};
-
-
-
-        data.forEach(like => {
-
-
-            const id = like.publicacion_id;
-
-
-
-            // contador general
-
-            likesPorAnuncio[id] =
-            (likesPorAnuncio[id] || 0) + 1;
-
-
-
-            // saber si este usuario dio like
-
-            if(
-                normalizeText(like.correo) ===
-                normalizeText(currentAuthorEmail)
-            ){
-
-                likedPorAnuncio[id] = true;
-
+                if(encontrado){
+                    insertarLikeLocal(encontrado);
+                }
             }
 
+            if(!likeId){
+                throw new Error("No se encontró el like local para eliminar.");
+            }
 
-        });
+            const {error} =
+            await supabaseClient
+                .from("likes")
+                .delete()
+                .eq("id", likeId);
+
+            if(error) throw error;
+
+            eliminarLikeLocalPorId(likeId, anuncioId);
+
+        }else{
+
+            const {data, error} =
+            await supabaseClient
+                .from("likes")
+                .insert([{
+                    publicacion_id: anuncioId,
+                    correo: currentAuthorEmail
+                }])
+                .select("id,publicacion_id,correo")
+                .single();
+
+            if(error) throw error;
+
+            insertarLikeLocal(data);
+        }
+
+    }catch(error){
+
+        console.error(
+            "Error toggle like:",
+            error
+        );
+
+        // rollback de UI; el cache persistente no se modifica si falló.
+        likedPorAnuncio[anuncioId] = prevLiked;
+        likesPorAnuncio[anuncioId] = prevCount;
+
+    }finally{
+
+        likePendingPorAnuncio[anuncioId] = false;
+
+        // El estado final sale del cache local ya confirmado por la escritura
+        // o por Realtime; no hacemos SELECT completo.
+        recalcularLikesDesdeCache();
+        actualizarLikeUI(anuncioId);
+    }
+}
 
 
 
-        // actualizar anuncio visible
+async function verificarLikes(forceRefresh = false) {
+
+    const habiaCache = restaurarLikesDesdeCache();
+
+    const ultimaCompleta = Number(
+        localStorage.getItem(LIKES_LAST_FULL_SYNC_KEY) || 0
+    );
+
+    const cacheVencida =
+        !ultimaCompleta ||
+        (Date.now() - ultimaCompleta) >= LIKES_RECONCILIACION_MS;
+
+    const requiereServidor =
+        forceRefresh ||
+        !habiaCache ||
+        cacheVencida;
+
+    if(!requiereServidor){
+        recalcularLikesDesdeCache();
 
         if(
             swiperInstance &&
             anunciosData &&
             anunciosData.length > 0
         ){
-
-            const activeIndex =
-            swiperInstance.realIndex;
-
-
             const anuncioActual =
-            anunciosData[activeIndex];
-
+                anunciosData[swiperInstance.realIndex];
 
             if(anuncioActual){
-
                 actualizarLikeUI(anuncioActual.id);
-
             }
-
         }
 
-
-    } catch(error){
-
-
-        console.error(
-            "Error cargando likes Supabase:",
-            error
-        );
-
-
+        console.log("❤️ Likes servidos desde localStorage; Realtime queda a cargo de novedades.");
+        return likesFilasCache;
     }
 
+    if(sincronizacionLikesPromise){
+        return sincronizacionLikesPromise;
+    }
+
+    sincronizacionLikesPromise = (async ()=>{
+        try {
+
+            const { data = [], error } = await supabaseClient
+                .from("likes")
+                .select("id,publicacion_id,correo");
+
+            if(error) throw error;
+
+            likesFilasCache = data
+                .map(normalizarFilaLike)
+                .filter(Boolean);
+
+            recalcularLikesDesdeCache();
+            guardarCacheLikes();
+
+            localStorage.setItem(
+                LIKES_LAST_FULL_SYNC_KEY,
+                String(Date.now())
+            );
+
+            if(
+                swiperInstance &&
+                anunciosData &&
+                anunciosData.length > 0
+            ){
+                const anuncioActual =
+                    anunciosData[swiperInstance.realIndex];
+
+                if(anuncioActual){
+                    actualizarLikeUI(anuncioActual.id);
+                }
+            }
+
+            console.log(
+                `✅ Likes reconciliados con Supabase (${likesFilasCache.length} filas).`
+            );
+
+            return likesFilasCache;
+
+        } catch(error){
+
+            console.error(
+                "Error cargando likes Supabase:",
+                error
+            );
+
+            // Si ya había cache, la app continúa funcionando con él.
+            return likesFilasCache;
+
+        } finally {
+            sincronizacionLikesPromise = null;
+        }
+    })();
+
+    return sincronizacionLikesPromise;
 }
 
 
@@ -14331,6 +14501,248 @@ async function verificarLikes() {
     
     let currentAuthorEmail = "deimer.herrera91@gmail.com";
     let currentAuthorName = "AnónimoDH";
+
+
+    // =====================================================
+    // 💬 CACHE LOCAL + REALTIME PARA COMENTARIOS
+    // localStorage = historial ya conocido
+    // Realtime = INSERT/UPDATE/DELETE puntuales
+    // Supabase = reconciliación completa solo al faltar cache,
+    //             cada 24 h o al pulsar Actualizar
+    // =====================================================
+    const COMENTARIOS_CACHE_VERSION = 1;
+    const COMENTARIOS_CACHE_KEY = "decom_comentarios_cache_v1";
+    const COMENTARIOS_LAST_FULL_SYNC_KEY = "decom_comentarios_full_sync_v1";
+    const COMENTARIOS_RECONCILIACION_MS = 24 * 60 * 60 * 1000;
+
+    let comentariosFilasCache = [];
+    let comentariosCacheRestaurada = false;
+    let sincronizacionComentariosPromise = null;
+
+    function normalizarFilaComentario(comentario){
+        if(!comentario || comentario.id === null || comentario.id === undefined){
+            return null;
+        }
+
+        return {
+            id: comentario.id,
+            publicacion_id: comentario.publicacion_id,
+            texto: comentario.texto || "",
+            autor: comentario.autor || "Anónimo",
+            correo: String(comentario.correo || comentario.autorCorreo || ""),
+            fecha: comentario.fecha || comentario.fechaOriginal || ""
+        };
+    }
+
+    function reconstruirComentariosDesdeCache(){
+        comentariosPorAnuncio = {};
+
+        comentariosFilasCache
+            .slice()
+            .sort((a,b)=>{
+                const fa = new Date(a.fecha || 0).getTime() || 0;
+                const fb = new Date(b.fecha || 0).getTime() || 0;
+                return fa - fb;
+            })
+            .forEach(comentario => {
+                const id = comentario.publicacion_id;
+                if(id === null || id === undefined) return;
+
+                if(!comentariosPorAnuncio[id]){
+                    comentariosPorAnuncio[id] = [];
+                }
+
+                comentariosPorAnuncio[id].push({
+                    id: comentario.id,
+                    texto: comentario.texto,
+                    textoPuro: comentario.texto,
+                    autor: comentario.autor,
+                    autorCorreo: comentario.correo,
+                    correo: comentario.correo,
+                    fecha: comentario.fecha,
+                    fechaOriginal: comentario.fecha
+                });
+            });
+    }
+
+    function guardarCacheComentarios(){
+        try{
+            localStorage.setItem(
+                COMENTARIOS_CACHE_KEY,
+                JSON.stringify({
+                    version: COMENTARIOS_CACHE_VERSION,
+                    guardadoEn: new Date().toISOString(),
+                    items: comentariosFilasCache
+                })
+            );
+        }catch(error){
+            console.warn("No se pudo guardar cache local de comentarios:", error);
+        }
+    }
+
+    function restaurarComentariosDesdeCache(){
+        if(comentariosCacheRestaurada){
+            return comentariosFilasCache.length > 0;
+        }
+
+        comentariosCacheRestaurada = true;
+
+        try{
+            const raw = localStorage.getItem(COMENTARIOS_CACHE_KEY);
+            if(!raw) return false;
+
+            const cache = JSON.parse(raw);
+
+            if(
+                cache?.version !== COMENTARIOS_CACHE_VERSION ||
+                !Array.isArray(cache?.items)
+            ){
+                return false;
+            }
+
+            comentariosFilasCache = cache.items
+                .map(normalizarFilaComentario)
+                .filter(Boolean);
+
+            reconstruirComentariosDesdeCache();
+
+            console.log(
+                `⚡ Comentarios restaurados desde localStorage: ${comentariosFilasCache.length} filas; sin consultar Supabase para pintar.`
+            );
+
+            return true;
+
+        }catch(error){
+            console.warn("No se pudo restaurar cache local de comentarios:", error);
+            return false;
+        }
+    }
+
+    function refrescarComentarioLocalEnFeed(publicacionId){
+        if(publicacionId === null || publicacionId === undefined) return;
+
+        const anuncio = anunciosData?.find(
+            a => String(a.id) === String(publicacionId)
+        );
+
+        if(anuncio){
+            anuncio.comentarios = normalizarComentarios(
+                comentariosPorAnuncio[publicacionId] || []
+            );
+        }
+
+        if(
+            swiperInstance &&
+            anunciosData?.length
+        ){
+            const activo = anunciosData[swiperInstance.realIndex];
+
+            if(
+                activo &&
+                String(activo.id) === String(publicacionId)
+            ){
+                recargarComentariosDelAnuncioActual();
+            }
+        }
+    }
+
+    function insertarComentarioLocal(fila, opciones = {}){
+        const comentario = normalizarFilaComentario(fila);
+        if(!comentario) return false;
+
+        const existe = comentariosFilasCache.some(
+            actual => String(actual.id) === String(comentario.id)
+        );
+
+        if(existe) return false;
+
+        comentariosFilasCache.push(comentario);
+        reconstruirComentariosDesdeCache();
+
+        if(opciones.guardar !== false){
+            guardarCacheComentarios();
+        }
+
+        refrescarComentarioLocalEnFeed(comentario.publicacion_id);
+        return true;
+    }
+
+    function actualizarComentarioLocal(fila, opciones = {}){
+        const comentario = normalizarFilaComentario(fila);
+        if(!comentario) return false;
+
+        const index = comentariosFilasCache.findIndex(
+            actual => String(actual.id) === String(comentario.id)
+        );
+
+        if(index === -1){
+            return insertarComentarioLocal(comentario, opciones);
+        }
+
+        const publicacionAnterior = comentariosFilasCache[index].publicacion_id;
+        comentariosFilasCache[index] = comentario;
+
+        reconstruirComentariosDesdeCache();
+
+        if(opciones.guardar !== false){
+            guardarCacheComentarios();
+        }
+
+        refrescarComentarioLocalEnFeed(publicacionAnterior);
+        if(String(publicacionAnterior) !== String(comentario.publicacion_id)){
+            refrescarComentarioLocalEnFeed(comentario.publicacion_id);
+        }
+
+        return true;
+    }
+
+    function eliminarComentarioLocalPorId(comentarioId, publicacionIdFallback = null, opciones = {}){
+        const index = comentariosFilasCache.findIndex(
+            actual => String(actual.id) === String(comentarioId)
+        );
+
+        let publicacionId = publicacionIdFallback;
+
+        if(index !== -1){
+            publicacionId = comentariosFilasCache[index].publicacion_id;
+            comentariosFilasCache.splice(index, 1);
+        }else{
+            // Idempotente: nuestra respuesta HTTP puede haber actualizado
+            // el cache antes de que llegue el DELETE de Realtime.
+            return false;
+        }
+
+        reconstruirComentariosDesdeCache();
+
+        if(opciones.guardar !== false){
+            guardarCacheComentarios();
+        }
+
+        refrescarComentarioLocalEnFeed(publicacionId);
+        return true;
+    }
+
+    function procesarCambioComentarioRealtime(payload){
+        if(!payload) return;
+
+        if(payload.eventType === "INSERT"){
+            insertarComentarioLocal(payload.new);
+            return;
+        }
+
+        if(payload.eventType === "UPDATE"){
+            actualizarComentarioLocal(payload.new);
+            return;
+        }
+
+        if(payload.eventType === "DELETE"){
+            eliminarComentarioLocalPorId(
+                payload.old?.id,
+                payload.old?.publicacion_id
+            );
+        }
+    }
+
 
   
 
@@ -14355,8 +14767,8 @@ if (refreshBtn) {
       // vuelve a descargar las imágenes que ya existen en Cache Storage.
       await Promise.all([
         cargarImagenes(true),
-        verificarComentarios(),
-        verificarLikes()
+        verificarComentarios(true),
+        verificarLikes(true)
       ]);
 
       recargarComentariosDelAnuncioActual();
@@ -15110,185 +15522,116 @@ showConfirmationDialog(
 
 async function eliminarComentario(comentarioId) {
 
-
     loader.style.display = 'block';
-
 
     try {
 
+        const filaLocal = comentariosFilasCache.find(
+            c => String(c.id) === String(comentarioId)
+        );
 
         const { error } = await supabaseClient
-
             .from("comentarios")
-
             .delete()
-
             .eq("id", comentarioId);
 
-
-
-
         if(error){
-
             throw error;
-
         }
-
-
-
 
         console.log(
             "Comentario eliminado correctamente."
         );
 
-
-
-        await verificarComentarios();
-
-
+        // Actualización local inmediata. El DELETE de Realtime posterior
+        // se deduplica; no hacemos SELECT completo.
+        eliminarComentarioLocalPorId(
+            comentarioId,
+            filaLocal?.publicacion_id
+        );
 
     } catch(error){
-
 
         console.error(
             "Error eliminando comentario:",
             error
         );
 
-
-
         showInfoDialog(
             "Error",
             "No se pudo eliminar el comentario."
         );
 
-
-
     } finally {
 
-
         loader.style.display = 'none';
-
-
     }
-
-
 }
 
-async function enviarComentario(inputOrigen = commentInput) {
 
+async function enviarComentario(inputOrigen = commentInput) {
 
     const inputActivo = inputOrigen || commentInput;
     const comentarioTexto = inputActivo?.value.trim() || "";
 
     const activeIndex = swiperInstance.realIndex;
-
     const currentAnuncio = anunciosData[activeIndex];
 
-
-
     if (!comentarioTexto || !currentAnuncio) {
-
         showInfoDialog(
             "Error",
             "No puedes enviar un comentario vacío."
         );
-
         return;
-
     }
-
-
 
     loader.style.display = 'block';
 
-
-
     try {
 
-
-
-        const { error } = await supabaseClient
-
+        const { data, error } = await supabaseClient
             .from("comentarios")
-
             .insert([{
-
-
                 publicacion_id: currentAnuncio.id,
-
-
                 texto: comentarioTexto,
-
-
                 autor: currentAuthorName,
-
-
                 correo: currentAuthorEmail
-
-
-
-            }]);
-
-
-
-
+            }])
+            .select("id,publicacion_id,texto,autor,correo,fecha")
+            .single();
 
         if(error){
-
-
             throw error;
-
-
         }
-
-
-
 
         console.log(
             "Comentario agregado correctamente."
         );
 
-
-
         // Mantener sincronizados los dos campos (feed + modal).
         if(commentInput) commentInput.value = "";
         if(feedCommentInput) feedCommentInput.value = "";
 
-
-
-        await verificarComentarios();
-
-
-
-
+        // La respuesta de la propia escritura actualiza el cache local.
+        // Si Realtime llega antes/después, insertarComentarioLocal deduplica por ID.
+        insertarComentarioLocal(data);
 
     } catch(error) {
-
 
         console.error(
             "Error agregando comentario:",
             error
         );
 
-
-
         showInfoDialog(
             "Error",
             "No se pudo agregar el comentario."
         );
 
-
-
     } finally {
 
-
         loader.style.display = 'none';
-
-
     }
-
-
 }
 
     // =====================================================
@@ -16054,102 +16397,91 @@ if(savedSearchInput){
 
 
 
-async function verificarComentarios() {
+async function verificarComentarios(forceRefresh = false) {
 
+    const habiaCache = restaurarComentariosDesdeCache();
 
-    try {
+    const ultimaCompleta = Number(
+        localStorage.getItem(COMENTARIOS_LAST_FULL_SYNC_KEY) || 0
+    );
 
+    const cacheVencida =
+        !ultimaCompleta ||
+        (Date.now() - ultimaCompleta) >= COMENTARIOS_RECONCILIACION_MS;
 
-        const { data, error } = await supabaseClient
+    const requiereServidor =
+        forceRefresh ||
+        !habiaCache ||
+        cacheVencida;
 
-            .from("comentarios")
-
-            .select("*")
-
-            .order("fecha", { ascending: true });
-
-
-
-        if(error){
-
-            throw error;
-
-        }
-
-
-
-        comentariosPorAnuncio = {};
-
-
-
-        if(data && data.length > 0){
-
-
-            data.forEach(comentario => {
-
-
-
-                const id = comentario.publicacion_id;
-
-
-
-                if(!comentariosPorAnuncio[id]){
-
-                    comentariosPorAnuncio[id] = [];
-
-                }
-
-
-
-                comentariosPorAnuncio[id].push({
-
-                    id: comentario.id,
-
-                    texto: comentario.texto,
-
-                    textoPuro: comentario.texto,
-
-                    autor: comentario.autor,
-
-                    autorCorreo: comentario.correo,
-
-                    fecha: comentario.fecha
-
-                });
-
-
-
-            });
-
-
-        }
-
-
-
-
-
-        // refrescar comentario del anuncio actual
-
+    if(!requiereServidor){
         if(typeof recargarComentariosDelAnuncioActual === "function"){
-
             recargarComentariosDelAnuncioActual();
-
         }
 
-
-
-    } catch(error){
-
-
-        console.error(
-            "Error cargando comentarios Supabase:",
-            error
-        );
-
-
+        console.log("💬 Comentarios servidos desde localStorage; Realtime queda a cargo de novedades.");
+        return comentariosFilasCache;
     }
 
+    if(sincronizacionComentariosPromise){
+        return sincronizacionComentariosPromise;
+    }
 
+    sincronizacionComentariosPromise = (async ()=>{
+        try {
+
+            const { data = [], error } = await supabaseClient
+                .from("comentarios")
+                .select("id,publicacion_id,texto,autor,correo,fecha")
+                .order("fecha", { ascending: true });
+
+            if(error) throw error;
+
+            comentariosFilasCache = data
+                .map(normalizarFilaComentario)
+                .filter(Boolean);
+
+            reconstruirComentariosDesdeCache();
+            guardarCacheComentarios();
+
+            localStorage.setItem(
+                COMENTARIOS_LAST_FULL_SYNC_KEY,
+                String(Date.now())
+            );
+
+            // Sincronizar las publicaciones ya cargadas sin reconstruir el feed.
+            anunciosData?.forEach(anuncio => {
+                anuncio.comentarios = normalizarComentarios(
+                    comentariosPorAnuncio[anuncio.id] || []
+                );
+            });
+
+            if(typeof recargarComentariosDelAnuncioActual === "function"){
+                recargarComentariosDelAnuncioActual();
+            }
+
+            console.log(
+                `✅ Comentarios reconciliados con Supabase (${comentariosFilasCache.length} filas).`
+            );
+
+            return comentariosFilasCache;
+
+        } catch(error){
+
+            console.error(
+                "Error cargando comentarios Supabase:",
+                error
+            );
+
+            // Si había cache, se mantiene la experiencia offline/local.
+            return comentariosFilasCache;
+
+        } finally {
+            sincronizacionComentariosPromise = null;
+        }
+    })();
+
+    return sincronizacionComentariosPromise;
 }
 
     function recargarComentariosDelAnuncioActual() {
@@ -17864,13 +18196,14 @@ function iniciarRealtimeSupabase(){
                 schema:"public",
                 table:"comentarios"
             },
-            () => {
-                if(typeof verificarComentarios === "function"){
-                    verificarComentarios();
-                }
+            payload => {
+                console.log("💬 Cambio puntual Realtime comentario:", payload.eventType, payload.new?.id || payload.old?.id);
+                procesarCambioComentarioRealtime(payload);
             }
         )
-        .subscribe();
+        .subscribe(status => {
+            console.log("📡 Realtime comentarios:", status);
+        });
 
     if(likesRealtimeChannel){
         supabaseClient.removeChannel(likesRealtimeChannel);
@@ -17885,13 +18218,14 @@ function iniciarRealtimeSupabase(){
                 schema:"public",
                 table:"likes"
             },
-            () => {
-                if(typeof verificarLikes === "function"){
-                    verificarLikes();
-                }
+            payload => {
+                console.log("❤️ Cambio puntual Realtime like:", payload.eventType, payload.new?.id || payload.old?.id);
+                procesarCambioLikeRealtime(payload);
             }
         )
-        .subscribe();
+        .subscribe(status => {
+            console.log("📡 Realtime likes:", status);
+        });
 }
 
 window.addEventListener("beforeunload", ()=>{
@@ -18824,19 +19158,20 @@ function showCustommostrarAviso(title, titlesList) {
         overlay.style.display = 'flex';
     }
 
-    //setInterval(actualizarContador, 5000);
-    setInterval(verificarComentarios, 5000);
+    // ✅ Ya no existe polling cada 5 segundos para comentarios/likes.
+    // localStorage pinta inmediatamente y Supabase Realtime entrega cada cambio puntual.
 
-    setInterval(verificarLikes, 5000);
-
-
-    verificarLikes();
-
-// Mostrar el cache de anuncios inmediatamente y sincronizar en segundo plano.
-// Los comentarios, likes y guardados mantienen sus flujos independientes.
+// Mostrar caches inmediatamente y sincronizar en segundo plano.
+// Comentarios y likes solo consultan Supabase si no hay cache, si está vencido
+// (reconciliación de seguridad cada 24 h) o si el usuario pulsa Actualizar.
 (async function iniciarFeedAnunciosOptimizado(){
 
-    console.log("🚀 Feed: primero localStorage/cache; Supabase queda solo para reconciliación incremental y Realtime.");
+    console.log("🚀 Feed social optimizado: anuncios + comentarios + likes salen primero de cache/localStorage; Realtime aplica novedades puntuales.");
+
+    // IMPORTANTE: restaurar comentarios antes de reconstruir anuncios,
+    // para que cada publicación nazca con sus comentarios locales ya disponibles.
+    restaurarComentariosDesdeCache();
+    restaurarLikesDesdeCache();
 
     iniciarRealtimeSupabase();
 
@@ -18845,7 +19180,7 @@ function showCustommostrarAviso(title, titlesList) {
     cargarGuardadosUsuario();
     verificarGuardados();
 
-    verificarComentarios()
+    const sincronizacionComentarios = verificarComentarios(false)
         .then(() => {
             anunciosData.forEach(anuncio => {
                 anuncio.comentarios = normalizarComentarios(
@@ -18856,13 +19191,15 @@ function showCustommostrarAviso(title, titlesList) {
             recargarComentariosDelAnuncioActual();
         })
         .catch(error => {
-            console.warn("No se pudieron actualizar comentarios al iniciar:", error);
+            console.warn("No se pudieron reconciliar comentarios al iniciar:", error);
         });
 
-    verificarLikes();
+    const sincronizacionLikes = verificarLikes(false);
 
     await Promise.allSettled([
         sincronizacionFeed,
+        sincronizacionComentarios,
+        sincronizacionLikes,
         inicializarNotificacionesSupabase()
     ]);
 
@@ -22390,8 +22727,8 @@ function agregarEfectoRipple(boton) {
     async function recargarDatos() {
       await Promise.all([
         cargarImagenes(true),
-        verificarComentarios(),
-        verificarLikes()
+        verificarComentarios(true),
+        verificarLikes(true)
       ]);
 
       recargarComentariosDelAnuncioActual();
