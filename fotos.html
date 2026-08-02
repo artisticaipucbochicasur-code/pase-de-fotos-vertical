@@ -1780,7 +1780,11 @@ body:not(.dark-mode) .chat-list-nombre {
     transform:scale(.94);
 }
 
-
+.youtube-share-btn.hidden-overlay{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+}
   </style>
 </head>
 
@@ -13884,16 +13888,25 @@ currentDescription.addEventListener("click", function () {
 
 
 
+function alternarYoutubeShare(){
+    const youtubeShareBtn = document.getElementById("youtubeShareBtn");
 
+    if(youtubeShareBtn){
+        youtubeShareBtn.classList.toggle("hidden-overlay");
+    }
+}
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
 document.querySelector('.swiper').addEventListener('click', (e) => {
 
     // 🎥 Si el click viene de un video YouTube,
     // no ejecutar ocultar/mostrar overlays
-    if(e.target.closest("iframe")){
-        return;
-    }
+ if(
+    e.target.closest("iframe") &&
+    !e.target.closest(".youtube-share-btn")
+){
+    return;
+}
   const currentTime = new Date().getTime();
   if (currentTime - lastTapTime > 300) {
     // ✅ Estos se alternan normal
@@ -13930,9 +13943,7 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     // 🆕 Ocultar/mostrar compartir YouTube
 const youtubeShareBtn = document.getElementById("youtubeShareBtn");
 
-if (youtubeShareBtn) {
-  youtubeShareBtn.classList.toggle("hidden-overlay");
-}
+alternarYoutubeShare();
 
 
 
