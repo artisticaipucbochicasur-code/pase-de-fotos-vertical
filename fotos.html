@@ -76,6 +76,11 @@
         object-fit: contain;
         display: block;
         margin: auto;
+        /* PC: evita que el navegador arrastre la imagen como archivo/fantasma.
+           El gesto queda libre para que Swiper reciba el arrastre con el mouse. */
+        -webkit-user-drag: none;
+        user-select: none;
+        -webkit-user-select: none;
     }
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -18793,6 +18798,12 @@ if(anuncio.tipo_media === "video"){
         img.decoding = "async";
         img.dataset.src = anuncio.url || "";
         img.dataset.anuncioId = String(anuncio.id);
+
+        // 🖱️ PC: desactivar únicamente el drag nativo de la imagen.
+        // Swiper conserva el mousedown/mousemove y puede cambiar de anuncio
+        // sin que la imagen quede pegada al cursor. En móvil no cambia nada.
+        img.draggable = false;
+        img.addEventListener("dragstart", (e) => e.preventDefault());
 
         zoomContainer.appendChild(img);
 
