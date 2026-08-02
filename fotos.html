@@ -1762,8 +1762,13 @@ body:not(.dark-mode) .chat-list-nombre {
     align-items:center;
     justify-content:center;
 
+    /* igual comportamiento que editar */
     opacity:1;
     visibility:visible;
+
+    transition:
+        opacity .3s ease-in-out,
+        visibility .3s ease-in-out;
 
     pointer-events:auto;
     touch-action:manipulation;
@@ -13922,6 +13927,15 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     if (viewSavedBtn) viewSavedBtn.classList.toggle("hidden-overlay");
 
 
+    // 🆕 Ocultar/mostrar compartir YouTube
+const youtubeShareBtn = document.getElementById("youtubeShareBtn");
+
+if (youtubeShareBtn) {
+  youtubeShareBtn.classList.toggle("hidden-overlay");
+}
+
+
+
 // 🆕 Alternar likes (icono + contador)
 const likesCounter = document.getElementById("likesCounter");
 if (likesCounter) {
@@ -15493,6 +15507,8 @@ function crearControlesMinimosYoutube(iframe){
     const shareBtn = document.createElement("button");
     shareBtn.type = "button";
     shareBtn.className = "youtube-share-btn swiper-no-swiping";
+shareBtn.id = "youtubeShareBtn";
+shareBtn.dataset.overlay = "true";
     shareBtn.title = "Compartir video";
     shareBtn.setAttribute("aria-label", "Compartir video");
     shareBtn.innerHTML = '<i class="fas fa-share-nodes"></i>';
