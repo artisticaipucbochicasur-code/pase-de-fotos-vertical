@@ -1762,13 +1762,9 @@ body:not(.dark-mode) .chat-list-nombre {
     align-items:center;
     justify-content:center;
 
-    /* igual comportamiento que editar */
     opacity:1;
     visibility:visible;
-
-    transition:
-        opacity .3s ease-in-out,
-        visibility .3s ease-in-out;
+    transition:opacity .3s ease-in-out, visibility .3s ease-in-out, transform .15s ease;
 
     pointer-events:auto;
     touch-action:manipulation;
@@ -1780,11 +1776,7 @@ body:not(.dark-mode) .chat-list-nombre {
     transform:scale(.94);
 }
 
-.youtube-share-btn.hidden-overlay{
-    opacity:0;
-    visibility:hidden;
-    pointer-events:none;
-}
+
   </style>
 </head>
 
@@ -2572,6 +2564,11 @@ Volver al inicio
 <!-- Botón fijo para EDITAR anuncio -->
 <button id="editAnnouncementBtn" class="edit-announcement-btn">
   <i class="fas fa-pen"></i>
+</button>
+
+<!-- Botón fijo para COMPARTIR el anuncio activo (imagen o video) -->
+<button id="shareActiveBtn" class="youtube-share-btn" title="Compartir anuncio" aria-label="Compartir anuncio">
+  <i class="fas fa-share-nodes"></i>
 </button>
 
 <!-- Botón fijo para silenciar/activar el sonido del video activo -->
@@ -13352,6 +13349,10 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
 
+    // 📤/🔊 Botones flotantes ligados al anuncio activo
+    const shareActiveBtn = document.getElementById('shareActiveBtn');
+    const videoMuteBtn = document.getElementById('videoMuteBtn');
+
 
     // ❤️ Me gusta
     const likesCounter = document.getElementById('likesCounter');
@@ -13888,25 +13889,16 @@ currentDescription.addEventListener("click", function () {
 
 
 
-function alternarYoutubeShare(){
-    const youtubeShareBtn = document.getElementById("youtubeShareBtn");
 
-    if(youtubeShareBtn){
-        youtubeShareBtn.classList.toggle("hidden-overlay");
-    }
-}
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
 document.querySelector('.swiper').addEventListener('click', (e) => {
 
     // 🎥 Si el click viene de un video YouTube,
     // no ejecutar ocultar/mostrar overlays
- if(
-    e.target.closest("iframe") &&
-    !e.target.closest(".youtube-share-btn")
-){
-    return;
-}
+    if(e.target.closest("iframe")){
+        return;
+    }
   const currentTime = new Date().getTime();
   if (currentTime - lastTapTime > 300) {
     // ✅ Estos se alternan normal
@@ -13940,17 +13932,25 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     if (viewSavedBtn) viewSavedBtn.classList.toggle("hidden-overlay");
 
 
-    // 🆕 Ocultar/mostrar compartir YouTube
-const youtubeShareBtn = document.getElementById("youtubeShareBtn");
-
-alternarYoutubeShare();
-
-
-
 // 🆕 Alternar likes (icono + contador)
 const likesCounter = document.getElementById("likesCounter");
 if (likesCounter) {
   likesCounter.classList.toggle("hidden-overlay");
+}
+
+// 📤/🔊 Compartir y sonido siguen EXACTAMENTE el mismo estado general.
+// Compartir existe para imágenes y videos; sonido únicamente para videos.
+const overlaysOcultosGenerales = contentOverlay.classList.contains("hidden-overlay");
+const activeIndexControles = swiperInstance ? swiperInstance.realIndex : 0;
+const anuncioActivoControles = anunciosData[activeIndexControles];
+
+if (shareActiveBtn) {
+  shareActiveBtn.classList.toggle("hidden-overlay", overlaysOcultosGenerales || !anuncioActivoControles);
+}
+
+if (videoMuteBtn) {
+  const esVideoActivo = anuncioActivoControles?.tipo_media === "video";
+  videoMuteBtn.classList.toggle("hidden-overlay", overlaysOcultosGenerales || !esVideoActivo);
 }
 
 
@@ -15452,25 +15452,112 @@ function apagarSubtitulosYoutube(iframe){
     setTimeout(apagar, 1100);
 }
 
-// 📤 Compartir únicamente el enlace del video actual.
-async function compartirVideoYoutube(iframe){
+// 📤 Obtiene el anuncio que realmente está visible en Swiper.
+function obtenerAnuncioActivoParaCompartir(){
 
-    const videoId = iframe?.dataset?.videoId || "";
-    if(!videoId) return;
+    const indice = swiperInstance ? swiperInstance.realIndex : 0;
+    return anunciosData[indice] || null;
+}
 
-    const url = `https://youtu.be/${videoId}`;
+// 📤 Intenta compartir una imagen como ARCHIVO real cuando Web Share lo soporta.
+// Si el navegador, la PWA o el origen de la imagen no lo permiten, devuelve false
+// y compartirAnuncioActivo() continúa automáticamente compartiendo su enlace.
+async function intentarCompartirImagenComoArchivo(anuncio){
+
+    const url = anuncio?.url || "";
+
+    if(!url || !navigator.share || !navigator.canShare || typeof File === "undefined"){
+        return false;
+    }
 
     try{
 
+        const respuesta = await fetch(url, {
+            cache: "no-cache",
+            credentials: "omit"
+        });
+
+        if(!respuesta.ok) return false;
+
+        const blob = await respuesta.blob();
+        if(!blob.type || !blob.type.startsWith("image/")) return false;
+
+        const extension = (blob.type.split("/")[1] || "jpg")
+            .replace("jpeg", "jpg")
+            .replace(/[^a-z0-9]/gi, "") || "jpg";
+
+        const nombreBase = String(anuncio.titulo || "anuncio")
+            .trim()
+            .replace(/[^a-z0-9áéíóúüñ_-]+/gi, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 60) || "anuncio";
+
+        const archivo = new File(
+            [blob],
+            `${nombreBase}.${extension}`,
+            { type: blob.type }
+        );
+
+        const datosArchivo = {
+            files: [archivo],
+            title: anuncio.titulo || "DECOM",
+            text: anuncio.descripcion || ""
+        };
+
+        if(!navigator.canShare(datosArchivo)) return false;
+
+        await navigator.share(datosArchivo);
+        return true;
+
+    }catch(error){
+
+        // Si el usuario cerró el menú nativo, no debemos abrir otro método.
+        if(error?.name === "AbortError"){
+            throw error;
+        }
+
+        console.warn("No fue posible compartir la imagen como archivo; se compartirá el enlace:", error);
+        return false;
+    }
+}
+
+// 📤 Comparte SIEMPRE el anuncio que está visible en este momento.
+// - Video YouTube: comparte el enlace de ese video.
+// - Imagen: intenta compartir el archivo real; si no es posible, comparte la URL.
+async function compartirAnuncioActivo(){
+
+    const anuncio = obtenerAnuncioActivoParaCompartir();
+    if(!anuncio) return;
+
+    const esVideo = anuncio.tipo_media === "video";
+
+    const url = esVideo
+        ? (anuncio.youtube_id ? `https://youtu.be/${anuncio.youtube_id}` : (anuncio.url || window.location.href))
+        : (anuncio.url || window.location.href);
+
+    try{
+
+        if(!esVideo){
+            const compartioArchivo = await intentarCompartirImagenComoArchivo(anuncio);
+            if(compartioArchivo) return;
+        }
+
+        const datos = {
+            title: anuncio.titulo || "DECOM",
+            text: anuncio.descripcion || "",
+            url
+        };
+
         if(navigator.share){
-            await navigator.share({ url });
+            await navigator.share(datos);
             return;
         }
 
         if(navigator.clipboard?.writeText){
             await navigator.clipboard.writeText(url);
+
             if(typeof mostrarAviso === "function"){
-                mostrarAviso("Enlace del video copiado");
+                mostrarAviso(esVideo ? "Enlace del video copiado" : "Enlace de la imagen copiado");
             }
             return;
         }
@@ -15479,16 +15566,23 @@ async function compartirVideoYoutube(iframe){
 
     }catch(error){
 
-        // Cancelar el diálogo nativo de compartir no es un error para el usuario.
+        // Cancelar voluntariamente el diálogo nativo no se considera error.
         if(error?.name === "AbortError") return;
 
-        console.warn("No se pudo compartir el video:", error);
-        window.open(url, "_blank", "noopener,noreferrer");
+        console.warn("No se pudo compartir el anuncio activo:", error);
 
+        if(url){
+            window.open(url, "_blank", "noopener,noreferrer");
+        }
     }
 }
 
-// 🎚️ Crea la línea de tiempo táctil amplia y el único botón visible adicional.
+// Compatibilidad por si otra parte antigua del archivo todavía llama esta función.
+async function compartirVideoYoutube(){
+    return compartirAnuncioActivo();
+}
+
+// 🎚️ Crea la línea de tiempo táctil amplia del reproductor.
 function crearControlesMinimosYoutube(iframe){
 
     const controles = document.createElement("div");
@@ -15515,15 +15609,8 @@ function crearControlesMinimosYoutube(iframe){
     track.appendChild(thumb);
     hitarea.appendChild(track);
 
-    const shareBtn = document.createElement("button");
-    shareBtn.type = "button";
-    shareBtn.className = "youtube-share-btn swiper-no-swiping";
-shareBtn.id = "youtubeShareBtn";
-shareBtn.dataset.overlay = "true";
-    shareBtn.title = "Compartir video";
-    shareBtn.setAttribute("aria-label", "Compartir video");
-    shareBtn.innerHTML = '<i class="fas fa-share-nodes"></i>';
-
+    // El botón Compartir ahora es ÚNICO y global (#shareActiveBtn).
+    // Aquí solo permanece la línea de tiempo propia del video.
     controles.appendChild(hitarea);
   
 
@@ -15585,18 +15672,6 @@ shareBtn.dataset.overlay = "true";
         e.stopPropagation();
     });
 
-    shareBtn.addEventListener("pointerdown", (e) => {
-        e.stopPropagation();
-    });
-
-    shareBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        compartirVideoYoutube(iframe);
-    });
-
-
-    document.body.appendChild(shareBtn);
     return controles;
 }
 
@@ -15720,23 +15795,57 @@ function actualizarIconoSonidoVideo(iframe){
     icon.className = silenciado ? "fas fa-volume-mute" : "fas fa-volume-up";
 }
 
-// 🔊 Muestra/oculta el botón de sonido y lo conecta al video activo
+// 📤 Mantiene el botón Compartir ligado al anuncio visible y al estado de overlays.
+function actualizarBotonCompartirAnuncio(anuncio){
+
+    if(!shareActiveBtn) return;
+
+    if(!anuncio){
+        shareActiveBtn.classList.add("hidden-overlay");
+        shareActiveBtn.onclick = null;
+        return;
+    }
+
+    const overlaysOcultos = contentOverlay.classList.contains("hidden-overlay");
+
+    shareActiveBtn.classList.toggle("hidden-overlay", overlaysOcultos);
+    shareActiveBtn.title = anuncio.tipo_media === "video" ? "Compartir video" : "Compartir imagen";
+    shareActiveBtn.setAttribute(
+        "aria-label",
+        anuncio.tipo_media === "video" ? "Compartir video" : "Compartir imagen"
+    );
+
+    shareActiveBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        compartirAnuncioActivo();
+    };
+}
+
+// 🔊 Muestra/oculta el botón de sonido y lo conecta al video activo.
+// También respeta hidden-overlay igual que likes, comentarios, guardar, etc.
 function actualizarBotonSonidoVideo(anuncio){
 
     if(!videoMuteBtn) return;
 
     if(!anuncio || anuncio.tipo_media !== "video"){
         videoMuteBtn.classList.remove("visible");
+        videoMuteBtn.classList.add("hidden-overlay");
         videoMuteBtn.onclick = null;
         return;
     }
 
     const iframe = obtenerIframeVideoDeAnuncio(anuncio.id);
+    const overlaysOcultos = contentOverlay.classList.contains("hidden-overlay");
 
     videoMuteBtn.classList.add("visible");
+    videoMuteBtn.classList.toggle("hidden-overlay", overlaysOcultos);
     actualizarIconoSonidoVideo(iframe);
 
-    videoMuteBtn.onclick = () => {
+    videoMuteBtn.onclick = (e) => {
+
+        e.preventDefault();
+        e.stopPropagation();
 
         if(!iframe) return;
 
@@ -15852,7 +15961,7 @@ if(anuncio.tipo_media === "video"){
         videoOverlay.classList.add("video-touch-overlay");
         zoomContainer.appendChild(videoOverlay);
 
-        // ⏱️ Controles mínimos: línea de tiempo amplia + compartir.
+        // ⏱️ Control mínimo propio: línea de tiempo amplia.
         const controlesMinimos = crearControlesMinimosYoutube(iframe);
         zoomContainer.appendChild(controlesMinimos);
 
@@ -16794,6 +16903,9 @@ function updateContentOverlay(index) {
         const anuncio = anunciosData[index];
 
         updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
+
+        // 📤 Compartir: siempre usa el anuncio realmente activo (imagen o video)
+        actualizarBotonCompartirAnuncio(anuncio);
 
         // 🔊 Botón de sonido: solo visible en videos, refleja si está silenciado
         actualizarBotonSonidoVideo(anuncio);
