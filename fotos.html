@@ -2361,6 +2361,310 @@ body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
   }
 }
 
+
+
+/* =========================================================
+   ❤️ PERSONAS QUE DIERON ME GUSTA - TIPO RED SOCIAL
+   El corazón conserva su función actual. Al tocar el número
+   de likes se abre esta hoja con las personas que reaccionaron.
+========================================================= */
+#likeCountValue {
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform .16s ease, background .16s ease;
+}
+
+#likeCountValue:active {
+  transform: scale(.9);
+}
+
+.likes-people-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90010;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn .2s ease;
+}
+
+.likes-people-modal.open {
+  display: flex;
+}
+
+.likes-people-sheet {
+  width: 100%;
+  max-width: 620px;
+  height: min(72dvh, 650px);
+  background: #fff;
+  color: #1c1e21;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 35px rgba(0,0,0,.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp .25s ease;
+}
+
+.likes-people-header {
+  min-height: 62px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid #e4e6eb;
+  flex-shrink: 0;
+}
+
+.likes-people-heart {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffe9ee;
+  color: #e41e3f;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.likes-people-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.likes-people-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #1c1e21;
+}
+
+.likes-people-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #65676b;
+}
+
+.likes-people-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: #e4e6eb;
+  color: #1c1e21;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.likes-people-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0 calc(12px + env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.likes-person-row {
+  width: 100%;
+  min-height: 66px;
+  box-sizing: border-box;
+  padding: 9px 15px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .16s ease;
+}
+
+.likes-person-row:hover,
+.likes-person-row:active {
+  background: #f0f2f5;
+}
+
+.likes-person-avatar {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #5468ff;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.likes-person-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.likes-person-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.likes-person-name-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.likes-person-name {
+  color: #050505;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.likes-person-you {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e7f3ff;
+  color: #0866ff;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.likes-person-meta {
+  margin-top: 3px;
+  color: #65676b;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.likes-person-open {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8d91;
+  background: #f0f2f5;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.likes-people-state {
+  min-height: 190px;
+  padding: 28px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #65676b;
+  gap: 9px;
+}
+
+.likes-people-state i {
+  font-size: 28px;
+  color: #bcc0c4;
+}
+
+.likes-people-state strong {
+  color: #1c1e21;
+  font-size: 15px;
+}
+
+.likes-people-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e4e6eb;
+  border-top-color: #0866ff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+body.dark-mode .likes-people-sheet {
+  background: #1f1f1f;
+  color: #e8eaed;
+}
+
+body.dark-mode .likes-people-header {
+  border-color: rgba(255,255,255,.09);
+}
+
+body.dark-mode .likes-people-title,
+body.dark-mode .likes-person-name,
+body.dark-mode .likes-people-state strong {
+  color: #e8eaed;
+}
+
+body.dark-mode .likes-people-subtitle,
+body.dark-mode .likes-person-meta,
+body.dark-mode .likes-people-state {
+  color: #9aa0a6;
+}
+
+body.dark-mode .likes-people-close,
+body.dark-mode .likes-person-open {
+  background: #3c4043;
+  color: #e8eaed;
+}
+
+body.dark-mode .likes-person-row:hover,
+body.dark-mode .likes-person-row:active {
+  background: #2a2a2a;
+}
+
+body.dark-mode .likes-people-heart {
+  background: rgba(228,30,63,.18);
+  color: #ff6b81;
+}
+
+body.dark-mode .likes-person-you {
+  background: rgba(8,102,255,.18);
+  color: #8ab4f8;
+}
+
+body.dark-mode .likes-people-spinner {
+  border-color: #3c4043;
+  border-top-color: #8ab4f8;
+}
+
+@media (min-width: 769px) {
+  .likes-people-modal {
+    align-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  .likes-people-sheet {
+    height: min(70vh, 650px);
+    border-radius: 18px;
+  }
+}
+
   </style>
 </head>
 
@@ -3123,11 +3427,26 @@ Volver al inicio
 </div>
 
 
-<div class="likes-counter" id="likesCounter" title="Me gusta">
+<div class="likes-counter" id="likesCounter" title="Dar o quitar Me gusta" aria-label="Dar o quitar Me gusta">
   <span class="icon">
     <i class="far fa-heart" id="likeIcon"></i>
   </span>
-  <span class="count" id="likeCountValue">0</span>
+  <span class="count" id="likeCountValue" role="button" tabindex="0" title="Ver quiénes dieron Me gusta" aria-label="Ver quiénes dieron Me gusta">0</span>
+</div>
+
+<!-- ❤️ Personas que dieron Me gusta - hoja tipo red social -->
+<div id="likesPeopleModal" class="likes-people-modal" aria-hidden="true">
+  <div class="likes-people-sheet" role="dialog" aria-modal="true" aria-labelledby="likesPeopleTitle">
+    <div class="likes-people-header">
+      <div class="likes-people-heart"><i class="fas fa-heart"></i></div>
+      <div class="likes-people-heading">
+        <h2 id="likesPeopleTitle" class="likes-people-title">Personas que dieron Me gusta</h2>
+        <div id="likesPeopleSubtitle" class="likes-people-subtitle">0 personas</div>
+      </div>
+      <button id="closeLikesPeopleModal" class="likes-people-close" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div id="likesPeopleBody" class="likes-people-body"></div>
+  </div>
 </div>
 
 <div class="comments-counter" id="commentsCounter" title="Ver comentarios" aria-label="Ver comentarios">
@@ -14020,6 +14339,10 @@ savedSearchInputEl.addEventListener("blur", () => {
     const likesCounter = document.getElementById('likesCounter');
     const likeCountValue = document.getElementById('likeCountValue');
     const likeIcon = document.getElementById('likeIcon');
+    const likesPeopleModal = document.getElementById('likesPeopleModal');
+    const likesPeopleBody = document.getElementById('likesPeopleBody');
+    const likesPeopleSubtitle = document.getElementById('likesPeopleSubtitle');
+    const closeLikesPeopleModalBtn = document.getElementById('closeLikesPeopleModal');
 
     let contadorLikesAnterior = -1;
     let likesPorAnuncio = {};     // { anuncioId: count }
@@ -14165,6 +14488,7 @@ savedSearchInputEl.addEventListener("blur", () => {
         }
 
         refrescarLikeActivoSiCorresponde(like.publicacion_id);
+        refrescarModalLikesSiAbierto(like.publicacion_id);
         return true;
     }
 
@@ -14188,6 +14512,7 @@ savedSearchInputEl.addEventListener("blur", () => {
         }
 
         refrescarLikeActivoSiCorresponde(like.publicacion_id);
+        refrescarModalLikesSiAbierto(like.publicacion_id);
         return true;
     }
 
@@ -14214,6 +14539,7 @@ savedSearchInputEl.addEventListener("blur", () => {
         }
 
         refrescarLikeActivoSiCorresponde(publicacionId);
+        refrescarModalLikesSiAbierto(publicacionId);
         return true;
     }
 
@@ -14489,6 +14815,377 @@ async function verificarLikes(forceRefresh = false) {
 
     return sincronizacionLikesPromise;
 }
+
+
+
+
+// =====================================================
+// ❤️ QUIÉNES DIERON ME GUSTA - VISTA TIPO RED SOCIAL
+// El corazón sigue dando/quitar like. El número abre la lista.
+// Usa el cache/Reatime existente y solo consulta perfiles faltantes.
+// =====================================================
+let likesModalAnuncioId = null;
+let likesModalRefreshTimer = null;
+let likesModalRenderToken = 0;
+
+function obtenerInicialesLike(nombre){
+    const partes = String(nombre || "Usuario")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    return partes
+        .slice(0, 2)
+        .map(p => p.charAt(0))
+        .join("")
+        .toUpperCase() || "U";
+}
+
+function nombreFallbackDesdeCorreo(correo){
+    const base = String(correo || "Usuario")
+        .split("@")[0]
+        .replace(/[._-]+/g, " ")
+        .trim();
+
+    if(!base) return "Usuario";
+
+    return base.replace(/\b\w/g, letra => letra.toUpperCase());
+}
+
+function metaPerfilLike(perfil){
+    const partes = [];
+
+    if(perfil?.cargo) partes.push(perfil.cargo);
+    if(perfil?.congregacion) partes.push(perfil.congregacion);
+    if(perfil?.ciudad) partes.push(perfil.ciudad);
+
+    return partes.slice(0, 2).join(" · ") || "Miembro de DECOM";
+}
+
+function cerrarModalPersonasLikes(){
+    if(!likesPeopleModal) return;
+
+    likesPeopleModal.classList.remove("open");
+    likesPeopleModal.setAttribute("aria-hidden", "true");
+    likesModalAnuncioId = null;
+    likesModalRenderToken++;
+
+    clearTimeout(likesModalRefreshTimer);
+    likesModalRefreshTimer = null;
+}
+
+function mostrarEstadoLikes(tipo, mensaje = ""){
+    if(!likesPeopleBody) return;
+
+    likesPeopleBody.innerHTML = "";
+
+    const estado = document.createElement("div");
+    estado.className = "likes-people-state";
+
+    if(tipo === "loading"){
+        const spinner = document.createElement("div");
+        spinner.className = "likes-people-spinner";
+        estado.appendChild(spinner);
+
+        const texto = document.createElement("div");
+        texto.textContent = mensaje || "Cargando personas...";
+        estado.appendChild(texto);
+    }else{
+        const icono = document.createElement("i");
+        icono.className = tipo === "error" ? "fas fa-circle-exclamation" : "far fa-heart";
+        estado.appendChild(icono);
+
+        const titulo = document.createElement("strong");
+        titulo.textContent = tipo === "error" ? "No se pudo cargar la lista" : "Aún no hay Me gusta";
+        estado.appendChild(titulo);
+
+        const texto = document.createElement("div");
+        texto.textContent = mensaje || (tipo === "error" ? "Intenta abrirla nuevamente." : "Sé la primera persona en reaccionar.");
+        estado.appendChild(texto);
+    }
+
+    likesPeopleBody.appendChild(estado);
+}
+
+async function cargarPerfilesParaLikes(correos){
+    const perfiles = new Map();
+    const faltantes = [];
+
+    const correosUnicos = [];
+    const vistos = new Set();
+
+    (correos || []).forEach(correo => {
+        const limpio = String(correo || "").trim();
+        const norm = normalizeText(limpio);
+        if(!limpio || !norm || vistos.has(norm)) return;
+        vistos.add(norm);
+        correosUnicos.push(limpio);
+    });
+
+    correosUnicos.forEach(correo => {
+        const norm = normalizeText(correo);
+        const cache = perfilCache[norm];
+
+        if(cache){
+            perfiles.set(norm, cache);
+        }else{
+            faltantes.push(correo);
+        }
+    });
+
+    // Consultar solamente perfiles aún no conocidos y en bloques pequeños.
+    for(let i = 0; i < faltantes.length; i += 80){
+        const bloque = faltantes.slice(i, i + 80);
+
+        try{
+            const {data = [], error} = await supabaseClient
+                .from("usuarios")
+                .select("nombre,correo,foto_perfil,telefono,congregacion,cargo,ciudad")
+                .in("correo", bloque);
+
+            if(error) throw error;
+
+            data.forEach(u => {
+                const norm = normalizeText(u.correo || "");
+                if(!norm) return;
+
+                const perfil = {
+                    nombre: u.nombre || nombreFallbackDesdeCorreo(u.correo),
+                    correo: u.correo || "",
+                    fotoPerfil: u.foto_perfil || "",
+                    telefono: u.telefono || "",
+                    congregacion: u.congregacion || "",
+                    cargo: u.cargo || "",
+                    ciudad: u.ciudad || ""
+                };
+
+                perfilCache[norm] = {
+                    ...(perfilCache[norm] || {}),
+                    ...perfil
+                };
+
+                perfiles.set(norm, perfilCache[norm]);
+            });
+        }catch(error){
+            console.warn("No se pudieron precargar algunos perfiles de likes:", error);
+        }
+    }
+
+    return perfiles;
+}
+
+function crearFilaPersonaLike(perfil, correoLike){
+    const correo = String(perfil?.correo || correoLike || "").trim();
+    const nombre = perfil?.nombre || nombreFallbackDesdeCorreo(correo);
+    const soyYo = normalizeText(correo) === normalizeText(currentAuthorEmail || "");
+
+    const fila = document.createElement("button");
+    fila.type = "button";
+    fila.className = "likes-person-row";
+    fila.setAttribute("aria-label", `Abrir perfil de ${nombre}`);
+
+    const avatar = document.createElement("div");
+    avatar.className = "likes-person-avatar";
+
+    if(perfil?.fotoPerfil){
+        const img = document.createElement("img");
+        img.src = perfil.fotoPerfil;
+        img.alt = "";
+        img.loading = "lazy";
+        img.onerror = () => {
+            avatar.innerHTML = "";
+            avatar.textContent = obtenerInicialesLike(nombre);
+        };
+        avatar.appendChild(img);
+    }else{
+        avatar.textContent = obtenerInicialesLike(nombre);
+    }
+
+    const info = document.createElement("div");
+    info.className = "likes-person-info";
+
+    const nameLine = document.createElement("div");
+    nameLine.className = "likes-person-name-line";
+
+    const name = document.createElement("div");
+    name.className = "likes-person-name";
+    name.textContent = nombre;
+    nameLine.appendChild(name);
+
+    if(soyYo){
+        const tu = document.createElement("span");
+        tu.className = "likes-person-you";
+        tu.textContent = "Tú";
+        nameLine.appendChild(tu);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "likes-person-meta";
+    meta.textContent = metaPerfilLike(perfil);
+
+    info.appendChild(nameLine);
+    info.appendChild(meta);
+
+    const abrir = document.createElement("span");
+    abrir.className = "likes-person-open";
+    abrir.innerHTML = '<i class="fas fa-chevron-right"></i>';
+
+    fila.appendChild(avatar);
+    fila.appendChild(info);
+    fila.appendChild(abrir);
+
+    fila.addEventListener("click", async () => {
+        if(!correo) return;
+        cerrarModalPersonasLikes();
+        await abrirPerfilPorCorreo(correo);
+    });
+
+    return fila;
+}
+
+async function renderizarPersonasLikes(anuncioId, opciones = {}){
+    if(!likesPeopleBody || !anuncioId) return;
+
+    const token = ++likesModalRenderToken;
+    restaurarLikesDesdeCache();
+
+    const likesPublicacion = likesFilasCache.filter(like =>
+        String(like.publicacion_id) === String(anuncioId) &&
+        String(like.correo || "").trim()
+    );
+
+    const unicos = [];
+    const vistos = new Set();
+
+    likesPublicacion.forEach(like => {
+        const norm = normalizeText(like.correo);
+        if(!norm || vistos.has(norm)) return;
+        vistos.add(norm);
+        unicos.push(like);
+    });
+
+    if(likesPeopleSubtitle){
+        const total = unicos.length;
+        likesPeopleSubtitle.textContent = `${total} ${total === 1 ? "persona" : "personas"}`;
+    }
+
+    if(unicos.length === 0){
+        mostrarEstadoLikes("empty");
+        return;
+    }
+
+    if(opciones.mostrarCargando !== false){
+        mostrarEstadoLikes("loading");
+    }
+
+    const perfiles = await cargarPerfilesParaLikes(
+        unicos.map(like => like.correo)
+    );
+
+    // Si se cerró el modal o cambió de publicación mientras cargaba, no repintar.
+    if(
+        token !== likesModalRenderToken ||
+        !likesPeopleModal?.classList.contains("open") ||
+        String(likesModalAnuncioId) !== String(anuncioId)
+    ){
+        return;
+    }
+
+    likesPeopleBody.innerHTML = "";
+
+    // Mostrar primero al usuario actual; conservar después el orden del cache.
+    unicos.sort((a, b) => {
+        const aYo = normalizeText(a.correo) === normalizeText(currentAuthorEmail || "");
+        const bYo = normalizeText(b.correo) === normalizeText(currentAuthorEmail || "");
+        return Number(bYo) - Number(aYo);
+    });
+
+    unicos.forEach(like => {
+        const norm = normalizeText(like.correo);
+        const perfil = perfiles.get(norm) || perfilCache[norm] || {
+            nombre: nombreFallbackDesdeCorreo(like.correo),
+            correo: like.correo,
+            fotoPerfil: ""
+        };
+
+        likesPeopleBody.appendChild(
+            crearFilaPersonaLike(perfil, like.correo)
+        );
+    });
+}
+
+async function abrirModalPersonasLikes(){
+    if(!swiperInstance || !anunciosData?.length || !likesPeopleModal) return;
+
+    const anuncioActual = anunciosData[swiperInstance.realIndex];
+    if(!anuncioActual?.id) return;
+
+    restaurarLikesDesdeCache();
+
+    const total = Number(likesPorAnuncio[anuncioActual.id] || 0);
+    if(total <= 0) return;
+
+    likesModalAnuncioId = anuncioActual.id;
+    likesPeopleModal.classList.add("open");
+    likesPeopleModal.setAttribute("aria-hidden", "false");
+
+    if(likesPeopleSubtitle){
+        likesPeopleSubtitle.textContent = `${total} ${total === 1 ? "persona" : "personas"}`;
+    }
+
+    await renderizarPersonasLikes(anuncioActual.id);
+}
+
+function refrescarModalLikesSiAbierto(publicacionId){
+    if(
+        !likesPeopleModal?.classList.contains("open") ||
+        !likesModalAnuncioId ||
+        String(likesModalAnuncioId) !== String(publicacionId)
+    ){
+        return;
+    }
+
+    clearTimeout(likesModalRefreshTimer);
+    likesModalRefreshTimer = setTimeout(() => {
+        renderizarPersonasLikes(publicacionId, {mostrarCargando:false});
+    }, 120);
+}
+
+if(likeCountValue){
+    const abrirListaDesdeContador = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const total = Number(likeCountValue.textContent || 0);
+        if(total > 0){
+            abrirModalPersonasLikes();
+        }
+    };
+
+    likeCountValue.addEventListener("click", abrirListaDesdeContador);
+    likeCountValue.addEventListener("keydown", (e) => {
+        if(e.key === "Enter" || e.key === " "){
+            abrirListaDesdeContador(e);
+        }
+    });
+}
+
+closeLikesPeopleModalBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    cerrarModalPersonasLikes();
+});
+
+likesPeopleModal?.addEventListener("click", (e) => {
+    if(e.target === likesPeopleModal){
+        cerrarModalPersonasLikes();
+    }
+});
+
+document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && likesPeopleModal?.classList.contains("open")){
+        cerrarModalPersonasLikes();
+    }
+});
 
 
     if (likesCounter) {
