@@ -1777,76 +1777,12 @@ body:not(.dark-mode) .chat-list-nombre {
 }
 
 /* =========================================================
-   🎥 VIDEO NUEVO EN PROCESAMIENTO (YOUTUBE)
-   Solo se usa durante la primera hora de una publicación de video.
-   Oculta la pantalla temporal/rota de YouTube y deja que DECOM
-   reintente el reproductor automáticamente hasta que sea reproducible.
-========================================================= */
-.video-preparing-overlay{
-  position:absolute;
-  inset:0;
-  z-index:6500;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  box-sizing:border-box;
-  background:radial-gradient(circle at center, rgba(32,32,32,.84), rgba(0,0,0,.96));
-  color:#fff;
-  text-align:center;
-  pointer-events:none;
-  transition:opacity .25s ease, visibility .25s ease;
-}
-
-.video-preparing-overlay.ready{
-  opacity:0;
-  visibility:hidden;
-}
-
-.video-preparing-card{
-  max-width:320px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:12px;
-  font-size:14px;
-  line-height:1.35;
-  text-shadow:0 1px 4px rgba(0,0,0,.8);
-}
-
-.video-preparing-card .spinner{
-  width:34px;
-  height:34px;
-  border:3px solid rgba(255,255,255,.25);
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-
-.video-preparing-title{
-  font-size:16px;
-  font-weight:700;
-}
-
-.video-preparing-detail{
-  color:rgba(255,255,255,.76);
-  font-size:12.5px;
-}
-
-.swiper-slide.video.video-preparing .youtube-minimal-controls{
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-}
-
-/* =========================================================
    💬 COMENTARIOS TIPO FACEBOOK
-   El modal conserva su input y el feed incorpora otro input fijo inferior.
-   Ambos comparten exactamente la misma lógica de envío.
+   En el feed queda únicamente el autor de la publicación.
+   Los comentarios y el cuadro para escribir viven en este modal.
 ========================================================= */
 .comments-overlay-container {
-  /* Se deja el autor por encima de la barra de comentario del feed. */
-  bottom: 54px;
+  bottom: 18px;
   width: calc(80% - 20px);
   max-height: none;
   overflow: visible;
@@ -1863,61 +1799,10 @@ body:not(.dark-mode) .chat-list-nombre {
   border-bottom: none !important;
 }
 
-/* En video el autor queda por encima de la línea de tiempo (52-106px aprox.)
-   y también por encima del input inferior del feed. */
+/* En video se eleva solo el bloque del autor para liberar por completo
+   la línea de tiempo y su área táctil. En imágenes conserva su posición actual. */
 .comments-overlay-container.video-active {
-  bottom: 112px;
-}
-
-/* =========================================================
-   💬 INPUT DE COMENTARIOS EN EL FEED - TIPO FACEBOOK
-========================================================= */
-.feed-comment-input-container {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  z-index: 5000;
-  padding: 4px 10px;
-  box-sizing: border-box;
-  background: linear-gradient(
-    to top,
-    rgba(0,0,0,.58) 0%,
-    rgba(0,0,0,.28) 58%,
-    rgba(0,0,0,0) 100%
-  );
-  transition: opacity .3s ease, visibility .3s ease;
-}
-
-.feed-comment-input-container .comment-input-wrapper {
-  width: min(96%, 620px);
-  margin: 0 auto;
-  min-height: 42px;
-  box-sizing: border-box;
-  background: rgba(30,30,30,.58);
-  border: 1px solid rgba(255,255,255,.38);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 3px 14px rgba(0,0,0,.28);
-}
-
-.feed-comment-input-container .comment-input-wrapper input {
-  min-width: 0;
-  color: #fff;
-}
-
-.feed-comment-input-container .comment-input-wrapper input::placeholder {
-  color: rgba(255,255,255,.76);
-}
-
-.feed-comment-input-container .comment-input-wrapper button {
-  color: #fff;
-}
-
-/* Mantener la barra fuera del modo embebido si la interfaz superior también se oculta. */
-body.embedded .feed-comment-input-container {
-  bottom: 0;
+  bottom: 90px;
 }
 
 .facebook-comments-modal {
@@ -2948,15 +2833,6 @@ Volver al inicio
     <div id="autorContainer"></div>
 </div>
 
-<!-- 💬 Input fijo de comentarios en el feed (misma lógica que el modal) -->
-<div class="comment-input-container feed-comment-input-container" id="feedCommentInputContainer">
-  <div class="comment-input-wrapper">
-    <input type="text" id="feedCommentInput" placeholder="Escribe un comentario..." autocomplete="off">
-    <button class="send-comment-btn" id="feedSendCommentBtn" type="button" aria-label="Enviar comentario">
-      <i class="fas fa-paper-plane"></i>
-    </button>
-  </div>
-</div>
 
 
 <div class="likes-counter" id="likesCounter" title="Me gusta">
@@ -13053,7 +12929,7 @@ btnUploadVideo.addEventListener("click", async () => {
 
 
         mostrarAviso(
-            "✅ Video publicado. Si YouTube aún lo está procesando, DECOM mostrará ‘Preparando video…’ y lo activará automáticamente cuando esté listo."
+            "✅ Video publicado"
         );
 
 
@@ -13816,12 +13692,9 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentsList = document.getElementById('commentsList');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
-    const commentInputContainer = document.getElementById('commentInputContainer');
+    const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
-    const sendCommentBtn = document.querySelector('#commentInputContainer .send-comment-btn');
-    const feedCommentInputContainer = document.getElementById('feedCommentInputContainer');
-    const feedCommentInput = document.getElementById('feedCommentInput');
-    const feedSendCommentBtn = document.getElementById('feedSendCommentBtn');
+    const sendCommentBtn = document.querySelector('.send-comment-btn');
     const commentsModal = document.getElementById('commentsModal');
     const closeCommentsModalBtn = document.getElementById('closeCommentsModal');
     const commentsModalCount = document.getElementById('commentsModalCount');
@@ -14382,9 +14255,7 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     // ✅ Estos se alternan normal
     commentsOverlay.classList.toggle('hidden-overlay');
     commentsCounter.classList.toggle('hidden-overlay');
-    // El input del feed sigue la misma lógica visual que likes, editar, guardar, etc.
-    feedCommentInputContainer?.classList.toggle('hidden-overlay');
-    // El input del modal NO se toca: el modal controla su propia visibilidad.
+    // El campo de comentario ahora pertenece al modal y no se oculta con el tap del feed.
 
     // ✅ contentOverlay invertido → lo forzamos al mismo sentido
     if (contentOverlay.classList.contains('hidden-overlay')) {
@@ -14926,11 +14797,10 @@ async function eliminarComentario(comentarioId) {
 
 }
 
-async function enviarComentario(inputOrigen = commentInput) {
+async function enviarComentario() {
 
 
-    const inputActivo = inputOrigen || commentInput;
-    const comentarioTexto = inputActivo?.value.trim() || "";
+    const comentarioTexto = commentInput.value.trim();
 
     const activeIndex = swiperInstance.realIndex;
 
@@ -15002,9 +14872,7 @@ async function enviarComentario(inputOrigen = commentInput) {
 
 
 
-        // Mantener sincronizados los dos campos (feed + modal).
-        if(commentInput) commentInput.value = "";
-        if(feedCommentInput) feedCommentInput.value = "";
+        commentInput.value = "";
 
 
 
@@ -15042,38 +14910,10 @@ async function enviarComentario(inputOrigen = commentInput) {
 
 }
 
-    // =====================================================
-    // 💬 FEED + MODAL: MISMO TEXTO Y MISMA LÓGICA DE ENVÍO
-    // =====================================================
-    function sincronizarTextoComentario(origen, destino){
-        if(!origen || !destino) return;
-        if(destino.value !== origen.value){
-            destino.value = origen.value;
-        }
-    }
-
-    commentInput?.addEventListener('input', ()=>{
-        sincronizarTextoComentario(commentInput, feedCommentInput);
-    });
-
-    feedCommentInput?.addEventListener('input', ()=>{
-        sincronizarTextoComentario(feedCommentInput, commentInput);
-    });
-
-    sendCommentBtn?.addEventListener('click', ()=> enviarComentario(commentInput));
-    feedSendCommentBtn?.addEventListener('click', ()=> enviarComentario(feedCommentInput));
-
-    commentInput?.addEventListener('keydown', (e) => {
+    sendCommentBtn.addEventListener('click', enviarComentario);
+    commentInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            e.preventDefault();
-            enviarComentario(commentInput);
-        }
-    });
-
-    feedCommentInput?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            enviarComentario(feedCommentInput);
+            enviarComentario();
         }
     });
 
@@ -15102,21 +14942,6 @@ commentInput.addEventListener("blur", () => {
 
   if (isIOS) {
     // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
-    setTimeout(() => {
-      window.scrollTo(0, iosScrollYBeforeFocus);
-    }, 50);
-  }
-});
-
-// El input del feed recibe el mismo tratamiento de teclado que el del modal.
-feedCommentInput?.addEventListener("focus", () => {
-  if (isIOS) {
-    iosScrollYBeforeFocus = window.scrollY || 0;
-  }
-});
-
-feedCommentInput?.addEventListener("blur", () => {
-  if (isIOS) {
     setTimeout(() => {
       window.scrollTo(0, iosScrollYBeforeFocus);
     }, 50);
@@ -16108,136 +15933,6 @@ function obtenerIdAnuncioActivo(){
 // Iframe del video que está sonando/reproduciéndose actualmente (solo uno a la vez)
 let iframeVideoActivo = null;
 
-// =====================================================
-// 🎥 AUTO-PREPARACIÓN DE VIDEOS NUEVOS DE YOUTUBE
-// =====================================================
-// YouTube puede devolver el iframe antes de terminar de procesar el archivo.
-// Para publicaciones recientes DECOM no confía en el simple evento "load":
-// espera una señal real del player (duración > 0) y, si todavía no existe,
-// vuelve a cargar SOLO ese video en segundo plano.
-const YOUTUBE_VIDEO_NUEVO_MS = 60 * 60 * 1000; // primera hora
-const YOUTUBE_PREPARACION_TIMEOUT_MS = 7500;
-const youtubePreparacionTimers = new WeakMap();
-
-function esVideoNuevoParaPreparar(anuncio){
-    if(!anuncio || anuncio.tipo_media !== "video" || !anuncio.youtube_id){
-        return false;
-    }
-
-    const fecha = fechaValidaAnuncio(anuncio.fecha);
-    if(!fecha) return false;
-
-    const edad = Date.now() - fecha.getTime();
-    return edad >= -60000 && edad <= YOUTUBE_VIDEO_NUEVO_MS;
-}
-
-function obtenerOverlayPreparandoVideo(iframe){
-    return iframe
-        ?.closest(".swiper-slide.video")
-        ?.querySelector(".video-preparing-overlay") || null;
-}
-
-function actualizarTextoPreparandoVideo(iframe, detalle = ""){ 
-    const overlay = obtenerOverlayPreparandoVideo(iframe);
-    if(!overlay) return;
-
-    const detalleEl = overlay.querySelector(".video-preparing-detail");
-    if(detalleEl && detalle){
-        detalleEl.textContent = detalle;
-    }
-}
-
-function limpiarTimerPreparacionYoutube(iframe){
-    const timer = youtubePreparacionTimers.get(iframe);
-    if(timer){
-        clearTimeout(timer);
-        youtubePreparacionTimers.delete(iframe);
-    }
-}
-
-function marcarVideoNuevoListo(iframe){
-    if(!iframe) return;
-
-    limpiarTimerPreparacionYoutube(iframe);
-
-    iframe.dataset.preparando = "0";
-    iframe.dataset.listo = "1";
-    iframe.dataset.intentosPreparacion = "0";
-
-    const slide = iframe.closest(".swiper-slide.video");
-    slide?.classList.remove("video-preparing");
-
-    const overlay = obtenerOverlayPreparandoVideo(iframe);
-    overlay?.classList.add("ready");
-
-    // Si el usuario ya estaba parado sobre este video mientras YouTube
-    // lo terminaba de procesar, empieza solo en cuanto queda disponible.
-    if(iframe === iframeVideoActivo || iframe.dataset.autoplayPendiente === "1"){
-        iframeVideoActivo = iframe;
-        enviarComandoYoutube(iframe, "playVideo");
-        iframe.dataset.playing = "true";
-        iframe.dataset.autoplayPendiente = "0";
-    }
-
-    console.log("✅ Video nuevo listo sin recargar la app:", iframe.dataset.videoId);
-}
-
-function programarComprobacionVideoNuevo(iframe){
-    if(!iframe || iframe.dataset.videoNuevo !== "1" || iframe.dataset.preparando !== "1"){
-        return;
-    }
-
-    limpiarTimerPreparacionYoutube(iframe);
-
-    const timer = setTimeout(()=>{
-        if(!iframe.isConnected || iframe.dataset.preparando !== "1") return;
-        reintentarVideoNuevoYoutube(iframe, "YouTube todavía está preparando el video…");
-    }, YOUTUBE_PREPARACION_TIMEOUT_MS);
-
-    youtubePreparacionTimers.set(iframe, timer);
-}
-
-function reintentarVideoNuevoYoutube(iframe, mensaje = "Preparando video…"){
-    if(!iframe || !iframe.isConnected) return;
-    if(iframe.dataset.videoNuevo !== "1" || iframe.dataset.preparando !== "1") return;
-
-    limpiarTimerPreparacionYoutube(iframe);
-
-    const intentos = Number(iframe.dataset.intentosPreparacion || 0) + 1;
-    iframe.dataset.intentosPreparacion = String(intentos);
-    iframe.dataset.listo = "0";
-    iframe.dataset.playing = "false";
-    iframe.dataset.cargado = "0";
-
-    actualizarTextoPreparandoVideo(
-        iframe,
-        intentos <= 1
-            ? mensaje
-            : `YouTube sigue procesándolo. Reintentando automáticamente (${intentos})…`
-    );
-
-    // Quitar solamente el reproductor de este video. No se toca el feed,
-    // Swiper, comentarios, likes, imágenes ni los videos antiguos.
-    iframe.removeAttribute("src");
-
-    const espera = Math.min(15000, 3500 + (intentos * 1500));
-
-    setTimeout(()=>{
-        if(!iframe.isConnected || iframe.dataset.preparando !== "1") return;
-        cargarVideoElemento(iframe);
-    }, espera);
-}
-
-function iniciarVigilanciaVideoNuevo(iframe){
-    if(!iframe || iframe.dataset.videoNuevo !== "1") return;
-    if(iframe.dataset.preparando !== "1") return;
-
-    // A diferencia de los videos antiguos, un video recién publicado se
-    // precarga aunque todavía esté lejos del slide visible. Así YouTube puede
-    // terminar y DECOM validarlo antes de que la persona llegue a verlo.
-    cargarVideoElemento(iframe);
-}
-
 if(!window.__decomYoutubeMsgListener){
 
     window.__decomYoutubeMsgListener = true;
@@ -16256,12 +15951,7 @@ if(!window.__decomYoutubeMsgListener){
 
         if(!data || typeof data !== "object") return;
 
-        if(
-            data.event !== "onStateChange" &&
-            data.event !== "infoDelivery" &&
-            data.event !== "onReady" &&
-            data.event !== "onError"
-        ) return;
+        if(data.event !== "onStateChange" && data.event !== "infoDelivery") return;
 
         document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
         .forEach(function(ifr){
@@ -16272,30 +15962,6 @@ if(!window.__decomYoutubeMsgListener){
             (data.info && typeof data.info === "object")
             ? data.info
             : null;
-
-            // Un video NUEVO solo se considera realmente listo cuando el
-            // reproductor entrega una duración válida. Esto evita confundir
-            // "iframe cargado" con "video ya procesado por YouTube".
-            if(
-                ifr.dataset.videoNuevo === "1" &&
-                ifr.dataset.preparando === "1" &&
-                info &&
-                Number(info.duration) > 0
-            ){
-                marcarVideoNuevoListo(ifr);
-            }
-
-            if(
-                data.event === "onError" &&
-                ifr.dataset.videoNuevo === "1" &&
-                ifr.dataset.preparando === "1"
-            ){
-                reintentarVideoNuevoYoutube(
-                    ifr,
-                    "YouTube aún no lo tiene disponible. DECOM seguirá intentando…"
-                );
-                return;
-            }
 
             const estado = info
             ? info.playerState
@@ -16646,10 +16312,6 @@ function cargarVideoElemento(iframe){
     iframe.src =
     `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1`;
 
-    if(iframe.dataset.videoNuevo === "1" && iframe.dataset.preparando === "1"){
-        programarComprobacionVideoNuevo(iframe);
-    }
-
 }
 
 function vincularControlVideoYoutube(iframe, overlay){
@@ -16658,12 +16320,6 @@ function vincularControlVideoYoutube(iframe, overlay){
     // y marcarlo como listo para reproducir en cuanto termine de cargar.
     iframe.addEventListener("load", function(){
 
-        // Al quitar src durante un reintento algunos navegadores disparan
-        // "load" por about:blank. Esa carga no cuenta.
-        if(!String(iframe.src || "").includes("youtube.com/embed/")){
-            return;
-        }
-
         if(iframe.contentWindow){
             iframe.contentWindow.postMessage(
                 JSON.stringify({ event: "listening", id: iframe.title || "" }),
@@ -16671,34 +16327,14 @@ function vincularControlVideoYoutube(iframe, overlay){
             );
         }
 
-        // Pedir eventos explícitos del IFrame Player. Los videos antiguos
-        // mantienen exactamente el comportamiento anterior.
-        enviarComandoYoutube(iframe, "addEventListener", ["onStateChange"]);
-        enviarComandoYoutube(iframe, "addEventListener", ["onError"]);
-
-        const esperandoProcesamiento =
-            iframe.dataset.videoNuevo === "1" &&
-            iframe.dataset.preparando === "1";
-
-        if(esperandoProcesamiento){
-            // IMPORTANTE: aquí NO se marca listo. Esperamos infoDelivery
-            // con duration > 0. Mientras tanto queda el overlay de DECOM.
-            programarComprobacionVideoNuevo(iframe);
-        }else{
-            // Flujo original para videos que ya existían.
-            iframe.dataset.listo = "1";
-        }
+        iframe.dataset.listo = "1";
 
         // Mantener Closed Captions apagados y sin controles nativos.
         apagarSubtitulosYoutube(iframe);
 
-        // Para videos antiguos sigue reproduciendo al terminar de cargar.
-        // Para un video nuevo esto ocurrirá en marcarVideoNuevoListo().
-        if(
-            !esperandoProcesamiento &&
-            iframe.dataset.autoplayPendiente === "1" &&
-            iframe === iframeVideoActivo
-        ){
+        // Si mientras cargaba este video llegó a ser el anuncio activo,
+        // se reproduce automáticamente apenas queda listo.
+        if(iframe.dataset.autoplayPendiente === "1" && iframe === iframeVideoActivo){
             enviarComandoYoutube(iframe, "playVideo");
             iframe.dataset.playing = "true";
             iframe.dataset.autoplayPendiente = "0";
@@ -16736,10 +16372,6 @@ function vincularControlVideoYoutube(iframe, overlay){
 
         e.preventDefault();
         e.stopPropagation();
-
-        if(iframe.dataset.preparando === "1"){
-            return;
-        }
 
         const reproduciendo = iframe.dataset.playing === "true";
 
@@ -16884,14 +16516,6 @@ function actualizarReproduccionVideoActivo(indice){
 
     iframeVideoActivo = iframe;
 
-    if(iframe.dataset.preparando === "1"){
-        // Video recién publicado: mostrar "Preparando" y esperar una señal
-        // real de YouTube. No intentar play sobre un reproductor no procesado.
-        iframe.dataset.autoplayPendiente = "1";
-        iniciarVigilanciaVideoNuevo(iframe);
-        return;
-    }
-
     if(iframe.dataset.listo === "1"){
         enviarComandoYoutube(iframe, "playVideo");
         iframe.dataset.playing = "true";
@@ -16929,15 +16553,6 @@ if(anuncio.tipo_media === "video"){
         // (ver cargarVideoElemento / cargarImagenesCercanas). Así no se
         // descargan todos los videos de una vez.
         iframe.dataset.videoId = anuncio.youtube_id;
-        iframe.dataset.anuncioId = String(anuncio.id);
-
-        const videoNuevoEnPreparacion = esVideoNuevoParaPreparar(anuncio);
-        iframe.dataset.videoNuevo = videoNuevoEnPreparacion ? "1" : "0";
-        iframe.dataset.preparando = videoNuevoEnPreparacion ? "1" : "0";
-
-        if(videoNuevoEnPreparacion){
-            slide.classList.add("video-preparing");
-        }
 
         iframe.title = anuncio.titulo || "Video";
 
@@ -16958,19 +16573,6 @@ if(anuncio.tipo_media === "video"){
 
         zoomContainer.appendChild(iframe);
 
-        if(videoNuevoEnPreparacion){
-            const preparandoOverlay = document.createElement("div");
-            preparandoOverlay.className = "video-preparing-overlay";
-            preparandoOverlay.innerHTML = `
-                <div class="video-preparing-card">
-                    <div class="spinner" aria-hidden="true"></div>
-                    <div class="video-preparing-title">Preparando video…</div>
-                    <div class="video-preparing-detail">YouTube lo está procesando. Se actualizará automáticamente.</div>
-                </div>
-            `;
-            zoomContainer.appendChild(preparandoOverlay);
-        }
-
         // 🎥 Capa transparente completa encima del iframe:
         // evita que YouTube abra sus controles nativos. El swipe vertical y
         // el toque general de DECOM siguen funcionando aquí; play/pausa solo
@@ -16984,12 +16586,6 @@ if(anuncio.tipo_media === "video"){
         zoomContainer.appendChild(controlesMinimos);
 
         vincularControlVideoYoutube(iframe, videoOverlay);
-
-        if(videoNuevoEnPreparacion){
-            // Se inicia en el siguiente ciclo para que el slide ya esté dentro
-            // del DOM/Swiper. Así se vigila incluso antes de llegar a verlo.
-            setTimeout(()=>iniciarVigilanciaVideoNuevo(iframe), 0);
-        }
 
 
 
