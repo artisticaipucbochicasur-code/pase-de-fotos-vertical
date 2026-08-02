@@ -129,7 +129,7 @@
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.85) !important; /* Más oscuro y elegante */
-        z-index: 10000;
+        z-index: 1000000; /* Por encima del modal de comentarios (90000) */
         justify-content: center;
         align-items: center;
     }
@@ -15387,9 +15387,9 @@ if (editBtn) {
             meta.className = 'fb-comment-meta';
             meta.textContent = [fechaVisible, horaVisible].filter(Boolean).join(' · ');
             if(fechaOriginal){
-                const f = new Date(fechaOriginal);
-                if(!Number.isNaN(f.getTime())){
-                    meta.title = f.toLocaleString('es-CO');
+                const f = parseFechaComentario(fechaOriginal);
+                if(f){
+                    meta.title = f.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
                 }
             }
             main.appendChild(meta);
@@ -15716,17 +15716,31 @@ feedCommentInput?.addEventListener("blur", () => {
 });
 
 
+function parseFechaComentario(fecha) {
+
+    if(!fecha) return null;
+
+    const valor = String(fecha).trim();
+
+    // Supabase puede devolver un timestamp UTC sin sufijo de zona horaria.
+    // Si no trae Z ni offset (+/-HH:mm), se interpreta explícitamente como UTC.
+    const tieneZona = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(valor);
+    const fechaComentario = new Date(tieneZona ? valor : `${valor}Z`);
+
+    return Number.isNaN(fechaComentario.getTime()) ? null : fechaComentario;
+}
+
+
 function formatoHoraComentario(fecha) {
 
-    if(!fecha) return "";
+    const fechaComentario = parseFechaComentario(fecha);
 
-    const fechaComentario = new Date(fecha);
-
-    if(Number.isNaN(fechaComentario.getTime())) return "";
+    if(!fechaComentario) return "";
 
     return fechaComentario.toLocaleTimeString(
         "es-CO",
         {
+            timeZone: "America/Bogota",
             hour:"numeric",
             minute:"2-digit"
         }
@@ -15741,7 +15755,9 @@ function formatoFechaComentario(fecha) {
 
     const ahora = new Date();
 
-    const fechaComentario = new Date(fecha);
+    const fechaComentario = parseFechaComentario(fecha);
+
+    if(!fechaComentario) return "";
 
 
     const diferencia = ahora - fechaComentario;
