@@ -4122,7 +4122,7 @@ Mensajes
 ">
 
 <!-- ✅ HEADER CHAT TIPO WHATSAPP: fijo, compacto y superpuesto -->
-<div id="chatHeaderNormal" style="
+<div id="chatHeaderNormal" role="button" tabindex="0" aria-label="Abrir perfil del contacto" title="Ver perfil" style="
   padding:7px 8px 7px 5px;
   display:flex;
   align-items:center;
@@ -4437,6 +4437,7 @@ padding-bottom:env(safe-area-inset-bottom);
 #chatHeaderNormal{
   padding: 7px 8px 7px 5px !important;
   gap: 7px !important;
+  cursor: pointer !important;
   background: #3b82f6 !important;
   color: #fff !important;
   box-shadow: 0 1px 3px rgba(0,0,0,.28) !important;
@@ -5188,7 +5189,9 @@ function obtenerIniciales(nombre){
 
 // Cerrar modal
 document.getElementById("cerrarModalAutor").addEventListener("click", () => {
-  document.getElementById("modalAutor").classList.add("hidden");
+  const modalAutor = document.getElementById("modalAutor");
+  modalAutor.classList.add("hidden");
+  modalAutor.style.zIndex = "99999";
 
   // 🔽 OCULTAR LOADER AL CERRAR (AGREGADO)
   document.getElementById("loader").style.display = "none";
@@ -8694,6 +8697,58 @@ function abrirVentanaChat() {
 
 
 
+// =====================================
+// 👤 PERFIL DESDE EL HEADER DEL CHAT
+// Tocar el encabezado abre exactamente el perfil
+// correspondiente al correo de la conversación activa.
+// =====================================
+function abrirPerfilContactoDesdeChat(evento){
+
+    if(evento){
+        evento.stopPropagation();
+    }
+
+    const correoContacto =
+    String(chatConUsuario?.correo || "").trim();
+
+    if(!correoContacto){
+        return;
+    }
+
+    // El chat usa un z-index alto; elevamos solo este modal mientras
+    // se abre desde el chat para que aparezca encima sin cerrar la conversación.
+    const modalAutor =
+    document.getElementById("modalAutor");
+
+    if(modalAutor){
+        modalAutor.style.zIndex = "1000002";
+    }
+
+    abrirPerfilPorCorreo(correoContacto);
+}
+
+
+const chatHeaderNormalEl =
+document.getElementById("chatHeaderNormal");
+
+if(chatHeaderNormalEl){
+
+    chatHeaderNormalEl.addEventListener("click", abrirPerfilContactoDesdeChat);
+
+    chatHeaderNormalEl.addEventListener("keydown", (e)=>{
+
+        if(e.key === "Enter" || e.key === " "){
+
+            e.preventDefault();
+            abrirPerfilContactoDesdeChat(e);
+
+        }
+
+    });
+
+}
+
+
 function cerrarChat() {
 
     salirModoSeleccionMensajes();
@@ -10590,15 +10645,36 @@ ${fecha}
         div.onclick=()=>{
 
 
+            // Abrir el chat conservando los datos reales que ya aparecen
+            // en la lista. Antes se enviaba el correo también como nombre,
+            // por eso el header repetía dos veces el correo.
+            const perfilChat =
+            perfilCache[normalizeText(correo)] || {};
+
+            const nombreChat =
+            (
+                data.nombre &&
+                normalizeText(data.nombre) !== normalizeText(correo)
+            )
+            ? data.nombre
+            : (perfilChat.nombre || data.nombre || correo);
+
+            const fotoChat =
+            data.foto ||
+            perfilChat.fotoPerfil ||
+            "";
+
+
             iniciarChatCon({
 
                 nombre:
-                correo,
+                nombreChat,
 
                 correo:
                 correo,
 
-                foto:""
+                foto:
+                fotoChat
 
             });
 
