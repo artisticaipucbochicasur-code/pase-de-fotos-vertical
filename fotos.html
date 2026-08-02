@@ -1799,6 +1799,12 @@ body:not(.dark-mode) .chat-list-nombre {
   border-bottom: none !important;
 }
 
+/* En video se eleva solo el bloque del autor para liberar por completo
+   la línea de tiempo y su área táctil. En imágenes conserva su posición actual. */
+.comments-overlay-container.video-active {
+  bottom: 112px;
+}
+
 .facebook-comments-modal {
   display: none;
   position: fixed;
@@ -15194,8 +15200,10 @@ function normalizarComentarios(lista) {
     function registrarNuevoAnuncioSupabase(publicacion) {
         if (!publicacion?.id) return;
 
-        // Esta pantalla corresponde a anuncios con imagen.
-        if (publicacion.tipo_media && publicacion.tipo_media !== "imagen") return;
+        // La campana usa la misma lógica para anuncios de imagen y de video.
+        // Cualquier otro tipo de contenido queda fuera para no alterar otros módulos.
+        const tipoMedia = publicacion.tipo_media || "imagen";
+        if (!["imagen", "video"].includes(tipoMedia)) return;
 
         const id = String(publicacion.id);
         const yaExiste = nuevosTitulos.some(item => String(item.id) === id);
@@ -17515,6 +17523,9 @@ function updateContentOverlay(index) {
     if (anunciosData.length > index) {
         const anuncio = anunciosData[index];
 
+        // Solo en videos: subir el autor para que no cubra la línea de tiempo.
+        commentsOverlay?.classList.toggle("video-active", anuncio.tipo_media === "video");
+
         updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
 
         // 📤 Compartir: siempre usa el anuncio realmente activo (imagen o video)
@@ -18288,7 +18299,7 @@ function showCustommostrarAviso(title, titlesList) {
    const imagesNotificationBtn = document.getElementById("imagesNotificationBtn");
     if (imagesNotificationBtn) {
     imagesNotificationBtn.addEventListener("click", () => {
-        showCustommostrarAviso("Nuevos anuncios en imágenes", nuevosTitulos);
+        showCustommostrarAviso("Nuevos anuncios", nuevosTitulos);
     });
      }
 
@@ -18300,7 +18311,7 @@ if (imagesBtn) {
         e.preventDefault();
 
         if (contadorAcumulado > 0) {
-            showCustommostrarAviso("Nuevos anuncios en imágenes", nuevosTitulos);
+            showCustommostrarAviso("Nuevos anuncios", nuevosTitulos);
         } else {
             cargarVistaInterna("fotos/fotos.html", imagesBtn);
             // Marcar como vista activa
