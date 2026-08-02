@@ -46,9 +46,37 @@
         transition: transform 0.3s ease; /* Transición para el movimiento */
         overscroll-behavior: none; /* Evita el "pull to refresh" nativo al instalar como PWA */
     }
-    .swiper { width: 100vw; height: 100vh; overscroll-behavior: none; }
-    .swiper-slide { display: flex; justify-content: center; align-items: center; position: relative; background: #000; }
-    .swiper-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    /* === CENTRADO REAL DEL CONTENIDO MULTIMEDIA ===
+       100dvh usa la altura visible real de la app/navegador móvil.
+       Así imágenes, videos y los controles que viven dentro del video
+       quedan centrados sin mover botones ni overlays fijos. */
+    .swiper {
+        width: 100vw;
+        height: 100vh; /* respaldo para navegadores antiguos */
+        height: 100dvh;
+        overscroll-behavior: none;
+    }
+    .swiper-slide {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        background: #000;
+    }
+    .swiper-slide .swiper-zoom-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .swiper-slide img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        display: block;
+        margin: auto;
+    }
     #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center; z-index: 10; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
@@ -1778,11 +1806,12 @@ body:not(.dark-mode) .chat-list-nombre {
 
 /* =========================================================
    💬 COMENTARIOS TIPO FACEBOOK
-   En el feed queda únicamente el autor de la publicación.
-   Los comentarios y el cuadro para escribir viven en este modal.
+   El modal conserva su input y el feed incorpora otro input fijo inferior.
+   Ambos comparten exactamente la misma lógica de envío.
 ========================================================= */
 .comments-overlay-container {
-  bottom: 18px;
+  /* Se deja el autor por encima de la barra de comentario del feed. */
+  bottom: 54px;
   width: calc(80% - 20px);
   max-height: none;
   overflow: visible;
@@ -1799,10 +1828,61 @@ body:not(.dark-mode) .chat-list-nombre {
   border-bottom: none !important;
 }
 
-/* En video se eleva solo el bloque del autor para liberar por completo
-   la línea de tiempo y su área táctil. En imágenes conserva su posición actual. */
+/* En video el autor queda por encima de la línea de tiempo (52-106px aprox.)
+   y también por encima del input inferior del feed. */
 .comments-overlay-container.video-active {
-  bottom: 90px;
+  bottom: 112px;
+}
+
+/* =========================================================
+   💬 INPUT DE COMENTARIOS EN EL FEED - TIPO FACEBOOK
+========================================================= */
+.feed-comment-input-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 5000;
+  padding: 4px 10px;
+  box-sizing: border-box;
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,.58) 0%,
+    rgba(0,0,0,.28) 58%,
+    rgba(0,0,0,0) 100%
+  );
+  transition: opacity .3s ease, visibility .3s ease;
+}
+
+.feed-comment-input-container .comment-input-wrapper {
+  width: min(96%, 620px);
+  margin: 0 auto;
+  min-height: 42px;
+  box-sizing: border-box;
+  background: rgba(30,30,30,.58);
+  border: 1px solid rgba(255,255,255,.38);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 3px 14px rgba(0,0,0,.28);
+}
+
+.feed-comment-input-container .comment-input-wrapper input {
+  min-width: 0;
+  color: #fff;
+}
+
+.feed-comment-input-container .comment-input-wrapper input::placeholder {
+  color: rgba(255,255,255,.76);
+}
+
+.feed-comment-input-container .comment-input-wrapper button {
+  color: #fff;
+}
+
+/* Mantener la barra fuera del modo embebido si la interfaz superior también se oculta. */
+body.embedded .feed-comment-input-container {
+  bottom: 0;
 }
 
 .facebook-comments-modal {
@@ -2833,6 +2913,15 @@ Volver al inicio
     <div id="autorContainer"></div>
 </div>
 
+<!-- 💬 Input fijo de comentarios en el feed (misma lógica que el modal) -->
+<div class="comment-input-container feed-comment-input-container" id="feedCommentInputContainer">
+  <div class="comment-input-wrapper">
+    <input type="text" id="feedCommentInput" placeholder="Escribe un comentario..." autocomplete="off">
+    <button class="send-comment-btn" id="feedSendCommentBtn" type="button" aria-label="Enviar comentario">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+</div>
 
 
 <div class="likes-counter" id="likesCounter" title="Me gusta">
@@ -12869,7 +12958,7 @@ btnUploadVideo.addEventListener("click", async () => {
         // ==========================
 
 
-        const {error} = await supabaseClient
+        const {data: publicacionCreada, error} = await supabaseClient
 
             .from("publicaciones")
 
@@ -12900,7 +12989,12 @@ btnUploadVideo.addEventListener("click", async () => {
                 autor: autor
 
 
-            }]);
+            }])
+
+            // Devolver únicamente la fila recién creada. Así el feed puede
+            // incorporarla directamente sin volver a consultar toda la tabla.
+            .select("id,titulo,descripcion,url_media,correo,autor,fecha_creacion,tipo_media,youtube_id,thumbnail")
+            .single();
 
 
 
@@ -12934,9 +13028,18 @@ btnUploadVideo.addEventListener("click", async () => {
 
 
 
-        // Actualizar feed DECOM
+        // Actualizar el feed DECOM de forma incremental.
+        // NO se hace cargarImagenes(true): esa llamada obligaba a una
+        // reconciliación completa de Supabase justo después de cada video.
+        if(publicacionCreada){
+            registrarNuevoAnuncioSupabase(publicacionCreada);
+            insertarPublicacionLocal(publicacionCreada);
 
-        await cargarImagenes(true);
+            console.log(
+                "🆕🎥 VIDEO PUBLICADO → agregado al localStorage/Swiper directamente; sin recarga completa de Supabase:",
+                { id: publicacionCreada.id, youtube_id: publicacionCreada.youtube_id }
+            );
+        }
 
 
 
@@ -13692,9 +13795,12 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentsList = document.getElementById('commentsList');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
-    const commentInputContainer = document.querySelector('.comment-input-container');
+    const commentInputContainer = document.getElementById('commentInputContainer');
     const commentInput = document.getElementById('commentInput');
-    const sendCommentBtn = document.querySelector('.send-comment-btn');
+    const sendCommentBtn = document.querySelector('#commentInputContainer .send-comment-btn');
+    const feedCommentInputContainer = document.getElementById('feedCommentInputContainer');
+    const feedCommentInput = document.getElementById('feedCommentInput');
+    const feedSendCommentBtn = document.getElementById('feedSendCommentBtn');
     const commentsModal = document.getElementById('commentsModal');
     const closeCommentsModalBtn = document.getElementById('closeCommentsModal');
     const commentsModalCount = document.getElementById('commentsModalCount');
@@ -14255,7 +14361,9 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     // ✅ Estos se alternan normal
     commentsOverlay.classList.toggle('hidden-overlay');
     commentsCounter.classList.toggle('hidden-overlay');
-    // El campo de comentario ahora pertenece al modal y no se oculta con el tap del feed.
+    // El input del feed sigue la misma lógica visual que likes, editar, guardar, etc.
+    feedCommentInputContainer?.classList.toggle('hidden-overlay');
+    // El input del modal NO se toca: el modal controla su propia visibilidad.
 
     // ✅ contentOverlay invertido → lo forzamos al mismo sentido
     if (contentOverlay.classList.contains('hidden-overlay')) {
@@ -14797,10 +14905,11 @@ async function eliminarComentario(comentarioId) {
 
 }
 
-async function enviarComentario() {
+async function enviarComentario(inputOrigen = commentInput) {
 
 
-    const comentarioTexto = commentInput.value.trim();
+    const inputActivo = inputOrigen || commentInput;
+    const comentarioTexto = inputActivo?.value.trim() || "";
 
     const activeIndex = swiperInstance.realIndex;
 
@@ -14872,7 +14981,9 @@ async function enviarComentario() {
 
 
 
-        commentInput.value = "";
+        // Mantener sincronizados los dos campos (feed + modal).
+        if(commentInput) commentInput.value = "";
+        if(feedCommentInput) feedCommentInput.value = "";
 
 
 
@@ -14910,10 +15021,38 @@ async function enviarComentario() {
 
 }
 
-    sendCommentBtn.addEventListener('click', enviarComentario);
-    commentInput.addEventListener('keydown', (e) => {
+    // =====================================================
+    // 💬 FEED + MODAL: MISMO TEXTO Y MISMA LÓGICA DE ENVÍO
+    // =====================================================
+    function sincronizarTextoComentario(origen, destino){
+        if(!origen || !destino) return;
+        if(destino.value !== origen.value){
+            destino.value = origen.value;
+        }
+    }
+
+    commentInput?.addEventListener('input', ()=>{
+        sincronizarTextoComentario(commentInput, feedCommentInput);
+    });
+
+    feedCommentInput?.addEventListener('input', ()=>{
+        sincronizarTextoComentario(feedCommentInput, commentInput);
+    });
+
+    sendCommentBtn?.addEventListener('click', ()=> enviarComentario(commentInput));
+    feedSendCommentBtn?.addEventListener('click', ()=> enviarComentario(feedCommentInput));
+
+    commentInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            enviarComentario();
+            e.preventDefault();
+            enviarComentario(commentInput);
+        }
+    });
+
+    feedCommentInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            enviarComentario(feedCommentInput);
         }
     });
 
@@ -14942,6 +15081,21 @@ commentInput.addEventListener("blur", () => {
 
   if (isIOS) {
     // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
+    setTimeout(() => {
+      window.scrollTo(0, iosScrollYBeforeFocus);
+    }, 50);
+  }
+});
+
+// El input del feed recibe el mismo tratamiento de teclado que el del modal.
+feedCommentInput?.addEventListener("focus", () => {
+  if (isIOS) {
+    iosScrollYBeforeFocus = window.scrollY || 0;
+  }
+});
+
+feedCommentInput?.addEventListener("blur", () => {
+  if (isIOS) {
     setTimeout(() => {
       window.scrollTo(0, iosScrollYBeforeFocus);
     }, 50);
@@ -15774,6 +15928,7 @@ const ANUNCIOS_LAST_FULL_SYNC_KEY = "decom_anuncios_full_sync_v4";
 const ANUNCIOS_LAST_VIEWED_KEY = "decom_anuncios_last_viewed_v4";
 const ANUNCIOS_IMAGE_CACHE = "decom-anuncios-images-v4";
 const ANUNCIOS_RECONCILIACION_MS = 24 * 60 * 60 * 1000;
+const ANUNCIOS_VIDEO_PRELOAD_RADIO = 2;
 const ANUNCIOS_SELECT = "id,titulo,descripcion,url_media,correo,autor,fecha_creacion,tipo_media,youtube_id,thumbnail";
 
 let sincronizacionAnunciosPromise = null;
@@ -15804,8 +15959,6 @@ function ordenarAnunciosPorFecha(a,b){
 }
 
 function normalizarPublicacionAnuncio(pub){
-
-    console.log("ANTES NORMALIZAR:", pub);
 
     if(!pub || pub.id === null || pub.id === undefined) return null;
 
@@ -16295,19 +16448,59 @@ function crearControlesMinimosYoutube(iframe){
     return controles;
 }
 
+// 🎥 Preconexión única a los dominios usados por el reproductor y miniaturas.
+// No descarga videos; únicamente evita repetir el costo DNS/TLS cuando el
+// usuario llega al siguiente/anterior video.
+let conexionYoutubePreparada = false;
+
+function prepararConexionYoutube(){
+    if(conexionYoutubePreparada) return;
+    conexionYoutubePreparada = true;
+
+    [
+        "https://www.youtube.com",
+        "https://i.ytimg.com",
+        "https://img.youtube.com"
+    ].forEach(href => {
+        if(document.head.querySelector(`link[rel="preconnect"][href="${href}"]`)) return;
+        const link = document.createElement("link");
+        link.rel = "preconnect";
+        link.href = href;
+        link.crossOrigin = "anonymous";
+        document.head.appendChild(link);
+    });
+
+    console.log("🎥⚡ YouTube preconnect preparado una sola vez.");
+}
+
 // 🎥 Carga perezosa del video (misma lógica que cargarImagenElemento con
 // las fotos): solo se le asigna el "src" al iframe cuando el anuncio está
 // cerca del que se está viendo, así el reproductor ya está listo antes de
 // llegar a él y no hay que esperar a darle play para que empiece a cargar.
 function cargarVideoElemento(iframe){
 
-    if(!iframe || iframe.dataset.cargado === "1") return;
+    if(!iframe) return;
 
     const videoId = iframe.dataset.videoId || "";
     if(!videoId) return;
 
+    if(iframe.dataset.cargado === "1"){
+        console.log(
+            "🎥💾 Video cercano reutilizado desde el estado local del carrusel (iframe ya precargado):",
+            { id: iframe.dataset.anuncioId || "", youtube_id: videoId }
+        );
+        return;
+    }
+
+    prepararConexionYoutube();
+
     iframe.dataset.cargado = "1";
     iframe.dataset.muted = "true"; // arranca silenciado (autoplay lo requiere)
+
+    console.log(
+        "🎥⏩ Precargando video cercano desde youtube_id guardado en localStorage:",
+        { id: iframe.dataset.anuncioId || "", youtube_id: videoId, titulo: iframe.title || "" }
+    );
 
     iframe.src =
     `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1`;
@@ -16328,6 +16521,19 @@ function vincularControlVideoYoutube(iframe, overlay){
         }
 
         iframe.dataset.listo = "1";
+
+        const slideVideo = iframe.closest(".swiper-slide.video");
+        const placeholder = slideVideo?.querySelector(".youtube-video-placeholder");
+
+        if(placeholder){
+            placeholder.style.opacity = "0";
+            placeholder.style.visibility = "hidden";
+        }
+
+        console.log(
+            "✅🎥 Video cercano listo antes de entrar al slide:",
+            { id: iframe.dataset.anuncioId || "", youtube_id: iframe.dataset.videoId || "", titulo: iframe.title || "" }
+        );
 
         // Mantener Closed Captions apagados y sin controles nativos.
         apagarSubtitulosYoutube(iframe);
@@ -16553,6 +16759,7 @@ if(anuncio.tipo_media === "video"){
         // (ver cargarVideoElemento / cargarImagenesCercanas). Así no se
         // descargan todos los videos de una vez.
         iframe.dataset.videoId = anuncio.youtube_id;
+        iframe.dataset.anuncioId = String(anuncio.id);
 
         iframe.title = anuncio.titulo || "Video";
 
@@ -16569,9 +16776,55 @@ if(anuncio.tipo_media === "video"){
         iframe.style.width = "100%";
         iframe.style.height = "100%";
         iframe.style.border = "0";
+        iframe.style.position = "relative";
+        iframe.style.zIndex = "1";
 
+        // Miniatura del video: usa exactamente el mismo cargador/cache de
+        // imágenes. Se ve instantáneamente mientras el iframe de YouTube se
+        // prepara y desaparece cuando el reproductor termina de cargar.
+        const videoPlaceholder = document.createElement("div");
+        videoPlaceholder.className = "youtube-video-placeholder";
+        videoPlaceholder.style.position = "absolute";
+        videoPlaceholder.style.inset = "0";
+        videoPlaceholder.style.zIndex = "2";
+        videoPlaceholder.style.display = "flex";
+        videoPlaceholder.style.alignItems = "center";
+        videoPlaceholder.style.justifyContent = "center";
+        videoPlaceholder.style.background = "#000";
+        videoPlaceholder.style.pointerEvents = "none";
+        videoPlaceholder.style.transition = "opacity .18s ease, visibility .18s ease";
+
+        const videoThumb = document.createElement("img");
+        videoThumb.className = "youtube-video-thumbnail";
+        videoThumb.alt = anuncio.titulo || "Video";
+        videoThumb.loading = "lazy";
+        videoThumb.decoding = "async";
+        videoThumb.dataset.src = anuncio.thumbnail || `https://img.youtube.com/vi/${anuncio.youtube_id}/hqdefault.jpg`;
+        videoThumb.dataset.anuncioId = String(anuncio.id);
+        videoThumb.style.width = "100%";
+        videoThumb.style.height = "100%";
+        videoThumb.style.objectFit = "contain";
+
+        const videoPreparing = document.createElement("div");
+        videoPreparing.className = "youtube-video-preparing";
+        videoPreparing.textContent = "Preparando video…";
+        videoPreparing.style.position = "absolute";
+        videoPreparing.style.left = "50%";
+        videoPreparing.style.top = "50%";
+        videoPreparing.style.transform = "translate(-50%, -50%)";
+        videoPreparing.style.padding = "9px 13px";
+        videoPreparing.style.borderRadius = "999px";
+        videoPreparing.style.background = "rgba(0,0,0,.62)";
+        videoPreparing.style.color = "#fff";
+        videoPreparing.style.fontSize = "13px";
+        videoPreparing.style.fontWeight = "600";
+        videoPreparing.style.backdropFilter = "blur(6px)";
+
+        videoPlaceholder.appendChild(videoThumb);
+        videoPlaceholder.appendChild(videoPreparing);
 
         zoomContainer.appendChild(iframe);
+        zoomContainer.appendChild(videoPlaceholder);
 
         // 🎥 Capa transparente completa encima del iframe:
         // evita que YouTube abra sus controles nativos. El swipe vertical y
@@ -16707,26 +16960,37 @@ async function cargarImagenElemento(img){
     }
 }
 
-function cargarImagenesCercanas(indice, radio = 2){
+function cargarImagenesCercanas(indice, radio = ANUNCIOS_VIDEO_PRELOAD_RADIO){
     if(!anunciosData.length) return;
 
     const total = anunciosData.length;
     const ids = new Set();
+    const ventanaVideos = [];
 
     for(let desplazamiento = -radio; desplazamiento <= radio; desplazamiento++){
         const real = ((indice + desplazamiento) % total + total) % total;
-        ids.add(String(anunciosData[real]?.id ?? ""));
+        const anuncioCercano = anunciosData[real];
+        ids.add(String(anuncioCercano?.id ?? ""));
+
+        if(anuncioCercano?.tipo_media === "video"){
+            ventanaVideos.push({
+                posicion: desplazamiento === 0 ? "actual" : (desplazamiento < 0 ? `anterior ${Math.abs(desplazamiento)}` : `siguiente ${desplazamiento}`),
+                id: anuncioCercano.id,
+                youtube_id: anuncioCercano.youtube_id,
+                titulo: anuncioCercano.titulo
+            });
+        }
     }
 
     document
         .querySelectorAll(".swiper-slide[data-id]")
         .forEach(slide => {
             if(!ids.has(String(slide.dataset.id))) return;
-          const img = slide.querySelector("img[data-src]");
+            const img = slide.querySelector("img[data-src]");
 
-if(img){
-    cargarImagenElemento(img);
-}
+            if(img){
+                cargarImagenElemento(img);
+            }
 
             // 🎥 Misma optimización que las imágenes: solo se precargan
             // los videos cercanos al anuncio activo, no todos de una vez.
@@ -16736,6 +17000,13 @@ if(img){
                 cargarVideoElemento(iframeVideo);
             }
         });
+
+    if(ventanaVideos.length){
+        console.log(
+            `🎥↔️ Ventana de precarga de videos ±${radio} (anterior/actual/siguiente):`,
+            ventanaVideos
+        );
+    }
 }
 
 function precargarPerfilesCercanos(indice, radio = 7){
@@ -16847,7 +17118,21 @@ function restaurarAnunciosDesdeCache(){
 
         if(anunciosData.length){
             renderizarFeedCompleto();
-            console.log(`⚡ ${anunciosData.length} anuncios mostrados desde cache local.`);
+
+            const videosCache = anunciosData.filter(a => a.tipo_media === "video");
+            const imagenesCache = anunciosData.length - videosCache.length;
+
+            console.log(
+                `⚡ Feed mostrado instantáneamente desde localStorage: ${anunciosData.length} anuncios (${imagenesCache} imágenes / ${videosCache.length} videos).`
+            );
+
+            if(videosCache.length){
+                console.log(
+                    "🎥💾 Videos restaurados desde localStorage (metadatos/youtube_id); no fue necesario pedirlos nuevamente a Supabase para pintar el feed:",
+                    videosCache.map(v => ({ id:v.id, youtube_id:v.youtube_id, titulo:v.titulo }))
+                );
+            }
+
             return true;
         }
     }catch(error){
@@ -16955,26 +17240,71 @@ const sinCambios =
     anunciosData[indice] = actualizado;
 
     const cambioImagen = anterior.url !== actualizado.url;
+    const cambioTipo = anterior.tipo_media !== actualizado.tipo_media;
+    const cambioYoutubeId = anterior.youtube_id !== actualizado.youtube_id;
+    const cambioThumbnail = anterior.thumbnail !== actualizado.thumbnail;
 
-    document
-        .querySelectorAll(".swiper-slide[data-id]")
-        .forEach(slide => {
-            if(String(slide.dataset.id) !== String(actualizado.id)) return;
-
-            const img = slide.querySelector("img");
-            if(!img) return;
-
-            img.alt = actualizado.titulo || "Anuncio";
-
-            if(cambioImagen){
-                img.removeAttribute("src");
-                delete img.dataset.urlCargada;
-                img.dataset.src = actualizado.url || "";
+    // Si un video cambia de youtube_id (o cambia el tipo de publicación),
+    // reconstruir únicamente SU slide. No se toca el resto del Swiper/feed.
+    if(cambioTipo || (actualizado.tipo_media === "video" && cambioYoutubeId)){
+        conservarAnuncioActivo(()=>{
+            if(swiperInstance){
+                swiperInstance.removeSlide(indice);
+                swiperInstance.addSlide(indice, crearSlideAnuncio(actualizado));
+            }else{
+                renderizarFeedCompleto(actualizado.id);
             }
         });
 
-    if(cambioImagen){
+        console.log(
+            "♻️🎥 Slide de video actualizado localmente sin recargar todo Supabase:",
+            { id: actualizado.id, youtube_id: actualizado.youtube_id }
+        );
+    }else{
+        document
+            .querySelectorAll(".swiper-slide[data-id]")
+            .forEach(slide => {
+                if(String(slide.dataset.id) !== String(actualizado.id)) return;
+
+                if(actualizado.tipo_media === "video"){
+                    const iframe = slide.querySelector("iframe.youtube-player");
+                    if(iframe){
+                        iframe.title = actualizado.titulo || "Video";
+                    }
+
+                    const thumb = slide.querySelector(".youtube-video-thumbnail");
+                    if(thumb){
+                        thumb.alt = actualizado.titulo || "Video";
+
+                        if(cambioThumbnail){
+                            thumb.removeAttribute("src");
+                            delete thumb.dataset.urlCargada;
+                            thumb.dataset.src = actualizado.thumbnail ||
+                                (actualizado.youtube_id ? `https://img.youtube.com/vi/${actualizado.youtube_id}/hqdefault.jpg` : "");
+                        }
+                    }
+                    return;
+                }
+
+                const img = slide.querySelector("img");
+                if(!img) return;
+
+                img.alt = actualizado.titulo || "Anuncio";
+
+                if(cambioImagen){
+                    img.removeAttribute("src");
+                    delete img.dataset.urlCargada;
+                    img.dataset.src = actualizado.url || "";
+                }
+            });
+    }
+
+    if(cambioImagen && anterior.url){
         eliminarUrlDeCacheImagen(anterior.url);
+    }
+
+    if(cambioThumbnail && anterior.thumbnail){
+        eliminarUrlDeCacheImagen(anterior.thumbnail);
     }
 
     reconstruirIndiceBusqueda();
@@ -17015,6 +17345,11 @@ function eliminarPublicacionLocal(id, opciones = {}){
     });
 
     eliminarUrlDeCacheImagen(eliminado.url);
+
+    if(eliminado.thumbnail){
+        eliminarUrlDeCacheImagen(eliminado.thumbnail);
+    }
+
     eliminarNotificacionAnuncio(id);
     delete comentariosPorAnuncio[id];
     reconstruirIndiceBusqueda();
@@ -17083,16 +17418,25 @@ async function consultarPublicacionesSupabase({completa = false} = {}){
     const cursor = localStorage.getItem(ANUNCIOS_CURSOR_KEY) ||
         obtenerCursorMasReciente();
 
+    let desdeIncremental = "";
+
     if(!completa && cursor){
         const fechaCursor = fechaValidaAnuncio(cursor);
 
         if(fechaCursor){
             // Solapamiento pequeño para no perder publicaciones con marcas
             // de tiempo iguales. Los IDs evitan duplicados.
-            const desde = new Date(fechaCursor.getTime() - 2000).toISOString();
-            query = query.gte("fecha_creacion", desde);
+            desdeIncremental = new Date(fechaCursor.getTime() - 2000).toISOString();
+            query = query.gte("fecha_creacion", desdeIncremental);
         }
     }
+
+    console.log(
+        completa
+            ? "📡 Supabase publicaciones: reconciliación completa de METADATOS (no descarga videos/imágenes)."
+            : "📡 Supabase publicaciones: consulta incremental únicamente desde el cursor; el feed ya está visible desde localStorage.",
+        completa ? {} : { desde: desdeIncremental || cursor || "sin cursor" }
+    );
 
     const {data, error} = await query;
 
@@ -17129,8 +17473,6 @@ async function cargarImagenes(forceRefresh = false){
                 completa: requiereCompleta
             });
 
-            console.log("DESDE SUPABASE:", publicaciones.find(p => p.titulo === "Video prueba DECOM"));
-
             if(requiereCompleta){
                 // Si Realtime insertó algo durante la primera consulta, se
                 // reconcilia en vez de reemplazar para evitar perder ese evento.
@@ -17161,11 +17503,17 @@ async function cargarImagenes(forceRefresh = false){
                 cachearImagenes(anunciosData);
             }
 
+            const videosRecibidos = publicaciones.filter(p => (p.tipo_media || "imagen") === "video").length;
+
             console.log(
                 requiereCompleta
-                    ? `✅ Reconciliación de anuncios completada (${publicaciones.length} metadatos; imágenes no recargadas).`
-                    : `✅ Sincronización incremental completada (${publicaciones.length} registros revisados).`
+                    ? `✅ Reconciliación de anuncios completada (${publicaciones.length} metadatos; archivos visuales no se redescargan).`
+                    : `✅ Sincronización incremental completada (${publicaciones.length} registros revisados; ${videosRecibidos} videos en la respuesta).`
             );
+
+            if(!requiereCompleta && videosRecibidos === 0){
+                console.log("🎥✅ Sin videos nuevos en Supabase: se mantienen los videos del localStorage/precarga existente.");
+            }
 
         }catch(error){
             console.error("Error sincronizando anuncios desde Supabase:", error);
@@ -17186,7 +17534,7 @@ async function cargarImagenes(forceRefresh = false){
 }
 
 function iniciarRealtimeSupabase(){
-    console.log("⚡ Iniciando Supabase Realtime optimizado...");
+    console.log("⚡ Iniciando Supabase Realtime optimizado: imágenes y videos nuevos se aplican uno a uno, sin recargar el feed completo.");
 
     if(publicacionesRealtimeChannel){
         supabaseClient.removeChannel(publicacionesRealtimeChannel);
@@ -17206,7 +17554,16 @@ function iniciarRealtimeSupabase(){
 
                 if(payload.eventType === "INSERT"){
                     registrarNuevoAnuncioSupabase(payload.new);
-                    insertarPublicacionLocal(payload.new);
+                    const insertado = insertarPublicacionLocal(payload.new);
+
+                    if(insertado){
+                        console.log(
+                            payload.new?.tipo_media === "video"
+                                ? "🆕🎥 VIDEO NUEVO recibido por Realtime → localStorage + Swiper actualizados; sin SELECT completo a Supabase."
+                                : "🆕🖼️ IMAGEN NUEVA recibida por Realtime → localStorage + Swiper actualizados; sin SELECT completo a Supabase.",
+                            payload.new?.id
+                        );
+                    }
                     return;
                 }
 
@@ -18255,6 +18612,8 @@ function showCustommostrarAviso(title, titlesList) {
 // Mostrar el cache de anuncios inmediatamente y sincronizar en segundo plano.
 // Los comentarios, likes y guardados mantienen sus flujos independientes.
 (async function iniciarFeedAnunciosOptimizado(){
+
+    console.log("🚀 Feed: primero localStorage/cache; Supabase queda solo para reconciliación incremental y Realtime.");
 
     iniciarRealtimeSupabase();
 
