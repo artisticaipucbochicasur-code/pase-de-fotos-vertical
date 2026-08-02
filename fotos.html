@@ -1647,22 +1647,18 @@ body:not(.dark-mode) .chat-list-nombre {
 }
 
 
-/* Permitir swipe vertical aunque exista iframe YouTube */
-/* El iframe NO debe recibir toques directamente: al ser otro documento,
-   Swiper no puede detectar el deslizamiento si el gesto empieza sobre él.
-   Por eso se desactivan sus eventos y se usa una capa transparente encima
-   (.video-touch-overlay) que sí permite que Swiper detecte el swipe y,
-   además, controla el video (play/pausa) al hacer tap. */
-.swiper-slide.video iframe{
-    pointer-events:none;
-}
-
+/* 🎥 VIDEO YOUTUBE: swipe + controles nativos accesibles
+   La capa transparente sigue recibiendo los gestos en casi todo el video
+   para que Swiper pueda deslizar verticalmente, pero deja libre la franja
+   inferior del iframe. Así la línea de tiempo, configuración, pantalla
+   completa y demás controles de YouTube reciben los toques directamente. */
 .swiper-slide.video{
     touch-action: pan-y;
 }
 
-.swiper-slide.video iframe{
-    touch-action: pan-y;
+.swiper-slide.video iframe.youtube-player{
+    pointer-events:auto;
+    touch-action:auto;
 }
 
 .video-touch-overlay{
@@ -1670,11 +1666,11 @@ body:not(.dark-mode) .chat-list-nombre {
     top:0;
     left:0;
     right:0;
-    bottom:0;
+    bottom:76px; /* zona libre para la barra/controles de YouTube */
     z-index:5;
     background:transparent;
-    touch-action: pan-y;
-    overscroll-behavior: none;
+    touch-action:pan-y;
+    overscroll-behavior:none;
 }
 
 
@@ -15289,17 +15285,46 @@ function vincularControlVideoYoutube(iframe, overlay){
 
     });
 
-    // El evento "click" solo se dispara cuando es un tap real (no cuando
-    // hubo un desplazamiento/swipe), así que no interfiere con Swiper.
+    // Un tap solo controla play/pausa si cae sobre el centro del reproductor,
+    // aproximadamente donde YouTube dibuja su icono de Play. Los taps fuera
+    // de esa zona siguen propagándose al .swiper para ocultar/mostrar los
+    // botones de la app. La franja inferior ni siquiera está cubierta por
+    // este overlay, por lo que la línea de tiempo y controles nativos quedan libres.
     overlay.addEventListener("click", function(e){
 
+        const rect = iframe.getBoundingClientRect();
+
+        const centroX = rect.left + (rect.width / 2);
+        const centroY = rect.top + (rect.height / 2);
+
+        // Zona deliberadamente pequeña: icono de play + unos pocos píxeles alrededor.
+        const mitadZonaPlay = Math.max(
+            52,
+            Math.min(68, Math.min(rect.width, rect.height) * 0.09)
+        );
+
+        const cercaDelPlay =
+            Math.abs(e.clientX - centroX) <= mitadZonaPlay &&
+            Math.abs(e.clientY - centroY) <= mitadZonaPlay;
+
+        // Fuera del play NO tocamos el video: dejamos que el click suba al
+        // listener general del Swiper, que muestra/oculta likes, comentarios,
+        // editar, guardar, cabecera, etc.
+        if(!cercaDelPlay){
+            return;
+        }
+
+        e.preventDefault();
         e.stopPropagation();
 
         const reproduciendo = iframe.dataset.playing === "true";
 
-        enviarComandoYoutube(iframe, reproduciendo ? "pauseVideo" : "playVideo");
+        enviarComandoYoutube(
+            iframe,
+            reproduciendo ? "pauseVideo" : "playVideo"
+        );
 
-        // Optimista: se corrige solo si YouTube reporta otro estado real
+        // Optimista: se corrige solo si YouTube reporta otro estado real.
         iframe.dataset.playing = reproduciendo ? "false" : "true";
 
     });
@@ -15458,10 +15483,11 @@ if(anuncio.tipo_media === "video"){
 
         zoomContainer.appendChild(iframe);
 
-        // 🎥 Capa transparente encima del iframe:
-        // permite que Swiper detecte el deslizamiento (el iframe por sí
-        // solo lo bloquea) y controla el video (play/pausa) con un tap,
-        // sin interferir con el swipe.
+        // 🎥 Capa transparente parcial encima del iframe:
+        // conserva el swipe vertical en casi todo el video. Su borde inferior
+        // termina antes de los controles de YouTube para dejar utilizables la
+        // línea de tiempo y botones nativos. Play/pausa solo responde cerca
+        // del icono central (ver vincularControlVideoYoutube).
         const videoOverlay = document.createElement("div");
         videoOverlay.classList.add("video-touch-overlay");
         zoomContainer.appendChild(videoOverlay);
