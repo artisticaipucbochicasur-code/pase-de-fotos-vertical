@@ -4398,6 +4398,12 @@ function mostrarPerfilAutor(data){
 
     mostrarDatosAutor({
 
+        nombre:data.nombre || "Anónimo",
+
+        correo:data.correo || "",
+
+        fotoPerfil:data.fotoPerfil || "",
+
         telefono:data.telefono,
 
         ciudad:data.ciudad,
@@ -4603,8 +4609,28 @@ function mostrarDatosAutor(u) {
 
   divMensajes.addEventListener('click', (e) => {
     e.stopPropagation();
-    // Usa el ÚNICO #messagesBtn que existe en toda la página
-    document.getElementById('messagesBtn')?.click();
+
+    // Abrir SIEMPRE el chat de la persona cuyo perfil está visible.
+    // Antes se disparaba #messagesBtn, pero ese botón global queda asociado
+    // al autor de la publicación activa y podía no coincidir con el comentarista.
+    const correoDestino = String(u.correo || '').trim();
+
+    if(!correoDestino){
+      console.warn('No se puede abrir el chat: el perfil no tiene correo.');
+      return;
+    }
+
+    if(normalizeText(correoDestino) === normalizeText(currentAuthorEmail)){
+      return;
+    }
+
+    document.getElementById('modalAutor')?.classList.add('hidden');
+
+    iniciarChatCon({
+      nombre: u.nombre || correoDestino,
+      correo: correoDestino,
+      foto: u.fotoPerfil || ''
+    });
   });
 
   cont.appendChild(divMensajes);
@@ -14496,6 +14522,7 @@ if (editBtn) {
             const texto = comentario.textoPuro ?? comentario.comentario ?? comentario.texto ?? '';
             const fechaOriginal = comentario.fechaOriginal || comentario.fecha || '';
             const fechaVisible = formatoFechaComentario(fechaOriginal);
+            const horaVisible = formatoHoraComentario(fechaOriginal);
             const esMio = normalizeText(correo) === normalizeText(currentAuthorEmail);
 
             li.classList.toggle('deletable', esMio);
@@ -14562,7 +14589,7 @@ if (editBtn) {
 
             const meta = document.createElement('div');
             meta.className = 'fb-comment-meta';
-            meta.textContent = fechaVisible || '';
+            meta.textContent = [fechaVisible, horaVisible].filter(Boolean).join(' · ');
             if(fechaOriginal){
                 const f = new Date(fechaOriginal);
                 if(!Number.isNaN(f.getTime())){
@@ -14914,6 +14941,25 @@ commentInput.addEventListener("blur", () => {
     }, 50);
   }
 });
+
+
+function formatoHoraComentario(fecha) {
+
+    if(!fecha) return "";
+
+    const fechaComentario = new Date(fecha);
+
+    if(Number.isNaN(fechaComentario.getTime())) return "";
+
+    return fechaComentario.toLocaleTimeString(
+        "es-CO",
+        {
+            hour:"numeric",
+            minute:"2-digit"
+        }
+    );
+
+}
 
 
 function formatoFechaComentario(fecha) {
