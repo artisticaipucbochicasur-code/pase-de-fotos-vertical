@@ -1676,12 +1676,67 @@ body:not(.dark-mode) .chat-list-nombre {
     overscroll-behavior:none;
 }
 
+/* Estado temporal mientras YouTube termina de procesar un video recién subido.
+   Oculta la pantalla rota/de procesamiento de YouTube y reintenta en segundo plano. */
+.youtube-preparing-overlay{
+    position:absolute;
+    inset:0;
+    z-index:7;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    pointer-events:none;
+    opacity:1;
+    visibility:visible;
+    transition:opacity .25s ease, visibility .25s ease;
+}
+
+.youtube-preparing-overlay.ready{
+    opacity:0;
+    visibility:hidden;
+}
+
+.youtube-preparing-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:18px 22px;
+    border-radius:16px;
+    background:rgba(20,20,20,.72);
+    color:#fff;
+    text-align:center;
+    font-size:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.32);
+}
+
+.youtube-preparing-spinner{
+    width:30px;
+    height:30px;
+    border:3px solid rgba(255,255,255,.28);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+}
+
+iframe.youtube-player.youtube-preparing{
+    opacity:0;
+}
+
+.youtube-minimal-controls.video-not-ready{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+}
+
 /* Controles mínimos propios: quedan por encima de la capa de gestos. */
 .youtube-minimal-controls{
     position:absolute;
     left:0;
     right:0;
-    bottom:52px; /* queda por encima de la caja de comentarios de DECOM */
+    bottom:calc(52px + env(safe-area-inset-bottom)); /* por encima del input del feed, incluso en iPhone */
     height:54px;
     z-index:6000; /* por encima de overlays de comentarios/likes al manipular */
     pointer-events:none;
@@ -1782,7 +1837,8 @@ body:not(.dark-mode) .chat-list-nombre {
    Los comentarios y el cuadro para escribir viven en este modal.
 ========================================================= */
 .comments-overlay-container {
-  bottom: 18px;
+  /* Deja libre la barra de comentario fija del feed. */
+  bottom: calc(68px + env(safe-area-inset-bottom));
   width: calc(80% - 20px);
   max-height: none;
   overflow: visible;
@@ -1799,10 +1855,77 @@ body:not(.dark-mode) .chat-list-nombre {
   border-bottom: none !important;
 }
 
-/* En video se eleva solo el bloque del autor para liberar por completo
-   la línea de tiempo y su área táctil. En imágenes conserva su posición actual. */
+/* En video el autor queda por encima de la línea de tiempo de YouTube.
+   La barra para comentar queda abajo, sin chocar con ninguno de los dos. */
 .comments-overlay-container.video-active {
-  bottom: 90px;
+  bottom: calc(118px + env(safe-area-inset-bottom));
+}
+
+/* =========================================================
+   💬 INPUT DE COMENTARIOS EN EL FEED (TIPO FACEBOOK)
+   Comparte la misma lógica de envío del modal.
+========================================================= */
+.feed-comment-input-container {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index: 5200;
+  box-sizing: border-box;
+  pointer-events: auto;
+  transition: opacity .3s ease, visibility .3s ease;
+}
+
+.feed-comment-input-wrapper {
+  width: 100%;
+  max-width: 620px;
+  min-height: 44px;
+  margin: 0 auto;
+  padding: 5px 7px 5px 13px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.30);
+  background: rgba(20,20,20,.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.28);
+}
+
+.feed-comment-input-wrapper input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  padding: 7px 2px;
+}
+
+.feed-comment-input-wrapper input::placeholder {
+  color: rgba(255,255,255,.76);
+}
+
+.feed-comment-send-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.feed-comment-send-btn:active {
+  transform: scale(.94);
 }
 
 .facebook-comments-modal {
@@ -2831,6 +2954,16 @@ Volver al inicio
 <div class="comments-overlay-container" id="commentsOverlay">
     <!-- En el feed queda únicamente el autor de la publicación -->
     <div id="autorContainer"></div>
+</div>
+
+<!-- 💬 Campo para comentar directamente desde el feed -->
+<div class="feed-comment-input-container" id="feedCommentInputContainer">
+  <div class="feed-comment-input-wrapper">
+    <input type="text" id="feedCommentInput" placeholder="Escribe un comentario..." autocomplete="off">
+    <button id="feedSendCommentBtn" class="feed-comment-send-btn" type="button" aria-label="Enviar comentario">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
 </div>
 
 
@@ -13692,9 +13825,12 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentsList = document.getElementById('commentsList');
     const currentTitle = document.getElementById('currentTitle');
     const currentDescription = document.getElementById('currentDescription');
-    const commentInputContainer = document.querySelector('.comment-input-container');
+    const commentInputContainer = document.querySelector('#commentsModal .comment-input-container');
     const commentInput = document.getElementById('commentInput');
-    const sendCommentBtn = document.querySelector('.send-comment-btn');
+    const sendCommentBtn = document.querySelector('#commentsModal .send-comment-btn');
+    const feedCommentInputContainer = document.getElementById('feedCommentInputContainer');
+    const feedCommentInput = document.getElementById('feedCommentInput');
+    const feedSendCommentBtn = document.getElementById('feedSendCommentBtn');
     const commentsModal = document.getElementById('commentsModal');
     const closeCommentsModalBtn = document.getElementById('closeCommentsModal');
     const commentsModalCount = document.getElementById('commentsModalCount');
@@ -14255,7 +14391,9 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     // ✅ Estos se alternan normal
     commentsOverlay.classList.toggle('hidden-overlay');
     commentsCounter.classList.toggle('hidden-overlay');
-    // El campo de comentario ahora pertenece al modal y no se oculta con el tap del feed.
+    // El campo del feed se comporta igual que likes, editar, guardar, etc.
+    feedCommentInputContainer?.classList.toggle('hidden-overlay');
+    // El campo que está dentro del modal permanece independiente.
 
     // ✅ contentOverlay invertido → lo forzamos al mismo sentido
     if (contentOverlay.classList.contains('hidden-overlay')) {
@@ -14797,10 +14935,11 @@ async function eliminarComentario(comentarioId) {
 
 }
 
-async function enviarComentario() {
+async function enviarComentario(inputOrigen = commentInput) {
 
 
-    const comentarioTexto = commentInput.value.trim();
+    const inputActivo = inputOrigen || commentInput;
+    const comentarioTexto = inputActivo?.value?.trim() || "";
 
     const activeIndex = swiperInstance.realIndex;
 
@@ -14872,7 +15011,9 @@ async function enviarComentario() {
 
 
 
-        commentInput.value = "";
+        // Limpiar ambos campos porque representan el mismo borrador/comentario.
+        if(commentInput) commentInput.value = "";
+        if(feedCommentInput) feedCommentInput.value = "";
 
 
 
@@ -14910,11 +15051,51 @@ async function enviarComentario() {
 
 }
 
-    sendCommentBtn.addEventListener('click', enviarComentario);
+    sendCommentBtn.addEventListener('click', () => enviarComentario(commentInput));
     commentInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            enviarComentario();
+            e.preventDefault();
+            enviarComentario(commentInput);
         }
+    });
+
+    feedSendCommentBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        enviarComentario(feedCommentInput);
+    });
+
+    feedCommentInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            enviarComentario(feedCommentInput);
+        }
+    });
+
+    // Los dos inputs comparten el mismo borrador: escribir en uno actualiza el otro.
+    let sincronizandoBorradorComentario = false;
+
+    function sincronizarBorradorComentario(origen, destino){
+        if(sincronizandoBorradorComentario || !origen || !destino) return;
+        sincronizandoBorradorComentario = true;
+        destino.value = origen.value;
+        sincronizandoBorradorComentario = false;
+    }
+
+    commentInput?.addEventListener('input', () => {
+        sincronizarBorradorComentario(commentInput, feedCommentInput);
+    });
+
+    feedCommentInput?.addEventListener('input', () => {
+        sincronizarBorradorComentario(feedCommentInput, commentInput);
+    });
+
+    // Evita que tocar/escribir en la barra del feed active accidentalmente
+    // cualquier gesto del carrusel o la lógica global del feed.
+    ['pointerdown','touchstart','click'].forEach(tipoEvento => {
+        feedCommentInputContainer?.addEventListener(tipoEvento, (e) => {
+            e.stopPropagation();
+        }, {passive:true});
     });
 
 // ✅ Detectar iOS (incluye iPadOS)
@@ -15933,6 +16114,117 @@ function obtenerIdAnuncioActivo(){
 // Iframe del video que está sonando/reproduciéndose actualmente (solo uno a la vez)
 let iframeVideoActivo = null;
 
+// Reintentos automáticos para videos que YouTube todavía está procesando.
+const youtubePreparandoTimers = new WeakMap();
+const YOUTUBE_REINTENTO_INICIAL_MS = 6500;
+const YOUTUBE_REINTENTO_MAX_MS = 15000;
+
+function construirUrlEmbedYoutube(videoId, intento = 0){
+    const nonce = intento > 0 ? `&decom_retry=${Date.now()}` : "";
+    return `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1${nonce}`;
+}
+
+function obtenerOverlayPreparandoYoutube(iframe){
+    return iframe?.closest('.swiper-slide.video')?.querySelector('.youtube-preparing-overlay') || null;
+}
+
+function mostrarVideoYoutubePreparando(iframe, mensaje = 'Preparando video…'){
+    if(!iframe) return;
+
+    iframe.dataset.listo = '0';
+    iframe.classList.add('youtube-preparing');
+
+    const overlay = obtenerOverlayPreparandoYoutube(iframe);
+    if(overlay){
+        overlay.classList.remove('ready');
+        const texto = overlay.querySelector('.youtube-preparing-text');
+        if(texto) texto.textContent = mensaje;
+    }
+
+    const controles = iframe.closest('.swiper-slide.video')?.querySelector('.youtube-minimal-controls');
+    controles?.classList.add('video-not-ready');
+}
+
+function marcarVideoYoutubeListo(iframe){
+    if(!iframe) return;
+
+    iframe.dataset.listo = '1';
+    iframe.dataset.preparando = '0';
+    iframe.classList.remove('youtube-preparing');
+
+    const timer = youtubePreparandoTimers.get(iframe);
+    if(timer){
+        clearTimeout(timer);
+        youtubePreparandoTimers.delete(iframe);
+    }
+
+    const overlay = obtenerOverlayPreparandoYoutube(iframe);
+    overlay?.classList.add('ready');
+
+    const controles = iframe.closest('.swiper-slide.video')?.querySelector('.youtube-minimal-controls');
+    controles?.classList.remove('video-not-ready');
+
+    // Si el usuario ya estaba en este anuncio, iniciar apenas YouTube confirma
+    // que el archivo terminó de procesarse, sin cerrar ni recargar la app.
+    if(iframe.dataset.autoplayPendiente === '1' && iframe === iframeVideoActivo){
+        enviarComandoYoutube(iframe, 'playVideo');
+        iframe.dataset.playing = 'true';
+        iframe.dataset.autoplayPendiente = '0';
+    }
+}
+
+function solicitarEstadoVideoYoutube(iframe){
+    if(!iframe || iframe.dataset.listo === '1') return;
+
+    if(iframe.contentWindow){
+        iframe.contentWindow.postMessage(
+            JSON.stringify({ event: 'listening', id: iframe.title || '' }),
+            '*'
+        );
+    }
+
+    // Estos comandos hacen que el player entregue infoDelivery cuando está operativo.
+    enviarComandoYoutube(iframe, 'getDuration');
+    enviarComandoYoutube(iframe, 'getPlayerState');
+}
+
+function programarReintentoVideoYoutube(iframe){
+    if(!iframe || iframe.dataset.listo === '1') return;
+
+    const anterior = youtubePreparandoTimers.get(iframe);
+    if(anterior) clearTimeout(anterior);
+
+    const intentoActual = Number(iframe.dataset.reintentos || 0);
+    const espera = Math.min(
+        YOUTUBE_REINTENTO_INICIAL_MS + (intentoActual * 2000),
+        YOUTUBE_REINTENTO_MAX_MS
+    );
+
+    const timer = setTimeout(() => {
+        youtubePreparandoTimers.delete(iframe);
+
+        if(!document.contains(iframe) || iframe.dataset.listo === '1') return;
+
+        const videoId = iframe.dataset.videoId || '';
+        if(!videoId) return;
+
+        const siguienteIntento = intentoActual + 1;
+        iframe.dataset.reintentos = String(siguienteIntento);
+        iframe.dataset.preparando = '1';
+
+        mostrarVideoYoutubePreparando(
+            iframe,
+            siguienteIntento >= 4 ? 'YouTube aún está preparando el video…' : 'Preparando video…'
+        );
+
+        // Recargar únicamente ESTE iframe obliga a YouTube a consultar de nuevo
+        // el estado del archivo ya procesado. No se recarga la PWA ni el feed.
+        iframe.src = construirUrlEmbedYoutube(videoId, siguienteIntento);
+    }, espera);
+
+    youtubePreparandoTimers.set(iframe, timer);
+}
+
 if(!window.__decomYoutubeMsgListener){
 
     window.__decomYoutubeMsgListener = true;
@@ -15951,12 +16243,25 @@ if(!window.__decomYoutubeMsgListener){
 
         if(!data || typeof data !== "object") return;
 
-        if(data.event !== "onStateChange" && data.event !== "infoDelivery") return;
+        const eventoYoutube = data.event;
+        if(
+            eventoYoutube !== "onStateChange" &&
+            eventoYoutube !== "infoDelivery" &&
+            eventoYoutube !== "onError"
+        ) return;
 
         document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
         .forEach(function(ifr){
 
             if(ifr.contentWindow !== e.source) return;
+
+            // Si YouTube responde error mientras el archivo se procesa,
+            // mantener el estado de espera y volver a intentar este iframe.
+            if(eventoYoutube === "onError"){
+                mostrarVideoYoutubePreparando(ifr, "Preparando video…");
+                programarReintentoVideoYoutube(ifr);
+                return;
+            }
 
             const info =
             (data.info && typeof data.info === "object")
@@ -15982,6 +16287,23 @@ if(!window.__decomYoutubeMsgListener){
             // habilitar la interfaz nativa del reproductor.
             if(info){
                 actualizarBarraTiempoYoutube(ifr, info);
+
+                const duracion = Number(info.duration);
+                const tieneVideo = !!(
+                    info.videoData &&
+                    (info.videoData.video_id || info.videoData.videoId)
+                );
+                const estadoOperativo = [0,1,2,3,5].includes(Number(estado));
+
+                // Un iframe cargado no significa que el video esté procesado.
+                // Solo lo damos por listo cuando YouTube entrega duración real
+                // o datos del video acompañados de un estado operativo.
+                if(
+                    (Number.isFinite(duracion) && duracion > 0) ||
+                    (tieneVideo && estadoOperativo)
+                ){
+                    marcarVideoYoutubeListo(ifr);
+                }
             }
 
         });
@@ -16308,9 +16630,12 @@ function cargarVideoElemento(iframe){
 
     iframe.dataset.cargado = "1";
     iframe.dataset.muted = "true"; // arranca silenciado (autoplay lo requiere)
+    iframe.dataset.reintentos = iframe.dataset.reintentos || "0";
+    iframe.dataset.preparando = "1";
 
-    iframe.src =
-    `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1`;
+    mostrarVideoYoutubePreparando(iframe);
+
+    iframe.src = construirUrlEmbedYoutube(videoId, 0);
 
 }
 
@@ -16327,18 +16652,19 @@ function vincularControlVideoYoutube(iframe, overlay){
             );
         }
 
-        iframe.dataset.listo = "1";
+        // IMPORTANTE: el evento load solo confirma que cargó el iframe,
+        // no que YouTube haya terminado de procesar el video.
+        mostrarVideoYoutubePreparando(iframe);
 
         // Mantener Closed Captions apagados y sin controles nativos.
         apagarSubtitulosYoutube(iframe);
 
-        // Si mientras cargaba este video llegó a ser el anuncio activo,
-        // se reproduce automáticamente apenas queda listo.
-        if(iframe.dataset.autoplayPendiente === "1" && iframe === iframeVideoActivo){
-            enviarComandoYoutube(iframe, "playVideo");
-            iframe.dataset.playing = "true";
-            iframe.dataset.autoplayPendiente = "0";
-        }
+        // Pedir inmediatamente datos reales del reproductor. Si todavía no
+        // existen, se reintentará de forma automática sin recargar la app.
+        setTimeout(() => solicitarEstadoVideoYoutube(iframe), 150);
+        setTimeout(() => solicitarEstadoVideoYoutube(iframe), 900);
+        setTimeout(() => solicitarEstadoVideoYoutube(iframe), 2500);
+        programarReintentoVideoYoutube(iframe);
 
     });
 
@@ -16367,6 +16693,14 @@ function vincularControlVideoYoutube(iframe, overlay){
         // listener general del Swiper, que muestra/oculta likes, comentarios,
         // editar, guardar, cabecera, etc.
         if(!cercaDelPlay){
+            return;
+        }
+
+        // Si YouTube todavía está procesando, el toque se comporta como un
+        // toque normal del feed y no abre una pantalla rota del reproductor.
+        if(iframe.dataset.listo !== "1"){
+            solicitarEstadoVideoYoutube(iframe);
+            programarReintentoVideoYoutube(iframe);
             return;
         }
 
@@ -16521,9 +16855,12 @@ function actualizarReproduccionVideoActivo(indice){
         iframe.dataset.playing = "true";
         iframe.dataset.autoplayPendiente = "0";
     }else{
-        // Todavía está cargando (o por cargar): se reproducirá solo
-        // apenas esté listo, gracias a cargarVideoElemento + el "load".
+        // Todavía está cargando o YouTube sigue procesando el archivo.
+        // Se reproducirá solo en cuanto llegue una respuesta válida.
         iframe.dataset.autoplayPendiente = "1";
+        mostrarVideoYoutubePreparando(iframe);
+        solicitarEstadoVideoYoutube(iframe);
+        programarReintentoVideoYoutube(iframe);
     }
 }
 
@@ -16581,8 +16918,21 @@ if(anuncio.tipo_media === "video"){
         videoOverlay.classList.add("video-touch-overlay");
         zoomContainer.appendChild(videoOverlay);
 
+        // ⏳ Mientras YouTube procesa el archivo, DECOM muestra su propio estado
+        // de preparación en lugar de la pantalla temporal/rota de YouTube.
+        const preparingOverlay = document.createElement("div");
+        preparingOverlay.className = "youtube-preparing-overlay";
+        preparingOverlay.innerHTML = `
+            <div class="youtube-preparing-card">
+                <div class="youtube-preparing-spinner"></div>
+                <div class="youtube-preparing-text">Preparando video…</div>
+            </div>
+        `;
+        zoomContainer.appendChild(preparingOverlay);
+
         // ⏱️ Control mínimo propio: línea de tiempo amplia.
         const controlesMinimos = crearControlesMinimosYoutube(iframe);
+        controlesMinimos.classList.add("video-not-ready");
         zoomContainer.appendChild(controlesMinimos);
 
         vincularControlVideoYoutube(iframe, videoOverlay);
@@ -16760,6 +17110,7 @@ function precargarPerfilesCercanos(indice, radio = 7){
 function actualizarVistaFeed(indicePreferido = 0){
     if(!anunciosData.length){
         document.querySelector(".swiper-wrapper")?.replaceChildren();
+        feedCommentInputContainer?.classList.add("hidden-overlay");
         currentTitle.textContent = "";
         currentDescription.textContent = "";
         commentsList.innerHTML = "";
@@ -16773,6 +17124,15 @@ function actualizarVistaFeed(indicePreferido = 0){
         0,
         Math.min(indicePreferido, anunciosData.length - 1)
     );
+
+    // Si existen anuncios, la barra del feed reaparece salvo que el usuario
+    // haya ocultado voluntariamente todos los controles con un toque.
+    if(feedCommentInputContainer){
+        feedCommentInputContainer.classList.toggle(
+            "hidden-overlay",
+            contentOverlay.classList.contains("hidden-overlay")
+        );
+    }
 
     updateContentOverlay(indice);
     reconstruirIndiceBusqueda();
