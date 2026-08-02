@@ -1777,6 +1777,69 @@ body:not(.dark-mode) .chat-list-nombre {
 }
 
 /* =========================================================
+   🎥 VIDEO NUEVO EN PROCESAMIENTO (YOUTUBE)
+   Solo se usa durante la primera hora de una publicación de video.
+   Oculta la pantalla temporal/rota de YouTube y deja que DECOM
+   reintente el reproductor automáticamente hasta que sea reproducible.
+========================================================= */
+.video-preparing-overlay{
+  position:absolute;
+  inset:0;
+  z-index:6500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  box-sizing:border-box;
+  background:radial-gradient(circle at center, rgba(32,32,32,.84), rgba(0,0,0,.96));
+  color:#fff;
+  text-align:center;
+  pointer-events:none;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+
+.video-preparing-overlay.ready{
+  opacity:0;
+  visibility:hidden;
+}
+
+.video-preparing-card{
+  max-width:320px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  font-size:14px;
+  line-height:1.35;
+  text-shadow:0 1px 4px rgba(0,0,0,.8);
+}
+
+.video-preparing-card .spinner{
+  width:34px;
+  height:34px;
+  border:3px solid rgba(255,255,255,.25);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+
+.video-preparing-title{
+  font-size:16px;
+  font-weight:700;
+}
+
+.video-preparing-detail{
+  color:rgba(255,255,255,.76);
+  font-size:12.5px;
+}
+
+.swiper-slide.video.video-preparing .youtube-minimal-controls{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+/* =========================================================
    💬 COMENTARIOS TIPO FACEBOOK
    El modal conserva su input y el feed incorpora otro input fijo inferior.
    Ambos comparten exactamente la misma lógica de envío.
@@ -12990,7 +13053,7 @@ btnUploadVideo.addEventListener("click", async () => {
 
 
         mostrarAviso(
-            "✅ Video publicado"
+            "✅ Video publicado. Si YouTube aún lo está procesando, DECOM mostrará ‘Preparando video…’ y lo activará automáticamente cuando esté listo."
         );
 
 
@@ -16045,6 +16108,136 @@ function obtenerIdAnuncioActivo(){
 // Iframe del video que está sonando/reproduciéndose actualmente (solo uno a la vez)
 let iframeVideoActivo = null;
 
+// =====================================================
+// 🎥 AUTO-PREPARACIÓN DE VIDEOS NUEVOS DE YOUTUBE
+// =====================================================
+// YouTube puede devolver el iframe antes de terminar de procesar el archivo.
+// Para publicaciones recientes DECOM no confía en el simple evento "load":
+// espera una señal real del player (duración > 0) y, si todavía no existe,
+// vuelve a cargar SOLO ese video en segundo plano.
+const YOUTUBE_VIDEO_NUEVO_MS = 60 * 60 * 1000; // primera hora
+const YOUTUBE_PREPARACION_TIMEOUT_MS = 7500;
+const youtubePreparacionTimers = new WeakMap();
+
+function esVideoNuevoParaPreparar(anuncio){
+    if(!anuncio || anuncio.tipo_media !== "video" || !anuncio.youtube_id){
+        return false;
+    }
+
+    const fecha = fechaValidaAnuncio(anuncio.fecha);
+    if(!fecha) return false;
+
+    const edad = Date.now() - fecha.getTime();
+    return edad >= -60000 && edad <= YOUTUBE_VIDEO_NUEVO_MS;
+}
+
+function obtenerOverlayPreparandoVideo(iframe){
+    return iframe
+        ?.closest(".swiper-slide.video")
+        ?.querySelector(".video-preparing-overlay") || null;
+}
+
+function actualizarTextoPreparandoVideo(iframe, detalle = ""){ 
+    const overlay = obtenerOverlayPreparandoVideo(iframe);
+    if(!overlay) return;
+
+    const detalleEl = overlay.querySelector(".video-preparing-detail");
+    if(detalleEl && detalle){
+        detalleEl.textContent = detalle;
+    }
+}
+
+function limpiarTimerPreparacionYoutube(iframe){
+    const timer = youtubePreparacionTimers.get(iframe);
+    if(timer){
+        clearTimeout(timer);
+        youtubePreparacionTimers.delete(iframe);
+    }
+}
+
+function marcarVideoNuevoListo(iframe){
+    if(!iframe) return;
+
+    limpiarTimerPreparacionYoutube(iframe);
+
+    iframe.dataset.preparando = "0";
+    iframe.dataset.listo = "1";
+    iframe.dataset.intentosPreparacion = "0";
+
+    const slide = iframe.closest(".swiper-slide.video");
+    slide?.classList.remove("video-preparing");
+
+    const overlay = obtenerOverlayPreparandoVideo(iframe);
+    overlay?.classList.add("ready");
+
+    // Si el usuario ya estaba parado sobre este video mientras YouTube
+    // lo terminaba de procesar, empieza solo en cuanto queda disponible.
+    if(iframe === iframeVideoActivo || iframe.dataset.autoplayPendiente === "1"){
+        iframeVideoActivo = iframe;
+        enviarComandoYoutube(iframe, "playVideo");
+        iframe.dataset.playing = "true";
+        iframe.dataset.autoplayPendiente = "0";
+    }
+
+    console.log("✅ Video nuevo listo sin recargar la app:", iframe.dataset.videoId);
+}
+
+function programarComprobacionVideoNuevo(iframe){
+    if(!iframe || iframe.dataset.videoNuevo !== "1" || iframe.dataset.preparando !== "1"){
+        return;
+    }
+
+    limpiarTimerPreparacionYoutube(iframe);
+
+    const timer = setTimeout(()=>{
+        if(!iframe.isConnected || iframe.dataset.preparando !== "1") return;
+        reintentarVideoNuevoYoutube(iframe, "YouTube todavía está preparando el video…");
+    }, YOUTUBE_PREPARACION_TIMEOUT_MS);
+
+    youtubePreparacionTimers.set(iframe, timer);
+}
+
+function reintentarVideoNuevoYoutube(iframe, mensaje = "Preparando video…"){
+    if(!iframe || !iframe.isConnected) return;
+    if(iframe.dataset.videoNuevo !== "1" || iframe.dataset.preparando !== "1") return;
+
+    limpiarTimerPreparacionYoutube(iframe);
+
+    const intentos = Number(iframe.dataset.intentosPreparacion || 0) + 1;
+    iframe.dataset.intentosPreparacion = String(intentos);
+    iframe.dataset.listo = "0";
+    iframe.dataset.playing = "false";
+    iframe.dataset.cargado = "0";
+
+    actualizarTextoPreparandoVideo(
+        iframe,
+        intentos <= 1
+            ? mensaje
+            : `YouTube sigue procesándolo. Reintentando automáticamente (${intentos})…`
+    );
+
+    // Quitar solamente el reproductor de este video. No se toca el feed,
+    // Swiper, comentarios, likes, imágenes ni los videos antiguos.
+    iframe.removeAttribute("src");
+
+    const espera = Math.min(15000, 3500 + (intentos * 1500));
+
+    setTimeout(()=>{
+        if(!iframe.isConnected || iframe.dataset.preparando !== "1") return;
+        cargarVideoElemento(iframe);
+    }, espera);
+}
+
+function iniciarVigilanciaVideoNuevo(iframe){
+    if(!iframe || iframe.dataset.videoNuevo !== "1") return;
+    if(iframe.dataset.preparando !== "1") return;
+
+    // A diferencia de los videos antiguos, un video recién publicado se
+    // precarga aunque todavía esté lejos del slide visible. Así YouTube puede
+    // terminar y DECOM validarlo antes de que la persona llegue a verlo.
+    cargarVideoElemento(iframe);
+}
+
 if(!window.__decomYoutubeMsgListener){
 
     window.__decomYoutubeMsgListener = true;
@@ -16063,7 +16256,12 @@ if(!window.__decomYoutubeMsgListener){
 
         if(!data || typeof data !== "object") return;
 
-        if(data.event !== "onStateChange" && data.event !== "infoDelivery") return;
+        if(
+            data.event !== "onStateChange" &&
+            data.event !== "infoDelivery" &&
+            data.event !== "onReady" &&
+            data.event !== "onError"
+        ) return;
 
         document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
         .forEach(function(ifr){
@@ -16074,6 +16272,30 @@ if(!window.__decomYoutubeMsgListener){
             (data.info && typeof data.info === "object")
             ? data.info
             : null;
+
+            // Un video NUEVO solo se considera realmente listo cuando el
+            // reproductor entrega una duración válida. Esto evita confundir
+            // "iframe cargado" con "video ya procesado por YouTube".
+            if(
+                ifr.dataset.videoNuevo === "1" &&
+                ifr.dataset.preparando === "1" &&
+                info &&
+                Number(info.duration) > 0
+            ){
+                marcarVideoNuevoListo(ifr);
+            }
+
+            if(
+                data.event === "onError" &&
+                ifr.dataset.videoNuevo === "1" &&
+                ifr.dataset.preparando === "1"
+            ){
+                reintentarVideoNuevoYoutube(
+                    ifr,
+                    "YouTube aún no lo tiene disponible. DECOM seguirá intentando…"
+                );
+                return;
+            }
 
             const estado = info
             ? info.playerState
@@ -16424,6 +16646,10 @@ function cargarVideoElemento(iframe){
     iframe.src =
     `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1`;
 
+    if(iframe.dataset.videoNuevo === "1" && iframe.dataset.preparando === "1"){
+        programarComprobacionVideoNuevo(iframe);
+    }
+
 }
 
 function vincularControlVideoYoutube(iframe, overlay){
@@ -16432,6 +16658,12 @@ function vincularControlVideoYoutube(iframe, overlay){
     // y marcarlo como listo para reproducir en cuanto termine de cargar.
     iframe.addEventListener("load", function(){
 
+        // Al quitar src durante un reintento algunos navegadores disparan
+        // "load" por about:blank. Esa carga no cuenta.
+        if(!String(iframe.src || "").includes("youtube.com/embed/")){
+            return;
+        }
+
         if(iframe.contentWindow){
             iframe.contentWindow.postMessage(
                 JSON.stringify({ event: "listening", id: iframe.title || "" }),
@@ -16439,14 +16671,34 @@ function vincularControlVideoYoutube(iframe, overlay){
             );
         }
 
-        iframe.dataset.listo = "1";
+        // Pedir eventos explícitos del IFrame Player. Los videos antiguos
+        // mantienen exactamente el comportamiento anterior.
+        enviarComandoYoutube(iframe, "addEventListener", ["onStateChange"]);
+        enviarComandoYoutube(iframe, "addEventListener", ["onError"]);
+
+        const esperandoProcesamiento =
+            iframe.dataset.videoNuevo === "1" &&
+            iframe.dataset.preparando === "1";
+
+        if(esperandoProcesamiento){
+            // IMPORTANTE: aquí NO se marca listo. Esperamos infoDelivery
+            // con duration > 0. Mientras tanto queda el overlay de DECOM.
+            programarComprobacionVideoNuevo(iframe);
+        }else{
+            // Flujo original para videos que ya existían.
+            iframe.dataset.listo = "1";
+        }
 
         // Mantener Closed Captions apagados y sin controles nativos.
         apagarSubtitulosYoutube(iframe);
 
-        // Si mientras cargaba este video llegó a ser el anuncio activo,
-        // se reproduce automáticamente apenas queda listo.
-        if(iframe.dataset.autoplayPendiente === "1" && iframe === iframeVideoActivo){
+        // Para videos antiguos sigue reproduciendo al terminar de cargar.
+        // Para un video nuevo esto ocurrirá en marcarVideoNuevoListo().
+        if(
+            !esperandoProcesamiento &&
+            iframe.dataset.autoplayPendiente === "1" &&
+            iframe === iframeVideoActivo
+        ){
             enviarComandoYoutube(iframe, "playVideo");
             iframe.dataset.playing = "true";
             iframe.dataset.autoplayPendiente = "0";
@@ -16484,6 +16736,10 @@ function vincularControlVideoYoutube(iframe, overlay){
 
         e.preventDefault();
         e.stopPropagation();
+
+        if(iframe.dataset.preparando === "1"){
+            return;
+        }
 
         const reproduciendo = iframe.dataset.playing === "true";
 
@@ -16628,6 +16884,14 @@ function actualizarReproduccionVideoActivo(indice){
 
     iframeVideoActivo = iframe;
 
+    if(iframe.dataset.preparando === "1"){
+        // Video recién publicado: mostrar "Preparando" y esperar una señal
+        // real de YouTube. No intentar play sobre un reproductor no procesado.
+        iframe.dataset.autoplayPendiente = "1";
+        iniciarVigilanciaVideoNuevo(iframe);
+        return;
+    }
+
     if(iframe.dataset.listo === "1"){
         enviarComandoYoutube(iframe, "playVideo");
         iframe.dataset.playing = "true";
@@ -16665,6 +16929,15 @@ if(anuncio.tipo_media === "video"){
         // (ver cargarVideoElemento / cargarImagenesCercanas). Así no se
         // descargan todos los videos de una vez.
         iframe.dataset.videoId = anuncio.youtube_id;
+        iframe.dataset.anuncioId = String(anuncio.id);
+
+        const videoNuevoEnPreparacion = esVideoNuevoParaPreparar(anuncio);
+        iframe.dataset.videoNuevo = videoNuevoEnPreparacion ? "1" : "0";
+        iframe.dataset.preparando = videoNuevoEnPreparacion ? "1" : "0";
+
+        if(videoNuevoEnPreparacion){
+            slide.classList.add("video-preparing");
+        }
 
         iframe.title = anuncio.titulo || "Video";
 
@@ -16685,6 +16958,19 @@ if(anuncio.tipo_media === "video"){
 
         zoomContainer.appendChild(iframe);
 
+        if(videoNuevoEnPreparacion){
+            const preparandoOverlay = document.createElement("div");
+            preparandoOverlay.className = "video-preparing-overlay";
+            preparandoOverlay.innerHTML = `
+                <div class="video-preparing-card">
+                    <div class="spinner" aria-hidden="true"></div>
+                    <div class="video-preparing-title">Preparando video…</div>
+                    <div class="video-preparing-detail">YouTube lo está procesando. Se actualizará automáticamente.</div>
+                </div>
+            `;
+            zoomContainer.appendChild(preparandoOverlay);
+        }
+
         // 🎥 Capa transparente completa encima del iframe:
         // evita que YouTube abra sus controles nativos. El swipe vertical y
         // el toque general de DECOM siguen funcionando aquí; play/pausa solo
@@ -16698,6 +16984,12 @@ if(anuncio.tipo_media === "video"){
         zoomContainer.appendChild(controlesMinimos);
 
         vincularControlVideoYoutube(iframe, videoOverlay);
+
+        if(videoNuevoEnPreparacion){
+            // Se inicia en el siguiente ciclo para que el slide ya esté dentro
+            // del DOM/Swiper. Así se vigila incluso antes de llegar a verlo.
+            setTimeout(()=>iniciarVigilanciaVideoNuevo(iframe), 0);
+        }
 
 
 
