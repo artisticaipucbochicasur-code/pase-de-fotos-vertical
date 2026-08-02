@@ -4122,47 +4122,48 @@ Mensajes
   font-family:system-ui;
 ">
 
-<!-- ✅ HEADER AZUL MODERNO -->
+<!-- ✅ HEADER CHAT TIPO WHATSAPP: fijo, compacto y superpuesto -->
 <div id="chatHeaderNormal" style="
-  padding:14px;
+  padding:7px 8px 7px 5px;
   display:flex;
   align-items:center;
-  gap:10px;
-  background:linear-gradient(90deg, #3B82F6, #60A5FA); /* azul moderno y luminoso */
-  position:relative;
-z-index:2;
+  gap:7px;
+  background:#008069;
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  z-index:20;
   color:white;
-  box-shadow:0 3px 10px rgba(0,0,0,0.18);
-  backdrop-filter:blur(6px);
+  box-shadow:0 1px 3px rgba(0,0,0,.24);
+  box-sizing:border-box;
 ">
 
+    <button type="button" class="chat-back-btn" onclick="event.stopPropagation(); cerrarChat();" aria-label="Volver" title="Volver">
+      <i class="fas fa-arrow-left"></i>
+    </button>
 
-    <img id="chatFoto" src="" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">
-    <div>
-      <div id="chatNombre" style="font-weight:600; font-size:15px;"></div>
-      <div id="chatCorreo" style="font-size:12px; opacity:0.8;"></div>
-<div id="chatEscribiendo"
-     aria-live="polite"
-     style="
-        display:none;
-        align-items:center;
-        gap:3px;
-        margin-top:2px;
-        font-size:12px;
-        font-weight:600;
-        letter-spacing:0.2px;
-        color:rgba(255,255,255,0.92);
-     ">
-    Escribiendo<span class="typing-dots"></span>
-</div>
+    <img id="chatFoto" src="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
 
-
-
-
+    <div class="chat-header-info">
+      <div id="chatNombre" style="font-weight:600;font-size:16px;line-height:1.15;"></div>
+      <div id="chatCorreo" style="font-size:11.5px;opacity:.82;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      <div id="chatEscribiendo"
+           aria-live="polite"
+           style="
+              display:none;
+              align-items:center;
+              gap:2px;
+              margin-top:1px;
+              font-size:12px;
+              font-weight:500;
+              line-height:1.15;
+              color:rgba(255,255,255,.96);
+           ">
+          Escribiendo<span class="typing-dots"></span>
+      </div>
     </div>
-    <div style="margin-left:auto; cursor:pointer;" onclick="cerrarChat()">
-      <i class="fas fa-xmark" style="font-size:20px;"></i>
-    </div>
+
   </div>
 
   <!-- ✅ HEADER DE SELECCIÓN MÚLTIPLE TIPO WHATSAPP -->
@@ -4396,6 +4397,133 @@ padding-bottom:env(safe-area-inset-bottom);
   background: #3B82F6;
   border-color: #3B82F6;
 }
+</style>
+
+<style id="chat-whatsapp-fixed-patch">
+/* =========================================================
+   CHAT WHATSAPP - AJUSTE AISLADO
+   - Header superpuesto: los mensajes hacen scroll por detrás.
+   - Altura/posición siguen el visualViewport cuando aparece teclado.
+   - No modifica la lógica de mensajes.
+========================================================= */
+:root{
+  --chat-visual-height: 100dvh;
+  --chat-visual-top: 0px;
+  --chat-header-height: 58px;
+}
+
+#chatBox{
+  top: var(--chat-visual-top) !important;
+  height: var(--chat-visual-height) !important;
+  min-height: 0 !important;
+  max-height: var(--chat-visual-height) !important;
+  overflow: hidden !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+#chatHeaderNormal,
+#chatSeleccionHeader{
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  min-height: var(--chat-header-height) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  z-index: 30 !important;
+}
+
+#chatHeaderNormal{
+  padding: 7px 8px 7px 5px !important;
+  gap: 7px !important;
+  background: #008069 !important;
+  color: #fff !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.28) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#chatHeaderNormal .chat-back-btn{
+  width: 35px;
+  height: 40px;
+  padding: 0;
+  margin: 0 -2px 0 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#chatHeaderNormal .chat-back-btn:active{
+  background: rgba(255,255,255,.12);
+}
+
+#chatFoto{
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+}
+
+#chatHeaderNormal .chat-header-info{
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#chatNombre{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#chatSeleccionHeader{
+  background: #008069 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.28) !important;
+}
+
+/* El header ya no ocupa espacio en el flex: el contenido comienza con
+   padding equivalente y, al desplazarse, pasa por detrás del header. */
+#chatMensajes{
+  box-sizing: border-box !important;
+  padding-top: calc(var(--chat-header-height) + 12px) !important;
+  scroll-padding-top: calc(var(--chat-header-height) + 12px) !important;
+  min-height: 0 !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Estado en lista: misma animación de puntos que el header. */
+.chat-list-typing{
+  color: #25d366 !important;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+body.dark-mode #chatHeaderNormal,
+body.dark-mode #chatSeleccionHeader{
+  background: #202c33 !important;
+}
+
+body.dark-mode .chat-list-typing{
+  color: #25d366 !important;
+}
+
 </style>
 
 <!-- =====================================
@@ -7013,6 +7141,199 @@ const TYPING_HEARTBEAT_MS = 1200;
 const TYPING_IDLE_MS = 1800;
 const TYPING_VISIBLE_MS = 3200;
 
+// Estado de "Escribiendo..." para la LISTA de chats.
+// Reutiliza exactamente public.chat_typing, el heartbeat y TYPING_VISIBLE_MS.
+let typingListaRealtimeChannel = null;
+const typingListaActivos = Object.create(null);
+const typingListaTimers = Object.create(null);
+const typingCorreoPorUsuarioId = Object.create(null);
+
+function typingEstaVigente(actualizado){
+    const ts = new Date(actualizado).getTime();
+    return Number.isFinite(ts) && (Date.now() - ts <= TYPING_VISIBLE_MS);
+}
+
+function obtenerClaveCorreoListaTyping(correo){
+    const buscado = normalizeText(correo);
+    return Object.keys(listaChatsCache).find(
+        clave => normalizeText(clave) === buscado
+    ) || correo;
+}
+
+function limpiarTypingLista(correo){
+    const clave = obtenerClaveCorreoListaTyping(correo);
+
+    if(typingListaTimers[clave]){
+        clearTimeout(typingListaTimers[clave]);
+        delete typingListaTimers[clave];
+    }
+
+    if(typingListaActivos[clave]){
+        delete typingListaActivos[clave];
+        renderizarListaChats();
+    }
+}
+
+function marcarTypingLista(correo, actualizado){
+    if(!correo) return;
+
+    const clave = obtenerClaveCorreoListaTyping(correo);
+    const vigente = typingEstaVigente(actualizado);
+
+    if(!vigente){
+        limpiarTypingLista(clave);
+        return;
+    }
+
+    typingListaActivos[clave] = {
+        actualizado
+    };
+
+    if(typingListaTimers[clave]){
+        clearTimeout(typingListaTimers[clave]);
+    }
+
+    const transcurrido = Math.max(
+        0,
+        Date.now() - new Date(actualizado).getTime()
+    );
+
+    const restante = Math.max(
+        80,
+        TYPING_VISIBLE_MS - transcurrido + 80
+    );
+
+    typingListaTimers[clave] = setTimeout(()=>{
+        limpiarTypingLista(clave);
+    }, restante);
+
+    renderizarListaChats();
+}
+
+function usuarioEstaEscribiendoEnLista(correo){
+    const clave = obtenerClaveCorreoListaTyping(correo);
+    const estado = typingListaActivos[clave];
+
+    if(!estado) return false;
+
+    if(!typingEstaVigente(estado.actualizado)){
+        if(typingListaTimers[clave]){
+            clearTimeout(typingListaTimers[clave]);
+            delete typingListaTimers[clave];
+        }
+        delete typingListaActivos[clave];
+        return false;
+    }
+
+    return true;
+}
+
+async function resolverCorreoTypingPorId(usuarioId){
+    if(!usuarioId) return null;
+
+    if(typingCorreoPorUsuarioId[usuarioId]){
+        return typingCorreoPorUsuarioId[usuarioId];
+    }
+
+    const correo = await obtenerCorreoUsuarioPorId(usuarioId);
+
+    if(correo){
+        typingCorreoPorUsuarioId[usuarioId] = correo;
+    }
+
+    return correo;
+}
+
+async function procesarEventoTypingLista(payload, miId){
+    const fila = payload?.new;
+
+    if(!fila || fila.escribiendo_para !== miId){
+        return;
+    }
+
+    const correo = await resolverCorreoTypingPorId(fila.usuario_id);
+    if(!correo) return;
+
+    if(typingEstaVigente(fila.actualizado)){
+        marcarTypingLista(correo, fila.actualizado);
+    }else{
+        limpiarTypingLista(correo);
+    }
+}
+
+async function activarRealtimeTypingLista(miIdResuelto = null){
+    if(!usuarioActual?.correo) return;
+
+    if(typingListaRealtimeChannel){
+        await supabaseClient.removeChannel(typingListaRealtimeChannel);
+        typingListaRealtimeChannel = null;
+    }
+
+    Object.keys(typingListaTimers).forEach(clave=>{
+        clearTimeout(typingListaTimers[clave]);
+        delete typingListaTimers[clave];
+    });
+
+    Object.keys(typingListaActivos).forEach(clave=>{
+        delete typingListaActivos[clave];
+    });
+
+    const miId = miIdResuelto || await obtenerIdUsuarioPorCorreo(
+        usuarioActual.correo
+    );
+
+    if(!miId) return;
+
+    // Recuperar quién ya está escribiendo al abrir/recargar la app.
+    const {
+        data: estadosActuales = [],
+        error: errorEstados
+    } = await supabaseClient
+        .from("chat_typing")
+        .select("usuario_id,escribiendo_para,actualizado")
+        .eq("escribiendo_para", miId);
+
+    if(errorEstados){
+        console.warn("No se pudo cargar typing para lista:", errorEstados);
+    }else{
+        for(const fila of estadosActuales){
+            if(typingEstaVigente(fila.actualizado)){
+                const correo = await resolverCorreoTypingPorId(fila.usuario_id);
+                if(correo){
+                    marcarTypingLista(correo, fila.actualizado);
+                }
+            }
+        }
+    }
+
+    typingListaRealtimeChannel = supabaseClient
+        .channel(`typing-lista-${miId}-${Date.now()}`)
+        .on(
+            "postgres_changes",
+            {
+                event:"INSERT",
+                schema:"public",
+                table:"chat_typing",
+                filter:`escribiendo_para=eq.${miId}`
+            },
+            payload=>procesarEventoTypingLista(payload, miId)
+        )
+        .on(
+            "postgres_changes",
+            {
+                event:"UPDATE",
+                schema:"public",
+                table:"chat_typing",
+                filter:`escribiendo_para=eq.${miId}`
+            },
+            payload=>procesarEventoTypingLista(payload, miId)
+        )
+        .subscribe(status=>{
+            console.log("✍️ Estado Realtime typing lista:", status);
+        });
+}
+
+
 function guardarNoLeidos(){
 
     localStorage.setItem(
@@ -8187,12 +8508,91 @@ function sincronizarBurbujaTemporal(tempId, mensajeReal){
 
     
 
+
+
+// =====================================================
+// 📱 VIEWPORT DEL CHAT CON TECLADO MÓVIL
+// Mantiene el header anclado al borde superior visible y evita que
+// el teclado lo desplace. Solo actúa mientras #chatBox está abierto.
+// =====================================================
+function ajustarViewportChatMovil(){
+    const box = document.getElementById("chatBox");
+    if(!box || box.style.display !== "flex") return;
+
+    const vv = window.visualViewport;
+
+    if(vv){
+        document.documentElement.style.setProperty(
+            "--chat-visual-height",
+            `${Math.round(vv.height)}px`
+        );
+
+        document.documentElement.style.setProperty(
+            "--chat-visual-top",
+            `${Math.max(0, Math.round(vv.offsetTop))}px`
+        );
+    }else{
+        document.documentElement.style.setProperty(
+            "--chat-visual-height",
+            `${window.innerHeight}px`
+        );
+
+        document.documentElement.style.setProperty(
+            "--chat-visual-top",
+            "0px"
+        );
+    }
+}
+
+function resetearViewportChatMovil(){
+    document.documentElement.style.setProperty(
+        "--chat-visual-height",
+        "100dvh"
+    );
+
+    document.documentElement.style.setProperty(
+        "--chat-visual-top",
+        "0px"
+    );
+}
+
+if(window.visualViewport){
+    window.visualViewport.addEventListener(
+        "resize",
+        ajustarViewportChatMovil,
+        {passive:true}
+    );
+
+    window.visualViewport.addEventListener(
+        "scroll",
+        ajustarViewportChatMovil,
+        {passive:true}
+    );
+}
+
+window.addEventListener(
+    "orientationchange",
+    ()=>setTimeout(ajustarViewportChatMovil, 60),
+    {passive:true}
+);
+
+window.addEventListener(
+    "resize",
+    ajustarViewportChatMovil,
+    {passive:true}
+);
+
+
 function abrirVentanaChat() {
 
     const box = document.getElementById("chatBox");
 
     // Mostrar chat
     box.style.display = "flex";
+
+    // Fijar inmediatamente el chat al viewport visible (incluido teclado móvil).
+    ajustarViewportChatMovil();
+    requestAnimationFrame(ajustarViewportChatMovil);
 
     // El indicador solo aparece cuando llegue un evento Realtime válido
     mostrarIndicadorEscribiendo(false);
@@ -8309,6 +8709,8 @@ function cerrarChat() {
         box.style.display = "none";
 
     }
+
+    resetearViewportChatMovil();
 
 
 
@@ -8802,10 +9204,19 @@ function mostrarIndicadorEscribiendo(mostrar){
     const indicador =
     document.getElementById("chatEscribiendo");
 
+    const correo =
+    document.getElementById("chatCorreo");
+
     if(!indicador) return;
 
     indicador.style.display =
     mostrar ? "flex" : "none";
+
+    // Igual que WhatsApp: "Escribiendo..." ocupa el lugar del subtítulo.
+    if(correo){
+        correo.style.display =
+        mostrar ? "none" : "block";
+    }
 
 }
 
@@ -9079,16 +9490,8 @@ function procesarEventoTyping(
 
     }
 
-    const actualizado =
-    new Date(fila.actualizado).getTime();
-
     const sigueEscribiendo =
-    Number.isFinite(actualizado) &&
-    (
-        Date.now() - actualizado
-        <=
-        TYPING_VISIBLE_MS
-    );
+    typingEstaVigente(fila.actualizado);
 
     mostrarIndicadorEscribiendo(
         sigueEscribiendo
@@ -10134,7 +10537,11 @@ text-overflow:ellipsis;
 white-space:nowrap;
 max-width:220px;
 ">
-${data.ultimoMensaje}
+${
+usuarioEstaEscribiendoEnLista(correo)
+? `<span class="chat-list-typing">Escribiendo<span class="typing-dots"></span></span>`
+: data.ultimoMensaje
+}
 </div>
 
 
@@ -11048,6 +11455,10 @@ async function activarRealtimeGlobalChats(){
     );
 
     if(!miId) return;
+
+    // Reutiliza el mismo estado chat_typing para reflejar "Escribiendo..."
+    // también en la lista de conversaciones.
+    activarRealtimeTypingLista(miId);
 
     chatRealtimeGlobalChannel = supabaseClient
 
