@@ -1647,16 +1647,21 @@ body:not(.dark-mode) .chat-list-nombre {
 }
 
 
-/* 🎥 VIDEO YOUTUBE: swipe + interfaz nativa reducida
-   - Se mantiene el swipe vertical en el cuerpo del video.
-   - Se deja una zona táctil inferior MUCHO más amplia para manipular
-     directamente la línea de tiempo nativa de YouTube.
-   - Se deja libre únicamente la esquina superior derecha donde YouTube
-     dibuja su botón nativo de Compartir.
-   - Las máscaras solo ocultan visualmente título/branding/controles extra;
-     no crean controles nuevos ni modifican autoplay/precarga. */
+/* 🎥 VIDEO YOUTUBE: interfaz nativa mínima
+   Se conserva el reproductor real de YouTube con su línea de reproducción
+   y su botón nativo de compartir. DECOM NO dibuja otra barra ni otro botón.
+
+   Como YouTube no permite elegir por parámetro cada control individual,
+   se cubren únicamente las zonas no deseadas del iframe (título, Ver en
+   YouTube/Shorts y controles inferiores) dejando libres:
+   - la esquina superior derecha del botón COMPARTIR nativo;
+   - la línea de tiempo nativa.
+
+   La zona táctil de la línea de tiempo es transparente y más alta que la
+   línea visual. Esto facilita buscar/arrastrar sin activar los overlays de
+   DECOM (editar, likes, comentarios, etc.). */
 .swiper-slide.video{
-    touch-action: pan-y;
+    touch-action:pan-y;
 }
 
 .swiper-slide.video .swiper-zoom-container{
@@ -1665,84 +1670,96 @@ body:not(.dark-mode) .chat-list-nombre {
 }
 
 .swiper-slide.video iframe.youtube-player{
+    width:100%;
+    height:100%;
+    border:0;
     pointer-events:auto;
     touch-action:auto;
 }
 
+/* Zona central invisible: conserva el swipe vertical y la lógica actual
+   de play/pausa cerca del centro, sin tapar el botón Compartir ni la línea. */
 .video-touch-overlay{
     position:absolute;
-    inset:0;
+    left:0;
+    right:0;
+    top:58px;
+    bottom:86px;
     z-index:5;
     background:transparent;
     touch-action:pan-y;
     overscroll-behavior:none;
-
-    /* Huecos SIN capa:
-       1) esquina sup. derecha = compartir nativo de YouTube
-       2) franja inferior de 132px = línea de tiempo con margen táctil amplio */
-    -webkit-clip-path: polygon(
-        0 0,
-        calc(100% - 58px) 0,
-        calc(100% - 58px) 66px,
-        100% 66px,
-        100% calc(100% - 132px),
-        0 calc(100% - 132px)
-    );
-    clip-path: polygon(
-        0 0,
-        calc(100% - 58px) 0,
-        calc(100% - 58px) 66px,
-        100% 66px,
-        100% calc(100% - 132px),
-        0 calc(100% - 132px)
-    );
 }
 
-/* Oculta título y acciones superiores dejando libre el extremo derecho
-   donde queda visible/clicable el botón nativo Compartir. */
-.youtube-top-mask{
+/* Capa de recorte de la interfaz nativa. No crea controles visuales. */
+.youtube-native-ui-layer{
+    position:absolute;
+    inset:0;
+    z-index:6;
+    pointer-events:none;
+}
+
+/* Oculta título + Watch later y deja libre SOLO la zona derecha donde
+   YouTube muestra su botón nativo Compartir. */
+.youtube-native-top-mask{
     position:absolute;
     top:0;
     left:0;
-    right:58px;
-    height:66px;
-    z-index:7;
-    pointer-events:none;
+    right:82px;
+    height:58px;
+    pointer-events:auto;
     background:linear-gradient(
         to bottom,
-        rgba(0,0,0,.96) 0%,
-        rgba(0,0,0,.86) 58%,
+        rgba(0,0,0,.98) 0%,
+        rgba(0,0,0,.92) 70%,
         rgba(0,0,0,0) 100%
     );
 }
 
-/* Oculta los botones/branding de las esquinas inferiores sin cubrir la
-   parte central de la línea de tiempo. Además bloquea toques accidentales
-   sobre esos controles ocultos. */
-.youtube-bottom-mask{
+/* Oculta la fila inferior de botones nativos (play, volumen, CC, ajustes,
+   pantalla completa, YouTube/Shorts), pero deja visible la línea situada
+   inmediatamente encima. */
+.youtube-native-bottom-mask{
     position:absolute;
+    left:0;
+    right:0;
     bottom:0;
-    height:44px;
+    height:30px;
+    pointer-events:auto;
+    background:rgba(0,0,0,.98);
+}
+
+/* Área táctil invisible ampliada alrededor de la línea NATIVA de YouTube.
+   No tiene track, progreso, thumb ni dibujo propio. */
+.youtube-native-timeline-hitarea{
+    position:absolute;
+    left:8px;
+    right:8px;
+    bottom:26px;
+    height:64px;
     z-index:8;
-    background:linear-gradient(
-        to top,
-        rgba(0,0,0,.98) 0%,
-        rgba(0,0,0,.90) 72%,
-        rgba(0,0,0,0) 100%
-    );
     pointer-events:auto;
     touch-action:none;
+    cursor:pointer;
+    background:transparent;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
 }
 
-.youtube-bottom-mask.left{
-    left:0;
-    width:112px;
-}
-
-.youtube-bottom-mask.right{
+/* La esquina del compartir queda completamente libre para que el toque
+   llegue directamente al iframe de YouTube. */
+.youtube-native-share-window{
+    position:absolute;
+    top:0;
     right:0;
-    width:138px;
+    width:82px;
+    height:58px;
+    z-index:9;
+    pointer-events:none;
+    background:transparent;
 }
+
 
 
   </style>
@@ -13855,7 +13872,7 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
 
     // 🎥 Si el click viene de un video YouTube,
     // no ejecutar ocultar/mostrar overlays
-    if(e.target.closest("iframe, .youtube-bottom-mask")){
+    if(e.target.closest("iframe")){
         return;
     }
   const currentTime = new Date().getTime();
@@ -15275,39 +15292,37 @@ if(!window.__decomYoutubeMsgListener){
 
         if(!data || typeof data !== "object") return;
 
-        // Cuando YouTube termina de cargar módulos internos (incluido captions),
-        // volver a pedir que los subtítulos queden apagados.
-        if(data.event === "onApiChange"){
-
-            document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
-            .forEach(function(ifr){
-
-                if(ifr.contentWindow !== e.source) return;
-                apagarSubtitulosYoutube(ifr);
-
-            });
-
-            return;
-        }
-
         if(data.event !== "onStateChange" && data.event !== "infoDelivery") return;
-
-        const estado =
-        (data.info && typeof data.info === "object")
-        ? data.info.playerState
-        : data.info;
-
-        if(estado === undefined || estado === null) return;
 
         document.querySelectorAll(".swiper-slide.video iframe.youtube-player")
         .forEach(function(ifr){
 
             if(ifr.contentWindow !== e.source) return;
 
-            if(estado === 1){
-                ifr.dataset.playing = "true";
-            }else if(estado === 2 || estado === 0){
-                ifr.dataset.playing = "false";
+            const info =
+            (data.info && typeof data.info === "object")
+            ? data.info
+            : null;
+
+            const estado = info
+            ? info.playerState
+            : data.info;
+
+            if(estado !== undefined && estado !== null){
+
+                if(estado === 1){
+                    ifr.dataset.playing = "true";
+                    apagarSubtitulosYoutube(ifr);
+                }else if(estado === 2 || estado === 0){
+                    ifr.dataset.playing = "false";
+                }
+
+            }
+
+            // ⏱️ Guardamos tiempo/duración para ampliar de forma invisible
+            // el área táctil de la línea NATIVA de YouTube.
+            if(info){
+                actualizarDatosTiempoYoutube(ifr, info);
             }
 
         });
@@ -15316,34 +15331,156 @@ if(!window.__decomYoutubeMsgListener){
 
 }
 
-function enviarComandoYoutube(iframe, comando){
+function enviarComandoYoutube(iframe, comando, args = []){
 
     if(!iframe || !iframe.contentWindow) return;
 
     iframe.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: comando, args: [] }),
+        JSON.stringify({ event: "command", func: comando, args: args }),
         "*"
     );
 
 }
 
-// 🔇 Subtítulos: se solicita que arranquen apagados y, adicionalmente,
-// se intenta limpiar cualquier pista activa que YouTube haya restaurado
-// por preferencia previa del usuario. Si el reproductor no expone esa
-// opción, el comando simplemente se ignora sin alterar la reproducción.
+// ⏱️ Guarda los datos de tiempo que YouTube entrega por infoDelivery.
+// No dibuja ninguna barra: la barra visible sigue siendo 100% la nativa.
+function actualizarDatosTiempoYoutube(iframe, info){
+
+    if(!iframe || !info) return;
+
+    const duracionRecibida = Number(info.duration);
+    const tiempoRecibido = Number(info.currentTime);
+
+    if(Number.isFinite(duracionRecibida) && duracionRecibida > 0){
+        iframe.dataset.duration = String(duracionRecibida);
+    }
+
+    if(Number.isFinite(tiempoRecibido) && tiempoRecibido >= 0){
+        iframe.dataset.currentTime = String(tiempoRecibido);
+    }
+}
+
+// 🔇 Refuerzo para mantener Closed Captions apagados al cargar/reproducir.
 function apagarSubtitulosYoutube(iframe){
 
-    if(!iframe || !iframe.contentWindow) return;
+    if(!iframe) return;
 
-    iframe.contentWindow.postMessage(
-        JSON.stringify({
-            event:"command",
-            func:"setOption",
-            args:["captions", "track", {}]
-        }),
-        "*"
-    );
+    const apagar = () => {
+        enviarComandoYoutube(
+            iframe,
+            "setOption",
+            ["captions", "track", {}]
+        );
 
+        enviarComandoYoutube(
+            iframe,
+            "unloadModule",
+            ["captions"]
+        );
+    };
+
+    apagar();
+    setTimeout(apagar, 350);
+    setTimeout(apagar, 1100);
+    setTimeout(apagar, 2500);
+}
+
+// 🎛️ Prepara únicamente capas invisibles/máscaras para la interfaz NATIVA.
+// IMPORTANTE: aquí NO se crea barra, thumb, progreso ni botón de compartir.
+function crearInterfazYoutubeNativaMinima(iframe){
+
+    const capa = document.createElement("div");
+    capa.className = "youtube-native-ui-layer";
+
+    const mascaraSuperior = document.createElement("div");
+    mascaraSuperior.className = "youtube-native-top-mask";
+
+    const mascaraInferior = document.createElement("div");
+    mascaraInferior.className = "youtube-native-bottom-mask";
+
+    const ventanaCompartir = document.createElement("div");
+    ventanaCompartir.className = "youtube-native-share-window";
+
+    const hitarea = document.createElement("div");
+    hitarea.className = "youtube-native-timeline-hitarea swiper-no-swiping";
+    hitarea.setAttribute("role", "slider");
+    hitarea.setAttribute("aria-label", "Línea de reproducción de YouTube");
+    hitarea.setAttribute("aria-valuemin", "0");
+    hitarea.setAttribute("aria-valuemax", "100");
+    hitarea.setAttribute("aria-valuenow", "0");
+
+    capa.appendChild(mascaraSuperior);
+    capa.appendChild(mascaraInferior);
+    capa.appendChild(ventanaCompartir);
+    capa.appendChild(hitarea);
+
+    function buscarDesdeEvento(e){
+
+        const duracion = Number(iframe.dataset.duration || 0);
+        if(!(duracion > 0)) return;
+
+        const rect = hitarea.getBoundingClientRect();
+        if(rect.width <= 0) return;
+
+        const x = Math.max(
+            0,
+            Math.min(rect.width, e.clientX - rect.left)
+        );
+
+        const fraccion = x / rect.width;
+        const nuevoTiempo = duracion * fraccion;
+
+        iframe.dataset.currentTime = String(nuevoTiempo);
+        hitarea.setAttribute(
+            "aria-valuenow",
+            String(Math.round(fraccion * 100))
+        );
+
+        // El movimiento se realiza en la línea NATIVA mediante la API del
+        // propio reproductor; no existe una segunda barra visual de DECOM.
+        enviarComandoYoutube(
+            iframe,
+            "seekTo",
+            [nuevoTiempo, true]
+        );
+    }
+
+    hitarea.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hitarea.dataset.dragging = "1";
+        try{ hitarea.setPointerCapture(e.pointerId); }catch(err){}
+        buscarDesdeEvento(e);
+    });
+
+    hitarea.addEventListener("pointermove", (e) => {
+        if(hitarea.dataset.dragging !== "1") return;
+        e.preventDefault();
+        e.stopPropagation();
+        buscarDesdeEvento(e);
+    });
+
+    const terminarArrastre = (e) => {
+        if(hitarea.dataset.dragging !== "1") return;
+        e.preventDefault();
+        e.stopPropagation();
+        buscarDesdeEvento(e);
+        hitarea.dataset.dragging = "0";
+        try{ hitarea.releasePointerCapture(e.pointerId); }catch(err){}
+    };
+
+    hitarea.addEventListener("pointerup", terminarArrastre);
+
+    hitarea.addEventListener("pointercancel", () => {
+        hitarea.dataset.dragging = "0";
+    });
+
+    hitarea.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    return capa;
 }
 
 // 🎥 Carga perezosa del video (misma lógica que cargarImagenElemento con
@@ -15360,13 +15497,8 @@ function cargarVideoElemento(iframe){
     iframe.dataset.cargado = "1";
     iframe.dataset.muted = "true"; // arranca silenciado (autoplay lo requiere)
 
-    const originYoutube =
-    (window.location.origin && window.location.origin !== "null")
-    ? `&origin=${encodeURIComponent(window.location.origin)}`
-    : "";
-
     iframe.src =
-    `https://www.youtube.com/embed/${videoId}?controls=1&rel=0&playsinline=1&enablejsapi=1&mute=1&cc_load_policy=0&iv_load_policy=3&fs=0${originYoutube}`;
+    `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1&enablejsapi=1&mute=1&controls=1&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1&modestbranding=1&showinfo=0&autohide=1`;
 
 }
 
@@ -15385,10 +15517,8 @@ function vincularControlVideoYoutube(iframe, overlay){
 
         iframe.dataset.listo = "1";
 
-        // Pedir subtítulos apagados al cargar. Se repite una vez cuando el
-        // reproductor ya terminó de inicializar sus módulos internos.
+        // Mantener Closed Captions apagados en el reproductor nativo.
         apagarSubtitulosYoutube(iframe);
-        setTimeout(()=>apagarSubtitulosYoutube(iframe), 700);
 
         // Si mientras cargaba este video llegó a ser el anuncio activo,
         // se reproduce automáticamente apenas queda listo.
@@ -15400,11 +15530,10 @@ function vincularControlVideoYoutube(iframe, overlay){
 
     });
 
-    // Un tap solo controla play/pausa si cae sobre el centro del reproductor,
-    // aproximadamente donde YouTube dibuja su icono de Play. Los taps fuera
-    // de esa zona siguen propagándose al .swiper para ocultar/mostrar los
-    // botones de la app. La franja inferior ni siquiera está cubierta por
-    // este overlay, por lo que la línea de tiempo y controles nativos quedan libres.
+    // Un tap en la zona central conserva la lógica actual de play/pausa.
+    // Los taps fuera del centro siguen propagándose al Swiper para alternar
+    // los controles de DECOM. Compartir queda libre directamente al iframe
+    // y la línea usa una zona táctil invisible independiente.
     overlay.addEventListener("click", function(e){
 
         const rect = iframe.getBoundingClientRect();
@@ -15579,7 +15708,7 @@ if(anuncio.tipo_media === "video"){
         // descargan todos los videos de una vez.
         iframe.dataset.videoId = anuncio.youtube_id;
 
-        iframe.title = anuncio.titulo || "Video";
+        iframe.title = "Video de YouTube";
 
         iframe.allow =
         "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
@@ -15598,29 +15727,17 @@ if(anuncio.tipo_media === "video"){
 
         zoomContainer.appendChild(iframe);
 
-        // 🎥 Máscaras visuales sobre UI nativa de YouTube.
-        // No crean botones nuevos: únicamente cubren título/branding y los
-        // controles inferiores extra, manteniendo visible el compartir nativo
-        // y la parte central de la línea de tiempo nativa.
-        const youtubeTopMask = document.createElement("div");
-        youtubeTopMask.classList.add("youtube-top-mask");
-        zoomContainer.appendChild(youtubeTopMask);
-
-        const youtubeBottomLeftMask = document.createElement("div");
-        youtubeBottomLeftMask.classList.add("youtube-bottom-mask", "left");
-        zoomContainer.appendChild(youtubeBottomLeftMask);
-
-        const youtubeBottomRightMask = document.createElement("div");
-        youtubeBottomRightMask.classList.add("youtube-bottom-mask", "right");
-        zoomContainer.appendChild(youtubeBottomRightMask);
-
-        // 🎥 Capa transparente recortada:
-        // conserva el swipe vertical en el cuerpo del video, deja un hueco
-        // para Compartir arriba a la derecha y una franja inferior de 132px
-        // completamente directa al iframe para facilitar mover la línea de tiempo.
+        // 🎥 Zona central transparente: conserva la lógica actual de
+        // play/pausa y el swipe, pero deja libres la esquina Compartir y
+        // la línea de tiempo NATIVA de YouTube.
         const videoOverlay = document.createElement("div");
         videoOverlay.classList.add("video-touch-overlay");
         zoomContainer.appendChild(videoOverlay);
+
+        // 🎛️ Máscaras + zona táctil invisible ampliada.
+        // No se agrega ningún botón ni ninguna barra visual propia.
+        const interfazYoutube = crearInterfazYoutubeNativaMinima(iframe);
+        zoomContainer.appendChild(interfazYoutube);
 
         vincularControlVideoYoutube(iframe, videoOverlay);
 
