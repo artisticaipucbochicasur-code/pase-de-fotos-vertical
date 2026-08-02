@@ -2162,6 +2162,205 @@ body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
 }
 
 
+
+/* =========================================================
+   📰 PUBLICACIÓN TIPO FACEBOOK: TÍTULO + AUTOR + DESCRIPCIÓN
+   Solo modifica la presentación del contenido activo.
+========================================================= */
+.content-overlay {
+  top: 62px;
+  left: 10px;
+  max-width: min(76%, 620px);
+  padding: 9px 12px;
+  background: rgba(18, 18, 18, .46);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.20);
+}
+
+.content-overlay h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.28;
+  font-weight: 700;
+  letter-spacing: -.1px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.75);
+}
+
+/* La descripción ya no se muestra junto al título. */
+#currentDescription {
+  display: none !important;
+}
+
+.fb-title-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.fb-title-text.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.fb-title-more {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f0f2f5;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0,0,0,.75);
+}
+
+.comments-overlay-container {
+  left: 10px;
+  width: calc(100% - 82px);
+  max-width: 620px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+
+#autorContainer {
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.fb-post-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px 11px;
+  background: rgba(18,18,18,.58);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(0,0,0,.22);
+}
+
+.fb-post-author-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.fb-post-avatar-wrap {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #5468ff;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.20);
+}
+
+.fb-post-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0 !important;
+}
+
+.fb-post-author-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.fb-post-author-name {
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fb-post-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  color: #c7c9cc;
+  font-size: 11.5px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.fb-post-date i {
+  font-size: 9.5px;
+}
+
+.fb-post-text-wrap {
+  margin-top: 8px;
+  cursor: default;
+}
+
+.fb-post-description {
+  color: #f5f6f7;
+  font-size: 14px;
+  line-height: 1.32;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.fb-post-description.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.fb-post-more {
+  display: none;
+  margin: 3px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .content-overlay {
+    max-width: calc(100% - 84px);
+  }
+
+  .comments-overlay-container {
+    width: calc(100% - 76px);
+  }
+
+  .fb-post-card {
+    padding: 9px 10px 10px;
+  }
+}
+
   </style>
 </head>
 
@@ -4551,6 +4750,12 @@ const autorContainer = document.getElementById("autorContainer");
 
 autorContainer.addEventListener("click", (e) => {
   e.stopPropagation();
+
+  // El texto y el botón Ver más se manejan de forma independiente,
+  // para que expandir la descripción no abra el perfil del autor.
+  if (e.target.closest(".fb-post-text-wrap, .fb-post-more")) {
+    return;
+  }
 
   const correo = autorContainer.dataset.correo;
 
@@ -14284,67 +14489,132 @@ setInterval(() => {
 
     
 
-  // 🔹 Toggle título y descripción (expandir/colapsar) con autor
-// 🔹 Toggle título y descripción (expandir/colapsar) con autor
-function updateInfo(title, description, autor = "Anónimo") {
-  // Guardar valores completos
-  currentTitle.setAttribute("data-full", title);
-  currentDescription.setAttribute("data-full", description);
-  currentTitle.setAttribute("data-autor", autor);
+  // =====================================================
+  // 📰 TÍTULO TIPO FACEBOOK
+  // La descripción se renderiza abajo, dentro del bloque del autor.
+  // =====================================================
+function updateInfo(title, description, autor = "Anónimo", fecha = "") {
+  const tituloSeguro = String(title || "").trim();
+  const descripcionSegura = String(description || "").trim();
 
-  // Crear versiones cortas
-  const shortTitleText = title.length > 50 
-    ? title.substring(0, 50) + "..."
-    : title;
+  // Mantener los datos para cualquier lógica antigua que los consulte.
+  currentTitle.setAttribute("data-full", tituloSeguro);
+  currentTitle.setAttribute("data-autor", autor || "Anónimo");
+  currentTitle.setAttribute("data-fecha", fecha || "");
+  currentDescription.setAttribute("data-full", descripcionSegura);
 
-  const shortDescriptionText = description.length > 80 
-    ? description.substring(0, 80) + "..."
-    : description;
+  // La descripción deja de mostrarse en el overlay superior.
+  currentDescription.textContent = "";
 
-  // 🆕 Insertar autor junto al título
-  const autorHTML = `<span class="autor-anuncio" style="font-size: 13px; color: #ccc; margin-left: 8px;">— ${autor}</span>`;
+  // Título limpio: sin autor pegado y con Ver más solo si realmente hace falta.
+  currentTitle.innerHTML = "";
 
-  // Guardar HTML completo con autor
-  const shortTitle = `${shortTitleText}${autorHTML}`;
-  const fullTitle = `${title}${autorHTML}`;
+  const titleText = document.createElement("span");
+  titleText.className = "fb-title-text";
+  titleText.textContent = tituloSeguro || "Sin título";
 
-  currentTitle.setAttribute("data-short", shortTitle);
-  currentTitle.setAttribute("data-full-html", fullTitle);
+  const titleMore = document.createElement("button");
+  titleMore.type = "button";
+  titleMore.className = "fb-title-more";
+  titleMore.textContent = "Ver más";
+  titleMore.style.display = "none";
 
-  currentDescription.setAttribute("data-short", shortDescriptionText);
-  currentDescription.setAttribute("data-full-html", description);
+  titleMore.addEventListener("click", (e) => {
+    e.stopPropagation();
 
-  // Mostrar versión corta por defecto
-  currentTitle.innerHTML = shortTitle;
-  currentDescription.innerHTML = shortDescriptionText;
+    const expandido = titleText.classList.toggle("expanded");
+    titleMore.textContent = expandido ? "Ver menos" : "Ver más";
+  });
 
-  // Quitar estado expandido
-  currentTitle.classList.remove("expanded");
-  currentDescription.classList.remove("expanded");
+  currentTitle.appendChild(titleText);
+  currentTitle.appendChild(titleMore);
+
+  requestAnimationFrame(() => {
+    // Con line-clamp, scrollHeight conserva la altura real del texto en los navegadores modernos.
+    const necesitaExpandir = titleText.scrollHeight > titleText.clientHeight + 2;
+    titleMore.style.display = necesitaExpandir ? "inline" : "none";
+  });
 }
 
-// Eventos de click
-currentTitle.addEventListener("click", function () {
-  if (this.classList.contains("expanded")) {
-    this.innerHTML = this.getAttribute("data-short");
-    this.classList.remove("expanded");
-  } else {
-    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
-    this.classList.add("expanded");
+
+// Fecha natural inspirada en Facebook.
+function formatearFechaPublicacionFacebook(fecha) {
+  if(!fecha) return "";
+
+  const f = new Date(fecha);
+  if(Number.isNaN(f.getTime())) return "";
+
+  const ahora = new Date();
+  const diferencia = Math.max(0, ahora - f);
+  const minutos = Math.floor(diferencia / 60000);
+  const horas = Math.floor(diferencia / 3600000);
+  const dias = Math.floor(diferencia / 86400000);
+
+  if(minutos < 1) return "Ahora";
+  if(minutos < 60) {
+    return minutos === 1 ? "Hace un minuto" : `Hace ${minutos} minutos`;
   }
-});
 
-currentDescription.addEventListener("click", function () {
-  if (this.classList.contains("expanded")) {
-    this.innerHTML = this.getAttribute("data-short");
-    this.classList.remove("expanded");
-  } else {
-    this.innerHTML = this.getAttribute("data-full-html") + ` <span class="more-link">mostrar menos</span>`;
-    this.classList.add("expanded");
+  if(horas < 24) {
+    return horas === 1 ? "Hace una hora" : `Hace ${horas} horas`;
   }
-});
+
+  if(dias === 1) return "Hace un día";
+
+  const hora = f.toLocaleTimeString("es-CO", {
+    hour: "numeric",
+    minute: "2-digit"
+  });
+
+  if(dias < 7) {
+    const diaSemana = f.toLocaleDateString("es-CO", { weekday: "long" });
+    return `${diaSemana} a las ${hora}`;
+  }
+
+  const mismoAnio = f.getFullYear() === ahora.getFullYear();
+  const fechaTexto = f.toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    ...(mismoAnio ? {} : { year: "numeric" })
+  });
+
+  return `${fechaTexto} a las ${hora}`;
+}
 
 
+function agregarDescripcionFacebook(card, descripcion) {
+  const texto = String(descripcion || "").trim();
+  if(!texto) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "fb-post-text-wrap";
+
+  const p = document.createElement("div");
+  p.className = "fb-post-description";
+  p.textContent = texto;
+
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "fb-post-more";
+  more.textContent = "Ver más";
+
+  more.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const expandido = p.classList.toggle("expanded");
+    more.textContent = expandido ? "Ver menos" : "Ver más";
+  });
+
+  wrap.appendChild(p);
+  wrap.appendChild(more);
+  card.appendChild(wrap);
+
+  requestAnimationFrame(() => {
+    const necesitaExpandir = p.scrollHeight > p.clientHeight + 2;
+    more.style.display = necesitaExpandir ? "inline" : "none";
+  });
+}
 
 
     
@@ -17883,7 +18153,7 @@ function updateContentOverlay(index) {
         // Solo en videos: subir el autor para que no cubra la línea de tiempo.
         commentsOverlay?.classList.toggle("video-active", anuncio.tipo_media === "video");
 
-        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor);
+        updateInfo(anuncio.titulo, anuncio.descripcion, anuncio.autor, anuncio.fecha);
 
         // 📤 Compartir: siempre usa el anuncio realmente activo (imagen o video)
         actualizarBotonCompartirAnuncio(anuncio);
@@ -17957,7 +18227,7 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
         }
 
         // ===============================
-        // ✅ AUTOR CON FOTO ANTIDUPLICADO
+        // ✅ AUTOR + FECHA + DESCRIPCIÓN TIPO FACEBOOK
         // ===============================
         (async () => {
             const container = document.getElementById("autorContainer");
@@ -17966,16 +18236,40 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
             const expectedId = anuncio.id;
             const token = Date.now() + "-" + Math.random();
             container.dataset.renderToken = token;
-
             container.innerHTML = "";
 
             if (anuncio.autor) {
-                const div = document.createElement("div");
-                div.className = "autor-anuncio-box autor-box";
-                div.style.display = "flex";
-                div.style.alignItems = "center";
-                div.style.gap = "8px";
-                div.style.marginTop = "6px";
+                const card = document.createElement("div");
+                card.className = "fb-post-card";
+
+                const row = document.createElement("div");
+                row.className = "fb-post-author-row";
+
+                const avatarWrap = document.createElement("div");
+                avatarWrap.className = "fb-post-avatar-wrap";
+
+                const info = document.createElement("div");
+                info.className = "fb-post-author-info";
+
+                const nombre = document.createElement("div");
+                nombre.className = "fb-post-author-name";
+                nombre.textContent = anuncio.autor || "Anónimo";
+
+                const fecha = document.createElement("div");
+                fecha.className = "fb-post-date";
+
+                const fechaTexto = formatearFechaPublicacionFacebook(anuncio.fecha);
+                fecha.innerHTML = `
+                    <span>${fechaTexto || "Publicación"}</span>
+                    <span aria-hidden="true">·</span>
+                    <i class="fas fa-earth-americas" aria-hidden="true"></i>
+                `;
+
+                info.appendChild(nombre);
+                info.appendChild(fecha);
+                row.appendChild(avatarWrap);
+                row.appendChild(info);
+                card.appendChild(row);
 
                 const correoAutor = (anuncio.correo || "").trim();
                 let fotoUrl = "";
@@ -17992,102 +18286,31 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
 
                 if (stillActiveToken !== token || currentId !== expectedId) return;
 
-// ===============================
-// FOTO O INICIALES DEL AUTOR
-// ===============================
+                const ponerIniciales = () => {
+                    avatarWrap.innerHTML = "";
+                    avatarWrap.textContent = fallbackName(anuncio.autor);
+                };
 
-if (
-    !fotoUrl ||
-    fotoUrl.length <= 3 ||
-    !fotoUrl.startsWith("http")
-) {
+                if (
+                    fotoUrl &&
+                    fotoUrl.length > 3 &&
+                    fotoUrl.startsWith("http")
+                ) {
+                    const img = document.createElement("img");
+                    img.alt = anuncio.autor || "autor";
+                    img.src = fotoUrl;
+                    img.onerror = ponerIniciales;
+                    avatarWrap.appendChild(img);
+                } else {
+                    ponerIniciales();
+                }
 
-
-    const avatar = document.createElement("div");
-
-    avatar.style.width = "30px";
-    avatar.style.height = "30px";
-    avatar.style.borderRadius = "50%";
-    avatar.style.background = "#5468ff";
-    avatar.style.display = "flex";
-    avatar.style.alignItems = "center";
-    avatar.style.justifyContent = "center";
-    avatar.style.fontSize = "14px";
-    avatar.style.fontWeight = "bold";
-    avatar.style.color = "#fff";
-
-
-    avatar.textContent =
-    fallbackName(anuncio.autor);
-
-
-    div.appendChild(avatar);
-
-
-
-} else {
-
-
-    const img = document.createElement("img");
-
-    img.className = "autor-foto";
-
-    img.style.width = "30px";
-    img.style.height = "30px";
-    img.style.objectFit = "cover";
-    img.style.borderRadius = "50%";
-    img.style.border = "2px solid #fff";
-    img.style.background = "#eee";
-
-    img.alt = anuncio.autor || "autor";
-
-
-    img.src = fotoUrl;
-
-
-    img.onerror = () => {
-
-        img.remove();
-
-        const avatar = document.createElement("div");
-
-        avatar.style.width="30px";
-        avatar.style.height="30px";
-        avatar.style.borderRadius="50%";
-        avatar.style.background="#5468ff";
-        avatar.style.display="flex";
-        avatar.style.alignItems="center";
-        avatar.style.justifyContent="center";
-        avatar.style.fontSize="14px";
-        avatar.style.fontWeight="bold";
-        avatar.style.color="#fff";
-
-        avatar.textContent =
-        fallbackName(anuncio.autor);
-
-
-        div.appendChild(avatar);
-
-    };
-
-
-    div.appendChild(img);
-
-}
-
-                const span = document.createElement("span");
-                span.style.fontSize = "13px";
-                span.style.color = "#ccc";
-                span.textContent = anuncio.autor;
-                div.appendChild(span);
+                // La descripción vive ahora debajo del perfil, como texto de publicación.
+                agregarDescripcionFacebook(card, anuncio.descripcion);
 
                 container.innerHTML = "";
-                container.appendChild(div);
-              // Guardar el correo en el contenedor
-                 // GUARDAR CORREO EN EL CONTAINER
+                container.appendChild(card);
                 container.dataset.correo = correoAutor;
-
-
             }
         })();
    
