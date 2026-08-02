@@ -1776,6 +1776,305 @@ body:not(.dark-mode) .chat-list-nombre {
     transform:scale(.94);
 }
 
+/* =========================================================
+   💬 COMENTARIOS TIPO FACEBOOK
+   En el feed queda únicamente el autor de la publicación.
+   Los comentarios y el cuadro para escribir viven en este modal.
+========================================================= */
+.comments-overlay-container {
+  bottom: 18px;
+  width: calc(80% - 20px);
+  max-height: none;
+  overflow: visible;
+  padding: 8px;
+}
+
+.comments-overlay-container.expanded {
+  max-height: none;
+}
+
+#autorContainer {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.facebook-comments-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90000;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn .2s ease;
+}
+
+.facebook-comments-modal.open {
+  display: flex;
+}
+
+.facebook-comments-sheet {
+  width: 100%;
+  max-width: 620px;
+  height: min(82dvh, 760px);
+  background: #ffffff;
+  color: #1c1e21;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 35px rgba(0,0,0,.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp .25s ease;
+}
+
+.facebook-comments-header {
+  min-height: 58px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e4e6eb;
+  flex-shrink: 0;
+}
+
+.facebook-comments-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.facebook-comments-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #e4e6eb;
+  color: #1c1e21;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.facebook-comments-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 12px 18px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#commentsList.facebook-comments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#commentsList.facebook-comments-list li {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  margin: 0 0 12px;
+  padding: 0;
+  border: none;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+#commentsList .comment-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 0;
+  background: #fff;
+  transition: transform .3s ease;
+}
+
+.fb-comment-avatar-button {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fb-comment-avatar-img,
+.fb-comment-avatar-fallback {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fb-comment-avatar-fallback {
+  background: #5468ff;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.fb-comment-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.fb-comment-bubble {
+  display: inline-block;
+  max-width: 100%;
+  background: #f0f2f5;
+  border-radius: 16px;
+  padding: 8px 11px 9px;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+.fb-comment-author {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0 0 2px;
+  color: #050505;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fb-comment-text {
+  color: #1c1e21;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fb-comment-meta {
+  margin: 4px 0 0 10px;
+  color: #65676b;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.fb-comments-empty {
+  min-height: 160px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #65676b;
+  text-align: center;
+}
+
+#commentsModal .delete-btn-container {
+  width: 92px;
+  background: #e41e3f;
+  border-radius: 14px;
+}
+
+#commentsModal .delete-btn {
+  color: #fff;
+}
+
+#commentsModal .comment-input-container {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  z-index: 3;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #e4e6eb;
+  flex-shrink: 0;
+}
+
+#commentsModal .comment-input-wrapper {
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  background: #f0f2f5;
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+#commentsModal .comment-input-wrapper input {
+  color: #1c1e21;
+}
+
+#commentsModal .comment-input-wrapper input::placeholder {
+  color: #65676b;
+}
+
+#commentsModal .comment-input-wrapper button {
+  color: #0866ff;
+}
+
+body.dark-mode .facebook-comments-sheet,
+body.dark-mode #commentsModal .comment-input-container {
+  background: #1f1f1f;
+  color: #e8eaed;
+}
+
+body.dark-mode .facebook-comments-header,
+body.dark-mode #commentsModal .comment-input-container {
+  border-color: rgba(255,255,255,.09);
+}
+
+body.dark-mode .facebook-comments-close {
+  background: #3c4043;
+  color: #e8eaed;
+}
+
+body.dark-mode #commentsList .comment-content {
+  background: #1f1f1f;
+}
+
+body.dark-mode .fb-comment-bubble,
+body.dark-mode #commentsModal .comment-input-wrapper {
+  background: #303134;
+}
+
+body.dark-mode .fb-comment-author,
+body.dark-mode .fb-comment-text,
+body.dark-mode #commentsModal .comment-input-wrapper input {
+  color: #e8eaed;
+}
+
+body.dark-mode .fb-comment-meta,
+body.dark-mode .fb-comments-empty,
+body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
+  color: #9aa0a6;
+}
+
+@media (min-width: 769px) {
+  .facebook-comments-modal {
+    align-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  .facebook-comments-sheet {
+    height: min(78vh, 720px);
+    border-radius: 18px;
+  }
+}
+
 
   </style>
 </head>
@@ -2524,8 +2823,8 @@ Volver al inicio
   </div>
 
 <div class="comments-overlay-container" id="commentsOverlay">
-    <div id="autorContainer" style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #444;"></div>
-    <ul id="commentsList"></ul>
+    <!-- En el feed queda únicamente el autor de la publicación -->
+    <div id="autorContainer"></div>
 </div>
 
 
@@ -2537,17 +2836,33 @@ Volver al inicio
   <span class="count" id="likeCountValue">0</span>
 </div>
 
-<div class="comments-counter" id="commentsCounter">
+<div class="comments-counter" id="commentsCounter" title="Ver comentarios" aria-label="Ver comentarios">
   <span class="icon">
     <i class="fa-regular fa-comment"></i>
   </span>
   <span class="count" id="commentCountValue">0</span>
 </div>
 
-<div class="comment-input-container" id="commentInputContainer">
-  <div class="comment-input-wrapper">
-    <input type="text" id="commentInput" placeholder="Escribe un comentario...">
-    <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+<!-- 💬 Modal de comentarios tipo Facebook -->
+<div id="commentsModal" class="facebook-comments-modal" aria-hidden="true">
+  <div class="facebook-comments-sheet" role="dialog" aria-modal="true" aria-labelledby="commentsModalTitle">
+
+    <div class="facebook-comments-header">
+      <h2 id="commentsModalTitle" class="facebook-comments-title">Comentarios <span id="commentsModalCount"></span></h2>
+      <button id="closeCommentsModal" class="facebook-comments-close" type="button" aria-label="Cerrar comentarios">×</button>
+    </div>
+
+    <div class="facebook-comments-body" id="commentsModalBody">
+      <ul id="commentsList" class="facebook-comments-list"></ul>
+    </div>
+
+    <div class="comment-input-container" id="commentInputContainer">
+      <div class="comment-input-wrapper">
+        <input type="text" id="commentInput" placeholder="Escribe un comentario..." autocomplete="off">
+        <button class="send-comment-btn" type="button" aria-label="Enviar comentario"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -13348,6 +13663,10 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInputContainer = document.querySelector('.comment-input-container');
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
+    const commentsModal = document.getElementById('commentsModal');
+    const closeCommentsModalBtn = document.getElementById('closeCommentsModal');
+    const commentsModalCount = document.getElementById('commentsModalCount');
+    const commentsModalBody = document.getElementById('commentsModalBody');
 
     // 📤/🔊 Botones flotantes ligados al anuncio activo
     const shareActiveBtn = document.getElementById('shareActiveBtn');
@@ -13904,7 +14223,7 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
     // ✅ Estos se alternan normal
     commentsOverlay.classList.toggle('hidden-overlay');
     commentsCounter.classList.toggle('hidden-overlay');
-    commentInputContainer.classList.toggle('hidden-overlay');
+    // El campo de comentario ahora pertenece al modal y no se oculta con el tap del feed.
 
     // ✅ contentOverlay invertido → lo forzamos al mismo sentido
     if (contentOverlay.classList.contains('hidden-overlay')) {
@@ -14015,19 +14334,261 @@ if (editBtn) {
 
 
 
-    // Toggle para expandir/colapsar el contenedor de comentarios con un toque
-    commentsOverlay.addEventListener('click', (e) => {
-        if (!isSwiping) {
-            commentsOverlay.classList.toggle('expanded');
+    // El contenedor del feed ya no expande comentarios: contiene únicamente al autor.
+    // El swipe para borrar se conserva dentro de la lista del modal.
+
+    // =====================================================
+    // 💬 MODAL DE COMENTARIOS TIPO FACEBOOK
+    // =====================================================
+
+    function obtenerAnuncioActivoComentarios(){
+        if(!swiperInstance || !anunciosData || anunciosData.length === 0) return null;
+        return anunciosData[swiperInstance.realIndex] || null;
+    }
+
+    function abrirModalComentarios(){
+        const anuncio = obtenerAnuncioActivoComentarios();
+        if(!anuncio || !commentsModal) return;
+
+        // El input no debe heredar el ocultamiento general del feed.
+        commentInputContainer?.classList.remove('hidden-overlay');
+
+        renderizarComentariosModal(anuncio);
+
+        commentsModal.classList.add('open');
+        commentsModal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        requestAnimationFrame(()=>{
+            if(commentsModalBody){
+                commentsModalBody.scrollTop = 0;
+            }
+        });
+    }
+
+    function cerrarModalComentarios(){
+        if(!commentsModal) return;
+
+        commentsModal.classList.remove('open');
+        commentsModal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+
+        if(document.activeElement === commentInput){
+            commentInput.blur();
         }
-        isSwiping = false; 
+
+        // Cerrar cualquier comentario que haya quedado desplazado por swipe.
+        commentsList.querySelectorAll('.comment-content').forEach(el=>{
+            el.style.transform = 'translateX(0)';
+        });
+        commentsList.querySelectorAll('.delete-btn-container').forEach(el=>{
+            el.style.transform = 'translateX(-100%)';
+        });
+        activeComment = null;
+        startX = 0;
+        isSwiping = false;
+    }
+
+    commentsCounter?.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        abrirModalComentarios();
     });
 
+    closeCommentsModalBtn?.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        cerrarModalComentarios();
+    });
 
+    commentsModal?.addEventListener('click', (e)=>{
+        if(e.target === commentsModal){
+            cerrarModalComentarios();
+        }
+    });
 
+    document.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape' && commentsModal?.classList.contains('open')){
+            cerrarModalComentarios();
+        }
+    });
 
+    function abrirPerfilDesdeComentario(correo){
+        const correoLimpio = String(correo || '').trim();
+        if(!correoLimpio) return;
 
-    
+        loader.style.display = 'block';
+        Promise.resolve(abrirPerfilPorCorreo(correoLimpio))
+            .catch(err => console.error('Error abriendo perfil desde comentario:', err))
+            .finally(()=>{
+                loader.style.display = 'none';
+            });
+    }
+
+    function crearAvatarComentario(nombre, fotoUrl, correo){
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'fb-comment-avatar-button';
+        btn.title = nombre || 'Ver perfil';
+
+        const abrir = (e)=>{
+            e.stopPropagation();
+            abrirPerfilDesdeComentario(correo);
+        };
+        btn.addEventListener('click', abrir);
+
+        const crearFallback = ()=>{
+            btn.innerHTML = '';
+            const fallback = document.createElement('div');
+            fallback.className = 'fb-comment-avatar-fallback';
+            fallback.textContent = fallbackName(nombre || 'Usuario');
+            btn.appendChild(fallback);
+        };
+
+        if(fotoUrl && String(fotoUrl).startsWith('http')){
+            const img = document.createElement('img');
+            img.className = 'fb-comment-avatar-img';
+            img.alt = nombre || 'Usuario';
+            img.src = fotoUrl;
+            img.onerror = crearFallback;
+            btn.appendChild(img);
+        }else{
+            crearFallback();
+        }
+
+        return btn;
+    }
+
+    async function renderizarComentariosModal(anuncio){
+        if(!commentsList || !anuncio) return;
+
+        const comentarios = Array.isArray(anuncio.comentarios)
+            ? anuncio.comentarios
+            : [];
+
+        const token = `${anuncio.id || 'sin-id'}-${Date.now()}-${Math.random()}`;
+        commentsList.dataset.renderToken = token;
+        commentsList.innerHTML = '';
+
+        commentCountValue.textContent = comentarios.length;
+        if(commentsModalCount){
+            commentsModalCount.textContent = comentarios.length > 0
+                ? `(${comentarios.length})`
+                : '';
+        }
+
+        if(comentarios.length === 0){
+            const li = document.createElement('li');
+            li.className = 'fb-comments-empty';
+            li.textContent = 'Sé la primera persona en comentar.';
+            commentsList.appendChild(li);
+            return;
+        }
+
+        const filas = await Promise.all(comentarios.map(async comentario => {
+            const li = document.createElement('li');
+
+            const correo = String(
+                comentario.autorCorreo ||
+                comentario.correo ||
+                ''
+            ).trim();
+
+            const nombre = comentario.autor || 'Anónimo';
+            const texto = comentario.textoPuro ?? comentario.comentario ?? comentario.texto ?? '';
+            const fechaOriginal = comentario.fechaOriginal || comentario.fecha || '';
+            const fechaVisible = formatoFechaComentario(fechaOriginal);
+            const esMio = normalizeText(correo) === normalizeText(currentAuthorEmail);
+
+            li.classList.toggle('deletable', esMio);
+            li.dataset.id = comentario.id || '';
+            li.dataset.correo = correo;
+            li.dataset.texto = texto;
+
+            if(esMio){
+                const deleteBtnContainer = document.createElement('div');
+                deleteBtnContainer.className = 'delete-btn-container';
+
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Borrar';
+                deleteBtnContainer.appendChild(deleteBtn);
+
+                deleteBtn.addEventListener('click', (ev)=>{
+                    ev.stopPropagation();
+                    showConfirmationDialog(
+                        '¿Estás seguro de que quieres borrar este comentario?',
+                        ()=> eliminarComentario(comentario.id)
+                    );
+                });
+
+                li.appendChild(deleteBtnContainer);
+            }
+
+            const commentContent = document.createElement('div');
+            commentContent.className = 'comment-content';
+
+            let fotoUrl = '';
+            try{
+                fotoUrl = await resolveFotoPerfil(correo, nombre);
+            }catch(error){
+                console.warn('No se pudo resolver foto del comentario:', error);
+            }
+
+            commentContent.appendChild(
+                crearAvatarComentario(nombre, fotoUrl, correo)
+            );
+
+            const main = document.createElement('div');
+            main.className = 'fb-comment-main';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'fb-comment-bubble';
+
+            const authorBtn = document.createElement('button');
+            authorBtn.type = 'button';
+            authorBtn.className = 'fb-comment-author';
+            authorBtn.textContent = nombre;
+            authorBtn.addEventListener('click', (e)=>{
+                e.stopPropagation();
+                abrirPerfilDesdeComentario(correo);
+            });
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'fb-comment-text';
+            textDiv.textContent = texto;
+
+            bubble.appendChild(authorBtn);
+            bubble.appendChild(textDiv);
+            main.appendChild(bubble);
+
+            const meta = document.createElement('div');
+            meta.className = 'fb-comment-meta';
+            meta.textContent = fechaVisible || '';
+            if(fechaOriginal){
+                const f = new Date(fechaOriginal);
+                if(!Number.isNaN(f.getTime())){
+                    meta.title = f.toLocaleString('es-CO');
+                }
+            }
+            main.appendChild(meta);
+
+            commentContent.appendChild(main);
+            li.appendChild(commentContent);
+
+            return li;
+        }));
+
+        // Si el usuario cambió de publicación mientras resolvíamos fotos,
+        // descartar este render para evitar mezclar autores/comentarios.
+        if(commentsList.dataset.renderToken !== token) return;
+
+        const activo = obtenerAnuncioActivoComentarios();
+        if(!activo || String(activo.id) !== String(anuncio.id)) return;
+
+        const fragment = document.createDocumentFragment();
+        filas.forEach(li => fragment.appendChild(li));
+        commentsList.replaceChildren(fragment);
+    }
+
     // Lógica para el swipe
     commentsList.addEventListener('touchstart', (e) => {
       const commentElement = e.target.closest('li');
@@ -14452,7 +15013,10 @@ function normalizarComentarios(lista) {
 
             const fecha = c?.fecha ?? "";
 
-            const correo = c?.correo ?? "";
+            const correo =
+                c?.autorCorreo ??
+                c?.correo ??
+                "";
 
 
             // Compatible Google + Supabase
@@ -14468,6 +15032,8 @@ function normalizarComentarios(lista) {
 
 
            return {
+
+    id: c?.id ?? "",
 
     texto: `${autor} (${fecha}) - ${comentario}`,
 
@@ -16144,6 +16710,7 @@ function actualizarVistaFeed(indicePreferido = 0){
         currentDescription.textContent = "";
         commentsList.innerHTML = "";
         commentCountValue.textContent = "0";
+        if(commentsModalCount) commentsModalCount.textContent = "";
         pausarVideoActivo();
         return;
     }
@@ -16956,49 +17523,23 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
 }
 
 
-        commentsList.innerHTML = '';
-        commentsOverlay.classList.remove('expanded');
+        // Los comentarios ya no se dibujan sobre el feed.
+        // Aquí solo mantenemos actualizado el contador y, si corresponde,
+        // la lista del modal tipo Facebook.
+        const totalComentariosActual = Array.isArray(anuncio.comentarios)
+            ? anuncio.comentarios.length
+            : 0;
 
-        if (anuncio.comentarios && anuncio.comentarios.length > 0) {
-            anuncio.comentarios.forEach(comentario => {
-                const li = document.createElement('li');
-                li.classList.add('deletable');
+        commentCountValue.textContent = totalComentariosActual;
 
-                const commentContent = document.createElement('div');
-                commentContent.classList.add('comment-content');
-                commentContent.textContent = comentario.texto;
+        if(commentsModalCount){
+            commentsModalCount.textContent = totalComentariosActual > 0
+                ? `(${totalComentariosActual})`
+                : '';
+        }
 
-                const deleteBtnContainer = document.createElement('div');
-                deleteBtnContainer.className = 'delete-btn-container';
-                const deleteBtn = document.createElement('div');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Borrar';
-                deleteBtnContainer.appendChild(deleteBtn);
-
-                li.appendChild(deleteBtnContainer);
-                li.appendChild(commentContent);
-
-               li.dataset.id = comentario.id;
-li.dataset.correo = comentario.autorCorreo;
-li.dataset.texto = comentario.textoPuro;
-
-           deleteBtn.addEventListener('click', (ev) => {
-
-    ev.stopPropagation();
-
-
-    eliminarComentario(comentario.id);
-
-});
-
-                commentsList.appendChild(li);
-            });
-            commentCountValue.textContent = anuncio.comentarios.length;
-        } else {
-            const li = document.createElement('li');
-            li.textContent = "No hay comentarios aún.";
-            commentsList.appendChild(li);
-            commentCountValue.textContent = 0;
+        if(commentsModal?.classList.contains('open')){
+            renderizarComentariosModal(anuncio);
         }
 
         // ===============================
