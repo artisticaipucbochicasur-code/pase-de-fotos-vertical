@@ -2365,17 +2365,21 @@ body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
 
 /* =========================================================
    ❤️ PERSONAS QUE DIERON ME GUSTA - TIPO RED SOCIAL
-   El corazón conserva su función actual. Al tocar el número
-   de likes se abre esta hoja con las personas que reaccionaron.
+   Toque corto en el corazón = dar/quitar Me gusta.
+   Pulsación mantenida = ver quiénes reaccionaron.
+   El número es solo informativo y ya no recibe toques propios.
 ========================================================= */
 #likeCountValue {
-  cursor: pointer;
-  pointer-events: auto;
-  transition: transform .16s ease, background .16s ease;
+  cursor: default;
+  pointer-events: none;
 }
 
-#likeCountValue:active {
-  transform: scale(.9);
+/* Evita selección/callout del navegador durante la pulsación larga. */
+#likesCounter {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .likes-people-modal {
@@ -3427,11 +3431,11 @@ Volver al inicio
 </div>
 
 
-<div class="likes-counter" id="likesCounter" title="Dar o quitar Me gusta" aria-label="Dar o quitar Me gusta">
+<div class="likes-counter" id="likesCounter" title="Toca para dar o quitar Me gusta. Mantén presionado para ver quiénes reaccionaron" aria-label="Me gusta. Toca para dar o quitar. Mantén presionado para ver quiénes reaccionaron">
   <span class="icon">
     <i class="far fa-heart" id="likeIcon"></i>
   </span>
-  <span class="count" id="likeCountValue" role="button" tabindex="0" title="Ver quiénes dieron Me gusta" aria-label="Ver quiénes dieron Me gusta">0</span>
+  <span class="count" id="likeCountValue" aria-hidden="true">0</span>
 </div>
 
 <!-- ❤️ Personas que dieron Me gusta - hoja tipo red social -->
@@ -14355,7 +14359,7 @@ savedSearchInputEl.addEventListener("blur", () => {
     // la fila que cambió. No hay polling ni SELECT completo
     // después de cada INSERT/DELETE.
     // =====================================================
-    const LIKES_CACHE_VERSION = 1;
+    const LIKES_CACHE_VERSION = 2;
     const LIKES_CACHE_KEY = "decom_likes_cache_v1";
     const LIKES_LAST_FULL_SYNC_KEY = "decom_likes_full_sync_v1";
     const LIKES_RECONCILIACION_MS = 24 * 60 * 60 * 1000;
@@ -14370,7 +14374,19 @@ savedSearchInputEl.addEventListener("blur", () => {
         return {
             id: like.id,
             publicacion_id: like.publicacion_id,
-            correo: String(like.correo || "")
+            correo: String(like.correo || ""),
+
+            // Conservar la fecha REAL del registro del like.
+            // Se aceptan nombres comunes para seguir funcionando aunque
+            // la tabla use created_at o fecha_creacion.
+            fecha_like:
+                like.fecha_like ||
+                like.fecha_creacion ||
+                like.created_at ||
+                like.creado_en ||
+                like.inserted_at ||
+                like.fecha ||
+                null
         };
     }
 
@@ -14649,7 +14665,7 @@ async function toggleLikeAnuncioActual() {
                 const {data: encontrado, error: buscarError} =
                 await supabaseClient
                     .from("likes")
-                    .select("id,publicacion_id,correo")
+                    .select("*")
                     .eq("publicacion_id", anuncioId)
                     .eq("correo", currentAuthorEmail)
                     .maybeSingle();
@@ -14685,7 +14701,7 @@ async function toggleLikeAnuncioActual() {
                     publicacion_id: anuncioId,
                     correo: currentAuthorEmail
                 }])
-                .select("id,publicacion_id,correo")
+                .select("*")
                 .single();
 
             if(error) throw error;
@@ -14763,7 +14779,7 @@ async function verificarLikes(forceRefresh = false) {
 
             const { data = [], error } = await supabaseClient
                 .from("likes")
-                .select("id,publicacion_id,correo");
+                .select("*");
 
             if(error) throw error;
 
@@ -14821,8 +14837,9 @@ async function verificarLikes(forceRefresh = false) {
 
 // =====================================================
 // ❤️ QUIÉNES DIERON ME GUSTA - VISTA TIPO RED SOCIAL
-// El corazón sigue dando/quitar like. El número abre la lista.
-// Usa el cache/Reatime existente y solo consulta perfiles faltantes.
+// Toque corto en corazón: dar/quitar like.
+// Pulsación mantenida en corazón: abrir lista de personas.
+// Usa el cache/Realtime existente y solo consulta perfiles faltantes.
 // =====================================================
 let likesModalAnuncioId = null;
 let likesModalRefreshTimer = null;
@@ -14860,6 +14877,63 @@ function metaPerfilLike(perfil){
     if(perfil?.ciudad) partes.push(perfil.ciudad);
 
     return partes.slice(0, 2).join(" · ") || "Miembro de DECOM";
+}
+
+// Fecha natural del like, usando la hora real guardada en Supabase.
+function formatearFechaLikeFacebook(fecha){
+    if(!fecha) return "";
+
+    const f = new Date(fecha);
+    if(Number.isNaN(f.getTime())) return "";
+
+    const ahora = new Date();
+    const diferencia = Math.max(0, ahora - f);
+    const minutos = Math.floor(diferencia / 60000);
+    const horas = Math.floor(diferencia / 3600000);
+    const dias = Math.floor(diferencia / 86400000);
+
+    if(minutos < 1) return "Ahora";
+    if(minutos < 60){
+        return minutos === 1 ? "Hace un minuto" : `Hace ${minutos} minutos`;
+    }
+
+    if(horas < 24){
+        return horas === 1 ? "Hace una hora" : `Hace ${horas} horas`;
+    }
+
+    if(dias < 7){
+        return dias === 1 ? "Hace un día" : `Hace ${dias} días`;
+    }
+
+    const semanas = Math.floor(dias / 7);
+    if(dias < 35){
+        return semanas === 1 ? "Hace una semana" : `Hace ${semanas} semanas`;
+    }
+
+    const hora = f.toLocaleTimeString("es-CO", {
+        hour: "numeric",
+        minute: "2-digit"
+    });
+
+    const mismoAnio = f.getFullYear() === ahora.getFullYear();
+    const fechaTexto = f.toLocaleDateString("es-CO", {
+        day: "numeric",
+        month: "long",
+        ...(mismoAnio ? {} : {year: "numeric"})
+    });
+
+    return `${fechaTexto} a las ${hora}`;
+}
+
+function fechaExactaLike(fecha){
+    if(!fecha) return "";
+    const f = new Date(fecha);
+    if(Number.isNaN(f.getTime())) return "";
+
+    return f.toLocaleString("es-CO", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    });
 }
 
 function cerrarModalPersonasLikes(){
@@ -14974,7 +15048,7 @@ async function cargarPerfilesParaLikes(correos){
     return perfiles;
 }
 
-function crearFilaPersonaLike(perfil, correoLike){
+function crearFilaPersonaLike(perfil, correoLike, fechaLike){
     const correo = String(perfil?.correo || correoLike || "").trim();
     const nombre = perfil?.nombre || nombreFallbackDesdeCorreo(correo);
     const soyYo = normalizeText(correo) === normalizeText(currentAuthorEmail || "");
@@ -15021,7 +15095,15 @@ function crearFilaPersonaLike(perfil, correoLike){
 
     const meta = document.createElement("div");
     meta.className = "likes-person-meta";
-    meta.textContent = metaPerfilLike(perfil);
+
+    const fechaRelativa = formatearFechaLikeFacebook(fechaLike);
+    meta.textContent = fechaRelativa || metaPerfilLike(perfil);
+
+    const fechaExacta = fechaExactaLike(fechaLike);
+    if(fechaExacta){
+        meta.title = fechaExacta;
+        meta.setAttribute("aria-label", `Me gusta: ${fechaRelativa || fechaExacta}. Fecha exacta: ${fechaExacta}`);
+    }
 
     info.appendChild(nameLine);
     info.appendChild(meta);
@@ -15109,7 +15191,7 @@ async function renderizarPersonasLikes(anuncioId, opciones = {}){
         };
 
         likesPeopleBody.appendChild(
-            crearFilaPersonaLike(perfil, like.correo)
+            crearFilaPersonaLike(perfil, like.correo, like.fecha_like)
         );
     });
 }
@@ -15151,24 +15233,8 @@ function refrescarModalLikesSiAbierto(publicacionId){
     }, 120);
 }
 
-if(likeCountValue){
-    const abrirListaDesdeContador = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const total = Number(likeCountValue.textContent || 0);
-        if(total > 0){
-            abrirModalPersonasLikes();
-        }
-    };
-
-    likeCountValue.addEventListener("click", abrirListaDesdeContador);
-    likeCountValue.addEventListener("keydown", (e) => {
-        if(e.key === "Enter" || e.key === " "){
-            abrirListaDesdeContador(e);
-        }
-    });
-}
+// El número deja de ser un control independiente.
+// Toda la interacción vive en el corazón: toque corto o pulsación larga.
 
 closeLikesPeopleModalBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -15189,7 +15255,80 @@ document.addEventListener("keydown", (e) => {
 
 
     if (likesCounter) {
-      likesCounter.addEventListener('click', toggleLikeAnuncioActual);
+      const LIKE_LONG_PRESS_MS = 650;
+      const LIKE_LONG_PRESS_MOVE_TOLERANCE = 14;
+
+      let likeLongPressTimer = null;
+      let likePressStartX = 0;
+      let likePressStartY = 0;
+      let suppressLikeClickUntil = 0;
+
+      const cancelarPulsacionLike = () => {
+        if(likeLongPressTimer){
+          clearTimeout(likeLongPressTimer);
+          likeLongPressTimer = null;
+        }
+      };
+
+      const iniciarPulsacionLike = (e) => {
+        if(e.pointerType === "mouse" && e.button !== 0) return;
+
+        cancelarPulsacionLike();
+
+        likePressStartX = Number(e.clientX || 0);
+        likePressStartY = Number(e.clientY || 0);
+
+        likeLongPressTimer = setTimeout(() => {
+          likeLongPressTimer = null;
+
+          // El click que algunos navegadores generan al soltar después
+          // de una pulsación larga NO debe agregar/quitar el like, incluso
+          // si todavía no hay personas en la lista.
+          suppressLikeClickUntil = Date.now() + 850;
+
+          const total = Number(likeCountValue?.textContent || 0);
+          if(total <= 0) return;
+
+          if(navigator.vibrate){
+            navigator.vibrate(25);
+          }
+
+          abrirModalPersonasLikes();
+        }, LIKE_LONG_PRESS_MS);
+      };
+
+      const moverPulsacionLike = (e) => {
+        if(!likeLongPressTimer) return;
+
+        const dx = Math.abs(Number(e.clientX || 0) - likePressStartX);
+        const dy = Math.abs(Number(e.clientY || 0) - likePressStartY);
+
+        // Si el usuario realmente estaba deslizando el feed, no abrir modal.
+        if(dx > LIKE_LONG_PRESS_MOVE_TOLERANCE || dy > LIKE_LONG_PRESS_MOVE_TOLERANCE){
+          cancelarPulsacionLike();
+        }
+      };
+
+      likesCounter.addEventListener("pointerdown", iniciarPulsacionLike);
+      likesCounter.addEventListener("pointermove", moverPulsacionLike);
+      likesCounter.addEventListener("pointerup", cancelarPulsacionLike);
+      likesCounter.addEventListener("pointercancel", cancelarPulsacionLike);
+      likesCounter.addEventListener("pointerleave", cancelarPulsacionLike);
+
+      // Evitar el menú contextual del navegador al mantener presionado.
+      likesCounter.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+      });
+
+      likesCounter.addEventListener("click", (e) => {
+        if(Date.now() < suppressLikeClickUntil){
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        toggleLikeAnuncioActual();
+      });
     }
 
     let contadorComentariosAnterior = -1;
