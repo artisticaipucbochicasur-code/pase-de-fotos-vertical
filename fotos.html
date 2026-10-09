@@ -24716,5 +24716,105 @@ if ("serviceWorker" in navigator) {
 }
 
 </script>
+
+<!-- Navegación Atrás Android: cerrar vistas internas antes de salir -->
+<script>
+(function () {
+  if (window.__paseFotosBackHandlerInstalled) return;
+  window.__paseFotosBackHandlerInstalled = true;
+
+  const sentinel = { __paseFotosBack: true };
+  let handlingBack = false;
+
+  function visible(el) {
+    if (!el || !el.isConnected) return false;
+    const st = getComputedStyle(el);
+    if (st.display === "none" || st.visibility === "hidden" ||
+        Number(st.opacity) === 0) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+
+  function findOpenLayer() {
+    const candidates = Array.from(document.querySelectorAll(
+      '[role="dialog"], [aria-modal="true"], [id*="Modal"], [id*="modal"], ' +
+      '[id*="Overlay"], [id*="overlay"], .modal, .overlay'
+    )).filter(visible);
+
+    // Prioriza la capa visual superior; ignora overlays que no sean ventanas.
+    return candidates
+      .filter(el => {
+        const st = getComputedStyle(el);
+        return st.position === "fixed" || st.position === "absolute";
+      })
+      .sort((a, b) => {
+        const za = parseInt(getComputedStyle(a).zIndex, 10) || 0;
+        const zb = parseInt(getComputedStyle(b).zIndex, 10) || 0;
+        if (za !== zb) return zb - za;
+        return (b.getBoundingClientRect().width * b.getBoundingClientRect().height) -
+               (a.getBoundingClientRect().width * a.getBoundingClientRect().height);
+      })[0] || null;
+  }
+
+  function closeLayer(layer) {
+    if (!layer) return false;
+    const close = layer.querySelector(
+      '[aria-label*="cerrar" i], [title*="cerrar" i], ' +
+      '[id*="close" i], [id*="cerrar" i], [class*="close" i], ' +
+      'button[aria-label="×"], button'
+    );
+    if (close && visible(close)) {
+      close.click();
+      return true;
+    }
+
+    // Último recurso para capas sin botón de cierre identificado.
+    layer.style.display = "none";
+    layer.classList.remove("open", "active", "show");
+    layer.setAttribute("aria-hidden", "true");
+    return true;
+  }
+
+  function pushBackSentinel() {
+    try {
+      if (!history.state || !history.state.__paseFotosBack) {
+        history.pushState(sentinel, "", location.href);
+      }
+    } catch (e) {
+      console.warn("No se pudo preparar navegación Atrás:", e);
+    }
+  }
+
+  window.addEventListener("popstate", function () {
+    if (handlingBack) return;
+    handlingBack = true;
+
+    const layer = findOpenLayer();
+    if (layer) {
+      closeLayer(layer);
+      pushBackSentinel();
+      handlingBack = false;
+      return;
+    }
+
+    // En la pantalla principal sí se permite mostrar la confirmación nativa.
+    pushBackSentinel();
+    if (window.AndroidApp && typeof window.AndroidApp.confirmExit === "function") {
+      window.AndroidApp.confirmExit();
+    } else {
+      // Navegador normal: no bloquear la navegación del usuario.
+      history.back();
+    }
+    handlingBack = false;
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", pushBackSentinel, { once: true });
+  } else {
+    pushBackSentinel();
+  }
+})();
+</script>
+
 </body>
 </html>
