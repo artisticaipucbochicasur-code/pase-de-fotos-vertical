@@ -24716,137 +24716,80 @@ if ("serviceWorker" in navigator) {
 }
 
 </script>
-
 <script>
-/* DECOM_PASE_FOTOS_BACK_STACK_V3 */
+/* DECOM_PASE_FOTOS_ANDROID_BACK_V4 — no modifica las clases de apertura originales */
 (function () {
   "use strict";
-  if (window.__decomBackStackV3Installed) return;
-  window.__decomBackStackV3Installed = true;
+  if (window.__paseFotosBackHandlerInstalled) return;
+  window.__paseFotosBackHandlerInstalled = true;
 
-  // Overlay order is determined by actual visibility and z-index, not by a
-  // generic ".overlay" selector that could accidentally match feed content.
-  const layerIds = [
+  const knownLayers = [
     "modalEliminarMensaje", "modalReenviarMensaje", "menuMensajeChat",
     "overlayMenuMensaje", "modalEditarPerfil", "modalFotoGrande",
     "modalPerfil", "modalAutor", "likesPeopleModal", "commentsModal",
-    "chatBox", "listaChatsBox", "publishModal", "savedModal",
-    "loginModal", "searchOverlay", "userMenu", "userOverlay",
-    "contentOverlay", "commentsOverlay"
+    "chatBox", "listaChatsBox", "publishModal", "savedModal", "loginModal",
+    "searchOverlay", "userMenu", "userOverlay", "contentOverlay", "commentsOverlay"
   ];
-
-  let backInProgress = false;
-  let sentinelInstalled = false;
-
-  function isVisible(el) {
+  const closers = {
+    searchOverlay: "cerrarBusqueda",
+    menuMensajeChat: "cerrarMenuMensaje", overlayMenuMensaje: "cerrarMenuMensaje",
+    modalEditarPerfil: "cerrarEditarPerfil", modalEliminarMensaje: "cerrarModalEliminarMensaje",
+    modalReenviarMensaje: "cerrarModalReenviarMensaje", modalPerfil: "cerrarModalPerfil",
+    commentsModal: "cerrarModalComentarios", likesPeopleModal: "cerrarModalPersonasLikes",
+    chatBox: "cerrarChat", listaChatsBox: "cerrarListaChats"
+  };
+  function visible(el) {
     if (!el || !el.isConnected) return false;
-    const cs = getComputedStyle(el);
-    if (cs.display === "none" || cs.visibility === "hidden" ||
-        el.getAttribute("aria-hidden") === "true" ||
-        el.classList.contains("hidden")) return false;
-    const rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
+    const s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden" || s.opacity === "0" ||
+        el.getAttribute("aria-hidden") === "true" || el.classList.contains("hidden")) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
   }
-
-  function topLayer() {
-    const layers = layerIds.map(id => document.getElementById(id))
-      .filter(isVisible)
-      .map(el => ({el, z: parseInt(getComputedStyle(el).zIndex, 10) || 0}))
-      .sort((a, b) => b.z - a.z);
-    return layers.length ? layers[0].el : null;
+  function findTopLayer() {
+    const candidates = knownLayers.map(id => document.getElementById(id)).filter(visible);
+    // Incluye diálogos de aviso personalizados, sin confundirlos con el feed normal.
+    document.querySelectorAll('[role="dialog"], .custom-mostrarAviso-overlay, .custom-alert-overlay')
+      .forEach(el => { if (visible(el) && !candidates.includes(el)) candidates.push(el); });
+    candidates.sort((a,b) => {
+      const za = parseInt(getComputedStyle(a).zIndex, 10) || 0;
+      const zb = parseInt(getComputedStyle(b).zIndex, 10) || 0;
+      if (za !== zb) return zb - za;
+      return (knownLayers.indexOf(a.id) - knownLayers.indexOf(b.id));
+    });
+    return candidates[0] || null;
   }
-
   function closeLayer(el) {
     if (!el) return false;
-
-    // Use the page's own close routines where the HTML defines them.
-    const id = el.id;
-    const closeFunctions = {
-      searchOverlay: "cerrarBusqueda",
-      menuMensajeChat: "cerrarMenuMensaje",
-      overlayMenuMensaje: "cerrarMenuMensaje",
-      modalEditarPerfil: "cerrarEditarPerfil",
-      modalEliminarMensaje: "cerrarModalEliminarMensaje",
-      modalReenviarMensaje: "cerrarModalReenviarMensaje",
-      modalPerfil: "cerrarModalPerfil",
-      commentsModal: "cerrarModalComentarios",
-      likesPeopleModal: "cerrarModalPersonasLikes"
-    };
-    const fn = closeFunctions[id];
+    const fn = closers[el.id];
     if (fn && typeof window[fn] === "function") {
-      try { window[fn](); } catch (e) { console.warn("[Atrás]", fn, e); }
-    } else {
-      // Close only the identified top-level view; do not alter inner content.
-      el.style.display = "none";
-      el.setAttribute("aria-hidden", "true");
-      el.classList.remove("open");
-      el.classList.add("hidden");
+      try { window[fn](); return true; } catch (e) { console.warn("[Atrás]", fn, e); }
     }
+    // Menú de usuario y fondos: solo display:none. NO añadir .hidden ni aria-hidden,
+    // porque los controladores originales los vuelven a abrir cambiando display.
+    if (el.id === "userMenu" || el.id === "userOverlay") {
+      el.style.display = "none";
+      return true;
+    }
+    // Intentar cerrar con el botón X/cerrar propio del diálogo antes de ocultarlo.
+    const closeBtn = el.querySelector('button[aria-label*="errar" i], button[title*="errar" i], .close, .cerrar, [data-dismiss="modal"]');
+    if (closeBtn && closeBtn !== el) { closeBtn.click(); if (!visible(el)) return true; }
+    el.style.display = "none";
+    el.setAttribute("aria-hidden", "true");
+    el.classList.remove("open", "active", "show");
+    // No se agrega .hidden: puede impedir que la lógica original reabra la vista.
     return true;
   }
-
-  function ensureSentinel() {
-    if (backInProgress) return;
-    try {
-      history.pushState({__decomPaseFotosSentinel: true}, "", location.href);
-      sentinelInstalled = true;
-    } catch (e) {
-      console.warn("[Atrás] No se pudo instalar el historial de navegación", e);
-    }
-  }
-
-  function askNativeExit() {
+  window.decomHandleAndroidBack = function () {
+    const layer = findTopLayer();
+    if (layer) { closeLayer(layer); return "closed"; }
     if (window.AndroidApp && typeof window.AndroidApp.confirmExit === "function") {
       window.AndroidApp.confirmExit();
-      return true;
+      return "exit-confirmation";
     }
-    return false;
-  }
-
-  // Called by MainActivity for a system back gesture/button.
-  window.decomHandleAndroidBack = function () {
-    const layer = topLayer();
-    if (layer) {
-      closeLayer(layer);
-      ensureSentinel();
-      return true;
-    }
-    askNativeExit();
-    ensureSentinel();
-    return true;
+    return "no-layer";
   };
-
-  window.addEventListener("popstate", function () {
-    if (backInProgress) return;
-    backInProgress = true;
-    try {
-      const layer = topLayer();
-      if (layer) {
-        closeLayer(layer);
-      } else {
-        askNativeExit();
-      }
-      // IMPORTANT: push the sentinel even while handling popstate. If it is
-      // not restored, the next Back exits the app even when another view opens.
-      try {
-        history.pushState({__decomPaseFotosSentinel: true}, "", location.href);
-        sentinelInstalled = true;
-      } catch (e) {}
-    } finally {
-      setTimeout(function () { backInProgress = false; }, 80);
-    }
-  });
-
-  function init() {
-    if (!sentinelInstalled) ensureSentinel();
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, {once: true});
-  } else {
-    init();
-  }
 })();
 </script>
-
 </body>
 </html>
