@@ -24718,132 +24718,132 @@ if ("serviceWorker" in navigator) {
 </script>
 
 <script>
-/* DECOM_PASE_FOTOS_BACK_STACK_V2 */
+/* DECOM_PASE_FOTOS_BACK_STACK_V3 */
 (function () {
   "use strict";
-  if (window.__decomBackStackV2Installed) return;
-  window.__decomBackStackV2Installed = true;
+  if (window.__decomBackStackV3Installed) return;
+  window.__decomBackStackV3Installed = true;
 
-  // Only actual dialogs/menus are considered. Feed content, announcement title,
-  // description, action buttons and ordinary content overlays are deliberately excluded.
-  const candidates = [
-    ["modalEliminarMensaje", "cerrarModalEliminarMensaje"],
-    ["modalReenviarMensaje", "cerrarModalReenviarMensaje"],
-    ["modalEditarPerfil", "cerrarEditarPerfil"],
-    ["modalFotoGrande", null],
-    ["modalPerfil", "cerrarModalPerfil"],
-    ["modalAutor", null],
-    ["commentsModal", "cerrarModalComentarios"],
-    ["likesPeopleModal", "cerrarModalPersonasLikes"],
-    ["loginModal", null],
-    ["savedModal", null],
-    ["publishModal", null],
-    ["searchOverlay", "cerrarBusqueda"],
-    ["menuMensajeChat", "cerrarMenuMensaje"],
-    ["userMenu", null],
-    ["custommostrarAvisoOverlay", null]
+  // Overlay order is determined by actual visibility and z-index, not by a
+  // generic ".overlay" selector that could accidentally match feed content.
+  const layerIds = [
+    "modalEliminarMensaje", "modalReenviarMensaje", "menuMensajeChat",
+    "overlayMenuMensaje", "modalEditarPerfil", "modalFotoGrande",
+    "modalPerfil", "modalAutor", "likesPeopleModal", "commentsModal",
+    "chatBox", "listaChatsBox", "publishModal", "savedModal",
+    "loginModal", "searchOverlay", "userMenu", "userOverlay",
+    "contentOverlay", "commentsOverlay"
   ];
 
-  let sentinelReady = false;
-  let handlingBack = false;
+  let backInProgress = false;
+  let sentinelInstalled = false;
 
-  function visible(el) {
+  function isVisible(el) {
     if (!el || !el.isConnected) return false;
-    const s = getComputedStyle(el);
-    if (s.display === "none" || s.visibility === "hidden" || Number(s.opacity) === 0) return false;
-    if (el.getAttribute("aria-hidden") === "true" || el.classList.contains("hidden")) return false;
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" ||
+        el.getAttribute("aria-hidden") === "true" ||
+        el.classList.contains("hidden")) return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
   }
 
-  function findTopDialog() {
-    const found = [];
-    for (const [id, closer] of candidates) {
-      const el = document.getElementById(id);
-      if (!visible(el)) continue;
-      // Menus/overlays that belong to the feed aren't treated as modal screens.
-      found.push({el, closer, z: parseInt(getComputedStyle(el).zIndex, 10) || 0});
-    }
-    found.sort((a, b) => b.z - a.z);
-    return found.length ? found[0] : null;
+  function topLayer() {
+    const layers = layerIds.map(id => document.getElementById(id))
+      .filter(isVisible)
+      .map(el => ({el, z: parseInt(getComputedStyle(el).zIndex, 10) || 0}))
+      .sort((a, b) => b.z - a.z);
+    return layers.length ? layers[0].el : null;
   }
 
-  function closeDialog(item) {
-    if (!item) return false;
-    const before = item.el;
-    try {
-      if (item.closer && typeof window[item.closer] === "function") {
-        window[item.closer]();
-      } else {
-        const close = before.querySelector(
-          '[aria-label="Cerrar"], [aria-label="Close"], [data-dismiss="modal"], .close, .close-btn, .btn-close, button[title="Cerrar"]'
-        );
-        if (close && visible(close)) close.click();
-        else {
-          // Only hide the identified dialog itself; never hide arbitrary .overlay
-          // elements or descendants such as the announcement title/description.
-          before.style.display = "none";
-          before.setAttribute("aria-hidden", "true");
-          before.classList.add("hidden");
-        }
-      }
-    } catch (e) {
-      console.warn("[Atrás] No se pudo cerrar la vista:", e);
-      return false;
+  function closeLayer(el) {
+    if (!el) return false;
+
+    // Use the page's own close routines where the HTML defines them.
+    const id = el.id;
+    const closeFunctions = {
+      searchOverlay: "cerrarBusqueda",
+      menuMensajeChat: "cerrarMenuMensaje",
+      overlayMenuMensaje: "cerrarMenuMensaje",
+      modalEditarPerfil: "cerrarEditarPerfil",
+      modalEliminarMensaje: "cerrarModalEliminarMensaje",
+      modalReenviarMensaje: "cerrarModalReenviarMensaje",
+      modalPerfil: "cerrarModalPerfil",
+      commentsModal: "cerrarModalComentarios",
+      likesPeopleModal: "cerrarModalPersonasLikes"
+    };
+    const fn = closeFunctions[id];
+    if (fn && typeof window[fn] === "function") {
+      try { window[fn](); } catch (e) { console.warn("[Atrás]", fn, e); }
+    } else {
+      // Close only the identified top-level view; do not alter inner content.
+      el.style.display = "none";
+      el.setAttribute("aria-hidden", "true");
+      el.classList.remove("open");
+      el.classList.add("hidden");
     }
     return true;
   }
 
-  function pushSentinel() {
-    if (handlingBack) return;
+  function ensureSentinel() {
+    if (backInProgress) return;
     try {
-      history.pushState({decomPaseFotosBack: true}, "", location.href);
-      sentinelReady = true;
-    } catch (_) {}
+      history.pushState({__decomPaseFotosSentinel: true}, "", location.href);
+      sentinelInstalled = true;
+    } catch (e) {
+      console.warn("[Atrás] No se pudo instalar el historial de navegación", e);
+    }
   }
 
-  // Native Android may call this function directly if desired.
-  window.decomHandleAndroidBack = function () {
-    const dialog = findTopDialog();
-    if (dialog) {
-      closeDialog(dialog);
-      pushSentinel();
-      return true;
-    }
-    // At the real feed/home screen, ask Android to show its existing exit dialog.
+  function askNativeExit() {
     if (window.AndroidApp && typeof window.AndroidApp.confirmExit === "function") {
       window.AndroidApp.confirmExit();
-      pushSentinel();
       return true;
     }
     return false;
+  }
+
+  // Called by MainActivity for a system back gesture/button.
+  window.decomHandleAndroidBack = function () {
+    const layer = topLayer();
+    if (layer) {
+      closeLayer(layer);
+      ensureSentinel();
+      return true;
+    }
+    askNativeExit();
+    ensureSentinel();
+    return true;
   };
 
   window.addEventListener("popstate", function () {
-    if (handlingBack) return;
-    handlingBack = true;
+    if (backInProgress) return;
+    backInProgress = true;
     try {
-      const dialog = findTopDialog();
-      if (dialog) {
-        closeDialog(dialog);
-        pushSentinel();
+      const layer = topLayer();
+      if (layer) {
+        closeLayer(layer);
       } else {
-        // Restore the history guard so the web page doesn't navigate away from
-        // the feed or mutate/hide the announcement content.
-        pushSentinel();
-        if (window.AndroidApp && typeof window.AndroidApp.confirmExit === "function") {
-          window.AndroidApp.confirmExit();
-        }
+        askNativeExit();
       }
+      // IMPORTANT: push the sentinel even while handling popstate. If it is
+      // not restored, the next Back exits the app even when another view opens.
+      try {
+        history.pushState({__decomPaseFotosSentinel: true}, "", location.href);
+        sentinelInstalled = true;
+      } catch (e) {}
     } finally {
-      setTimeout(() => { handlingBack = false; }, 80);
+      setTimeout(function () { backInProgress = false; }, 80);
     }
   });
 
+  function init() {
+    if (!sentinelInstalled) ensureSentinel();
+  }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", pushSentinel, {once: true});
+    document.addEventListener("DOMContentLoaded", init, {once: true});
   } else {
-    pushSentinel();
+    init();
   }
 })();
 </script>
