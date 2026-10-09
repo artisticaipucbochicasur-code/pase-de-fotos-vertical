@@ -24717,18 +24717,15 @@ if ("serviceWorker" in navigator) {
 
 </script>
 <script>
-/* DECOM_PASE_FOTOS_ANDROID_BACK_V4 — no modifica las clases de apertura originales */
+/* DECOM_PASE_FOTOS_ANDROID_BACK_V5 — cierre por capas y retorno al menú de origen */
 (function () {
   "use strict";
-  if (window.__paseFotosBackHandlerInstalled) return;
-  window.__paseFotosBackHandlerInstalled = true;
-
   const knownLayers = [
     "modalEliminarMensaje", "modalReenviarMensaje", "menuMensajeChat",
     "overlayMenuMensaje", "modalEditarPerfil", "modalFotoGrande",
     "modalPerfil", "modalAutor", "likesPeopleModal", "commentsModal",
     "chatBox", "listaChatsBox", "publishModal", "savedModal", "loginModal",
-    "searchOverlay", "userMenu", "userOverlay", "contentOverlay", "commentsOverlay"
+    "searchOverlay", "custommostrarAvisoOverlay", "userMenu", "userOverlay",
   ];
   const closers = {
     searchOverlay: "cerrarBusqueda",
@@ -24738,6 +24735,9 @@ if ("serviceWorker" in navigator) {
     commentsModal: "cerrarModalComentarios", likesPeopleModal: "cerrarModalPersonasLikes",
     chatBox: "cerrarChat", listaChatsBox: "cerrarListaChats"
   };
+  let returnToUserMenu = false;
+  let closing = false;
+
   function visible(el) {
     if (!el || !el.isConnected) return false;
     const s = getComputedStyle(el);
@@ -24746,48 +24746,108 @@ if ("serviceWorker" in navigator) {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   }
-  function findTopLayer() {
-    const candidates = knownLayers.map(id => document.getElementById(id)).filter(visible);
-    // Incluye diálogos de aviso personalizados, sin confundirlos con el feed normal.
-    document.querySelectorAll('[role="dialog"], .custom-mostrarAviso-overlay, .custom-alert-overlay')
-      .forEach(el => { if (visible(el) && !candidates.includes(el)) candidates.push(el); });
-    candidates.sort((a,b) => {
+  function getLayers() {
+    const candidates = [];
+    knownLayers.forEach(id => {
+      const el = document.getElementById(id);
+      if (visible(el) && !candidates.includes(el)) candidates.push(el);
+    });
+    // Diálogos y overlays usados por la app que se crean o muestran dinámicamente.
+    document.querySelectorAll(
+      '[role="dialog"], .custom-mostrarAviso-overlay, .custom-alert-overlay, .info-dialog, [aria-modal="true"]'
+    ).forEach(el => {
+      if (visible(el) && !candidates.includes(el)) candidates.push(el);
+    });
+    return candidates.sort((a, b) => {
       const za = parseInt(getComputedStyle(a).zIndex, 10) || 0;
       const zb = parseInt(getComputedStyle(b).zIndex, 10) || 0;
       if (za !== zb) return zb - za;
-      return (knownLayers.indexOf(a.id) - knownLayers.indexOf(b.id));
+      // En empate, la vista más específica queda por encima del menú/fondo.
+      const rank = el => {
+        if (el.id === "userOverlay") return 1;
+        if (el.id === "userMenu") return 2;
+        if (el.id === "contentOverlay" || el.id === "commentsOverlay") return 3;
+        return 10;
+      };
+      return rank(b) - rank(a);
     });
-    return candidates[0] || null;
+  }
+  function hideWithoutChangingOpenLogic(el) {
+    if (!el) return;
+    el.style.display = "none";
+    // No añadir .hidden ni aria-hidden: varios controladores originales solo cambian display.
+    if (el.id !== "userMenu" && el.id !== "userOverlay") {
+      el.classList.remove("open", "active", "show");
+    }
   }
   function closeLayer(el) {
     if (!el) return false;
     const fn = closers[el.id];
     if (fn && typeof window[fn] === "function") {
-      try { window[fn](); return true; } catch (e) { console.warn("[Atrás]", fn, e); }
+      try { window[fn](); return true; } catch (e) { console.warn("[Atrás] No se pudo ejecutar " + fn, e); }
     }
-    // Menú de usuario y fondos: solo display:none. NO añadir .hidden ni aria-hidden,
-    // porque los controladores originales los vuelven a abrir cambiando display.
-    if (el.id === "userMenu" || el.id === "userOverlay") {
-      el.style.display = "none";
-      return true;
-    }
-    // Intentar cerrar con el botón X/cerrar propio del diálogo antes de ocultarlo.
-    const closeBtn = el.querySelector('button[aria-label*="errar" i], button[title*="errar" i], .close, .cerrar, [data-dismiss="modal"]');
-    if (closeBtn && closeBtn !== el) { closeBtn.click(); if (!visible(el)) return true; }
-    el.style.display = "none";
-    el.setAttribute("aria-hidden", "true");
-    el.classList.remove("open", "active", "show");
-    // No se agrega .hidden: puede impedir que la lógica original reabra la vista.
+    // El aviso de notificaciones se presenta dentro de este overlay compartido.
+    // Ocultarlo no elimina sus elementos ni altera la función que lo vuelve a abrir.
+    hideWithoutChangingOpenLogic(el);
     return true;
   }
+  function reopenMenuIfNeeded() {
+    if (!returnToUserMenu) return;
+    const menu = document.getElementById("userMenu");
+    if (!menu) { returnToUserMenu = false; return; }
+    // Solo volver al menú cuando ya no quede otro modal/vista encima.
+    const remaining = getLayers().filter(el => el.id !== "userMenu" && el.id !== "userOverlay");
+    if (remaining.length) return;
+    menu.style.display = "block";
+    const overlay = document.getElementById("userOverlay");
+    if (overlay) overlay.style.display = "block";
+    returnToUserMenu = false;
+  }
+
+  // Recordar el menú de origen antes de que el código original lo oculte al elegir una opción.
+  document.addEventListener("click", function (event) {
+    const menu = document.getElementById("userMenu");
+    const item = event.target && event.target.closest ? event.target.closest("#userMenu .menu-btn, #userMenu button") : null;
+    if (!menu || !item || !visible(menu)) return;
+    const text = (item.innerText || item.textContent || "").trim().toLowerCase();
+    // Estos controles no abren una vista interna que deba apilarse.
+    if (item.id === "themeToggle" || item.id === "logoutBtn" || item.id === "whatsappBtn") return;
+    if (text.includes("conectar youtube")) return;
+    returnToUserMenu = true;
+  }, true);
+
   window.decomHandleAndroidBack = function () {
-    const layer = findTopLayer();
-    if (layer) { closeLayer(layer); return "closed"; }
-    if (window.AndroidApp && typeof window.AndroidApp.confirmExit === "function") {
-      window.AndroidApp.confirmExit();
-      return "exit-confirmation";
+    if (closing) return "handling";
+    closing = true;
+    try {
+      const layers = getLayers();
+      // Prioridad explícita: cerrar la capa superior, nunca cerrar varias a la vez.
+      const layer = layers.find(el => el.id !== "userOverlay") || null;
+      if (layer) {
+        if (layer.id === "userMenu") {
+          hideWithoutChangingOpenLogic(layer);
+          const overlay = document.getElementById("userOverlay");
+          if (overlay) hideWithoutChangingOpenLogic(overlay);
+          returnToUserMenu = false;
+          return "closed-menu";
+        }
+        closeLayer(layer);
+        reopenMenuIfNeeded();
+        return "closed-layer";
+      }
+      if (returnToUserMenu) {
+        reopenMenuIfNeeded();
+        const menu = document.getElementById("userMenu");
+        if (visible(menu)) return "returned-to-menu";
+      }
+      if (window.AndroidApp && typeof window.AndroidApp.confirmExit === "function") {
+        window.AndroidApp.confirmExit();
+        return "exit-confirmation";
+      }
+      return "no-layer";
+    } finally {
+      closing = false;
     }
-    return "no-layer";
   };
 })();
 </script>
