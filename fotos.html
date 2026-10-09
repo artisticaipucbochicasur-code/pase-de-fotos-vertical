@@ -18290,6 +18290,17 @@ async function compartirAnuncioActivo(){
             if(compartioArchivo) return;
         }
 
+        // En la APK, compartir videos mediante el selector nativo de Android.
+        // El contenido compartido es texto + enlace; no se intenta descargar el video.
+        if (esVideo && window.AndroidApp && typeof window.AndroidApp.shareLink === "function") {
+            window.AndroidApp.shareLink(
+                String(anuncio.titulo || "DECOM"),
+                String(anuncio.descripcion || ""),
+                String(url)
+            );
+            return;
+        }
+
         const datos = {
             title: anuncio.titulo || "DECOM",
             text: anuncio.descripcion || "",
