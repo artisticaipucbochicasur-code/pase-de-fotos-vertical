@@ -14062,13 +14062,30 @@ btnUploadVideo.addEventListener("click", async () => {
 
 
 
-        // limpiar formulario
-
+        // limpiar formulario después de publicar correctamente
         document.getElementById("videoTitle").value="";
         document.getElementById("videoDescripcion").value="";
         document.getElementById("fileInput").value="";
 
+        // Cerrar el modal Publicar, igual que después de subir una imagen.
+        // Se deja un breve margen para que el usuario vea la confirmación.
+        setTimeout(() => {
+            if (publishModal) {
+                publishModal.style.display = "none";
+            }
 
+            if (status) {
+                status.textContent = "";
+                status.innerHTML = "";
+            }
+
+            const imagesBtn = document.getElementById("imagesBtn");
+            if (imagesBtn) {
+                document.querySelectorAll('.header-btn')
+                    .forEach(btn => btn.classList.remove('selected'));
+                imagesBtn.classList.add('selected');
+            }
+        }, 1000);
 
     }catch(error){
 
