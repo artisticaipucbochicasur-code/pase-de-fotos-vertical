@@ -2169,6 +2169,113 @@ body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
 
 
 /* =========================================================
+   FEED CONTINUO: metadatos y acciones forman parte de cada publicación.
+   Las capas flotantes antiguas se conservan en el DOM para mantener la
+   lógica existente, pero dejan de cubrir el feed visualmente.
+========================================================= */
+.swiper-slide {
+  height: 100dvh;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.swiper-slide .swiper-zoom-container {
+  width: 100%;
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.swiper-slide .swiper-zoom-container > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.feed-post-footer {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  max-height: 34%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  color: #fff;
+  background: linear-gradient(180deg, rgba(18,18,18,.94), rgba(8,8,8,.99));
+  border-top: 1px solid rgba(255,255,255,.12);
+  text-align: left;
+  overscroll-behavior: contain;
+}
+
+.feed-post-author {
+  margin-bottom: 3px;
+  color: rgba(255,255,255,.76);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.feed-post-title {
+  margin: 0 0 4px;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.feed-post-description {
+  color: rgba(255,255,255,.92);
+  font-size: 13px;
+  line-height: 1.38;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 8px;
+}
+
+.feed-post-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 6px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255,255,255,.16);
+}
+
+.feed-post-action {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 5px;
+  border: 0;
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.feed-post-action i { font-size: 16px; }
+.feed-post-action:active { background: rgba(255,255,255,.12); }
+
+/* Se ocultan solo las capas visuales antiguas; los controles originales
+   siguen disponibles para conservar sus eventos y la lógica existente. */
+#contentOverlay,
+#commentsOverlay,
+#likesCounter,
+#commentsCounter,
+#shareActiveBtn,
+#feedCommentInputContainer { display: none !important; }
+
+/* =========================================================
    📰 PUBLICACIÓN TIPO FACEBOOK: TÍTULO + AUTOR + DESCRIPCIÓN
    Solo modifica la presentación del contenido activo.
 ========================================================= */
@@ -18869,6 +18976,51 @@ if(anuncio.tipo_media === "video"){
 
 
     slide.appendChild(zoomContainer);
+
+    // 📰 Pie integrado en cada publicación: se desplaza junto con la imagen/video,
+    // en lugar de quedar fijo sobre la pantalla como una capa independiente.
+    const postFooter = document.createElement("div");
+    postFooter.className = "feed-post-footer";
+
+    const postAuthor = document.createElement("div");
+    postAuthor.className = "feed-post-author";
+    postAuthor.textContent = anuncio.autor || "DECOM";
+
+    const postTitle = document.createElement("div");
+    postTitle.className = "feed-post-title";
+    postTitle.textContent = anuncio.titulo || "Publicación";
+
+    const postDescription = document.createElement("div");
+    postDescription.className = "feed-post-description";
+    postDescription.textContent = anuncio.descripcion || "";
+
+    const postActions = document.createElement("div");
+    postActions.className = "feed-post-actions";
+
+    const makeAction = (kind, iconClass, label, targetId) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `feed-post-action feed-post-action-${kind}`;
+        button.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i><span>${label}</span>`;
+        button.setAttribute("aria-label", label);
+        button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const target = document.getElementById(targetId);
+            if (target) target.click();
+        });
+        return button;
+    };
+
+    postActions.appendChild(makeAction("like", "far fa-heart", "Me gusta", "likesCounter"));
+    postActions.appendChild(makeAction("comment", "far fa-comment", "Comentar", "commentsCounter"));
+    postActions.appendChild(makeAction("share", "fas fa-share-nodes", "Compartir", "shareActiveBtn"));
+
+    postFooter.appendChild(postAuthor);
+    postFooter.appendChild(postTitle);
+    if (postDescription.textContent) postFooter.appendChild(postDescription);
+    postFooter.appendChild(postActions);
+    slide.appendChild(postFooter);
 
     return slide;
 }
