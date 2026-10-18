@@ -2276,7 +2276,6 @@ body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
 #feedCommentInputContainer,
 #saveBtn,
 #refreshBtn,
-#lblContador,
 #deleteAnnouncementBtn,
 #editAnnouncementBtn,
 #videoMuteBtn { display: none !important; }
@@ -15917,6 +15916,9 @@ async function abrirModalPersonasLikes(){
     await renderizarPersonasLikes(anuncioActual.id);
 }
 
+// Expuesta para que el botón de Me gusta del pie de cada publicación pueda abrir la lista.
+window.abrirPersonasQueDieronLike = abrirModalPersonasLikes;
+
 function refrescarModalLikesSiAbierto(publicacionId){
     if(
         !likesPeopleModal?.classList.contains("open") ||
@@ -16589,11 +16591,7 @@ document.querySelector('.swiper').addEventListener('click', (e) => {
       contentOverlay.classList.add('hidden-overlay'); // se oculta
     }
 
-    // 🔔 Alternar todo el contenedor de la campana (icono + círculo)
-    const lblContador = document.getElementById('lblContador');
-    if (lblContador) {
-      lblContador.classList.toggle('hidden-overlay');
-    }
+    // 🔔 La campana ya no se alterna al tocar: si hay anuncios nuevos siempre se ve.
 
     // 🆕 Alternar el botón de actualizar
     const refreshBtn = document.getElementById("refreshBtn");
@@ -17513,6 +17511,9 @@ function normalizarComentarios(lista) {
         if (icon) {
             icon.className = mostrarBadge ? "fas fa-bell" : "far fa-bell";
         }
+
+        // La campanita del header solo aparece cuando hay anuncios nuevos.
+        document.body.classList.toggle("hay-anuncios-nuevos", mostrarBadge);
     }
 
     function registrarNuevoAnuncioSupabase(publicacion) {
@@ -19091,6 +19092,8 @@ if(anuncio.tipo_media === "video"){
         button.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
+            // Si acaba de abrirse la lista con pulsación larga, no dar/quitar Me gusta.
+            if (kind === "like" && Date.now() < (button._suprimirClickHasta || 0)) return;
             if (kind === "more") {
                 abrirMenuAccionesPublicacion();
                 return;
@@ -19100,6 +19103,45 @@ if(anuncio.tipo_media === "video"){
             // de Supabase, los modales, el conteo y el compartir existentes.
             if (target) target.click();
         });
+
+        // ❤️ Ver quién dio Me gusta (como Instagram/Facebook):
+        //  - tocar el NÚMERO abre la lista
+        //  - mantener presionado el corazón también la abre
+        if (kind === "like") {
+            const countEl = button.querySelector(".feed-post-action-count");
+            if (countEl) {
+                countEl.setAttribute("role", "button");
+                countEl.title = "Ver quién dio Me gusta";
+                countEl.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (typeof window.abrirPersonasQueDieronLike === "function") {
+                        window.abrirPersonasQueDieronLike();
+                    }
+                });
+            }
+
+            let timerLike = null, sx = 0, sy = 0;
+            const cancelar = () => { if (timerLike) { clearTimeout(timerLike); timerLike = null; } };
+            button.addEventListener("pointerdown", (e) => {
+                if (e.pointerType === "mouse" && e.button !== 0) return;
+                cancelar();
+                sx = e.clientX; sy = e.clientY;
+                timerLike = setTimeout(() => {
+                    timerLike = null;
+                    button._suprimirClickHasta = Date.now() + 850;
+                    if (navigator.vibrate) navigator.vibrate(25);
+                    if (typeof window.abrirPersonasQueDieronLike === "function") {
+                        window.abrirPersonasQueDieronLike();
+                    }
+                }, 650);
+            });
+            button.addEventListener("pointermove", (e) => {
+                if (timerLike && (Math.abs(e.clientX - sx) > 14 || Math.abs(e.clientY - sy) > 14)) cancelar();
+            });
+            ["pointerup", "pointercancel", "pointerleave"].forEach(ev => button.addEventListener(ev, cancelar));
+            button.addEventListener("contextmenu", (e) => e.preventDefault());
+        }
         return button;
     };
 
@@ -20573,10 +20615,9 @@ function initSwiper(initialIndex = 0) {
 
     preventClicksPropagation: false,
 
-    zoom:{
-        maxRatio:3,
-        minRatio:1
-    }
+    // El zoom ya no vive en el feed (chocaba con el deslizamiento vertical).
+    // Ahora funciona solo en el visor de imagen a pantalla completa (#fotoViewer).
+    zoom:false
 
 });
 
@@ -25131,5 +25172,401 @@ if ("serviceWorker" in navigator) {
 }
 
 </script>
+<!-- =====================================================================
+     🖼️ VISOR DE IMAGEN A PANTALLA COMPLETA (tipo Instagram / Facebook)
+     - Se abre al tocar una imagen del feed.
+     - El zoom (pellizcar, doble toque, rueda del mouse) existe SOLO aquí,
+       así no choca con el deslizamiento del feed ni con otros controles.
+     - Se cierra con la X, deslizando hacia abajo, o con Esc.
+     ===================================================================== -->
+<style>
+  #fotoViewer{
+    position:fixed; inset:0; z-index:20000;
+    display:none; background:#000; opacity:0;
+    transition:opacity .2s ease;
+    touch-action:none; overscroll-behavior:contain;
+    -webkit-user-select:none; user-select:none;
+  }
+  #fotoViewer.open{ display:block; }
+  #fotoViewer.show{ opacity:1; }
+
+  #fotoViewer .fv-stage{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; touch-action:none; cursor:zoom-in;
+  }
+  #fotoViewer .fv-stage.zoomed{ cursor:grab; }
+  #fotoViewer .fv-img{
+    max-width:100%; max-height:100%;
+    object-fit:contain; display:block;
+    transform-origin:center center; will-change:transform;
+    -webkit-user-drag:none; pointer-events:none;
+  }
+  #fotoViewer .fv-img.fv-anim{ transition:transform .22s ease; }
+
+  #fotoViewer .fv-top{
+    position:absolute; top:0; left:0; right:0; z-index:2;
+    display:flex; align-items:center; gap:12px;
+    padding:calc(10px + env(safe-area-inset-top,0px)) 14px 28px;
+    background:linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0));
+    transition:opacity .2s ease;
+  }
+  #fotoViewer .fv-close{
+    flex:0 0 auto; width:40px; height:40px; border:0; border-radius:50%;
+    background:rgba(255,255,255,.14);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    color:#fff; font-size:26px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:manipulation;
+  }
+  #fotoViewer .fv-close:active{ background:rgba(255,255,255,.26); }
+  #fotoViewer .fv-meta{ min-width:0; display:flex; flex-direction:column; text-align:left; }
+  #fotoViewer .fv-author{ font-size:14px; font-weight:700; color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #fotoViewer .fv-title{ font-size:12px; color:rgba(255,255,255,.75);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #fotoViewer .fv-meta:empty{ display:none; }
+  #fotoViewer.chrome-off .fv-top{ opacity:0; pointer-events:none; }
+
+  @media (prefers-reduced-motion: reduce){
+    #fotoViewer, #fotoViewer .fv-img.fv-anim, #fotoViewer .fv-top{ transition:none; }
+  }
+
+  /* 🔔 Campanita de anuncios nuevos
+     - Solo aparece cuando hay anuncios nuevos (clase puesta por actualizarBadgesAnuncios).
+     - En el header normal vuelve a su lugar; con el feed embebido (header oculto)
+       queda flotando arriba a la derecha. */
+  #lblContador{ display:none !important; }
+  body.hay-anuncios-nuevos #lblContador{ display:flex !important; }
+  body.hay-anuncios-nuevos #lblContador i{ animation:decomBellRing 2.4s ease-in-out 1s 2; transform-origin:50% 10%; }
+  body.embedded > #lblContador{
+    position:fixed;
+    top:calc(10px + env(safe-area-inset-top,0px));
+    right:12px; width:40px; height:40px;
+    z-index:10002;
+    background:rgba(0,0,0,.5);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    box-shadow:0 4px 12px rgba(0,0,0,.45);
+  }
+  @keyframes decomBellRing{
+    0%,100%{ transform:rotate(0); }
+    10%{ transform:rotate(16deg); }
+    20%{ transform:rotate(-14deg); }
+    30%{ transform:rotate(10deg); }
+    40%{ transform:rotate(-8deg); }
+    50%{ transform:rotate(0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    body.hay-anuncios-nuevos #lblContador i{ animation:none; }
+  }
+
+  /* ❤️ El número de Me gusta del pie es tocable: abre "quién dio Me gusta" */
+  .feed-post-action-like .feed-post-action-count{
+    cursor:pointer;
+    padding:6px 8px; margin:-6px -4px -6px 0;
+    border-radius:8px;
+    text-decoration:underline;
+    text-decoration-color:rgba(255,255,255,.35);
+    text-underline-offset:3px;
+  }
+  .feed-post-action-like .feed-post-action-count:active{ background:rgba(255,255,255,.14); }
+  .swiper-slide:not(.video) .swiper-zoom-container > img{ cursor:zoom-in; }
+</style>
+
+<div id="fotoViewer" role="dialog" aria-modal="true" aria-label="Imagen a pantalla completa" aria-hidden="true">
+  <div class="fv-top">
+    <button type="button" class="fv-close" id="fvClose" aria-label="Cerrar">×</button>
+    <div class="fv-meta">
+      <span class="fv-author" id="fvAuthor"></span>
+      <span class="fv-title" id="fvTitle"></span>
+    </div>
+  </div>
+  <div class="fv-stage" id="fvStage">
+    <img class="fv-img" id="fvImg" alt="" draggable="false">
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const viewer = document.getElementById("fotoViewer");
+  const stage  = document.getElementById("fvStage");
+  const img    = document.getElementById("fvImg");
+  const btnX   = document.getElementById("fvClose");
+  const lblA   = document.getElementById("fvAuthor");
+  const lblT   = document.getElementById("fvTitle");
+  const swiperEl = document.querySelector(".swiper");
+  if (!viewer || !stage || !img || !swiperEl) return;
+
+  const MAX_SCALE = 5;
+  const DOUBLE_TAP_SCALE = 2.5;
+
+  let scale = 1, tx = 0, ty = 0;
+  const pointers = new Map();
+  let pinch = null;        // { dist, scale, tx, ty, mx, my }
+  let pan = null;          // { x, y, tx, ty }
+  let dismiss = null;      // { y }
+  let gestureMoved = false;
+  let downTime = 0, downX = 0, downY = 0;
+  let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+  let chromeTimer = null;
+  let abierto = false;
+
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  function aplicar(anim) {
+    img.classList.toggle("fv-anim", !!anim);
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    stage.classList.toggle("zoomed", scale > 1.01);
+  }
+
+  function limites() {
+    const w = img.clientWidth * scale, h = img.clientHeight * scale;
+    return {
+      mx: Math.max(0, (w - stage.clientWidth) / 2),
+      my: Math.max(0, (h - stage.clientHeight) / 2)
+    };
+  }
+
+  function ajustar() {
+    const l = limites();
+    tx = clamp(tx, -l.mx, l.mx);
+    ty = clamp(ty, -l.my, l.my);
+  }
+
+  // Zoom manteniendo fijo el punto (fx, fy) medido desde el centro del visor.
+  function zoomEn(nuevaEscala, fx, fy, baseScale, baseTx, baseTy) {
+    const s0 = baseScale === undefined ? scale : baseScale;
+    const x0 = baseTx === undefined ? tx : baseTx;
+    const y0 = baseTy === undefined ? ty : baseTy;
+    const s1 = clamp(nuevaEscala, 1, MAX_SCALE);
+    const k = s1 / s0;
+    scale = s1;
+    tx = fx - (fx - x0) * k;
+    ty = fy - (fy - y0) * k;
+    if (scale <= 1.001) { scale = 1; tx = 0; ty = 0; }
+    ajustar();
+  }
+
+  function centroDe(e) {
+    const r = stage.getBoundingClientRect();
+    return { x: e.clientX - r.left - r.width / 2, y: e.clientY - r.top - r.height / 2 };
+  }
+
+  function abrir(origen) {
+    const src = origen.currentSrc || origen.src;
+    if (!src) return;
+
+    const slide = origen.closest(".swiper-slide");
+    lblA.textContent = slide?.querySelector(".feed-post-author")?.textContent || "";
+    lblT.textContent = slide?.querySelector(".feed-post-title")?.textContent || "";
+
+    img.src = src;
+    img.alt = origen.alt || "";
+    scale = 1; tx = 0; ty = 0; aplicar(false);
+    viewer.style.background = "#000";
+    viewer.classList.remove("chrome-off");
+
+    viewer.classList.add("open");
+    viewer.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => viewer.classList.add("show"));
+    abierto = true;
+    try { btnX.focus({ preventScroll: true }); } catch (_) {}
+  }
+
+  function cerrar() {
+    if (!abierto) return;
+    abierto = false;
+    clearTimeout(chromeTimer);
+    pointers.clear(); pinch = null; pan = null; dismiss = null;
+    viewer.classList.remove("show");
+    viewer.setAttribute("aria-hidden", "true");
+    setTimeout(() => {
+      if (abierto) return;
+      viewer.classList.remove("open");
+      img.removeAttribute("src");
+    }, 220);
+  }
+
+  // ---- Abrir al tocar una imagen del feed (los videos no se tocan) ----
+  let feedDownX = 0, feedDownY = 0;
+  swiperEl.addEventListener("pointerdown", (e) => {
+    feedDownX = e.clientX; feedDownY = e.clientY;
+  }, true);
+
+  swiperEl.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const foto = t.closest(".swiper-slide:not(.video) .swiper-zoom-container > img");
+    if (!foto) return;
+    // Si fue un arrastre (cambiar de anuncio) no abrir.
+    if (Math.hypot(e.clientX - feedDownX, e.clientY - feedDownY) > 10) return;
+    if (!(foto.currentSrc || foto.src)) return;
+    e.stopPropagation();
+    abrir(foto);
+  }, true);
+
+  // ---- Gestos dentro del visor ----
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    img.classList.remove("fv-anim");
+
+    if (pointers.size === 1) {
+      gestureMoved = false;
+      downTime = Date.now(); downX = e.clientX; downY = e.clientY;
+      if (scale > 1.01) pan = { x: e.clientX, y: e.clientY, tx, ty };
+      else dismiss = { y: e.clientY };
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const r = stage.getBoundingClientRect();
+      pinch = {
+        dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        scale, tx, ty,
+        mx: (a.x + b.x) / 2 - r.left - r.width / 2,
+        my: (a.y + b.y) / 2 - r.top - r.height / 2
+      };
+      pan = null; dismiss = null; gestureMoved = true;
+    }
+  });
+
+  stage.addEventListener("pointermove", (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 8) gestureMoved = true;
+
+    if (pinch && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      zoomEn(pinch.scale * dist / pinch.dist, pinch.mx, pinch.my, pinch.scale, pinch.tx, pinch.ty);
+      aplicar(false);
+      return;
+    }
+
+    if (pan) {
+      tx = pan.tx + (e.clientX - pan.x);
+      ty = pan.ty + (e.clientY - pan.y);
+      ajustar();
+      aplicar(false);
+      return;
+    }
+
+    if (dismiss) {
+      const dy = e.clientY - dismiss.y;
+      ty = dy; tx = (e.clientX - downX) * 0.25;
+      const p = clamp(Math.abs(dy) / (stage.clientHeight * 0.6), 0, 1);
+      viewer.style.background = `rgba(0,0,0,${1 - p * 0.8})`;
+      aplicar(false);
+    }
+  });
+
+  function soltar(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
+
+    if (pinch) {
+      if (pointers.size < 2) pinch = null;
+      if (scale < 1.05) { scale = 1; tx = 0; ty = 0; aplicar(true); }
+      // Si queda un dedo, seguir moviendo la imagen con ese dedo.
+      if (pointers.size === 1 && scale > 1.01) {
+        const [rest] = [...pointers.values()];
+        pan = { x: rest.x, y: rest.y, tx, ty };
+      }
+      return;
+    }
+
+    if (pointers.size > 0) return;
+
+    // Cerrar deslizando hacia abajo (o hacia arriba) estando sin zoom.
+    if (dismiss) {
+      const dy = e.clientY - dismiss.y;
+      dismiss = null;
+      if (Math.abs(dy) > 110) { cerrar(); return; }
+      tx = 0; ty = 0;
+      viewer.style.background = "#000";
+      aplicar(true);
+    }
+    pan = null;
+
+    // Toque corto (sin arrastre): doble toque = zoom, toque simple = mostrar/ocultar barra.
+    const fueToque = !gestureMoved && Date.now() - downTime < 350;
+    if (!fueToque) return;
+
+    const ahora = Date.now();
+    const esDoble = ahora - lastTapTime < 300 &&
+      Math.hypot(e.clientX - lastTapX, e.clientY - lastTapY) < 40;
+
+    if (esDoble) {
+      clearTimeout(chromeTimer);
+      lastTapTime = 0;
+      const c = centroDe(e);
+      if (scale > 1.01) { scale = 1; tx = 0; ty = 0; }
+      else zoomEn(DOUBLE_TAP_SCALE, c.x, c.y);
+      aplicar(true);
+    } else {
+      lastTapTime = ahora; lastTapX = e.clientX; lastTapY = e.clientY;
+      clearTimeout(chromeTimer);
+      chromeTimer = setTimeout(() => viewer.classList.toggle("chrome-off"), 260);
+    }
+  }
+  stage.addEventListener("pointerup", soltar);
+  stage.addEventListener("pointercancel", (e) => {
+    pointers.delete(e.pointerId);
+    pinch = null; pan = null;
+    if (dismiss) { dismiss = null; tx = 0; ty = 0; viewer.style.background = "#000"; aplicar(true); }
+  });
+
+  // PC: rueda del mouse = zoom en el punto del cursor.
+  stage.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const c = centroDe(e);
+    const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+    zoomEn(scale * factor, c.x, c.y);
+    aplicar(false);
+  }, { passive: false });
+
+  // Evitar que el navegador arrastre/seleccione la imagen o abra menú contextual.
+  stage.addEventListener("dragstart", (e) => e.preventDefault());
+  stage.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  btnX.addEventListener("click", (e) => { e.stopPropagation(); cerrar(); });
+  btnX.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  document.addEventListener("keydown", (e) => {
+    if (!abierto) return;
+    if (e.key === "Escape") { cerrar(); }
+    else if (e.key === "+" || e.key === "=") { zoomEn(scale * 1.25, 0, 0); aplicar(true); }
+    else if (e.key === "-") { zoomEn(scale / 1.25, 0, 0); aplicar(true); }
+  });
+
+  window.addEventListener("resize", () => { if (abierto) { ajustar(); aplicar(false); } });
+
+  // Cerrar el visor si cambia el anuncio activo por otra vía (p. ej. Realtime/campanita).
+  window.cerrarVisorFoto = cerrar;
+})();
+
+// 🔔 Con el feed embebido (header oculto) la campanita sale del header y flota arriba a la derecha.
+(function () {
+  const bell = document.getElementById("lblContador");
+  if (!bell) return;
+  bell.setAttribute("role", "button");
+  bell.setAttribute("aria-label", "Nuevos anuncios");
+  bell.title = "Nuevos anuncios";
+
+  function moverSiEmbebido() {
+    if (document.body.classList.contains("embedded") && bell.parentElement !== document.body) {
+      document.body.appendChild(bell);
+    }
+  }
+  moverSiEmbebido();
+  document.addEventListener("DOMContentLoaded", moverSiEmbebido);
+  window.addEventListener("load", moverSiEmbebido);
+})();
+</script>
+
 </body>
 </html>
