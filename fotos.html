@@ -18928,6 +18928,153 @@ function actualizarReproduccionVideoActivo(indice){
     }
 }
 
+// =====================================================
+// 👤 CABECERA DE LA PUBLICACIÓN: foto + nombre + fecha (tipo red social)
+// Tocar la foto o el nombre abre el perfil de quien publicó.
+// =====================================================
+function formatearFechaPublicacion(valor){
+    const fecha = fechaValidaAnuncio(valor);
+    if(!fecha) return "";
+
+    const segundos = Math.floor((Date.now() - fecha.getTime()) / 1000);
+    if(segundos < 60) return "justo ahora";
+
+    const minutos = Math.floor(segundos / 60);
+    if(minutos < 60) return minutos === 1 ? "hace un minuto" : `hace ${minutos} minutos`;
+
+    const horas = Math.floor(minutos / 60);
+    if(horas < 24) return horas === 1 ? "hace una hora" : `hace ${horas} horas`;
+
+    const dias = Math.floor(horas / 24);
+    if(dias < 7) return dias === 1 ? "hace un día" : `hace ${dias} días`;
+
+    return "el " + fecha.toLocaleDateString("es-CO", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
+
+const URL_FOTO_AUTOR_RE = /^(https?:|data:|blob:|\/)/i;
+const promesasFotoAutor = new Map();
+
+function resolverFotoAutor(correo, nombre){
+    const norm = normalizeText(correo || "");
+    if(!norm) return Promise.resolve("");
+    if(fotoCache[norm]) return Promise.resolve(fotoCache[norm]);
+
+    // Una sola consulta por persona aunque tenga muchas publicaciones.
+    if(!promesasFotoAutor.has(norm)){
+        promesasFotoAutor.set(
+            norm,
+            Promise.resolve(resolveFotoPerfil(norm, nombre))
+                .catch(() => "")
+                .finally(() => promesasFotoAutor.delete(norm))
+        );
+    }
+    return promesasFotoAutor.get(norm);
+}
+
+function pintarAvatarAutor(boton, valor, nombre){
+    boton.replaceChildren();
+
+    if(valor && URL_FOTO_AUTOR_RE.test(valor)){
+        const im = document.createElement("img");
+        im.alt = "";
+        im.decoding = "async";
+        im.draggable = false;
+        im.addEventListener("error", () => {
+            boton.replaceChildren();
+            boton.textContent = fallbackName(nombre);
+        }, {once: true});
+        im.src = valor;
+        boton.appendChild(im);
+    }else{
+        // Sin foto: iniciales, igual que en el resto de la app.
+        boton.textContent = valor || fallbackName(nombre);
+    }
+}
+
+function crearCabeceraAutorPublicacion(anuncio, postAuthor){
+    const nombre = String(anuncio.autor || "Anónimo");
+    const correo = String(anuncio.correo || "").trim();
+
+    const cabecera = document.createElement("div");
+    cabecera.className = "feed-post-head";
+
+    const avatar = document.createElement("button");
+    avatar.type = "button";
+    avatar.className = "feed-post-avatar";
+    avatar.setAttribute("aria-label", `Ver perfil de ${nombre}`);
+
+    const enCache = fotoCache[normalizeText(correo)] || "";
+    pintarAvatarAutor(avatar, enCache, nombre);
+
+    if(!enCache && correo){
+        resolverFotoAutor(correo, nombre)
+            .then(valor => pintarAvatarAutor(avatar, valor, nombre));
+    }
+
+    const quien = document.createElement("div");
+    quien.className = "feed-post-who";
+
+    const fechaEl = document.createElement("div");
+    fechaEl.className = "feed-post-date";
+    fechaEl.dataset.fecha = String(anuncio.fecha || "");
+    fechaEl.textContent = formatearFechaPublicacion(anuncio.fecha);
+
+    const fechaReal = fechaValidaAnuncio(anuncio.fecha);
+    if(fechaReal){
+        fechaEl.title = fechaReal.toLocaleString("es-CO", {
+            dateStyle: "full",
+            timeStyle: "short"
+        });
+    }
+    if(!fechaEl.textContent) fechaEl.style.display = "none";
+
+    quien.appendChild(postAuthor);
+    quien.appendChild(fechaEl);
+    cabecera.appendChild(avatar);
+    cabecera.appendChild(quien);
+
+    const abrirPerfil = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if(!correo) return;
+
+        const loaderEl = document.getElementById("loader");
+        if(loaderEl) loaderEl.style.display = "block";
+
+        Promise.resolve(abrirPerfilPorCorreo(correo))
+            .catch(err => console.error("Error abriendo perfil del autor:", err))
+            .finally(() => {
+                if(loaderEl) loaderEl.style.display = "none";
+            });
+    };
+
+    avatar.addEventListener("click", abrirPerfil);
+    quien.addEventListener("click", abrirPerfil);
+
+    if(!correo){
+        avatar.style.cursor = "default";
+        quien.style.cursor = "default";
+    }
+
+    return cabecera;
+}
+
+// "hace 5 minutos" se mantiene al día sin recargar el feed.
+function refrescarFechasPublicaciones(){
+    document.querySelectorAll(".feed-post-date[data-fecha]").forEach(el => {
+        const texto = formatearFechaPublicacion(el.dataset.fecha);
+        if(texto && el.textContent !== texto) el.textContent = texto;
+    });
+}
+
+if(!window.__decomTimerFechasPublicacion){
+    window.__decomTimerFechasPublicacion = setInterval(refrescarFechasPublicaciones, 60000);
+}
+
 function crearSlideAnuncio(anuncio){
 
    const slide = document.createElement("div");
@@ -19150,7 +19297,7 @@ if(anuncio.tipo_media === "video"){
     postActions.appendChild(makeAction("share", "fas fa-share-nodes", "Compartir", "shareActiveBtn"));
     postActions.appendChild(makeAction("more", "fas fa-ellipsis-h", "Más", null));
 
-    postFooter.appendChild(postAuthor);
+    postFooter.appendChild(crearCabeceraAutorPublicacion(anuncio, postAuthor));
     postFooter.appendChild(postTitle);
     if (postDescription.textContent) postFooter.appendChild(postDescription);
     postFooter.appendChild(postActions);
@@ -20593,20 +20740,22 @@ function initSwiper(initialIndex = 0) {
 
     slidesPerView: 1,
 
-    spaceBetween: 10,
+    spaceBetween: 0,
 
-    // Feed continuo: permite arrastrar la cinta libremente sin ajustar
-    // bruscamente cada gesto a la publicación siguiente.
-    freeMode: {
-        enabled: true,
-        sticky: false,
-        momentum: true,
-        momentumRatio: 0.85,
-        momentumBounce: false
-    },
-    speed: 450,
-    threshold: 5,
+    // Paginado fluido tipo TikTok / Reels: la publicación sigue al dedo y al soltar
+    // se acomoda suavemente en la siguiente o en la actual (nunca queda a medias).
+    freeMode: false,
+    speed: 380,
+    threshold: 6,
+    touchAngle: 60,
+    touchRatio: 1,
     followFinger: true,
+    shortSwipes: true,
+    longSwipes: true,
+    longSwipesRatio: 0.18,
+    longSwipesMs: 260,
+    resistance: true,
+    resistanceRatio: 0.7,
     grabCursor: true,
 
     touchStartPreventDefault: false,
@@ -25568,5 +25717,38 @@ if ("serviceWorker" in navigator) {
 })();
 </script>
 
+<style>
+  /* 👤 Cabecera de la publicación: foto + nombre + fecha */
+  .feed-post-head{
+    display:flex; align-items:center; gap:10px;
+    margin:0 0 8px;
+  }
+  .feed-post-avatar{
+    flex:0 0 auto; width:38px; height:38px; padding:0;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.22);
+    background:#2a2a2a; color:#fff;
+    font:700 14px/1 Arial, sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; cursor:pointer; touch-action:manipulation;
+  }
+  .feed-post-avatar:active{ transform:scale(.94); }
+  .feed-post-avatar img{
+    width:100%; height:100%; max-width:none; max-height:none;
+    margin:0; object-fit:cover; display:block;
+    pointer-events:none; cursor:pointer;
+  }
+  .feed-post-who{
+    min-width:0; display:flex; flex-direction:column; gap:1px;
+    text-align:left; cursor:pointer;
+  }
+  .feed-post-head .feed-post-author{
+    margin:0; color:#fff; font-size:14px; font-weight:700;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .feed-post-date{
+    color:rgba(255,255,255,.62); font-size:11.5px; line-height:1.2;
+  }
+</style>
 </body>
 </html>
