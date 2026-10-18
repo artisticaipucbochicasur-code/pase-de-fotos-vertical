@@ -2273,7 +2273,76 @@ body.dark-mode #commentsModal .comment-input-wrapper input::placeholder {
 #likesCounter,
 #commentsCounter,
 #shareActiveBtn,
-#feedCommentInputContainer { display: none !important; }
+#feedCommentInputContainer,
+#saveBtn,
+#refreshBtn,
+#lblContador,
+#deleteAnnouncementBtn,
+#editAnnouncementBtn,
+#videoMuteBtn { display: none !important; }
+
+.feed-post-action-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1em;
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+}
+.feed-post-action-count:empty { display: none; }
+.feed-post-action-like.is-liked { color: #ff5a78; }
+.feed-post-action-like.is-liked i { color: #ff5a78; }
+.feed-post-action-more { flex: 0 0 42px; }
+
+/* Menú de acciones adicionales, estilo hoja/modal social */
+#feedActionsModal {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  box-sizing: border-box;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+#feedActionsModal.open { display: flex; }
+#feedActionsSheet {
+  width: min(100%, 520px);
+  max-height: min(78dvh, 680px);
+  overflow-y: auto;
+  border-radius: 20px 20px 14px 14px;
+  padding: 12px;
+  box-sizing: border-box;
+  color: #171717;
+  background: #fff;
+  box-shadow: 0 18px 55px rgba(0,0,0,.35);
+  animation: feedActionsRise .18s ease-out;
+}
+@keyframes feedActionsRise { from { transform: translateY(18px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }
+#feedActionsHandle { width: 42px; height: 4px; border-radius: 99px; background: #c8c8c8; margin: 0 auto 12px; }
+#feedActionsHeader { display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 2px 4px 10px; border-bottom: 1px solid #ececec; }
+#feedActionsTitle { margin:0; font-size:17px; font-weight:750; }
+#feedActionsClose { border:0; border-radius:50%; width:34px; height:34px; font-size:24px; line-height:1; background:#f0f2f5; color:#333; cursor:pointer; }
+#feedActionsList { display:flex; flex-direction:column; gap:4px; padding-top:8px; }
+.feed-extra-action { width:100%; display:flex; align-items:center; gap:13px; border:0; border-radius:12px; padding:12px 10px; background:transparent; color:inherit; text-align:left; font:inherit; cursor:pointer; }
+.feed-extra-action:hover, .feed-extra-action:active { background:#f0f2f5; }
+.feed-extra-action-icon { width:38px; height:38px; flex:0 0 38px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#eef0f3; color:#30343b; font-size:16px; }
+.feed-extra-action-text { display:flex; flex-direction:column; gap:2px; }
+.feed-extra-action-title { font-size:14px; font-weight:700; }
+.feed-extra-action-subtitle { font-size:12px; color:#65676b; }
+body.dark-mode #feedActionsSheet { color:#f5f5f5; background:#202124; }
+body.dark-mode #feedActionsHeader { border-bottom-color:#3a3b3c; }
+body.dark-mode #feedActionsClose, body.dark-mode .feed-extra-action-icon { color:#f5f5f5; background:#3a3b3c; }
+body.dark-mode .feed-extra-action:hover, body.dark-mode .feed-extra-action:active { background:#303134; }
+body.dark-mode .feed-extra-action-subtitle { color:#b0b3b8; }
+@media (min-width: 700px) {
+  #feedActionsModal { align-items:center; }
+  #feedActionsSheet { border-radius:18px; }
+}
 
 /* =========================================================
    📰 PUBLICACIÓN TIPO FACEBOOK: TÍTULO + AUTOR + DESCRIPCIÓN
@@ -3596,6 +3665,21 @@ Volver al inicio
 
 
 
+
+
+</div>
+
+<!-- Menú de acciones secundarias de cada publicación -->
+<div id="feedActionsModal" aria-hidden="true">
+  <div id="feedActionsSheet" role="dialog" aria-modal="true" aria-labelledby="feedActionsTitle">
+    <div id="feedActionsHandle"></div>
+    <div id="feedActionsHeader">
+      <h2 id="feedActionsTitle">Opciones de la publicación</h2>
+      <button id="feedActionsClose" type="button" aria-label="Cerrar menú">×</button>
+    </div>
+    <div id="feedActionsList"></div>
+  </div>
+</div>
 
 
   <!-- Botón fijo para eliminar anuncio -->
@@ -18997,24 +19081,32 @@ if(anuncio.tipo_media === "video"){
     const postActions = document.createElement("div");
     postActions.className = "feed-post-actions";
 
-    const makeAction = (kind, iconClass, label, targetId) => {
+    const makeAction = (kind, iconClass, label, targetId, countId = null) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = `feed-post-action feed-post-action-${kind}`;
-        button.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i><span>${label}</span>`;
+        button.dataset.feedAction = kind;
+        button.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i><span class="feed-post-action-label">${label}</span>${countId ? `<span class="feed-post-action-count" data-count-source="${countId}">0</span>` : ""}`;
         button.setAttribute("aria-label", label);
         button.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
+            if (kind === "more") {
+                abrirMenuAccionesPublicacion();
+                return;
+            }
             const target = document.getElementById(targetId);
+            // Se reutilizan los controles originales para conservar la lógica
+            // de Supabase, los modales, el conteo y el compartir existentes.
             if (target) target.click();
         });
         return button;
     };
 
-    postActions.appendChild(makeAction("like", "far fa-heart", "Me gusta", "likesCounter"));
-    postActions.appendChild(makeAction("comment", "far fa-comment", "Comentar", "commentsCounter"));
+    postActions.appendChild(makeAction("like", "far fa-heart", "Me gusta", "likesCounter", "likeCountValue"));
+    postActions.appendChild(makeAction("comment", "far fa-comment", "Comentar", "commentsCounter", "commentCountValue"));
     postActions.appendChild(makeAction("share", "fas fa-share-nodes", "Compartir", "shareActiveBtn"));
+    postActions.appendChild(makeAction("more", "fas fa-ellipsis-h", "Más", null));
 
     postFooter.appendChild(postAuthor);
     postFooter.appendChild(postTitle);
@@ -20351,6 +20443,102 @@ async function resolveFotoPerfil(correo, nombre = "") {
 }
 
 
+// Actualiza los contadores visibles en la barra del feed desde los
+// contadores reales existentes (no mantiene una cuenta paralela).
+function sincronizarContadoresFeed() {
+  const activeSlide = document.querySelector('.swiper-slide-active');
+  if (!activeSlide) return;
+  const likeSource = document.getElementById('likeCountValue');
+  const commentSource = document.getElementById('commentCountValue');
+  const likeButton = activeSlide.querySelector('.feed-post-action-like');
+  const commentButton = activeSlide.querySelector('.feed-post-action-comment');
+  const likeCount = activeSlide.querySelector('[data-count-source="likeCountValue"]');
+  const commentCount = activeSlide.querySelector('[data-count-source="commentCountValue"]');
+  if (likeCount && likeSource) {
+    const value = String(Number(likeSource.textContent || 0));
+    likeCount.textContent = Number(value) > 0 ? value : '';
+  }
+  if (commentCount && commentSource) {
+    const value = String(Number(commentSource.textContent || 0));
+    commentCount.textContent = Number(value) > 0 ? value : '';
+  }
+  if (likeButton && likeSource) {
+    const icon = likeButton.querySelector('i');
+    const sourceIcon = document.getElementById('likeIcon');
+    const liked = !!sourceIcon && sourceIcon.classList.contains('fas');
+    likeButton.classList.toggle('is-liked', liked);
+    if (icon) icon.className = liked ? 'fas fa-heart' : 'far fa-heart';
+    likeButton.setAttribute('aria-label', `Me gusta${likeCount?.textContent ? `, ${likeCount.textContent}` : ''}`);
+  }
+  if (commentButton) {
+    commentButton.setAttribute('aria-label', `Comentar${commentCount?.textContent ? `, ${commentCount.textContent}` : ''}`);
+  }
+}
+
+const feedCountObserver = new MutationObserver(sincronizarContadoresFeed);
+['likeCountValue', 'commentCountValue', 'likeIcon'].forEach(id => {
+  const node = document.getElementById(id);
+  if (node) feedCountObserver.observe(node, { childList: true, characterData: true, subtree: true, attributes: id === 'likeIcon' });
+});
+document.addEventListener('click', (event) => {
+  if (event.target.closest('.swiper-button-next, .swiper-button-prev')) return;
+  if (event.target.closest('.feed-post-action')) return;
+  requestAnimationFrame(sincronizarContadoresFeed);
+}, true);
+
+// El menú invoca los botones originales para preservar cada funcionalidad.
+function abrirMenuAccionesPublicacion() {
+  const modal = document.getElementById('feedActionsModal');
+  const list = document.getElementById('feedActionsList');
+  if (!modal || !list) return;
+  list.replaceChildren();
+  const actions = [
+    { id: 'saveBtn', title: 'Guardar publicación', subtitle: 'Guardar o quitar de tus guardados', icon: 'far fa-bookmark' },
+    { id: 'openSavedMenu', title: 'Mis guardados', subtitle: 'Ver publicaciones guardadas', icon: 'fas fa-bookmark' },
+    { id: 'lblContador', title: 'Notificaciones', subtitle: 'Ver tus avisos', icon: 'far fa-bell' },
+    { id: 'refreshBtn', title: 'Actualizar feed', subtitle: 'Cargar las publicaciones de nuevo', icon: 'fas fa-sync-alt' },
+    { id: 'videoMuteBtn', title: 'Sonido del video', subtitle: 'Activar o silenciar el video actual', icon: 'fas fa-volume-high', onlyWhen: () => !!document.getElementById('videoMuteBtn')?.onclick },
+    { id: 'editAnnouncementBtn', title: 'Editar publicación', subtitle: 'Modificar esta publicación', icon: 'fas fa-pen', onlyWhen: () => !!document.getElementById('editAnnouncementBtn')?.onclick },
+    { id: 'deleteAnnouncementBtn', title: 'Eliminar publicación', subtitle: 'Eliminar esta publicación', icon: 'fas fa-trash', onlyWhen: () => !!document.getElementById('deleteAnnouncementBtn')?.onclick }
+  ];
+  actions.forEach(action => {
+    const target = document.getElementById(action.id);
+    if (!target || (action.onlyWhen && !action.onlyWhen())) return;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'feed-extra-action';
+    item.innerHTML = `<span class="feed-extra-action-icon"><i class="${action.icon}" aria-hidden="true"></i></span><span class="feed-extra-action-text"><span class="feed-extra-action-title">${action.title}</span><span class="feed-extra-action-subtitle">${action.subtitle}</span></span>`;
+    item.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      cerrarMenuAccionesPublicacion();
+      // Los botones ocultos conservan sus listeners y reciben el click real.
+      target.click();
+    });
+    list.appendChild(item);
+  });
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarMenuAccionesPublicacion() {
+  const modal = document.getElementById('feedActionsModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+document.getElementById('feedActionsClose')?.addEventListener('click', cerrarMenuAccionesPublicacion);
+document.getElementById('feedActionsModal')?.addEventListener('click', (event) => {
+  if (event.target.id === 'feedActionsModal') cerrarMenuAccionesPublicacion();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') cerrarMenuAccionesPublicacion();
+});
+
+
+
 function initSwiper(initialIndex = 0) {
 
     if(!swiperInstance) {
@@ -20417,6 +20605,9 @@ function initSwiper(initialIndex = 0) {
             actualizarReproduccionVideoActivo(activeIndex);
 
             updateContentOverlay(activeIndex);
+            if (typeof sincronizarContadoresFeed === 'function') {
+                requestAnimationFrame(sincronizarContadoresFeed);
+            }
 
 
 
