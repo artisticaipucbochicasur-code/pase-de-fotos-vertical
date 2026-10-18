@@ -25754,7 +25754,11 @@ if ("serviceWorker" in navigator) {
 <style id="fp-mejoras-css">
 html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 .swiper-slide{-webkit-touch-callout:none}
-.feed-post-action{min-height:44px}
+.feed-post-actions{gap:2px}
+.feed-post-action{min-height:44px;flex:1 1 auto;gap:5px;padding:8px 4px;font-size:12.5px}
+.feed-post-action-label{white-space:nowrap}
+.feed-post-action.fp-link{flex:0 0 40px;padding:8px 0}
+.feed-post-action-more{flex:0 0 auto;padding:8px 6px}
 @media (hover:none){.swiper{cursor:default}}
 /* Placeholder + aparición suave de imágenes */
 .swiper-slide .swiper-zoom-container{position:relative;background:linear-gradient(110deg,#15171a 30%,#22262c 50%,#15171a 70%);background-size:200% 100%;animation:fpShimmer 1.4s linear infinite}
@@ -25769,8 +25773,7 @@ html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 .fp-video-btns{position:absolute;right:12px;bottom:58px;display:flex;flex-direction:column;gap:10px;z-index:30}
 .fp-video-btns button{width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .fp-video-btns button:active{transform:scale(.92)}
-.swiper-zoom-container.fp-fs{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:2147483000!important;background:#000!important}
-body.fp-fs-on .swiper-wrapper{transform:none!important;transition:none!important}
+.swiper-slide .swiper-zoom-container.fp-fs{position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;z-index:50!important;background:#000!important}
 /* Insignia Nuevo */
 .fp-new{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:25;background:#1877f2;color:#fff;font:700 12px/1 system-ui,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:opacity .5s}
 .fp-new.fp-out{opacity:0}
@@ -25802,16 +25805,21 @@ body.fp-fs-on .swiper-wrapper{transform:none!important;transition:none!important
   function muted(){return LS.get('fp_muted',true)}
   function iconos(){$$('.fp-mute i').forEach(function(i){i.className=muted()?'fas fa-volume-mute':'fas fa-volume-up'})}
   function aplicarSonido(ifr){if(!ifr||typeof enviarComandoYoutube!=='function')return;try{enviarComandoYoutube(ifr,muted()?'mute':'unMute');ifr.dataset.muted=muted()?'true':'false'}catch(e){}iconos()}
-  function pantallaCompleta(z){
-    var on=!z.classList.contains('fp-fs');
-    z.classList.toggle('fp-fs',on);document.body.classList.toggle('fp-fs-on',on);
-    try{
-      if(on){var r=z.requestFullscreen||z.webkitRequestFullscreen;if(r){var p=r.call(z);if(p&&p.catch)p.catch(function(){})}
-        if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(function(){})}}
-      else{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}
-    }catch(e){}
+  function esWebView(){return !!window.AndroidApp||/; wv\)|Version\/[\d.]+.*Chrome/i.test(navigator.userAgent)&&/Android/i.test(navigator.userAgent)&&/; wv\)/.test(navigator.userAgent)}
+  function bloquearSwipe(b){try{if(swiperInstance){swiperInstance.allowTouchMove=!b}}catch(e){}}
+  function salirFs(){
+    $$('.fp-fs').forEach(function(z){z.classList.remove('fp-fs')});document.body.classList.remove('fp-fs-on');bloquearSwipe(false);
+    try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}catch(e){}
   }
-  document.addEventListener('fullscreenchange',function(){if(!document.fullscreenElement){$$('.fp-fs').forEach(function(z){z.classList.remove('fp-fs')});document.body.classList.remove('fp-fs-on')}});
+  function pantallaCompleta(z){
+    if(z.classList.contains('fp-fs')){salirFs();return}
+    z.classList.add('fp-fs');document.body.classList.add('fp-fs-on');bloquearSwipe(true);
+    if(esWebView())return; /* En el WebView de la APK solo se usa la pantalla completa interna */
+    try{var r=z.requestFullscreen||z.webkitRequestFullscreen;if(r){var p=r.call(z);if(p&&p.catch)p.catch(function(){})}
+      if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(function(){})}}catch(e){}
+  }
+  document.addEventListener('fullscreenchange',function(){if(!document.fullscreenElement)salirFs()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')salirFs()});
   function decorarVideo(sl){
     var z=$('.swiper-zoom-container',sl),ifr=$('iframe.youtube-player',sl);
     if(!z||!ifr||$('.fp-video-btns',z))return;
