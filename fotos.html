@@ -20706,6 +20706,17 @@ function abrirMenuAccionesPublicacion() {
     });
     list.appendChild(item);
   });
+  const itemEnlace = document.createElement('button');
+  itemEnlace.type = 'button';
+  itemEnlace.className = 'feed-extra-action';
+  itemEnlace.innerHTML = '<span class="feed-extra-action-icon"><i class="fas fa-link" aria-hidden="true"></i></span><span class="feed-extra-action-text"><span class="feed-extra-action-title">Copiar enlace</span><span class="feed-extra-action-subtitle">Enlace directo a esta publicación</span></span>';
+  itemEnlace.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cerrarMenuAccionesPublicacion();
+    if (window.fpCompartirEnlaceActivo) window.fpCompartirEnlaceActivo();
+  });
+  list.appendChild(itemEnlace);
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
@@ -25757,7 +25768,6 @@ html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 .feed-post-actions{gap:2px}
 .feed-post-action{min-height:44px;flex:1 1 auto;gap:5px;padding:8px 4px;font-size:12.5px}
 .feed-post-action-label{white-space:nowrap}
-.feed-post-action.fp-link{flex:0 0 40px;padding:8px 0}
 .feed-post-action-more{flex:0 0 auto;padding:8px 6px}
 @media (hover:none){.swiper{cursor:default}}
 /* Placeholder + aparición suave de imágenes */
@@ -25854,6 +25864,18 @@ html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
   },{passive:true});
   document.addEventListener('dblclick',function(e){if(objetivoValido(e.target))darLike(e.target.closest('.swiper-slide'),e.clientX,e.clientY)});
 
+  /* Imágenes: esperar un instante antes de abrir el visor para distinguir el doble toque */
+  var cTimer=null,cReplay=false;
+  document.addEventListener('click',function(e){
+    if(cReplay)return;
+    var t=e.target;if(!t||!t.closest)return;
+    var foto=t.closest('.swiper-slide:not(.video) .swiper-zoom-container>img');if(!foto)return;
+    e.stopImmediatePropagation();e.preventDefault();
+    if(cTimer){clearTimeout(cTimer);cTimer=null;return}
+    var x=e.clientX,y=e.clientY;
+    cTimer=setTimeout(function(){cTimer=null;cReplay=true;try{foto.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,clientX:x,clientY:y}))}finally{cReplay=false}},300);
+  },true);
+
   /* ---------- Imágenes: aparición suave ---------- */
   function listaImg(i){i.classList.add('fp-ok');if(i.parentNode)i.parentNode.classList.add('fp-ok-wrap')}
   document.addEventListener('load',function(e){var i=e.target;if(i&&i.tagName==='IMG'&&i.matches('.swiper-zoom-container>img'))listaImg(i)},true);
@@ -25878,6 +25900,7 @@ html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
     try{if(navigator.share){await navigator.share({title:a.titulo||'Publicación',text:a.titulo||'',url:url});return}}catch(e){if(e&&e.name==='AbortError')return}
     try{await navigator.clipboard.writeText(url);toast('Enlace copiado')}catch(e){window.prompt('Copia el enlace:',url)}
   }
+  window.fpCompartirEnlaceActivo=function(){try{var sl=$$('.swiper-wrapper > .swiper-slide')[swiperInstance.realIndex];if(sl)compartirEnlace(sl)}catch(e){}};
   function botonEnlace(sl){
     var acc=$('.feed-post-actions',sl);if(!acc||$('.fp-link',acc))return;
     var b=document.createElement('button');b.type='button';b.className='feed-post-action fp-link';b.setAttribute('aria-label','Compartir enlace');b.innerHTML='<i class="fas fa-link"></i>';
@@ -25937,7 +25960,6 @@ html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
     var sls=$$('.swiper-wrapper > .swiper-slide');
     sls.forEach(function(sl){
       if(sl.classList.contains('video'))decorarVideo(sl);
-      botonEnlace(sl);
       $$('.swiper-zoom-container>img',sl).forEach(function(i){if(i.complete&&i.naturalWidth)listaImg(i)});
     });
     insignias(sls);vacio();
