@@ -25902,11 +25902,11 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     try{if(videoViewerFrame){videoViewerFrame.src='about:blank';videoViewerFrame.remove()}}catch(e){}
     videoViewerFrame=original.cloneNode(false);
     videoViewerFrame.removeAttribute('id');videoViewerFrame.setAttribute('title','Video a pantalla completa');
-    videoViewerFrame.style.cssText='position:absolute;inset:0;width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;';
+    videoViewerFrame.style.cssText='position:absolute;inset:0;width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;z-index:2;';
     videoViewerFrame.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
     videoViewerFrame.setAttribute('allowfullscreen','');
     var src=original.src||original.getAttribute('src')||'';
-    try{var u=new URL(src,location.href);u.searchParams.set('autoplay','1');u.searchParams.set('playsinline','0');u.searchParams.set('mute','0');u.searchParams.set('enablejsapi','1');src=u.toString()}catch(e){}
+    try{var u=new URL(src,location.href);u.searchParams.set('autoplay','1');u.searchParams.set('playsinline','0');u.searchParams.set('mute','0');u.searchParams.set('enablejsapi','1');u.searchParams.set('controls','1');u.searchParams.set('disablekb','0');u.searchParams.set('fs','1');src=u.toString()}catch(e){}
     videoViewer.insertBefore(videoViewerFrame,videoViewerGesture||null);
     videoViewerFrame.src=src;
     videoViewerFrame.addEventListener('load',function(){sonidoForzadoViewer()}, {once:true});
@@ -25924,24 +25924,31 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function salirFs(){cerrarVideoViewer()}
   function irVideoCercano(direccion){
     if(!videoViewer||typeof swiperInstance==='undefined'||!swiperInstance||!Array.isArray(anunciosData)||!anunciosData.length)return;
-    var actual=Number(swiperInstance.realIndex)||0, n=anunciosData.length, destino=-1;
+    var actual=Number(swiperInstance.realIndex)||0,n=anunciosData.length,destino=-1;
     for(var paso=1;paso<=n;paso++){
-      var idx=(actual+direccion*paso+n*2)%n, a=anunciosData[idx];
+      var idx=(actual+direccion*paso+n*2)%n,a=anunciosData[idx];
       if(a&&String(a.tipo_media||'').toLowerCase()==='video'){destino=idx;break}
     }
     if(destino<0||destino===actual)return;
-    swiperInstance.slideToLoop(destino,380);
+    // El video actual sale deslizando y el siguiente entra desde el lado opuesto,
+    // conservando la sensación de cinta vertical del feed.
+    var viejo=videoViewerFrame;
+    if(viejo){viejo.style.transition='transform .28s ease, opacity .28s ease';viejo.style.transform='translateY('+(direccion<0?'100%':'-100%')+')';viejo.style.opacity='.35'}
+    swiperInstance.slideToLoop(destino,280);
     var esperar=function(){
       if(!videoViewer)return;
-      var idxNow=Number(swiperInstance.realIndex)||0, aNow=anunciosData[idxNow];
+      var idxNow=Number(swiperInstance.realIndex)||0,aNow=anunciosData[idxNow];
       if(idxNow===destino&&aNow&&String(aNow.tipo_media||'').toLowerCase()==='video'){
         var sl=swiperInstance.slides&&swiperInstance.slides[swiperInstance.activeIndex];
         if(!sl||!sl.classList.contains('video'))sl=document.querySelector('.swiper-wrapper > .swiper-slide-active.video');
         if(!sl&&typeof obtenerIframeVideoDeAnuncio==='function')sl=obtenerIframeVideoDeAnuncio(aNow.id)?.closest('.swiper-slide');
-        if(sl)cargarVideoViewerDeSlide(sl);
-      }else setTimeout(esperar,80);
+        if(sl){
+          cargarVideoViewerDeSlide(sl);
+          if(videoViewerFrame){videoViewerFrame.style.transform='translateY('+(direccion<0?'-100%':'100%')+')';videoViewerFrame.style.opacity='.35';videoViewerFrame.offsetHeight;videoViewerFrame.style.transition='transform .28s ease, opacity .28s ease';videoViewerFrame.style.transform='translateY(0)';videoViewerFrame.style.opacity='1'}
+        }
+      }else setTimeout(esperar,60);
     };
-    setTimeout(esperar,420);
+    setTimeout(esperar,300);
   }
   function pantallaCompleta(z){
     if(videoViewer){cerrarVideoViewer();return}
