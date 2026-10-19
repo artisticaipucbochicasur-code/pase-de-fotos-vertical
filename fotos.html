@@ -26756,7 +26756,36 @@ async function cargarBloqueos(){
     if(!a.error){bloq=new Set((a.data||[]).map(function(x){return norm(x.bloqueado_correo)}));gs('fp_bloqueados',bloq)}
     var b=await c.from('bloqueos').select('bloqueador_correo').eq('bloqueado_correo',yo());
     if(!b.error)meBloq=new Set((b.data||[]).map(function(x){return norm(x.bloqueador_correo)}));
+    await cargarSilenciados(c);
     refrescarFeed();
+  }catch(e){}
+}
+/* --- Silenciados: viven en Supabase (tabla silenciados) para todos tus dispositivos --- */
+async function cargarSilenciados(c){
+  try{
+    var d=await c.from('silenciados').select('silenciado_correo').eq('usuario_correo',yo());
+    if(d.error)return; /* tabla aún no creada: se mantiene el modo local */
+    var nube=new Set((d.data||[]).map(function(x){return norm(x.silenciado_correo)}));
+    var flag='fp_sil_migrado_'+yo(),migrado=false;
+    try{migrado=localStorage.getItem(flag)==='1'}catch(e){}
+    if(!migrado){
+      var subir=Array.from(sil).filter(function(x){return !nube.has(x)});
+      if(subir.length){
+        var r=await c.from('silenciados').upsert(subir.map(function(x){return{usuario_correo:yo(),silenciado_correo:x}}),{onConflict:'usuario_correo,silenciado_correo',ignoreDuplicates:true});
+        if(r.error)return;
+        subir.forEach(function(x){nube.add(x)});
+      }
+      try{localStorage.setItem(flag,'1')}catch(e){}
+    }
+    sil=nube;gs('fp_silenciados',sil);
+  }catch(e){}
+}
+function silSync(c,on){
+  var s=sb();if(!s)return;
+  try{
+    var q=on?s.from('silenciados').upsert([{usuario_correo:yo(),silenciado_correo:c}],{onConflict:'usuario_correo,silenciado_correo',ignoreDuplicates:true})
+            :s.from('silenciados').delete().eq('usuario_correo',yo()).eq('silenciado_correo',c);
+    Promise.resolve(q).catch(function(){});
   }catch(e){}
 }
 async function bloquear(c,nombre){
@@ -26774,7 +26803,7 @@ async function bloquear(c,nombre){
 }
 function silenciar(c,nombre){
   c=norm(c);if(sil.has(c)){sil.delete(c);toast('Ya no silencias a '+nombre)}else{sil.add(c);toast('Silenciaste a '+nombre)}
-  gs('fp_silenciados',sil);refrescarFeed();
+  gs('fp_silenciados',sil);silSync(c,sil.has(c));refrescarFeed();
 }
 
 /* --- Denunciar --- */
@@ -26817,7 +26846,7 @@ function gestionar(){
       var b=document.createElement('button');b.type='button';b.className='fp-pro-opt';b.textContent=t[1]==='Bloqueado'?'Desbloquear':'Quitar';
       b.onclick=async function(){
         if(t[1]==='Bloqueado'){bloq.delete(t[0]);gs('fp_bloqueados',bloq);try{await sb().from('bloqueos').delete().eq('bloqueador_correo',yo()).eq('bloqueado_correo',t[0])}catch(e){}}
-        else{sil.delete(t[0]);gs('fp_silenciados',sil)}
+        else{sil.delete(t[0]);gs('fp_silenciados',sil);silSync(t[0],false)}
         pintar();toast('Actualizado. Recarga el feed para ver sus publicaciones');
       };
       r.appendChild(n);r.appendChild(b);L.appendChild(r);
@@ -26932,6 +26961,98 @@ function iniciar(){
         .subscribe();
     }catch(e){}
   },800);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+})();
+</script>
+
+<style id="fp-pro2-css">
+.fp-like.on{color:#1877f2}
+.fp-like[hidden]{display:none}
+</style>
+<script id="fp-pro2-js">
+/* ===== DECOM Pro 2: me gusta a comentarios (Supabase, multi-dispositivo) ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var norm=function(x){return String(x||'').trim().toLowerCase()};
+function yo(){try{return norm(currentAuthorEmail)}catch(e){return ''}}
+function sb(){try{return supabaseClient}catch(e){return null}}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2400)}
+var L=new Map(),off=false;
+
+function lis(){return $$('#commentsList > li[data-id]').filter(function(li){return li.dataset.id})}
+function pintar(li){
+  var meta=$('.fb-comment-meta',li);if(!meta)return;
+  if(off){var x=$('.fp-like',meta);if(x)x.remove();return}
+  var b=$('.fp-like',meta);
+  if(!b){
+    b=document.createElement('button');b.type='button';b.className='fp-reply fp-like';
+    b.addEventListener('click',function(e){e.stopPropagation();alternar(li.dataset.id)});
+    meta.appendChild(b);
+  }
+  var s=L.get(li.dataset.id)||{n:0,mine:false};
+  b.classList.toggle('on',s.mine);b.setAttribute('aria-pressed',s.mine?'true':'false');
+  b.textContent=(s.mine?'Te gusta':'Me gusta')+(s.n?' · '+s.n:'');
+}
+function repintar(id){lis().forEach(function(li){if(!id||li.dataset.id===String(id))pintar(li)})}
+
+async function cargar(ids){
+  var c=sb();if(!c||!ids.length)return;
+  ids.forEach(function(id){L.set(id,{n:0,mine:false})});
+  try{
+    var r=await c.from('comentarios_likes').select('comentario_id,correo').in('comentario_id',ids);
+    if(r.error){off=true;repintar();return}
+    (r.data||[]).forEach(function(x){
+      var id=String(x.comentario_id),s=L.get(id);if(!s)return;
+      s.n++;if(norm(x.correo)===yo())s.mine=true;
+    });
+  }catch(e){off=true}
+  repintar();
+}
+function decorar(){
+  if(off){repintar();return}
+  var nuevos=[];
+  lis().forEach(function(li){
+    pintar(li);
+    var id=li.dataset.id;if(!L.has(id)&&nuevos.indexOf(id)<0)nuevos.push(id);
+  });
+  if(nuevos.length)cargar(nuevos);
+}
+async function alternar(id){
+  var c=sb();if(!c||!yo()||off)return;
+  var s=L.get(id)||{n:0,mine:false};L.set(id,s);
+  var daba=s.mine;
+  s.mine=!daba;s.n=Math.max(0,s.n+(daba?-1:1));repintar(id); /* respuesta inmediata */
+  try{
+    var r=daba
+      ?await c.from('comentarios_likes').delete().eq('comentario_id',String(id)).eq('correo',yo())
+      :await c.from('comentarios_likes').insert([{comentario_id:String(id),correo:yo()}]);
+    if(r.error&&r.error.code!=='23505')throw r.error;
+  }catch(e){
+    s.mine=daba;s.n=Math.max(0,s.n+(daba?1:-1));repintar(id);
+    toast('No se pudo guardar tu me gusta');
+  }
+}
+
+function iniciar(){
+  var cl=$('#commentsList');if(cl)new MutationObserver(decorar).observe(cl,{childList:true});
+  var t=setInterval(function(){
+    var c=sb();if(!yo()||!c)return;clearInterval(t);
+    try{
+      c.channel('fp-likes-'+yo())
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'comentarios_likes'},function(p){
+          var x=p.new||{},s=L.get(String(x.comentario_id));if(!s||norm(x.correo)===yo())return;
+          s.n++;repintar(x.comentario_id);
+        })
+        .on('postgres_changes',{event:'DELETE',schema:'public',table:'comentarios_likes'},function(p){
+          var x=p.old||{},s=L.get(String(x.comentario_id));if(!s||norm(x.correo)===yo())return;
+          s.n=Math.max(0,s.n-1);repintar(x.comentario_id);
+        })
+        .subscribe();
+    }catch(e){}
+  },800);
+  decorar();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
 })();
