@@ -25873,18 +25873,41 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function aplicarSonido(ifr){if(!ifr||typeof enviarComandoYoutube!=='function')return;try{enviarComandoYoutube(ifr,muted()?'mute':'unMute');ifr.dataset.muted=muted()?'true':'false'}catch(e){}iconos()}
   function esWebView(){return !!window.AndroidApp||/; wv\)|Version\/[\d.]+.*Chrome/i.test(navigator.userAgent)&&/Android/i.test(navigator.userAgent)&&/; wv\)/.test(navigator.userAgent)}
   function bloquearSwipe(b){try{if(swiperInstance){swiperInstance.allowTouchMove=!b}}catch(e){}}
-  function salirFs(){
-    $$('.fp-fs').forEach(function(z){z.classList.remove('fp-fs')});document.body.classList.remove('fp-fs-on');bloquearSwipe(false);
-    try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}catch(e){}
+  var videoViewer=null, videoViewerFrame=null, videoViewerPrevOverflow='';
+  function cerrarVideoViewer(){
+    if(!videoViewer)return;
+    try{if(videoViewerFrame){videoViewerFrame.src='about:blank';videoViewerFrame.remove()}}catch(e){}
+    videoViewerFrame=null;
+    videoViewer.remove();videoViewer=null;
+    document.body.classList.remove('fp-fs-on');document.body.style.overflow=videoViewerPrevOverflow;
+    bloquearSwipe(false);
+    try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}catch(e){}
   }
+  function salirFs(){cerrarVideoViewer()}
   function pantallaCompleta(z){
-    if(z.classList.contains('fp-fs')){salirFs();return}
-    z.classList.add('fp-fs');document.body.classList.add('fp-fs-on');bloquearSwipe(true);
-    if(esWebView())return; /* En el WebView de la APK solo se usa la pantalla completa interna */
-    try{var r=z.requestFullscreen||z.webkitRequestFullscreen;if(r){var p=r.call(z);if(p&&p.catch)p.catch(function(){})}
-      if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(function(){})}}catch(e){}
+    if(videoViewer){cerrarVideoViewer();return}
+    var original=$('iframe.youtube-player',z);
+    if(!original)return;
+    videoViewerPrevOverflow=document.body.style.overflow;
+    videoViewer=document.createElement('div');videoViewer.id='fpVideoViewer';
+    videoViewer.setAttribute('role','dialog');videoViewer.setAttribute('aria-modal','true');videoViewer.setAttribute('aria-label','Video a pantalla completa');
+    videoViewer.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;min-height:100%;z-index:2147483000;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+    var cerrar=document.createElement('button');cerrar.type='button';cerrar.setAttribute('aria-label','Cerrar video');cerrar.textContent='×';
+    cerrar.style.cssText='position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:14px;z-index:2;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:32px;line-height:1;cursor:pointer;';
+    cerrar.addEventListener('click',function(e){e.stopPropagation();cerrarVideoViewer()});
+    videoViewerFrame=original.cloneNode(false);
+    videoViewerFrame.removeAttribute('id');videoViewerFrame.setAttribute('title','Video a pantalla completa');
+    videoViewerFrame.style.cssText='width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;';
+    videoViewerFrame.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
+    videoViewerFrame.setAttribute('allowfullscreen','');
+    var src=original.src||original.getAttribute('src')||'';
+    try{var u=new URL(src,location.href);u.searchParams.set('autoplay','1');u.searchParams.set('playsinline','0');src=u.toString()}catch(e){}
+    videoViewer.appendChild(videoViewerFrame);videoViewer.appendChild(cerrar);document.body.appendChild(videoViewer);
+    videoViewerFrame.src=src;
+    document.body.classList.add('fp-fs-on');document.body.style.overflow='hidden';bloquearSwipe(true);
+    try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){})}catch(e){}
   }
-  document.addEventListener('fullscreenchange',function(){if(!document.fullscreenElement)salirFs()});
+  document.addEventListener('fullscreenchange',function(){if(!document.fullscreenElement&&videoViewer)cerrarVideoViewer()});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')salirFs()});
   function decorarVideo(sl){
     var z=$('.swiper-zoom-container',sl),ifr=$('iframe.youtube-player',sl);
