@@ -26212,6 +26212,16 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
 #fpNot.open{display:flex}
 .fp-n-sub{font-size:12px;opacity:.65}
 .fp-n-un{background:rgba(24,119,242,.1);border-radius:10px}
+.fp-confirm-overlay{position:fixed;inset:0;z-index:2147483300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.58)}
+.fp-confirm-card{width:min(100%,360px);padding:22px;border-radius:18px;background:var(--fp-confirm-bg,#fff);color:var(--fp-confirm-fg,#171717);box-shadow:0 18px 55px rgba(0,0,0,.32);font-family:system-ui,sans-serif}
+body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
+.fp-confirm-card h3{margin:0 0 9px;font-size:18px;font-weight:800}
+.fp-confirm-card p{margin:0 0 20px;font-size:14px;line-height:1.5;opacity:.82}
+.fp-confirm-actions{display:flex;justify-content:flex-end;gap:9px}
+.fp-confirm-actions button{border:0;border-radius:10px;padding:10px 14px;font:700 13px system-ui,sans-serif;cursor:pointer}
+.fp-confirm-cancel{background:rgba(128,128,128,.18);color:inherit}
+.fp-confirm-yes{background:#1877f2;color:#fff}
+.fp-confirm-yes.danger{background:#d9364f}
 </style>
 <script id="fp-extra-js">
 /* ===== Vistas sincronizadas, notificaciones y sugerencias de a quién seguir ===== */
@@ -26279,6 +26289,12 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
   async function pintarAvisos(L){
     var r=await supabaseClient.from('notificaciones').select('*').eq('para_correo',yo()).order('fecha',{ascending:false}).limit(40);
     if(r.error)throw r.error;L.textContent='';
+    // Los avisos de nuevos seguidores solo permanecen hasta que se revisan; evita repetirlos en otros dispositivos.
+    var vistos=new Set();r.data=(r.data||[]).filter(function(n){
+      if(n.tipo==='seguir'&&n.leida)return false;
+      var k=n.tipo==='seguir'?'seguir:'+norm(n.de_correo):null;
+      if(k){if(vistos.has(k))return false;vistos.add(k)}return true;
+    });
     if(!r.data.length){L.textContent='Aún no tienes avisos';return}
     r.data.forEach(function(n){
       var row=document.createElement('div');row.className='fp-red-row'+(n.leida?'':' fp-n-un');row.style.cursor='pointer';
@@ -26293,35 +26309,89 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
     });
     if(r.data.some(function(n){return !n.leida})){await supabaseClient.from('notificaciones').update({leida:true}).eq('para_correo',yo()).eq('leida',false);contar()}
   }
+  function confirmarAccion(titulo,mensaje,accion,destructiva){
+    return new Promise(function(resolve){
+      var ov=document.createElement('div');ov.className='fp-confirm-overlay';
+      var card=document.createElement('div');card.className='fp-confirm-card';card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
+      var h=document.createElement('h3');h.textContent=titulo;
+      var p=document.createElement('p');p.textContent=mensaje;
+      var actions=document.createElement('div');actions.className='fp-confirm-actions';
+      var cancel=document.createElement('button');cancel.type='button';cancel.className='fp-confirm-cancel';cancel.textContent='Cancelar';
+      var yes=document.createElement('button');yes.type='button';yes.className='fp-confirm-yes'+(destructiva?' danger':'');yes.textContent=accion;
+      function cerrar(v){ov.remove();document.removeEventListener('keydown',tecla);resolve(v)}
+      function tecla(e){if(e.key==='Escape')cerrar(false)}
+      cancel.onclick=function(){cerrar(false)};yes.onclick=function(){cerrar(true)};ov.addEventListener('click',function(e){if(e.target===ov)cerrar(false)});document.addEventListener('keydown',tecla);
+      actions.appendChild(cancel);actions.appendChild(yes);card.appendChild(h);card.appendChild(p);card.appendChild(actions);ov.appendChild(card);document.body.appendChild(ov);yes.focus();
+    });
+  }
+  function sonidoNuevoSeguidor(){
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+      var ctx=new AC();if(ctx.state==='suspended')ctx.resume().catch(function(){});
+      var ahora=ctx.currentTime;
+      [[660,0],[880,.14]].forEach(function(a){var o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=a[0];g.gain.setValueAtTime(.0001,ahora+a[1]);g.gain.exponentialRampToValueAtTime(.12,ahora+a[1]+.025);g.gain.exponentialRampToValueAtTime(.0001,ahora+a[1]+.19);o.connect(g);g.connect(ctx.destination);o.start(ahora+a[1]);o.stop(ahora+a[1]+.2)});
+      setTimeout(function(){try{ctx.close()}catch(e){}},700);
+    }catch(e){}
+  }
   async function pintarSugeridos(L){
     var r=await supabaseClient.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(400);
     if(r.error)throw r.error;
     var yoU=r.data.find(function(u){return norm(u.correo)===yo()})||{},seg=window.fpSeguidosSet?window.fpSeguidosSet():new Set(),act={};
     try{anunciosData.forEach(function(a){var c=norm(a.correo);act[c]=(act[c]||0)+1})}catch(e){}
-    var lista=r.data.filter(function(u){return norm(u.correo)!==yo()&&!seg.has(norm(u.correo))}).map(function(u){
+    var lista=r.data.filter(function(u){return norm(u.correo)!==yo()}).map(function(u){
       var s=Math.min(3,act[norm(u.correo)]||0),why=[];
       if(yoU.congregacion&&norm(u.congregacion)===norm(yoU.congregacion)){s+=5;why.push('Tu congregación')}
       if(yoU.ciudad&&norm(u.ciudad)===norm(yoU.ciudad)){s+=3;why.push('Tu ciudad')}
       if(act[norm(u.correo)])why.push('Activo en la app');
       return {u:u,s:s,why:why};
     }).sort(function(a,b){return b.s-a.s}).slice(0,20);
-    L.textContent='';if(!lista.length){L.textContent='Ya sigues a todos por ahora';return}
+    L.textContent='';if(!lista.length){L.textContent='No hay personas para sugerir por ahora';return}
     lista.forEach(function(x){
       var u=x.u,row=document.createElement('div');row.className='fp-red-row';row.appendChild(avatar(u.nombre,u.foto_perfil));
       var t=document.createElement('span');t.className='fp-red-name';t.textContent=u.nombre||u.correo;
       var s=document.createElement('div');s.className='fp-n-sub';s.textContent=[u.cargo].concat(x.why).filter(Boolean).join(' · ');t.appendChild(s);
       t.style.cursor='pointer';t.onclick=function(){panel.classList.remove('open');try{abrirPerfilPorCorreo(u.correo)}catch(e){}};
-      var bt=document.createElement('button');bt.type='button';bt.className='fp-red-btn';bt.style.cssText='border:1px solid rgba(128,128,128,.6);background:transparent;color:inherit;border-radius:999px;padding:6px 14px;font:700 13px system-ui,sans-serif';bt.textContent='Seguir';
-      bt.onclick=async function(){bt.disabled=true;
-        try{var m=yoU.id;if(!m)throw 0;var i=await supabaseClient.from('seguidores').insert([{seguidor_id:m,seguido_id:u.id,seguidor_correo:yo(),seguido_correo:u.correo}]);if(i.error)throw i.error;
-          bt.textContent='Siguiendo';try{window.fpSeguidosSet().add(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}}
-        catch(e){bt.disabled=false;bt.textContent='Reintentar'}};
+      var bt=document.createElement('button');bt.type='button';bt.className='fp-red-btn';bt.style.cssText='border:1px solid rgba(128,128,128,.6);background:transparent;color:inherit;border-radius:999px;padding:6px 14px;font:700 13px system-ui,sans-serif';
+      function pintarBoton(){var sigue=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(u.correo));bt.textContent=sigue?'Siguiendo':'Seguir';bt.classList.toggle('on',sigue)}
+      pintarBoton();
+      bt.onclick=async function(){
+        if(bt.disabled)return;bt.disabled=true;
+        try{
+          var m=yoU.id;if(!m)throw new Error('No se encontró el usuario actual');
+          var sigue=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(u.correo));
+          if(sigue){
+            var ok=await confirmarAccion('Dejar de seguir','¿Quieres dejar de seguir a '+(u.nombre||u.correo)+'?','Dejar de seguir',true);
+            if(!ok){bt.disabled=false;return}
+            var del=await supabaseClient.from('seguidores').delete().eq('seguidor_id',m).eq('seguido_id',u.id);
+            if(del.error)throw del.error;
+            try{window.fpSeguidosSet().delete(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}
+            pintarBoton();
+          }else{
+            // Consultar antes de insertar evita relaciones duplicadas y notificaciones repetidas.
+            var existe=await supabaseClient.from('seguidores').select('id').eq('seguidor_id',m).eq('seguido_id',u.id).maybeSingle();
+            if(existe.error)throw existe.error;
+            if(!existe.data){var ins=await supabaseClient.from('seguidores').insert([{seguidor_id:m,seguido_id:u.id,seguidor_correo:yo(),seguido_correo:u.correo}]);if(ins.error)throw ins.error}
+            try{window.fpSeguidosSet().add(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}
+            pintarBoton();
+          }
+        }catch(e){bt.textContent='Reintentar';}
+        finally{bt.disabled=false}
+      };
       row.appendChild(t);row.appendChild(bt);L.appendChild(row);
     });
   }
   esperar(function(){
     crearUI();contar();iniciarVistas();
-    try{supabaseClient.channel('fp-not-'+yo()).on('postgres_changes',{event:'INSERT',schema:'public',table:'notificaciones',filter:'para_correo=eq.'+yo()},function(){contar();if(panel.classList.contains('open')&&tab==='avisos')pintar()}).subscribe()}catch(e){}
+    try{
+      supabaseClient.channel('fp-not-'+yo())
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'notificaciones',filter:'para_correo=eq.'+yo()},function(payload){
+          var n=payload&&payload.new;if(n&&n.tipo==='seguir'&&!n.leida)sonidoNuevoSeguidor();
+          contar();if(panel&&panel.classList.contains('open')&&tab==='avisos')pintar();
+        })
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'notificaciones',filter:'para_correo=eq.'+yo()},function(){
+          contar();if(panel&&panel.classList.contains('open')&&tab==='avisos')pintar();
+        }).subscribe();
+    }catch(e){}
     setInterval(contar,90000);
   });
 })();
