@@ -26594,7 +26594,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
     panel.querySelectorAll('.fp-red-tabs button').forEach(function(b){b.classList.toggle('on',b.dataset.t===tab)});
     try{tab==='avisos'?await pintarAvisos(L):await pintarSugeridos(L)}catch(e){L.textContent='No se pudo cargar. Revisa tu conexión'}
   }
-  var TXT={seguir:'empezó a seguirte',comentario:'comentó tu publicación',respuesta:'respondió tu comentario',like:'reaccionó a tu publicación',mencion:'te mencionó en un comentario'};
+  var TXT={seguir:'empezó a seguirte',comentario:'comentó tu publicación',respuesta:'respondió tu comentario',like:'reaccionó a tu publicación',mencion:'te mencionó en un comentario',like_comentario:'le gustó tu comentario'};
   function tiempo(f){var t=new Date(f).getTime();return isNaN(t)?0:t}
   async function marcarUna(n,row){
     if(!n||n.leida)return;
@@ -26940,11 +26940,11 @@ async function procesarMencion(n){
     try{
       var u=await c.from('usuarios').select('correo,nombre').ilike('nombre',nom).limit(1).maybeSingle();
       if(!u.data||norm(u.data.correo)===yo()||oculto(u.data.correo))continue;
-      await c.from('notificaciones').insert([{para_correo:u.data.correo,de_correo:yo(),de_nombre:(function(){try{return currentAuthorName}catch(e){return ''}})(),tipo:'mencion',publicacion_id:n.publicacion_id,texto:String(n.texto).slice(0,80),leida:false}]);
+      await c.from('notificaciones').insert([{para_correo:u.data.correo,de_correo:yo(),de_nombre:(function(){try{return currentAuthorName}catch(e){return ''}})(),tipo:'mencion',publicacion_id:n.publicacion_id,comentario_id:String(n.id||''),texto:String(n.texto).slice(0,80),leida:false}]);
     }catch(e){}
   }
 }
-var TX={seguir:'empezó a seguirte',comentario:'comentó tu publicación',respuesta:'respondió tu comentario',like:'reaccionó a tu publicación',mencion:'te mencionó en un comentario'};
+var TX={seguir:'empezó a seguirte',comentario:'comentó tu publicación',respuesta:'respondió tu comentario',like:'reaccionó a tu publicación',mencion:'te mencionó en un comentario',like_comentario:'le gustó tu comentario'};
 function avisoDispositivo(n){
   if(!n||!document.hidden||!('Notification' in window)||Notification.permission!=='granted')return;
   var t=(n.de_nombre||'Alguien')+' '+(TX[n.tipo]||'tiene novedades'),o={body:n.texto||'',icon:'icon-192.png',tag:'fp-'+(n.id||Date.now())};

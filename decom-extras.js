@@ -19,7 +19,8 @@
       var directo = lis.filter(function (l) { return String(l.dataset.id) === String(n.comentario_id); })[0];
       if (directo) return directo;
     }
-    var autor = norm(n.de_correo), t = norm(n.texto).slice(0, 60);
+    /* en un "me gusta" a comentario, el autor del comentario soy yo */
+    var autor = n.tipo === 'like_comentario' ? yo() : norm(n.de_correo), t = norm(n.texto).slice(0, 60);
     var propios = lis.filter(function (l) { return norm(l.dataset.correo) === autor; });
     if (t) {
       var igual = propios.filter(function (l) {
@@ -40,7 +41,7 @@
   window.fpAbrirNotificacion = async function (n) {
     var ok = await irAAnuncioNotificado(n.publicacion_id);
     if (!ok) return;
-    if (['comentario', 'respuesta', 'mencion'].indexOf(n.tipo) < 0) return; /* "like": basta con la publicación */
+    if (['comentario', 'respuesta', 'mencion', 'like_comentario'].indexOf(n.tipo) < 0) return; /* "like" a la publicación: basta con la publicación */
     await esperar(750);
     var c = document.getElementById('commentsCounter');
     if (c) c.click();
