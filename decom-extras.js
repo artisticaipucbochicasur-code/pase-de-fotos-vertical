@@ -77,15 +77,30 @@
     });
     return b;
   }
+  /* Reintenta: al abrir la app la sesión de Supabase puede tardar en estar lista */
+  var adminOk = false, adminIntentos = 0;
+  async function verificarAdmin(menu) {
+    if (adminOk || document.getElementById('fpAdminMenu')) return;
+    for (; adminIntentos < 8; adminIntentos++) {
+      try {
+        var r = await sb().rpc('es_admin');
+        if (r.error) { console.warn('[DECOM] es_admin:', r.error.message); }
+        else if (r.data === true) {
+          adminOk = true;
+          menu.appendChild(boton('fpAdminMenu', 'fas fa-shield-halved', 'Panel de administrador', function () { window.open('admin.html', '_blank'); }));
+          return;
+        } else { console.info('[DECOM] es_admin = false para', yo()); }
+      } catch (e) { console.warn('[DECOM] es_admin falló', e); }
+      await esperar(3000);
+    }
+  }
   function armarMenu() {
     var menu = document.getElementById('userMenu');
     if (!menu || !yo() || !sb() || document.getElementById('fpLegalMenu')) return false;
     menu.appendChild(boton('fpLegalMenu', 'fas fa-file-contract', 'Términos y privacidad', function () { window.open('legal.html', '_blank'); }));
     menu.appendChild(boton('fpEliminarCuenta', 'fas fa-user-xmark', 'Eliminar cuenta', eliminarCuenta));
-    Promise.resolve(sb().rpc('es_admin')).then(function (r) {
-      if (r && r.data === true && !document.getElementById('fpAdminMenu'))
-        menu.appendChild(boton('fpAdminMenu', 'fas fa-shield-halved', 'Panel de administrador', function () { window.open('admin.html', '_blank'); }));
-    }).catch(function () {});
+    verificarAdmin(menu);
+    try { sb().auth.onAuthStateChange(function () { verificarAdmin(menu); }); } catch (e) {}
     return true;
   }
 
