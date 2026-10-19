@@ -20596,12 +20596,27 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
                     ponerIniciales();
                 }
 
-                // La descripción vive ahora debajo del perfil, como texto de publicación.
-                agregarDescripcionFacebook(card, anuncio.descripcion);
+                // La edición puede llegar mientras resolveFotoPerfil() está esperando.
+                // En ese intervalo, `anuncio` es una referencia a la versión anterior.
+                // Leer de nuevo el estado actual justo antes de pintar evita que una
+                // renderización asíncrona vuelva a dejar el título/descripción antiguos.
+                const anuncioVigente = anunciosData.find(
+                    item => String(item.id) === String(expectedId)
+                ) || anuncio;
+
+                updateInfo(
+                    anuncioVigente.titulo,
+                    anuncioVigente.descripcion,
+                    anuncioVigente.autor,
+                    anuncioVigente.fecha
+                );
+
+                // La descripción vive debajo del perfil, como texto de publicación.
+                agregarDescripcionFacebook(card, anuncioVigente.descripcion);
 
                 container.innerHTML = "";
                 container.appendChild(card);
-                container.dataset.correo = correoAutor;
+                container.dataset.correo = (anuncioVigente.correo || "").trim();
             }
         })();
    
