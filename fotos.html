@@ -19680,16 +19680,55 @@ function insertarPublicacionLocal(pub, opciones = {}){
 function fpAplicarEdicionLocal(fila){
     try{
         if(!fila || fila.id == null) return;
+
+        // Aplicar primero la fila recibida al estado local/cache.
         actualizarPublicacionLocal(fila);
-        const idx = anunciosData.findIndex(a => String(a.id) === String(fila.id));
+
+        const idx = anunciosData.findIndex(
+            a => String(a.id) === String(fila.id)
+        );
         if(idx === -1) return;
-        const slideActivo = swiperInstance && swiperInstance.slides && swiperInstance.slides[swiperInstance.activeIndex];
-        const idActivo = slideActivo && slideActivo.dataset ? slideActivo.dataset.id : null;
-        if(String(idActivo) === String(fila.id) || (swiperInstance && swiperInstance.realIndex === idx)){
+
+        const anuncioActualizado = anunciosData[idx];
+        const slideActivo = swiperInstance?.slides?.[swiperInstance.activeIndex];
+        const idActivo = slideActivo?.dataset?.id ?? null;
+        const idActivoDatos = anunciosData[swiperInstance?.realIndex ?? -1]?.id ?? null;
+
+        // En Swiper loop, activeIndex puede apuntar a un clon. Comprobar también
+        // el ID del anuncio real para decidir si refrescar el contenido visible.
+        const esPublicacionActiva =
+            String(idActivo) === String(fila.id) ||
+            String(idActivoDatos) === String(fila.id);
+
+        if(esPublicacionActiva){
             updateContentOverlay(idx);
+
+            // Asegurar que el título/atributos visibles reciban la versión nueva.
+            updateInfo(
+                anuncioActualizado.titulo,
+                anuncioActualizado.descripcion,
+                anuncioActualizado.autor,
+                anuncioActualizado.fecha
+            );
+
+            console.log("[DECOM] texto activo actualizado:", {
+                id: anuncioActualizado.id,
+                titulo: anuncioActualizado.titulo
+            });
         }
-        console.log("[DECOM] edición aplicada en pantalla:", fila.id, fila.titulo, "| activo:", idActivo, "| realIndex:", swiperInstance && swiperInstance.realIndex, "| idx:", idx);
-    }catch(e){ console.warn("[DECOM] fpAplicarEdicionLocal", e); }
+
+        console.log(
+            "[DECOM] edición aplicada en pantalla:",
+            fila.id,
+            fila.titulo,
+            "| activo:", idActivo,
+            "| activoDatos:", idActivoDatos,
+            "| realIndex:", swiperInstance && swiperInstance.realIndex,
+            "| idx:", idx
+        );
+    }catch(e){
+        console.warn("[DECOM] fpAplicarEdicionLocal", e);
+    }
 }
 function actualizarPublicacionLocal(pub, opciones = {}){
     if(!pub || pub.id === null || pub.id === undefined) return false;
