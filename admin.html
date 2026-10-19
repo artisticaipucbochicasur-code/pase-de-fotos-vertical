@@ -15,29 +15,33 @@
   .tabs button.on{background:#0077cc;color:#fff}
   .card{background:#1c1c1c;border:1px solid #333;border-radius:12px;padding:14px;margin-bottom:14px}
   .top{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:#aaa;margin-bottom:8px}
-  .badge{background:#7a1f1f;color:#fff;border-radius:10px;padding:2px 8px;font-size:12px}
-  .badge.ok{background:#1f5c2e}.badge.no{background:#444}
+  .badge{background:#7a1f1f;color:#fff;border-radius:10px;padding:2px 8px;font-size:12px;white-space:nowrap}
+  .badge.ok{background:#1f5c2e}.badge.no{background:#444}.badge.ban{background:#8a1f4b}
   .contenido{background:#111;border-radius:8px;padding:10px;margin:8px 0;word-break:break-word}
   .contenido img{max-width:100%;max-height:280px;border-radius:8px;display:block;margin-top:8px}
   .motivos{font-size:13px;color:#ccc;margin:6px 0}
   .acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .acciones button{flex:1;min-width:130px;padding:10px;border:0;border-radius:8px;color:#fff;cursor:pointer;font-size:14px}
-  .b-borrar{background:#b3261e}.b-ban{background:#8a4b00}.b-desc{background:#444}
+  .b-borrar{background:#b3261e}.b-ban{background:#8a4b00}.b-desc{background:#444}.b-unban{background:#1f6b3a}.b-reabrir{background:#2f5f8f}.b-todo{background:#6b1010}
+  #buscar{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #444;background:#1c1c1c;color:#eee;margin-bottom:12px;font-size:15px}
+  .sub{font-size:12px;color:#888;margin-top:2px}
   a{color:#6db3f2}
 </style>
 </head>
 <body>
-<h1>Panel de denuncias</h1>
+<h1>Panel de administración</h1>
 <div id="msg">Cargando…</div>
 <div class="tabs">
   <button data-e="pendiente" class="on">Pendientes</button>
   <button data-e="todas">Todas</button>
+  <button data-e="usuarios">Usuarios</button>
 </div>
+<input id="buscar" type="search" placeholder="Buscar usuario por nombre o correo…" style="display:none">
 <div id="lista"></div>
 
 <script>
 (function(){
-  var sb = supabaseClient, $ = function(s){return document.querySelector(s)}, filtro = 'pendiente';
+  var sb = supabaseClient, $ = function(s){return document.querySelector(s)}, filtro = 'pendiente', tBuscar;
   function msg(t){ $('#msg').textContent = t || ''; }
   function el(tag, cls, txt){ var e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; }
 
@@ -50,12 +54,76 @@
       b.onclick = function(){
         filtro = b.dataset.e;
         document.querySelectorAll('.tabs button').forEach(function(x){ x.classList.toggle('on', x === b); });
-        cargar();
+        $('#buscar').style.display = filtro === 'usuarios' ? 'block' : 'none';
+        recargar();
       };
     });
-    cargar();
+    $('#buscar').addEventListener('input', function(){ clearTimeout(tBuscar); tBuscar = setTimeout(cargarUsuarios, 350); });
+    recargar();
+  }
+  function recargar(){ if(filtro === 'usuarios') cargarUsuarios(); else cargar(); }
+
+  /* ---------- acciones compartidas ---------- */
+  async function miCorreo(){
+    var ses = await sb.auth.getSession();
+    return ((ses.data && ses.data.session && ses.data.session.user.email) || '').toLowerCase();
+  }
+  async function bloquear(correo, valor){
+    var yo = await miCorreo();
+    if(valor && String(correo).toLowerCase() === yo){ alert('No puedes bloquearte a ti mismo'); return false; }
+    var txt = valor ? '¿Bloquear el acceso de ' + correo + '? Podrás revertirlo.' : '¿Desbloquear a ' + correo + '?';
+    if(!confirm(txt)) return false;
+    var r = await sb.rpc('admin_bloquear_usuario', {p_correo: correo, p_bloquear: valor});
+    if(r.error){ alert('Error: ' + r.error.message); return false; }
+    return true;
+  }
+  async function borrarTodo(correo){
+    var yo = await miCorreo();
+    if(String(correo).toLowerCase() === yo){ alert('No puedes borrar tu propio contenido desde aquí'); return false; }
+    if(!confirm('¿Borrar TODAS las publicaciones, comentarios, "me gusta" y notificaciones de ' + correo + '? No se puede deshacer.')) return false;
+    var t = prompt('Para confirmar, escribe el correo completo:');
+    if(t === null || t.trim().toLowerCase() !== String(correo).toLowerCase()){ alert('Cancelado'); return false; }
+    var r = await sb.rpc('admin_borrar_todo_de_usuario', {p_correo: correo});
+    if(r.error){ alert('Error: ' + r.error.message + '\n(¿ya ejecutaste el SQL de admin_borrar_todo_de_usuario?)'); return false; }
+    alert('Listo: ' + JSON.stringify(r.data)); return true;
   }
 
+  /* ---------- pestaña Usuarios ---------- */
+  function estaBloqueado(u){
+    var k = ['bloqueado','bloqueada','suspendido','baneado','is_blocked','blocked','banned'];
+    for(var i = 0; i < k.length; i++){ if(k[i] in u) return u[k[i]] === true; }
+    if('estado' in u) return /bloq|susp|ban/i.test(String(u.estado || ''));
+    return null;
+  }
+  async function cargarUsuarios(){
+    msg('Cargando…'); $('#lista').textContent = '';
+    var q = sb.from('usuarios').select('*').limit(50);
+    var t = $('#buscar').value.trim().replace(/[%,()]/g, '');
+    if(t) q = q.or('nombre.ilike.%' + t + '%,correo.ilike.%' + t + '%');
+    var r = await q;
+    if(r.error){ msg('Error: ' + r.error.message); return; }
+    var us = r.data || [];
+    var rb = await sb.rpc('admin_correos_bloqueados'), bloqueados = null;
+    if(!rb.error) bloqueados = (rb.data || []).map(function(x){ return String(x).toLowerCase(); });
+    msg(us.length ? '' : 'No se encontraron usuarios.');
+    us.forEach(function(u){
+      var card = el('div', 'card'), top = el('div', 'top');
+      var info = el('div'); info.appendChild(el('b', '', u.nombre || '(sin nombre)')); info.appendChild(el('div', 'sub', u.correo || ''));
+      top.appendChild(info);
+      var b = bloqueados ? bloqueados.indexOf(String(u.correo || '').toLowerCase()) >= 0 : estaBloqueado(u);
+      if(b === true) top.appendChild(el('span', 'badge ban', 'bloqueado'));
+      else if(b === false) top.appendChild(el('span', 'badge ok', 'activo'));
+      card.appendChild(top);
+      var ac = el('div', 'acciones');
+      var bb = el('button', 'b-ban', 'Bloquear'); bb.onclick = async function(){ if(await bloquear(u.correo, true)) cargarUsuarios(); };
+      var bu = el('button', 'b-unban', 'Desbloquear'); bu.onclick = async function(){ if(await bloquear(u.correo, false)) cargarUsuarios(); };
+      var bt = el('button', 'b-todo', 'Borrar todo su contenido'); bt.onclick = async function(){ if(await borrarTodo(u.correo)) cargarUsuarios(); };
+      ac.appendChild(bb); ac.appendChild(bu); ac.appendChild(bt); card.appendChild(ac);
+      $('#lista').appendChild(card);
+    });
+  }
+
+  /* ---------- pestañas de denuncias ---------- */
   async function contenidoDe(g){
     try{
       if(g.tipo === 'publicacion'){
@@ -66,13 +134,11 @@
       return c.data || null;
     }catch(e){ return null; }
   }
-
   async function cerrar(g, estado){
     var r = await sb.from('reportes').update({estado: estado}).eq('tipo', g.tipo).eq('objetivo_id', g.id);
     if(r.error){ alert('No se pudo actualizar: ' + r.error.message); return false; }
     return true;
   }
-
   async function cargar(){
     msg('Cargando…'); $('#lista').textContent = '';
     var q = sb.from('reportes').select('*').order('fecha', {ascending:false}).limit(300);
@@ -89,7 +155,6 @@
     msg(grupos.length ? '' : 'No hay denuncias en esta vista.');
     for(var i = 0; i < grupos.length; i++) await pintar(grupos[i]);
   }
-
   async function pintar(g){
     var c = await contenidoDe(g);
     var card = el('div', 'card');
@@ -111,8 +176,8 @@
     } else { box.textContent = c.texto || ''; }
     card.appendChild(box);
 
+    var ac = el('div', 'acciones');
     if(g.estado === 'pendiente'){
-      var ac = el('div', 'acciones');
       if(c){
         var bb = el('button', 'b-borrar', 'Borrar ' + (g.tipo === 'publicacion' ? 'publicación' : 'comentario'));
         bb.onclick = async function(){
@@ -125,19 +190,28 @@
       }
       if(g.correo){
         var bu = el('button', 'b-ban', 'Bloquear usuario');
-        bu.onclick = async function(){
-          if(!confirm('¿Bloquear el acceso de ' + g.correo + '? Podrás revertirlo.')) return;
-          var r = await sb.rpc('admin_bloquear_usuario', {p_correo: g.correo, p_bloquear: true});
-          if(r.error){ alert('Error: ' + r.error.message); return; }
-          if(await cerrar(g, 'accion_tomada')) cargar();
-        };
+        bu.onclick = async function(){ if(await bloquear(g.correo, true) && await cerrar(g, 'accion_tomada')) cargar(); };
         ac.appendChild(bu);
       }
       var bd = el('button', 'b-desc', 'Descartar');
       bd.onclick = async function(){ if(await cerrar(g, 'descartada')) cargar(); };
       ac.appendChild(bd);
-      card.appendChild(ac);
+    } else {
+      var br = el('button', 'b-reabrir', 'Reabrir denuncia');
+      br.onclick = async function(){ if(await cerrar(g, 'pendiente')) cargar(); };
+      ac.appendChild(br);
+      if(g.correo){
+        var bx = el('button', 'b-unban', 'Desbloquear usuario');
+        bx.onclick = async function(){ if(await bloquear(g.correo, false)) cargar(); };
+        ac.appendChild(bx);
+      }
     }
+    if(g.correo){
+      var bt = el('button', 'b-todo', 'Borrar todo su contenido');
+      bt.onclick = async function(){ if(await borrarTodo(g.correo)) cargar(); };
+      ac.appendChild(bt);
+    }
+    card.appendChild(ac);
     $('#lista').appendChild(card);
   }
   init();
