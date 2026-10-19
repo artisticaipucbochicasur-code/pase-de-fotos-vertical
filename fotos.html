@@ -25839,6 +25839,13 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
 .fp-red-tabs{display:flex;gap:8px;padding:6px 12px}
 .fp-red-tabs button{flex:1;border:0;border-radius:10px;padding:10px;background:rgba(128,128,128,.18);color:inherit;font-weight:700;font-size:14px}
 .fp-red-tabs button.on{background:#1877f2;color:#fff}
+.fp-red-filters{display:flex;gap:6px;padding:4px 12px 8px;flex-wrap:wrap}
+.fp-red-filters button{flex:1;min-width:74px;border:1px solid rgba(128,128,128,.28);border-radius:999px;padding:7px 9px;background:transparent;color:inherit;font:700 12px system-ui,sans-serif}
+.fp-red-filters button.on{background:#1877f2;border-color:#1877f2;color:#fff}
+.fp-red-contact{border:1px solid rgba(128,128,128,.45);background:transparent;color:inherit;border-radius:999px;padding:6px 9px;font:700 12px system-ui,sans-serif;flex:0 0 auto}
+#fpMiRedMenu{display:flex;align-items:center;gap:10px;width:100%;text-align:left}
+#fpMiRedMenu .fp-mi-red-counts{margin-left:auto;display:flex;gap:5px;font-size:11px;opacity:.8}
+#fpMiRedMenu .fp-mi-red-counts span{white-space:nowrap}
 .fp-red-list{overflow:auto;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 14px);min-height:120px}
 .fp-red-row{display:flex;align-items:center;gap:12px;padding:8px 0}
 .fp-red-av{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#1877f2;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 42px}
@@ -26125,38 +26132,74 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     if(a&&a.correo)itemMenu(list,'fas fa-user','Ver solo a '+(a.autor||'esta persona'),'Filtrar las publicaciones de este autor',function(){filtrar({tipo:'autor',correo:a.correo,nombre:a.autor||'autor'})});
     itemMenu(list,'fas fa-user-check','Solo a quienes sigo','Ver publicaciones de las personas que sigues',function(){filtrar({tipo:'siguiendo'})});
   };
-  var tabRed='sig';
+  var tabRed='seg',filtroRed='todos',redCache={sig:[],seg:[]},redInfo={};
   function panelRed(){var p=$('#fpRed');if(p)return p;p=document.createElement('div');p.id='fpRed';
-    p.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><b>Mi red</b><button type="button" class="fp-red-x" aria-label="Cerrar">×</button></div><div class="fp-red-tabs"><button type="button" data-t="sig"></button><button type="button" data-t="seg"></button></div><div class="fp-red-list"></div></div>';
+    p.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><b>Mi red</b><button type="button" class="fp-red-x" aria-label="Cerrar">×</button></div><div class="fp-red-tabs"><button type="button" data-t="seg">Seguidores</button><button type="button" data-t="sig">Siguiendo</button></div><div class="fp-red-filters"><button type="button" data-f="todos" class="on">Todos</button><button type="button" data-f="online">En línea</button><button type="button" data-f="nuevos">Nuevos</button></div><div class="fp-red-list"></div></div>';
     document.body.appendChild(p);
     p.addEventListener('click',function(e){if(e.target===p||e.target.closest('.fp-red-x'))p.classList.remove('open')});
-    $$('.fp-red-tabs button',p).forEach(function(b){b.onclick=function(){tabRed=b.dataset.t;abrirRed()}});return p}
+    $$('.fp-red-tabs button',p).forEach(function(b){b.onclick=function(){tabRed=b.dataset.t;filtroRed='todos';$$('.fp-red-filters button',p).forEach(function(x){x.classList.toggle('on',x.dataset.f===filtroRed)});abrirRed()}});
+    $$('.fp-red-filters button',p).forEach(function(b){b.onclick=function(){filtroRed=b.dataset.f;$$('.fp-red-filters button',p).forEach(function(x){x.classList.toggle('on',x===b)});abrirRed()}});return p}
+  function actualizarContadorMenu(sig,sgd){var b=$('#fpMiRedMenu');if(!b)return;var c=$('.fp-mi-red-counts',b);if(c)c.innerHTML='<span>Seguidores '+sgd+'</span><span>Siguiendo '+sig+'</span>'}
   async function abrirRed(){
     var p=panelRed(),L=$('.fp-red-list',p);p.classList.add('open');L.textContent='Cargando…';
     try{
-      var a=await supabaseClient.from('seguidores').select('seguido_correo').eq('seguidor_correo',yo());
-      var b=await supabaseClient.from('seguidores').select('seguidor_correo').eq('seguido_correo',yo());
+      var a=await supabaseClient.from('seguidores').select('*').eq('seguidor_correo',yo());
+      var b=await supabaseClient.from('seguidores').select('*').eq('seguido_correo',yo());
       if(a.error||b.error)throw new Error('red');
-      var sig=(a.data||[]).map(function(x){return x.seguido_correo}),sgd=(b.data||[]).map(function(x){return x.seguidor_correo}),info={};
+      var sigRows=a.data||[],sgdRows=b.data||[];
+      function correo(row,key){return row[key]||''}
+      var sig=sigRows.map(function(x){return correo(x,'seguido_correo')}).filter(Boolean),sgd=sgdRows.map(function(x){return correo(x,'seguidor_correo')}).filter(Boolean),info={};
+      // La base de datos es la fuente de verdad: evita etiquetas desactualizadas en Siguiendo/Seguir.
+      seg=new Set(sig.map(norm));try{localStorage.setItem('fp_seguidos',JSON.stringify(Array.from(seg)))}catch(e){}
+      redCache={sig:sigRows,seg:sgdRows};
       var todos=Array.from(new Set(sig.concat(sgd)));
-      if(todos.length){var u=await supabaseClient.from('usuarios').select('correo,nombre,foto_perfil').in('correo',todos);(u.data||[]).forEach(function(x){info[norm(x.correo)]=x})}
+      if(todos.length){var u=await supabaseClient.from('usuarios').select('id,correo,nombre,foto_perfil').in('correo',todos);if(u.error)throw u.error;(u.data||[]).forEach(function(x){info[norm(x.correo)]=x})}
+      redInfo=info;
       $$('.fp-red-tabs button',p).forEach(function(t){var es=t.dataset.t==='sig';t.classList.toggle('on',t.dataset.t===tabRed);t.textContent=(es?'Siguiendo ':'Seguidores ')+'('+(es?sig.length:sgd.length)+')'});
-      var lista=tabRed==='sig'?sig:sgd;L.textContent='';
-      if(!lista.length){L.textContent=tabRed==='sig'?'Aún no sigues a nadie.':'Aún nadie te sigue.';return}
-      lista.forEach(function(c){
-        var d=info[norm(c)]||{},nombre=d.nombre||c,row=document.createElement('div');row.className='fp-red-row';
-        var av=window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(nombre,d.foto_perfil,c):document.createElement('span');
-        if(!window.fpCrearAvatarEstado){av.className='fp-red-av';av.textContent=(nombre[0]||'?').toUpperCase()}
+      actualizarContadorMenu(sig.length,sgd.length);
+      var rows=tabRed==='sig'?sigRows:sgdRows;
+      // Nuevos: relaciones creadas más recientemente, usando la fecha disponible en la fila.
+      if(filtroRed==='nuevos')rows=rows.slice().sort(function(x,y){return new Date(y.created_at||y.fecha||y.inserted_at||0).getTime()-new Date(x.created_at||x.fecha||x.inserted_at||0).getTime()}).slice(0,10);
+      var lista=rows.map(function(row){return {row:row,correo:tabRed==='sig'?row.seguido_correo:row.seguidor_correo}}).filter(function(x){return x.correo});
+      if(filtroRed==='online')lista=lista.filter(function(x){return (window.fpOnlineSet?window.fpOnlineSet():new Set()).has(norm(x.correo))});
+      L.textContent='';
+      if(!lista.length){L.textContent=filtroRed==='online'?'No hay personas en línea en esta lista.':filtroRed==='nuevos'?'No hay relaciones recientes para mostrar.':tabRed==='sig'?'Aún no sigues a nadie.':'Aún nadie te sigue.';return}
+      lista.forEach(function(item){
+        var c=item.correo,d=info[norm(c)]||{},nombre=d.nombre||c,row=document.createElement('div');row.className='fp-red-row';
+        row.appendChild(window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(nombre,d.foto_perfil,c):avatar(nombre,d.foto_perfil));
         var n=document.createElement('span');n.className='fp-red-name';n.textContent=nombre;
-        n.onclick=function(){p.classList.remove('open');filtrar({tipo:'autor',correo:c,nombre:nombre})};
+        var sub=document.createElement('div');sub.className='fp-n-sub';sub.textContent=tabRed==='seg'?'Te sigue':'Lo sigues';n.appendChild(sub);
+        n.style.cursor='pointer';n.onclick=function(){p.classList.remove('open');try{abrirPerfilPorCorreo(c)}catch(e){}};
         var bt=document.createElement('button');bt.type='button';bt.className='fp-follow fp-red-btn';bt.dataset.correo=c;
-        bt.onclick=async function(){await alternar(c);pintarSeguir()};
-        row.appendChild(av);row.appendChild(n);row.appendChild(bt);L.appendChild(row);
+        var sigo=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(c));
+        function pintarBoton(){sigo=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(c));bt.textContent=sigo?'Siguiendo':'Seguir';bt.classList.toggle('on',sigo);bt.setAttribute('aria-label',sigo?'Dejar de seguir a '+nombre:'Seguir a '+nombre)}
+        pintarBoton();
+        bt.onclick=async function(){
+          if(bt.disabled)return;bt.disabled=true;
+          try{
+            var actual=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(c));
+            if(actual){
+              var ok=await (window.fpConfirmarAccion?window.fpConfirmarAccion('Dejar de seguir','¿Quieres dejar de seguir a '+nombre+'?','Dejar de seguir',true):Promise.resolve(window.confirm('¿Quieres dejar de seguir a '+nombre+'?')));
+              if(!ok)return;
+            }
+            await alternar(c);
+            // La operación se considera exitosa solo si el estado local cambió como se esperaba.
+            var ahora=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(c));
+            if(actual&&ahora){toast('No se pudo dejar de seguir a esta persona');return}
+            if(!actual&&!ahora){toast('No se pudo seguir a esta persona');return}
+            pintarBoton();
+            // Al dejar de seguir, desaparecerá de la pestaña Siguiendo; si te sigue, permanecerá en Seguidores.
+            await abrirRed();
+          }finally{bt.disabled=false}
+        };
+        var contacto=document.createElement('button');contacto.type='button';contacto.className='fp-red-contact';contacto.innerHTML='<i class="fas fa-envelope" aria-hidden="true"></i>';contacto.title='Contactar por correo';contacto.setAttribute('aria-label','Contactar por correo a '+nombre);contacto.onclick=function(){window.location.href='mailto:'+encodeURIComponent(c)};
+        row.appendChild(n);row.appendChild(bt);row.appendChild(contacto);L.appendChild(row);
       });
       pintarSeguir();
     }catch(e){L.textContent='No se pudo cargar. Revisa tu conexión.'}
   }
   window.fpRefrescarRed=abrirRed;
+  window.fpAbrirRed=abrirRed;
   var mo;
   function chip(){var c=$('#fpReplyChip');if(!c){var cont=$('#commentInputContainer');if(!cont)return null;c=document.createElement('div');c.id='fpReplyChip';c.innerHTML='<span></span><button type="button" aria-label="Cancelar respuesta">×</button>';$('button',c).onclick=function(){window.fpReply=null;window.fpReplyRefresh()};cont.insertBefore(c,cont.firstChild)}return c}
   window.fpReplyRefresh=function(){var c=chip();if(!c)return;var r=window.fpReply;c.classList.toggle('show',!!r);if(r)$('span',c).textContent='Respondiendo a '+r.nombre}
@@ -26296,7 +26339,15 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
 
   /* --- campanita y panel --- */
   var tab='avisos',panel,bell,followHeader;
+  function crearAccesoMiRed(){
+    var menu=document.getElementById('userMenu');if(!menu||document.getElementById('fpMiRedMenu'))return;
+    var b=document.createElement('button');b.type='button';b.id='fpMiRedMenu';b.className='menu-btn';
+    b.innerHTML='<i class="fas fa-user-group" aria-hidden="true"></i><span>Mi red</span><span class="fp-mi-red-counts"><span>Seguidores —</span><span>Siguiendo —</span></span>';
+    b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();try{var m=document.getElementById('userMenu');if(m)m.style.display='none'}catch(_){}if(window.fpAbrirRed)window.fpAbrirRed()});
+    var ref=document.getElementById('fpBell');if(ref&&ref.parentNode===menu)menu.insertBefore(b,ref);else menu.appendChild(b);
+  }
   function crearUI(){
+    crearAccesoMiRed();
     bell=document.getElementById('fpBell');
     followHeader=document.getElementById('fpFollowHeader');
     if(bell){bell.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()}abrir()};}
@@ -26367,6 +26418,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
       actions.appendChild(cancel);actions.appendChild(yes);card.appendChild(h);card.appendChild(p);card.appendChild(actions);ov.appendChild(card);document.body.appendChild(ov);yes.focus();
     });
   }
+  window.fpConfirmarAccion=confirmarAccion;
   function sonidoNuevoSeguidor(){
     try{
       var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
