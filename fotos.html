@@ -20566,10 +20566,16 @@ if (normalizeText(anuncio.correo) === normalizeText(currentAuthorEmail)) {
                 }
 
                 const stillActiveToken = container.dataset.renderToken;
-                const activeIndex = swiperInstance.realIndex;
+                const activeIndex = swiperInstance?.realIndex ?? 0;
                 const currentId = anunciosData[activeIndex]?.id;
 
-                if (stillActiveToken !== token || currentId !== expectedId) return;
+                // Los IDs pueden llegar como número desde la caché y como texto
+                // desde otra ruta de datos. Compararlos normalizados evita que
+                // el render asíncrono descarte el título/descripción recién editados.
+                if (
+                    stillActiveToken !== token ||
+                    String(currentId ?? "") !== String(expectedId ?? "")
+                ) return;
 
                 const ponerIniciales = () => {
                     avatarWrap.innerHTML = "";
