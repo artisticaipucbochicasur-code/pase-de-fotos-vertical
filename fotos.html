@@ -26634,11 +26634,11 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
       if(it.k==='n'){
         var n=it.n;
         row.className='fp-red-row'+(n.leida?'':' fp-n-un');
-        row.appendChild(avatar(n.de_nombre,n.de_foto));
+        var avN=avatar(n.de_nombre,n.de_foto);avN.style.cursor='pointer';avN.onclick=function(e){e.stopPropagation();marcarUna(n,row);panel.classList.remove('open');try{abrirPerfilPorCorreo(n.de_correo)}catch(_){}};row.appendChild(avN);
         b.textContent=n.de_nombre||n.de_correo;t.appendChild(b);t.appendChild(document.createTextNode(' '+(TXT[n.tipo]||'')));
         s.textContent=(n.texto?'“'+n.texto+'” · ':'')+cuando(n.fecha);
         row.onclick=function(){marcarUna(n,row);panel.classList.remove('open');
-          try{if(n.tipo==='seguir')abrirPerfilPorCorreo(n.de_correo);else if(n.publicacion_id)irAAnuncioNotificado(n.publicacion_id)}catch(e){}};
+          try{if(n.tipo==='seguir')abrirPerfilPorCorreo(n.de_correo);else if(n.publicacion_id){if(window.fpAbrirNotificacion)window.fpAbrirNotificacion(n);else irAAnuncioNotificado(n.publicacion_id)}}catch(e){}};
       }else if(it.k==='a'){
         row.className='fp-red-row fp-n-un';
         var av=document.createElement('span');av.className='fp-red-av';av.textContent='📢';row.appendChild(av);
@@ -26647,7 +26647,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
         row.onclick=function(){panel.classList.remove('open');try{irAAnuncioNotificado(it.a.id)}catch(e){}};
       }else{
         row.className='fp-red-row fp-n-un';
-        row.appendChild(avatar(it.d.nombre||it.c,it.d.foto));
+        var avC=avatar(it.d.nombre||it.c,it.d.foto);avC.style.cursor='pointer';avC.onclick=function(e){e.stopPropagation();panel.classList.remove('open');try{abrirPerfilPorCorreo(it.c)}catch(_){}};row.appendChild(avC);
         b.textContent=it.d.nombre||it.c;t.appendChild(b);
         t.appendChild(document.createTextNode(' '+(it.q===1?'te envió 1 mensaje nuevo':'te envió '+it.q+' mensajes nuevos')));
         s.textContent=(it.d.ultimoMensaje?String(it.d.ultimoMensaje).slice(0,60)+' · ':'')+(it.d.fecha?cuando(it.d.fecha):'');
@@ -27423,5 +27423,6 @@ function iniciar(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
 })();
 </script>
+<script src="decom-extras.js"></script>
 </body>
 </html>

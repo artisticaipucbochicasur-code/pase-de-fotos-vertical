@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DECOM · Administración</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<style>
+  body{margin:0;padding:16px;background:#111;color:#eee;font-family:Arial,sans-serif;max-width:760px;margin-inline:auto}
+  h1{font-size:20px;margin:4px 0 12px}
+  #msg{color:#f5b942;margin:12px 0}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs button{flex:1;padding:10px;border:0;border-radius:8px;background:#2a2a2a;color:#ddd;cursor:pointer}
+  .tabs button.on{background:#0077cc;color:#fff}
+  .card{background:#1c1c1c;border:1px solid #333;border-radius:12px;padding:14px;margin-bottom:14px}
+  .top{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:#aaa;margin-bottom:8px}
+  .badge{background:#7a1f1f;color:#fff;border-radius:10px;padding:2px 8px;font-size:12px}
+  .badge.ok{background:#1f5c2e}.badge.no{background:#444}
+  .contenido{background:#111;border-radius:8px;padding:10px;margin:8px 0;word-break:break-word}
+  .contenido img{max-width:100%;max-height:280px;border-radius:8px;display:block;margin-top:8px}
+  .motivos{font-size:13px;color:#ccc;margin:6px 0}
+  .acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .acciones button{flex:1;min-width:130px;padding:10px;border:0;border-radius:8px;color:#fff;cursor:pointer;font-size:14px}
+  .b-borrar{background:#b3261e}.b-ban{background:#8a4b00}.b-desc{background:#444}
+  a{color:#6db3f2}
+</style>
+</head>
+<body>
+<h1>Panel de denuncias</h1>
+<div id="msg">Cargando…</div>
+<div class="tabs">
+  <button data-e="pendiente" class="on">Pendientes</button>
+  <button data-e="todas">Todas</button>
+</div>
+<div id="lista"></div>
+
+<script>
+(function(){
+  var sb = supabaseClient, $ = function(s){return document.querySelector(s)}, filtro = 'pendiente';
+  function msg(t){ $('#msg').textContent = t || ''; }
+  function el(tag, cls, txt){ var e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; }
+
+  async function init(){
+    var s = await sb.auth.getSession();
+    if(!s.data || !s.data.session){ msg('Primero inicia sesión en la app (en esta misma dirección web) y vuelve a abrir esta página.'); return; }
+    var a = await sb.rpc('es_admin');
+    if(a.error || a.data !== true){ msg('Esta cuenta no es administradora.'); return; }
+    document.querySelectorAll('.tabs button').forEach(function(b){
+      b.onclick = function(){
+        filtro = b.dataset.e;
+        document.querySelectorAll('.tabs button').forEach(function(x){ x.classList.toggle('on', x === b); });
+        cargar();
+      };
+    });
+    cargar();
+  }
+
+  async function contenidoDe(g){
+    try{
+      if(g.tipo === 'publicacion'){
+        var p = await sb.from('publicaciones').select('titulo,descripcion,url_media,correo').eq('id', g.id).maybeSingle();
+        return p.data || null;
+      }
+      var c = await sb.from('comentarios').select('texto,autor,correo').eq('id', g.id).maybeSingle();
+      return c.data || null;
+    }catch(e){ return null; }
+  }
+
+  async function cerrar(g, estado){
+    var r = await sb.from('reportes').update({estado: estado}).eq('tipo', g.tipo).eq('objetivo_id', g.id);
+    if(r.error){ alert('No se pudo actualizar: ' + r.error.message); return false; }
+    return true;
+  }
+
+  async function cargar(){
+    msg('Cargando…'); $('#lista').textContent = '';
+    var q = sb.from('reportes').select('*').order('fecha', {ascending:false}).limit(300);
+    if(filtro !== 'todas') q = q.eq('estado', filtro);
+    var r = await q;
+    if(r.error){ msg('Error: ' + r.error.message); return; }
+    var mapa = {};
+    (r.data || []).forEach(function(x){
+      var k = x.tipo + '|' + x.objetivo_id;
+      if(!mapa[k]) mapa[k] = {tipo:x.tipo, id:x.objetivo_id, correo:x.objetivo_correo, motivos:[], n:0, estado:x.estado, fecha:x.fecha};
+      mapa[k].n++; mapa[k].motivos.push(x.motivo);
+    });
+    var grupos = Object.keys(mapa).map(function(k){ return mapa[k]; }).sort(function(a,b){ return b.n - a.n; });
+    msg(grupos.length ? '' : 'No hay denuncias en esta vista.');
+    for(var i = 0; i < grupos.length; i++) await pintar(grupos[i]);
+  }
+
+  async function pintar(g){
+    var c = await contenidoDe(g);
+    var card = el('div', 'card');
+    var top = el('div', 'top');
+    top.appendChild(el('span', '', (g.tipo === 'publicacion' ? 'Publicación' : 'Comentario') + ' de ' + (g.correo || '—')));
+    var est = el('span', 'badge' + (g.estado === 'accion_tomada' ? ' ok' : g.estado === 'descartada' ? ' no' : ''), g.n + (g.n === 1 ? ' denuncia' : ' denuncias') + ' · ' + g.estado);
+    top.appendChild(est); card.appendChild(top);
+    card.appendChild(el('div', 'motivos', 'Motivos: ' + g.motivos.filter(function(m, i, a){ return a.indexOf(m) === i; }).join(', ')));
+
+    var box = el('div', 'contenido');
+    if(!c){ box.textContent = '(el contenido ya no existe)'; }
+    else if(g.tipo === 'publicacion'){
+      box.appendChild(el('b', '', c.titulo || '(sin título)'));
+      if(c.descripcion) box.appendChild(el('div', '', c.descripcion));
+      if(c.url_media){
+        if(/\.(jpe?g|png|gif|webp)(\?|$)/i.test(c.url_media)){ var im = el('img'); im.src = c.url_media; im.alt = ''; box.appendChild(im); }
+        else { var a = el('a', '', 'Ver archivo / video'); a.href = c.url_media; a.target = '_blank'; a.rel = 'noopener'; box.appendChild(a); }
+      }
+    } else { box.textContent = c.texto || ''; }
+    card.appendChild(box);
+
+    if(g.estado === 'pendiente'){
+      var ac = el('div', 'acciones');
+      if(c){
+        var bb = el('button', 'b-borrar', 'Borrar ' + (g.tipo === 'publicacion' ? 'publicación' : 'comentario'));
+        bb.onclick = async function(){
+          if(!confirm('¿Borrar este contenido? No se puede deshacer.')) return;
+          var r = await sb.rpc(g.tipo === 'publicacion' ? 'admin_borrar_publicacion' : 'admin_borrar_comentario', {p_id: g.id});
+          if(r.error){ alert('Error: ' + r.error.message); return; }
+          if(await cerrar(g, 'accion_tomada')) cargar();
+        };
+        ac.appendChild(bb);
+      }
+      if(g.correo){
+        var bu = el('button', 'b-ban', 'Bloquear usuario');
+        bu.onclick = async function(){
+          if(!confirm('¿Bloquear el acceso de ' + g.correo + '? Podrás revertirlo.')) return;
+          var r = await sb.rpc('admin_bloquear_usuario', {p_correo: g.correo, p_bloquear: true});
+          if(r.error){ alert('Error: ' + r.error.message); return; }
+          if(await cerrar(g, 'accion_tomada')) cargar();
+        };
+        ac.appendChild(bu);
+      }
+      var bd = el('button', 'b-desc', 'Descartar');
+      bd.onclick = async function(){ if(await cerrar(g, 'descartada')) cargar(); };
+      ac.appendChild(bd);
+      card.appendChild(ac);
+    }
+    $('#lista').appendChild(card);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
