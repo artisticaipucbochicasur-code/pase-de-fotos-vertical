@@ -13673,21 +13673,20 @@ const datosActualizar = {
 
 
 
-    const { error } = await supabaseClient
-
+    const { data: filaEditada, error } = await supabaseClient
         .from("publicaciones")
-
         .update(datosActualizar)
-
-        .eq("id", editingAnuncioId);
-
-
+        .eq("id", editingAnuncioId)
+        .select("*")
+        .maybeSingle();
 
     if(error){
-
         throw error;
-
     }
+    if(!filaEditada){
+        throw new Error("No se guardó: solo el dueño puede editar este anuncio.");
+    }
+    fpAplicarEdicionLocal(filaEditada);
 
 
 
@@ -19668,6 +19667,20 @@ function insertarPublicacionLocal(pub, opciones = {}){
     return true;
 }
 
+function fpAplicarEdicionLocal(fila){
+    try{
+        if(!fila || fila.id == null) return;
+        actualizarPublicacionLocal(fila);
+        const idx = anunciosData.findIndex(a => String(a.id) === String(fila.id));
+        if(idx === -1) return;
+        const slideActivo = swiperInstance && swiperInstance.slides && swiperInstance.slides[swiperInstance.activeIndex];
+        const idActivo = slideActivo && slideActivo.dataset ? slideActivo.dataset.id : null;
+        if(String(idActivo) === String(fila.id) || (swiperInstance && swiperInstance.realIndex === idx)){
+            updateContentOverlay(idx);
+        }
+        console.log("[DECOM] edición aplicada en pantalla:", fila.id, fila.titulo);
+    }catch(e){ console.warn("[DECOM] fpAplicarEdicionLocal", e); }
+}
 function actualizarPublicacionLocal(pub, opciones = {}){
     if(!pub || pub.id === null || pub.id === undefined) return false;
 
@@ -20036,7 +20049,7 @@ function iniciarRealtimeSupabase(){
                 }
 
                 if(payload.eventType === "UPDATE"){
-                    actualizarPublicacionLocal(payload.new);
+                    fpAplicarEdicionLocal(payload.new);
                     return;
                 }
 
