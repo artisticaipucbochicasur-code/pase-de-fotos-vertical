@@ -25882,7 +25882,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function aplicarSonido(ifr){if(!ifr||typeof enviarComandoYoutube!=='function')return;try{enviarComandoYoutube(ifr,muted()?'mute':'unMute');ifr.dataset.muted=muted()?'true':'false'}catch(e){}iconos()}
   function esWebView(){return !!window.AndroidApp||/; wv\)|Version\/[\d.]+.*Chrome/i.test(navigator.userAgent)&&/Android/i.test(navigator.userAgent)&&/; wv\)/.test(navigator.userAgent)}
   function bloquearSwipe(b){try{if(swiperInstance){swiperInstance.allowTouchMove=!b}}catch(e){}}
-  var videoViewer=null, videoViewerFrame=null, videoViewerPrevOverflow='', videoViewerMuted=false, videoViewerGesture=null, videoViewerControls=null, videoViewerPlayButton=null, videoViewerSeek=null, videoViewerCurrentTime=null, videoViewerDuration=null, videoViewerPoll=null, videoViewerPlaying=false, videoViewerSeeking=false;
+  var videoViewer=null, videoViewerFrame=null, videoViewerOriginal=null, videoViewerOriginalParent=null, videoViewerOriginalNext=null, videoViewerOriginalSrc='', videoViewerOriginalStyle='', videoViewerOriginalTitle='', videoViewerPrevOverflow='', videoViewerMuted=false, videoViewerGesture=null, videoViewerControls=null, videoViewerPlayButton=null, videoViewerSeek=null, videoViewerCurrentTime=null, videoViewerDuration=null, videoViewerPoll=null, videoViewerPlaying=false, videoViewerSeeking=false;
   function comandoViewer(comando){
     if(!videoViewerFrame)return;
     try{if(typeof enviarComandoYoutube==='function')enviarComandoYoutube(videoViewerFrame,comando)}catch(e){}
@@ -25936,26 +25936,68 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     if(!videoViewer||!sl)return false;
     var original=$('iframe.youtube-player',sl);
     if(!original)return false;
-    try{if(videoViewerFrame){videoViewerFrame.src='about:blank';videoViewerFrame.remove()}}catch(e){}
-    videoViewerFrame=original.cloneNode(false);
-    videoViewerFrame.removeAttribute('id');videoViewerFrame.setAttribute('title','Video a pantalla completa');
-    videoViewerFrame.style.cssText='position:absolute;inset:0;width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;z-index:2;';
-    videoViewerFrame.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
-    videoViewerFrame.setAttribute('allowfullscreen','');
-    var src=original.src||original.getAttribute('src')||'';
-    try{var u=new URL(src,location.href);u.searchParams.set('autoplay','1');u.searchParams.set('playsinline','0');u.searchParams.set('mute','0');u.searchParams.set('enablejsapi','1');u.searchParams.set('controls','0');u.searchParams.set('disablekb','0');u.searchParams.set('fs','0');u.searchParams.set('origin',location.origin);src=u.toString()}catch(e){}
-    videoViewer.insertBefore(videoViewerFrame,videoViewerGesture||null);
-    videoViewerFrame.src=src;
-    iniciarControlesViewer(sl);
-    videoViewerFrame.addEventListener('load',function(){sonidoForzadoViewer();try{videoViewerFrame.contentWindow.postMessage(JSON.stringify({event:'listening',id:videoViewerFrame.id||'fp-viewer'}),'*');videoViewerFrame.contentWindow.postMessage(JSON.stringify({event:'command',func:'addEventListener',args:['onStateChange']}),'*')}catch(e){}}, {once:true});
-    clearInterval(videoViewerPoll);videoViewerPoll=setInterval(consultarTiempoViewer,500);
+    // Usar el MISMO iframe del feed: no clonar ni crear un segundo reproductor.
+    if(videoViewerFrame&&videoViewerFrame!==original){
+      restaurarIframeViewer();
+    }
+    if(!videoViewerOriginal){
+      videoViewerOriginal=original;
+      videoViewerOriginalParent=original.parentNode;
+      videoViewerOriginalNext=original.nextSibling;
+      videoViewerOriginalSrc=original.getAttribute('src')||original.src||'';
+      videoViewerOriginalStyle=original.getAttribute('style')||'';
+      videoViewerOriginalTitle=original.getAttribute('title')||'';
+    }
+    videoViewerFrame=original;
+    original.setAttribute('title','Reproductor de video de YouTube');
+    original.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
+    original.setAttribute('allowfullscreen','');
+    original.style.cssText='position:absolute;inset:0;width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;z-index:4;';
+    var src=videoViewerOriginalSrc;
+    try{
+      var u=new URL(src,location.href);
+      u.searchParams.set('autoplay','1');
+      u.searchParams.set('playsinline','0');
+      u.searchParams.set('mute','0');
+      u.searchParams.set('enablejsapi','1');
+      u.searchParams.set('controls','1');
+      u.searchParams.set('disablekb','0');
+      u.searchParams.set('fs','0');
+      u.searchParams.set('origin',location.origin);
+      src=u.toString();
+    }catch(e){}
+    videoViewer.appendChild(original);
+    if(original.src!==src)original.src=src;
+    // Título, reproducción/pausa y línea de tiempo son los controles nativos de YouTube.
+    clearInterval(videoViewerPoll);videoViewerPoll=null;
     return true;
+  }
+  function restaurarIframeViewer(){
+    if(!videoViewerOriginal)return;
+    var original=videoViewerOriginal;
+    try{
+      if(videoViewerOriginalParent){
+        if(videoViewerOriginalNext&&videoViewerOriginalNext.parentNode===videoViewerOriginalParent){
+          videoViewerOriginalParent.insertBefore(original,videoViewerOriginalNext);
+        }else{
+          videoViewerOriginalParent.appendChild(original);
+        }
+      }
+      original.style.cssText=videoViewerOriginalStyle;
+      if(videoViewerOriginalTitle)original.setAttribute('title',videoViewerOriginalTitle);
+      else original.removeAttribute('title');
+      if(videoViewerOriginalSrc&&original.getAttribute('src')!==videoViewerOriginalSrc){
+        original.setAttribute('src',videoViewerOriginalSrc);
+      }
+    }catch(e){}
+    videoViewerFrame=null;videoViewerOriginal=null;videoViewerOriginalParent=null;videoViewerOriginalNext=null;
+    videoViewerOriginalSrc='';videoViewerOriginalStyle='';videoViewerOriginalTitle='';
   }
   function cerrarVideoViewer(){
     if(!videoViewer)return;
-    try{if(videoViewerFrame){videoViewerFrame.src='about:blank';videoViewerFrame.remove()}}catch(e){}
-    videoViewerFrame=null;
-    clearInterval(videoViewerPoll);videoViewerPoll=null;videoViewerControls=null;videoViewerPlayButton=null;videoViewerSeek=null;videoViewerCurrentTime=null;videoViewerDuration=null;videoViewerSeeking=false;
+    clearInterval(videoViewerPoll);videoViewerPoll=null;
+    restaurarIframeViewer();
+    videoViewerControls=null;videoViewerPlayButton=null;videoViewerSeek=null;videoViewerCurrentTime=null;videoViewerDuration=null;videoViewerSeeking=false;
     videoViewer.remove();videoViewer=null;videoViewerGesture=null;
     document.body.classList.remove('fp-fs-on');document.body.style.overflow=videoViewerPrevOverflow;
     bloquearSwipe(false);
@@ -25996,22 +26038,17 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     videoViewerPrevOverflow=document.body.style.overflow;
     videoViewer=document.createElement('div');videoViewer.id='fpVideoViewer';
     videoViewer.setAttribute('role','dialog');videoViewer.setAttribute('aria-modal','true');videoViewer.setAttribute('aria-label','Video a pantalla completa');
-    videoViewer.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;min-height:100%;z-index:2147483000;background:#000;overflow:hidden;touch-action:none;';
+    videoViewer.style.cssText='position:fixed;inset:0;width:100vw;height:100dvh;min-height:100%;z-index:2147483000;background:#000;overflow:hidden;touch-action:pan-y;';
     var cerrar=document.createElement('button');cerrar.type='button';cerrar.className='fp-fs-close';cerrar.setAttribute('aria-label','Cerrar video');cerrar.textContent='×';
-    cerrar.style.cssText='position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:14px;z-index:5;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:32px;line-height:1;cursor:pointer;';
+    cerrar.style.cssText='position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:14px;z-index:20;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:32px;line-height:1;cursor:pointer;';
     cerrar.addEventListener('click',function(e){e.stopPropagation();cerrarVideoViewer()});
     var audio=document.createElement('button');audio.type='button';audio.className='fp-fs-audio';audio.setAttribute('aria-label','Desactivar sonido');
-    audio.style.cssText='position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:68px;z-index:5;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+    audio.style.cssText='position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:68px;z-index:20;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
     audio.addEventListener('click',function(e){e.stopPropagation();videoViewerMuted=!videoViewerMuted;comandoViewer(videoViewerMuted?'mute':'unMute');if(!videoViewerMuted)comandoViewer('playVideo');actualizarBotonAudioViewer()});
-    videoViewerGesture=document.createElement('div');videoViewerGesture.className='fp-fs-gesture';
-    videoViewerGesture.style.cssText='position:absolute;inset:0;z-index:3;background:transparent;touch-action:none;';
-    videoViewerGesture.addEventListener('pointerdown',function(e){if(e.target.closest('button'))return;videoViewerGesture._start={x:e.clientX,y:e.clientY,t:Date.now()};},{passive:true});
-    videoViewerGesture.addEventListener('pointerup',function(e){var st=videoViewerGesture._start;videoViewerGesture._start=null;if(!st)return;var dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dy)>55&&Math.abs(dy)>Math.abs(dx)*1.15){irVideoCercano(dy<0?1:-1);return}if(Math.abs(dx)<18&&Math.abs(dy)<18){videoViewer.classList.toggle('fp-fs-chrome-off')}},{passive:true});
-    videoViewerGesture.addEventListener('pointercancel',function(){if(videoViewerGesture)videoViewerGesture._start=null},{passive:true});
-    videoViewer.appendChild(cerrar);videoViewer.appendChild(audio);videoViewer.appendChild(videoViewerGesture);document.body.appendChild(videoViewer);
+    videoViewer.appendChild(cerrar);videoViewer.appendChild(audio);document.body.appendChild(videoViewer);
     videoViewerMuted=false;actualizarBotonAudioViewer();
     cargarVideoViewerDeSlide(z.closest('.swiper-slide'));
-    // La apertura viene de un toque explícito: solicitar audio activado inmediatamente.
+    // La apertura procede de un toque explícito: solicitar sonido en el mismo reproductor.
     sonidoForzadoViewer();
     document.body.classList.add('fp-fs-on');document.body.style.overflow='hidden';bloquearSwipe(true);
     try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){})}catch(e){}
