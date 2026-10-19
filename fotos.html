@@ -5065,10 +5065,8 @@ async function abrirPerfilPorCorreo(correo) {
 
 
 
-    console.log(
-      "✅ Perfil encontrado Supabase:",
-      data
-    );
+    // No imprimir datos personales completos (correo, teléfono, ciudad) en consola.
+    console.log("✅ Perfil encontrado en Supabase.");
 
 
 
@@ -15331,6 +15329,12 @@ async function toggleLikeAnuncioActual() {
 
     if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
 
+    // No permitir escrituras con una identidad de respaldo/fija si no hay sesión cargada.
+    if(!normalizeText(currentAuthorEmail)){
+        showInfoDialog("Inicia sesión", "Debes iniciar sesión para indicar que te gusta una publicación.");
+        return;
+    }
+
     restaurarLikesDesdeCache();
 
     const activeIndex = swiperInstance.realIndex;
@@ -16049,8 +16053,9 @@ document.addEventListener("keydown", (e) => {
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
     
-    let currentAuthorEmail = "deimer.herrera91@gmail.com";
-    let currentAuthorName = "AnónimoDH";
+    // La identidad no debe asumir una cuenta fija antes de restaurar/iniciar sesión.
+    let currentAuthorEmail = "";
+    let currentAuthorName = "Anónimo";
 
 
     // =====================================================
@@ -17119,6 +17124,12 @@ async function enviarComentario(inputOrigen = commentInput) {
 
     const inputActivo = inputOrigen || commentInput;
     const comentarioTexto = inputActivo?.value.trim() || "";
+
+    // Evitar que un visitante sin sesión publique usando una identidad predeterminada.
+    if(!normalizeText(currentAuthorEmail)){
+        showInfoDialog("Inicia sesión", "Debes iniciar sesión para comentar una publicación.");
+        return;
+    }
 
     const activeIndex = swiperInstance.realIndex;
     const currentAnuncio = anunciosData[activeIndex];
@@ -25883,9 +25894,9 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function esWebView(){return !!window.AndroidApp||/; wv\)|Version\/[\d.]+.*Chrome/i.test(navigator.userAgent)&&/Android/i.test(navigator.userAgent)&&/; wv\)/.test(navigator.userAgent)}
   function bloquearSwipe(b){try{if(swiperInstance){swiperInstance.allowTouchMove=!b}}catch(e){}}
   var videoViewer=null, videoViewerFrame=null, videoViewerOriginal=null, videoViewerOriginalParent=null, videoViewerOriginalNext=null, videoViewerOriginalSrc='', videoViewerOriginalStyle='', videoViewerOriginalTitle='', videoViewerOriginalTime=0, videoViewerOriginalWasPlaying=true, videoViewerPrevOverflow='', videoViewerMuted=false, videoViewerGesture=null, videoViewerControls=null, videoViewerPlayButton=null, videoViewerSeek=null, videoViewerCurrentTime=null, videoViewerDuration=null, videoViewerPoll=null, videoViewerPlaying=false, videoViewerSeeking=false, videoViewerGestureTimer=null;
-  function comandoViewer(comando){
+  function comandoViewer(comando,args){
     if(!videoViewerFrame)return;
-    try{if(typeof enviarComandoYoutube==='function')enviarComandoYoutube(videoViewerFrame,comando)}catch(e){}
+    try{if(typeof enviarComandoYoutube==='function')enviarComandoYoutube(videoViewerFrame,comando,Array.isArray(args)?args:[])}catch(e){}
   }
   function actualizarBotonAudioViewer(){
     if(!videoViewer)return;
@@ -25914,7 +25925,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     title.textContent=[author&&author.textContent,postTitle&&postTitle.textContent,caption&&caption.textContent].map(function(x){return (x||'').trim()}).filter(Boolean).join(' · ')||'Video';
     var row=document.createElement('div');row.className='fp-fs-control-row';
     videoViewerPlayButton=document.createElement('button');videoViewerPlayButton.type='button';videoViewerPlayButton.className='fp-fs-play';videoViewerPlayButton.innerHTML='<i class="fas fa-pause"></i>';videoViewerPlayButton.setAttribute('aria-label','Pausar video');
-    videoViewerPlayButton.addEventListener('click',function(e){e.stopPropagation();comandoViewer(videoViewerPlaying?'playVideo':'pauseVideo');videoViewerPlaying=!videoViewerPlaying;pintarPlayViewer()});
+    videoViewerPlayButton.addEventListener('click',function(e){e.stopPropagation();comandoViewer(videoViewerPlaying?'pauseVideo':'playVideo');videoViewerPlaying=!videoViewerPlaying;if(videoViewerFrame)videoViewerFrame.dataset.playing=videoViewerPlaying?'true':'false';pintarPlayViewer()});
     videoViewerCurrentTime=document.createElement('span');videoViewerCurrentTime.className='fp-fs-time';videoViewerCurrentTime.textContent='0:00';
     videoViewerSeek=document.createElement('input');videoViewerSeek.type='range';videoViewerSeek.className='fp-fs-seek';videoViewerSeek.min='0';videoViewerSeek.max='100';videoViewerSeek.step='.1';videoViewerSeek.value='0';videoViewerSeek.setAttribute('aria-label','Línea de tiempo del video');
     videoViewerSeek.addEventListener('pointerdown',function(e){e.stopPropagation();videoViewerSeeking=true},{passive:true});
@@ -25983,6 +25994,14 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     if(!original.getAttribute('src') && typeof cargarVideoElemento==='function'){
       cargarVideoElemento(original);
     }
+    // Reutilizar los controles personalizados ya definidos en este archivo.
+    // Se reconstruyen por publicación para mantener título y progreso correctos.
+    iniciarControlesViewer(sl);
+    if(!videoViewerPoll){
+      videoViewerPoll=setInterval(consultarTiempoViewer,700);
+    }
+    // Solicitar una primera lectura tras dar tiempo al reproductor a responder.
+    setTimeout(function(){if(videoViewerFrame===original)consultarTiempoViewer()},250);
     // Al cambiar de video, reutilizar el iframe precargado y reproducirlo sin
     // reconstruir el reproductor ni perder la posición del video anterior.
     setTimeout(function(){
