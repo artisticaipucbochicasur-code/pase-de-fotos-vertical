@@ -25896,6 +25896,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   }
   function sonidoForzadoViewer(){
     videoViewerMuted=false;actualizarBotonAudioViewer();
+    if(videoViewerFrame)videoViewerFrame.dataset.muted='false';
     // Se intenta activar sonido durante el gesto de apertura y de nuevo al cargar el iframe.
     comandoViewer('unMute');comandoViewer('setVolume');comandoViewer('playVideo');
     setTimeout(function(){comandoViewer('unMute');comandoViewer('playVideo')},250);
@@ -25928,9 +25929,12 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     if(!videoViewerFrame||ev.source!==videoViewerFrame.contentWindow)return;
     var data=ev.data;try{if(typeof data==='string')data=JSON.parse(data)}catch(e){return}
     var info=data&&data.info;if(!info)return;
-    if(typeof info.currentTime==='number'&&videoViewerCurrentTime&&!videoViewerSeeking){videoViewerCurrentTime.textContent=formatoTiempoViewer(info.currentTime);if(videoViewerSeek){var dur=Number(videoViewerDuration&&videoViewerDuration.dataset.seconds)||Number(info.duration)||0;if(dur>0)videoViewerSeek.value=String(Math.min(100,info.currentTime/dur*100))}}
+    if(typeof info.currentTime==='number'){
+      videoViewerFrame.dataset.currentTime=String(info.currentTime);
+      if(videoViewerCurrentTime&&!videoViewerSeeking){videoViewerCurrentTime.textContent=formatoTiempoViewer(info.currentTime);if(videoViewerSeek){var dur=Number(videoViewerDuration&&videoViewerDuration.dataset.seconds)||Number(info.duration)||0;if(dur>0)videoViewerSeek.value=String(Math.min(100,info.currentTime/dur*100))}}
+    }
     if(typeof info.duration==='number'&&info.duration>0&&videoViewerDuration){videoViewerDuration.dataset.seconds=String(info.duration);videoViewerDuration.textContent=formatoTiempoViewer(info.duration)}
-    if(typeof info.playerState==='number'){videoViewerPlaying=info.playerState===1;pintarPlayViewer()}
+    if(typeof info.playerState==='number'){videoViewerPlaying=info.playerState===1;videoViewerFrame.dataset.playing=videoViewerPlaying?'true':'false';pintarPlayViewer()}
   });
   function urlViewer(src, controls, time, playing){
     try{
@@ -25971,9 +25975,24 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     original.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
     original.setAttribute('allowfullscreen','');
     original.style.cssText='position:absolute;inset:0;width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;z-index:4;';
-    var src=urlViewer(videoViewerOriginalSrc,true,videoViewerOriginalTime,videoViewerOriginalWasPlaying);
+    // IMPORTANTE: el iframe ya fue precargado en el feed. No cambiar su URL
+    // al entrar a pantalla completa: cambiar autoplay/mute/controls reinicia
+    // el reproductor de YouTube y provoca una espera visible en cada swipe.
+    // Conservamos el mismo reproductor y usamos la API postMessage para controlarlo.
     videoViewer.appendChild(original);
-    if(original.src!==src)original.src=src;
+    if(!original.getAttribute('src') && typeof cargarVideoElemento==='function'){
+      cargarVideoElemento(original);
+    }
+    // Al cambiar de video, reutilizar el iframe precargado y reproducirlo sin
+    // reconstruir el reproductor ni perder la posición del video anterior.
+    setTimeout(function(){
+      if(videoViewerFrame!==original)return;
+      try{
+        original.contentWindow.postMessage(JSON.stringify({event:'listening',id:original.title||''}),'*');
+        original.contentWindow.postMessage(JSON.stringify({event:'command',func:'unMute',args:[]}), '*');
+        original.contentWindow.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
+      }catch(e){}
+    },0);
     return true;
   }
   function restaurarIframeViewer(){
@@ -25986,9 +26005,14 @@ body.dark-mode .fp-online-dot{border-color:#202124}
       }
       original.style.cssText=videoViewerOriginalStyle;
       if(videoViewerOriginalTitle)original.setAttribute('title',videoViewerOriginalTitle);else original.removeAttribute('title');
-      // Restaurar la configuración del feed, retomando el mismo video cerca del segundo en que quedó.
-      var src=urlViewer(videoViewerOriginalSrc,false,time,playing);
-      if(original.src!==src)original.src=src;
+      // Devolver el mismo iframe al feed sin cambiar src: reconstruir la URL
+      // vuelve a cargar YouTube y hace perder la ventaja de la precarga.
+      // Restauramos tiempo, sonido y reproducción mediante la API del player.
+      try{
+        original.contentWindow.postMessage(JSON.stringify({event:'command',func:'seekTo',args:[time,true]}),'*');
+        original.contentWindow.postMessage(JSON.stringify({event:'command',func:original.dataset.muted==='true'?'mute':'unMute',args:[]}), '*');
+        original.contentWindow.postMessage(JSON.stringify({event:'command',func:playing?'playVideo':'pauseVideo',args:[]}), '*');
+      }catch(e){}
       original.dataset.currentTime=String(time);
       original.dataset.playing=playing?'true':'false';
     }catch(e){}
@@ -26032,6 +26056,10 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     if(destino<0||destino===actual)return;
     // El video actual sale deslizando y el siguiente entra desde el lado opuesto,
     // conservando la sensación de cinta vertical del feed.
+    // Precargar explícitamente el destino y sus vecinos antes del gesto de
+    // cambio. La precarga normal del feed se mantiene intacta; esto refuerza
+    // la disponibilidad cuando el usuario desliza desde pantalla completa.
+    try{if(typeof cargarImagenesCercanas==='function')cargarImagenesCercanas(destino,2)}catch(e){}
     var viejo=videoViewerFrame;
     if(viejo){viejo.style.transition='transform .28s ease, opacity .28s ease';viejo.style.transform='translateY('+(direccion<0?'100%':'-100%')+')';viejo.style.opacity='.35'}
     swiperInstance.slideToLoop(destino,280);
@@ -26062,7 +26090,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     cerrar.addEventListener('click',function(e){e.stopPropagation();cerrarVideoViewer()});
     var audio=document.createElement('button');audio.type='button';audio.className='fp-fs-audio';audio.setAttribute('aria-label','Desactivar sonido');
     audio.style.cssText='position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:68px;z-index:20;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
-    audio.addEventListener('click',function(e){e.stopPropagation();videoViewerMuted=!videoViewerMuted;comandoViewer(videoViewerMuted?'mute':'unMute');if(!videoViewerMuted)comandoViewer('playVideo');actualizarBotonAudioViewer()});
+    audio.addEventListener('click',function(e){e.stopPropagation();videoViewerMuted=!videoViewerMuted;if(videoViewerFrame)videoViewerFrame.dataset.muted=videoViewerMuted?'true':'false';comandoViewer(videoViewerMuted?'mute':'unMute');if(!videoViewerMuted)comandoViewer('playVideo');actualizarBotonAudioViewer()});
     videoViewer.appendChild(cerrar);videoViewer.appendChild(audio);document.body.appendChild(videoViewer);
     videoViewerMuted=false;actualizarBotonAudioViewer();
     cargarVideoViewerDeSlide(z.closest('.swiper-slide'));
