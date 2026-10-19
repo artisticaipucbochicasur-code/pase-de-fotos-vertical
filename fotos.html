@@ -25930,17 +25930,18 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     }
     enviar();setTimeout(enviar,250);setTimeout(enviar,700);
   }
-  function urlViewer(src, controls, time, playing){
+  function urlViewer(src, controls, time, playing, mutedOverride){
     try{
       var u=new URL(src,location.href);
       u.searchParams.set('autoplay',playing?'1':'0');
       u.searchParams.set('playsinline',controls?'0':'1');
-      u.searchParams.set('mute',controls?'0':'1');
+      var muted = typeof mutedOverride === 'boolean' ? mutedOverride : !!controls;
+      u.searchParams.set('mute',muted?'1':'0');
       u.searchParams.set('enablejsapi','1');
       u.searchParams.set('controls',controls?'1':'0');
       u.searchParams.set('disablekb',controls?'0':'1');
       u.searchParams.set('fs','0');
-      if(time>1)u.searchParams.set('start',String(Math.floor(time)));else u.searchParams.delete('start');
+      if(time>0)u.searchParams.set('start',String(Math.floor(time)));else u.searchParams.delete('start');
       u.searchParams.set('origin',location.origin);
       return u.toString();
     }catch(e){return src}
@@ -25952,48 +25953,43 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     var original=$('iframe.youtube-player',sl);
     if(!original)return false;
     if(videoViewerFrame&&videoViewerFrame!==original)restaurarIframeViewer(true);
-    if(!videoViewerOriginal){
-      videoViewerOriginal=original;
-      videoViewerOriginalParent=original.parentNode;
-      videoViewerOriginalNext=original.nextSibling;
-      videoViewerOriginalSrc=original.getAttribute('src')||original.src||'';
-      videoViewerOriginalStyle=original.getAttribute('style')||'';
-      videoViewerOriginalTitle=original.getAttribute('title')||'';
-      videoViewerOriginalTime=tiempoIframe(original);
-      videoViewerOriginalWasPlaying=reproduciendoIframe(original);
-    }
-    videoViewerFrame=original;
-    // Cada video abierto o seleccionado por swipe debe iniciar con sonido.
-    videoViewerMuted=false;actualizarBotonAudioViewer();
+    if(!original.getAttribute('src') && typeof cargarVideoElemento==='function')cargarVideoElemento(original);
+    videoViewerOriginal=original;
+    videoViewerOriginalParent=original.parentNode;
+    videoViewerOriginalNext=original.nextSibling;
+    videoViewerOriginalSrc=original.getAttribute('src')||original.src||'';
+    videoViewerOriginalStyle=original.getAttribute('style')||'';
+    videoViewerOriginalTitle=original.getAttribute('title')||'';
     videoViewerOriginalTime=tiempoIframe(original);
     videoViewerOriginalWasPlaying=reproduciendoIframe(original);
+    videoViewerFrame=original;
+    // En pantalla completa habilitamos los controles NATIVOS de YouTube,
+    // incluida su barra de progreso. El tiempo se pasa en la URL para que el
+    // reproductor vuelva a abrir cerca del punto actual y luego se afina con seekTo.
+    videoViewerMuted=false;actualizarBotonAudioViewer();
     original.setAttribute('title','Reproductor de video de YouTube');
     original.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen');
     original.setAttribute('allowfullscreen','');
     original.style.cssText='position:absolute;inset:0;width:100%;height:100%;max-width:100vw;max-height:100dvh;border:0;background:#000;z-index:4;';
-    // IMPORTANTE: el iframe ya fue precargado en el feed. No cambiar su URL
-    // al entrar a pantalla completa: cambiar autoplay/mute/controls reinicia
-    // el reproductor de YouTube y provoca una espera visible en cada swipe.
-    // Conservamos el mismo reproductor y usamos la API postMessage para controlarlo.
     videoViewer.appendChild(original);
-    if(!original.getAttribute('src') && typeof cargarVideoElemento==='function'){
-      cargarVideoElemento(original);
-    }
-    // Solicitar actualizaciones de tiempo sin añadir barra ni controles propios.
-    if(!videoViewerPoll)videoViewerPoll=setInterval(consultarTiempoViewer,700);
-    setTimeout(function(){if(videoViewerFrame===original)consultarTiempoViewer()},180);
-    // Al abrir o deslizar, conservar el mismo iframe y reintentar sonido/reproducción.
+    var srcFull=urlViewer(videoViewerOriginalSrc,true,videoViewerOriginalTime,true,false);
+    if(srcFull && original.src!==srcFull)original.src=srcFull;
+    original.dataset.muted='false';
+    if(!videoViewerPoll)videoViewerPoll=setInterval(consultarTiempoViewer,500);
     setTimeout(function(){
       if(videoViewerFrame!==original)return;
       try{original.contentWindow.postMessage(JSON.stringify({event:'listening',id:original.title||''}),'*')}catch(e){}
+      try{original.contentWindow.postMessage(JSON.stringify({event:'command',func:'seekTo',args:[videoViewerOriginalTime,true]}),'*')}catch(e){}
       reproducirConSonidoViewer(original);
-    },0);
+    },350);
     return true;
   }
   function restaurarIframeViewer(pausarAlCambiar){
     if(!videoViewerOriginal)return;
     var original=videoViewerOriginal, time=tiempoIframe(original), playing=reproduciendoIframe(original);
+    if(!Number.isFinite(time)||time<0)time=videoViewerOriginalTime||0;
     if(pausarAlCambiar)playing=false;
+    var muted=original.dataset.muted==='true';
     try{
       if(videoViewerOriginalParent){
         if(videoViewerOriginalNext&&videoViewerOriginalNext.parentNode===videoViewerOriginalParent)videoViewerOriginalParent.insertBefore(original,videoViewerOriginalNext);
@@ -26001,14 +25997,30 @@ body.dark-mode .fp-online-dot{border-color:#202124}
       }
       original.style.cssText=videoViewerOriginalStyle;
       if(videoViewerOriginalTitle)original.setAttribute('title',videoViewerOriginalTitle);else original.removeAttribute('title');
-      // Devolver el mismo iframe sin cambiar src ni hacer seek: el reproductor
-      // nunca se reinició, por lo que su posición real ya es la correcta.
-      // Al deslizar, se pausa el anterior; al cerrar, se conserva su estado.
-      try{
-        original.contentWindow.postMessage(JSON.stringify({event:'command',func:original.dataset.muted==='true'?'mute':'unMute',args:[]}), '*');
-        original.contentWindow.postMessage(JSON.stringify({event:'command',func:playing?'playVideo':'pauseVideo',args:[]}), '*');
-      }catch(e){}
+      original.dataset.currentTime=String(time);
       original.dataset.playing=playing?'true':'false';
+      // Al volver al feed se restauran los parámetros originales (barra nativa
+      // solo en pantalla completa) y se reanuda desde el último tiempo registrado.
+      var srcFeed=urlViewer(videoViewerOriginalSrc,false,time,playing,muted);
+      if(srcFeed && original.src!==srcFeed){
+        original.addEventListener('load',function restaurarPosicionTrasCarga(){
+          setTimeout(function(){
+            try{
+              original.contentWindow.postMessage(JSON.stringify({event:'listening',id:original.title||''}),'*');
+              original.contentWindow.postMessage(JSON.stringify({event:'command',func:'seekTo',args:[time,true]}),'*');
+              original.contentWindow.postMessage(JSON.stringify({event:'command',func:muted?'mute':'unMute',args:[]}), '*');
+              original.contentWindow.postMessage(JSON.stringify({event:'command',func:playing?'playVideo':'pauseVideo',args:[]}), '*');
+            }catch(e){}
+          },350);
+        },{once:true});
+        original.src=srcFeed;
+      }else{
+        try{
+          original.contentWindow.postMessage(JSON.stringify({event:'command',func:'seekTo',args:[time,true]}),'*');
+          original.contentWindow.postMessage(JSON.stringify({event:'command',func:muted?'mute':'unMute',args:[]}), '*');
+          original.contentWindow.postMessage(JSON.stringify({event:'command',func:playing?'playVideo':'pauseVideo',args:[]}), '*');
+        }catch(e){}
+      }
     }catch(e){}
     videoViewerFrame=null;videoViewerOriginal=null;videoViewerOriginalParent=null;videoViewerOriginalNext=null;
     videoViewerOriginalSrc='';videoViewerOriginalStyle='';videoViewerOriginalTitle='';videoViewerOriginalTime=0;videoViewerOriginalWasPlaying=true;
