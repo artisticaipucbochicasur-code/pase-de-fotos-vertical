@@ -25842,6 +25842,12 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
 .fp-red-list{overflow:auto;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 14px);min-height:120px}
 .fp-red-row{display:flex;align-items:center;gap:12px;padding:8px 0}
 .fp-red-av{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#1877f2;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 42px}
+/* Estado en línea estilo Messenger */
+.fp-avatar-wrap{position:relative;width:42px;height:42px;flex:0 0 42px;display:inline-flex}
+.fp-avatar-wrap .fp-red-av{width:42px;height:42px;flex:0 0 42px}
+.fp-online-dot{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:#31a24c;border:2px solid #fff;box-sizing:border-box;display:none;z-index:2}
+body.dark-mode .fp-online-dot{border-color:#202124}
+.fp-avatar-wrap.is-online .fp-online-dot{display:block}
 .fp-red-name{flex:1;min-width:0;font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fp-red-btn{margin-left:0!important;color:inherit!important;border-color:rgba(128,128,128,.6)!important}
 .fp-red-btn.on{background:rgba(128,128,128,.2)!important}
@@ -26031,6 +26037,39 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
   var seg=new Set(),ids={},lastEm=null,full=null,filtro=null;
   try{seg=new Set(JSON.parse(localStorage.getItem('fp_seguidos')||'[]'))}catch(e){}
   window.fpSeguidosSet=function(){return seg};
+  /* Presencia en línea compartida por los modales de red y sugerencias. */
+  var fpEnLinea=new Set();
+  window.fpOnlineSet=function(){return fpEnLinea};
+  window.fpCrearAvatarEstado=function(nombre,foto,correo){
+    var wrap=document.createElement('span');wrap.className='fp-avatar-wrap';wrap.dataset.correo=norm(correo);
+    var av=document.createElement(foto?'img':'span');av.className='fp-red-av';
+    if(foto){av.src=foto;av.alt=''}else av.textContent=(nombre||'?').charAt(0).toUpperCase();
+    var dot=document.createElement('i');dot.className='fp-online-dot';dot.setAttribute('aria-label','En línea');
+    wrap.appendChild(av);wrap.appendChild(dot);wrap.classList.toggle('is-online',fpEnLinea.has(norm(correo)));return wrap;
+  };
+  function fpPintarEstados(){
+    $$('.fp-avatar-wrap[data-correo]').forEach(function(w){w.classList.toggle('is-online',fpEnLinea.has(norm(w.dataset.correo)))});
+  }
+  var fpPresenceChannel=null,fpPresenceStarted=false;
+  function fpIniciarPresencia(){
+    if(fpPresenceStarted||!yo()||typeof supabaseClient==='undefined'||!supabaseClient.channel)return;
+    fpPresenceStarted=true;
+    try{
+      fpPresenceChannel=supabaseClient.channel('fp-presencia-social',{config:{presence:{key:norm(yo())}}});
+      fpPresenceChannel.on('presence',{event:'sync'},function(){
+        var estado=fpPresenceChannel.presenceState(),set=new Set();
+        Object.keys(estado||{}).forEach(function(k){(estado[k]||[]).forEach(function(meta){if(meta&&meta.correo)set.add(norm(meta.correo))})});
+        fpEnLinea=set;window.fpOnlineSet=function(){return fpEnLinea};fpPintarEstados();
+      });
+      fpPresenceChannel.on('postgres_changes',{event:'*',schema:'public',table:'seguidores'},function(){
+        var p=$('#fpRed');if(p&&p.classList.contains('open')&&!p._fpRefreshing){p._fpRefreshing=true;abrirRed().finally(function(){p._fpRefreshing=false})}
+      });
+      fpPresenceChannel.subscribe(function(status){
+        if(status==='SUBSCRIBED')fpPresenceChannel.track({correo:norm(yo()),online:true,actualizado:Date.now()});
+      });
+      window.addEventListener('pagehide',function(){try{if(fpPresenceChannel)fpPresenceChannel.untrack()}catch(e){}});
+    }catch(e){fpPresenceStarted=false}
+  }
   function yo(){try{return currentAuthorEmail}catch(e){return ''}}
   function anuncios(){try{return anunciosData||[]}catch(e){return []}}
   function activo(){try{return anunciosData[swiperInstance.realIndex]||null}catch(e){return null}}
@@ -26046,6 +26085,7 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
       pintarSeguir();
     }catch(e){toast('No se pudo actualizar. Revisa tu conexión')}
   }
+  window.fpIniciarPresencia=fpIniciarPresencia;
   function botonesSeguir(){
     $$('.swiper-wrapper > .swiper-slide').forEach(function(sl){
       var h=$('.feed-post-head',sl);if(!h||$('.fp-follow',h))return;
@@ -26105,7 +26145,8 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
       if(!lista.length){L.textContent=tabRed==='sig'?'Aún no sigues a nadie.':'Aún nadie te sigue.';return}
       lista.forEach(function(c){
         var d=info[norm(c)]||{},nombre=d.nombre||c,row=document.createElement('div');row.className='fp-red-row';
-        var av=document.createElement(d.foto_perfil?'img':'span');av.className='fp-red-av';if(d.foto_perfil){av.src=d.foto_perfil;av.alt=''}else av.textContent=(nombre[0]||'?').toUpperCase();
+        var av=window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(nombre,d.foto_perfil,c):document.createElement('span');
+        if(!window.fpCrearAvatarEstado){av.className='fp-red-av';av.textContent=(nombre[0]||'?').toUpperCase()}
         var n=document.createElement('span');n.className='fp-red-name';n.textContent=nombre;
         n.onclick=function(){p.classList.remove('open');filtrar({tipo:'autor',correo:c,nombre:nombre})};
         var bt=document.createElement('button');bt.type='button';bt.className='fp-follow fp-red-btn';bt.dataset.correo=c;
@@ -26115,6 +26156,7 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
       pintarSeguir();
     }catch(e){L.textContent='No se pudo cargar. Revisa tu conexión.'}
   }
+  window.fpRefrescarRed=abrirRed;
   var mo;
   function chip(){var c=$('#fpReplyChip');if(!c){var cont=$('#commentInputContainer');if(!cont)return null;c=document.createElement('div');c.id='fpReplyChip';c.innerHTML='<span></span><button type="button" aria-label="Cancelar respuesta">×</button>';$('button',c).onclick=function(){window.fpReply=null;window.fpReplyRefresh()};cont.insertBefore(c,cont.firstChild)}return c}
   window.fpReplyRefresh=function(){var c=chip();if(!c)return;var r=window.fpReply;c.classList.toggle('show',!!r);if(r)$('span',c).textContent='Respondiendo a '+r.nombre}
@@ -26142,6 +26184,7 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
     var m=$('#commentsModal');if(m)new MutationObserver(function(){if(!m.classList.contains('open')){window.fpReply=null;window.fpReplyRefresh()}}).observe(m,{attributes:true,attributeFilter:['class']});
     var w=$('.swiper-wrapper');if(w)new MutationObserver(function(){requestAnimationFrame(botonesSeguir)}).observe(w,{childList:true});
     botonesSeguir();
+    fpIniciarPresencia();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
 })();
@@ -26347,7 +26390,8 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
     }).sort(function(a,b){return b.s-a.s}).slice(0,20);
     L.textContent='';if(!lista.length){L.textContent='No hay personas para sugerir por ahora';return}
     lista.forEach(function(x){
-      var u=x.u,row=document.createElement('div');row.className='fp-red-row';row.appendChild(avatar(u.nombre,u.foto_perfil));
+      var u=x.u,row=document.createElement('div');row.className='fp-red-row';
+      row.appendChild(window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(u.nombre,u.foto_perfil,u.correo):avatar(u.nombre,u.foto_perfil));
       var t=document.createElement('span');t.className='fp-red-name';t.textContent=u.nombre||u.correo;
       var s=document.createElement('div');s.className='fp-n-sub';s.textContent=[u.cargo].concat(x.why).filter(Boolean).join(' · ');t.appendChild(s);
       t.style.cursor='pointer';t.onclick=function(){panel.classList.remove('open');try{abrirPerfilPorCorreo(u.correo)}catch(e){}};
@@ -26382,6 +26426,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
   }
   esperar(function(){
     crearUI();contar();iniciarVistas();
+    try{if(window.fpIniciarPresencia)window.fpIniciarPresencia()}catch(e){}
     try{
       supabaseClient.channel('fp-not-'+yo())
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'notificaciones',filter:'para_correo=eq.'+yo()},function(payload){
