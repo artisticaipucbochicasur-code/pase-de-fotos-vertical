@@ -4912,7 +4912,7 @@ const YOUTUBE_CLIENT_ID =
 let youtubeAccessToken = null;
 
 console.log(
-  "%c🚀 DECOM FOTOS.HTML ACTUALIZADO - VERSION 2026-08-01-CHAT-FIX",
+  "%c🚀 DECOM FOTOS.HTML ACTUALIZADO - VERSION 2026-10-19-EDIT-FIX2",
   "background:#2563eb;color:white;font-size:16px;font-weight:bold;padding:8px;"
 );
 
@@ -13684,7 +13684,14 @@ const datosActualizar = {
         throw error;
     }
     if(!filaEditada){
-        throw new Error("No se guardó: solo el dueño puede editar este anuncio.");
+        let sesionCorreo = "?", duenoCorreo = "?";
+        try{
+            const u = await supabaseClient.auth.getUser();
+            sesionCorreo = (u && u.data && u.data.user && u.data.user.email) || "sin sesión";
+            const d = await supabaseClient.from("publicaciones").select("correo").eq("id", editingAnuncioId).maybeSingle();
+            duenoCorreo = (d && d.data && d.data.correo) || "?";
+        }catch(e){}
+        throw new Error("No se guardó. Sesión: " + sesionCorreo + " · dueño del anuncio: " + duenoCorreo);
     }
     fpAplicarEdicionLocal(filaEditada);
 
@@ -13873,7 +13880,7 @@ const datosActualizar = {
 
 
 
-    mensaje.textContent="🚫 Error al subir anuncio.";
+    mensaje.textContent="🚫 Error al subir anuncio" + (err && err.message ? ": " + err.message : ".");
 
     mensaje.style.color="red";
 
@@ -19678,7 +19685,7 @@ function fpAplicarEdicionLocal(fila){
         if(String(idActivo) === String(fila.id) || (swiperInstance && swiperInstance.realIndex === idx)){
             updateContentOverlay(idx);
         }
-        console.log("[DECOM] edición aplicada en pantalla:", fila.id, fila.titulo);
+        console.log("[DECOM] edición aplicada en pantalla:", fila.id, fila.titulo, "| activo:", idActivo, "| realIndex:", swiperInstance && swiperInstance.realIndex, "| idx:", idx);
     }catch(e){ console.warn("[DECOM] fpAplicarEdicionLocal", e); }
 }
 function actualizarPublicacionLocal(pub, opciones = {}){
