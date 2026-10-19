@@ -13691,6 +13691,9 @@ const datosActualizar = {
             const d = await supabaseClient.from("publicaciones").select("correo").eq("id", editingAnuncioId).maybeSingle();
             duenoCorreo = (d && d.data && d.data.correo) || "?";
         }catch(e){}
+        if(sesionCorreo === "sin sesión"){
+            throw new Error("Tu sesión expiró. Cierra sesión y vuelve a iniciar sesión para poder editar.");
+        }
         throw new Error("No se guardó. Sesión: " + sesionCorreo + " · dueño del anuncio: " + duenoCorreo);
     }
     fpAplicarEdicionLocal(filaEditada);
