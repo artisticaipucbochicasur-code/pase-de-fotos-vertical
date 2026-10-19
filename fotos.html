@@ -26289,9 +26289,9 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
   async function pintarAvisos(L){
     var r=await supabaseClient.from('notificaciones').select('*').eq('para_correo',yo()).order('fecha',{ascending:false}).limit(40);
     if(r.error)throw r.error;L.textContent='';
-    // Los avisos de nuevos seguidores solo permanecen hasta que se revisan; evita repetirlos en otros dispositivos.
+    // Los avisos leídos siguen visibles en la lista; solo dejan de contar como pendientes.
+    // Se conserva un único aviso de seguimiento por persona para evitar duplicados.
     var vistos=new Set();r.data=(r.data||[]).filter(function(n){
-      if(n.tipo==='seguir'&&n.leida)return false;
       var k=n.tipo==='seguir'?'seguir:'+norm(n.de_correo):null;
       if(k){if(vistos.has(k))return false;vistos.add(k)}return true;
     });
