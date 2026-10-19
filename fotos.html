@@ -42,7 +42,7 @@
     #loader .spinner { display: inline-block; animation: spin 1.5s linear infinite; }
 
 #lblContador {
-  position: absolute;
+  position: fixed;
   bottom: 195px; /* un poco arriba del icono de comentarios */
   right: 20px;
   background: rgba(255, 255, 255, 0.1); /* Fondo ligeramente blanco */
@@ -443,7 +443,7 @@
     /* Estilos del nuevo contador de comentarios */
 .comments-counter {
   position: fixed;
-  bottom: 140px;
+  bottom: 150px;
   right: 20px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -459,7 +459,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-  z-index: 999;
+  z-index: 5001; 
 }
 
 .comments-counter .icon {
@@ -501,7 +501,51 @@
   z-index: 1000;
 }
 
+/* ❤️ Contador de Me gusta (mismo estilo que comentarios) */
+.likes-counter {
+  position: fixed;
+  bottom: 350px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  z-index: 5001; 
+}
 
+.likes-counter .icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.likes-counter span#likeCountValue {
+  display: none;
+  position: absolute;
+  bottom: -10px;
+  left: -10px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
     
     .comment-input-container .send-comment-btn:hover {
@@ -1656,6 +1700,14 @@ body {
 </div>
 
 
+
+<div class="likes-counter" id="likesCounter" title="Me gusta">
+  <span class="icon">
+    <i class="far fa-heart" id="likeIcon"></i>
+  </span>
+  <span class="count" id="likeCountValue">0</span>
+</div>
+
 <div class="comments-counter" id="commentsCounter">
   <span class="icon">
     <i class="fa-regular fa-comment"></i>
@@ -1669,6 +1721,8 @@ body {
     <button class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
   </div>
 </div>
+
+
 
 
 
@@ -4176,6 +4230,158 @@ savedSearchInputEl.addEventListener("blur", () => {
     const commentInput = document.getElementById('commentInput');
     const sendCommentBtn = document.querySelector('.send-comment-btn');
 
+
+    // ❤️ Me gusta
+    const likesCounter = document.getElementById('likesCounter');
+    const likeCountValue = document.getElementById('likeCountValue');
+    const likeIcon = document.getElementById('likeIcon');
+
+    let contadorLikesAnterior = -1;
+    let likesPorAnuncio = {};     // { anuncioId: count }
+    let likedPorAnuncio = {};     // { anuncioId: true/false } para el usuario actual
+
+function actualizarLikeUI(anuncioId) {
+  // ✅ Si hay una operación pendiente, no repintar desde otros flujos (evita parpadeo)
+  if (likePendingPorAnuncio && likePendingPorAnuncio[anuncioId]) return;
+
+  const count = Number(likesPorAnuncio[anuncioId] || 0);
+  likeCountValue.textContent = count;
+
+  // Mostrar/ocultar badge
+  likeCountValue.style.display = (count > 0) ? 'flex' : 'none';
+
+  // Estado del corazón
+  const liked = !!likedPorAnuncio[anuncioId];
+  if (likeIcon) {
+    likeIcon.className = liked ? 'fas fa-heart' : 'far fa-heart';
+  }
+}
+
+
+
+// Evita doble click mientras responde el servidor
+const likePendingPorAnuncio = {};
+
+
+
+async function toggleLikeAnuncioActual() {
+  if (!anunciosData || anunciosData.length === 0 || !swiperInstance) return;
+
+  const activeIndex = swiperInstance.realIndex;
+  const anuncioActual = anunciosData[activeIndex];
+  if (!anuncioActual || !anuncioActual.id) return;
+
+  const anuncioId = anuncioActual.id;
+
+  // ✅ Evitar spam/doble click si ya hay una petición en curso
+  if (likePendingPorAnuncio[anuncioId]) return;
+
+  // ✅ Guardar estado anterior para rollback
+  const prevLiked = !!likedPorAnuncio[anuncioId];
+  const prevCount = Number(likesPorAnuncio[anuncioId] || 0);
+
+  // ✅ UI optimista: actualizar INMEDIATO (sin esperar fetch)
+  const nextLiked = !prevLiked;
+  const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+
+  likedPorAnuncio[anuncioId] = nextLiked;
+  likesPorAnuncio[anuncioId] = nextCount;
+
+  // ✅ Pintar UI optimista DIRECTO para que nada la pise (evita parpadeo)
+  if (typeof likeCountValue !== "undefined" && likeCountValue) {
+    likeCountValue.textContent = nextCount;
+    likeCountValue.style.display = (nextCount > 0) ? "flex" : "none";
+  }
+  if (typeof likeIcon !== "undefined" && likeIcon) {
+    likeIcon.className = nextLiked ? "fas fa-heart" : "far fa-heart";
+  }
+
+  // ✅ Marcar pendiente DESPUÉS de pintar optimista
+  likePendingPorAnuncio[anuncioId] = true;
+
+  try {
+    const params = new URLSearchParams({
+      accion: 'toggleLike',
+      anuncioId: anuncioId,
+      correo: currentAuthorEmail || '',
+      autor: currentAuthorName || ''
+    });
+
+    const resp = await fetch(`${SCRIPT_URL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+
+    const data = await resp.json();
+
+    if (data && data.status === 'success') {
+      const serverLiked = !!data.liked;
+      const serverLikes = Number(data.likes || 0);
+
+      // ✅ Solo reconciliar si el servidor difiere del estado optimista actual
+      const currentLiked = !!likedPorAnuncio[anuncioId];
+      const currentLikes = Number(likesPorAnuncio[anuncioId] || 0);
+
+      if (serverLiked !== currentLiked || serverLikes !== currentLikes) {
+        likedPorAnuncio[anuncioId] = serverLiked;
+        likesPorAnuncio[anuncioId] = serverLikes;
+        actualizarLikeUI(anuncioId);
+      }
+      // ✅ Si coincide, NO hacemos nada -> no parpadea
+    } else {
+      // 🔁 Rollback si servidor responde error
+      likedPorAnuncio[anuncioId] = prevLiked;
+      likesPorAnuncio[anuncioId] = prevCount;
+      actualizarLikeUI(anuncioId);
+    }
+  } catch (e) {
+    console.error('Error toggleLike:', e);
+
+    // 🔁 Rollback si falla la red
+    likedPorAnuncio[anuncioId] = prevLiked;
+    likesPorAnuncio[anuncioId] = prevCount;
+    actualizarLikeUI(anuncioId);
+  } finally {
+    likePendingPorAnuncio[anuncioId] = false;
+  }
+}
+
+
+
+  async function verificarLikes() {
+  try {
+    const url = `${SCRIPT_URL}?accion=obtenerContadorLikes&correo=${encodeURIComponent(currentAuthorEmail || '')}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // Guardar data
+    const totalLikesActual = Number(data.totalLikes || 0);
+    if (data.likesPorAnuncio) likesPorAnuncio = data.likesPorAnuncio;
+    if (data.likedPorAnuncio) likedPorAnuncio = data.likedPorAnuncio;
+
+    // ✅ SIEMPRE actualizar UI del anuncio actual (incluye primera carga)
+    if (swiperInstance && anunciosData && anunciosData.length > 0) {
+      const activeIndex = swiperInstance.realIndex;
+      const anuncioActual = anunciosData[activeIndex];
+      if (anuncioActual && anuncioActual.id) {
+        actualizarLikeUI(anuncioActual.id);
+      }
+    }
+
+    // Mantener tracking por si lo usas para debug
+    contadorLikesAnterior = totalLikesActual;
+
+  } catch (e) {
+    console.error('Error al verificar likes:', e);
+  }
+}
+
+
+    if (likesCounter) {
+      likesCounter.addEventListener('click', toggleLikeAnuncioActual);
+    }
+
     let contadorComentariosAnterior = -1;
     let comentariosPorAnuncio = {};
     let lastTapTime = 0;
@@ -4195,17 +4401,17 @@ savedSearchInputEl.addEventListener("blur", () => {
 const refreshBtn = document.getElementById("refreshBtn");
 
 if (refreshBtn) {
-  refreshBtn.addEventListener("click", () => {
-    location.reload(); // 🔄 Recarga la página completamente
+refreshBtn.addEventListener("click", () => {
+  // 🧹 Limpiar caché RAM
+  for (const key in fotoCache) delete fotoCache[key];
 
-     // 🧹 Limpiar caché RAM de fotos
-    for (const key in fotoCache) {
-      delete fotoCache[key];
-    }
+  // 🧹 Limpiar caché local
+  localStorage.removeItem("fotoLocal");
 
-    // 🧹 Limpiar caché localStorage de fotos
-    localStorage.removeItem("fotoLocal");
-  });
+  // 🔄 Ahora sí
+  location.reload();
+});
+
 }
 
     
@@ -4389,13 +4595,6 @@ currentDescription.addEventListener("click", function () {
 
 
 
-
-    function normalizeText(text) {
-        if (!text) return "";
-        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-    }
-
-
     
 // Toggle para ocultar/mostrar overlays al tocar la imagen
 document.querySelector('.swiper').addEventListener('click', () => {
@@ -4430,6 +4629,16 @@ document.querySelector('.swiper').addEventListener('click', () => {
     const viewSavedBtn = document.getElementById("viewSavedBtn");
     if (saveBtn) saveBtn.classList.toggle("hidden-overlay");
     if (viewSavedBtn) viewSavedBtn.classList.toggle("hidden-overlay");
+
+
+// 🆕 Alternar likes (icono + contador)
+const likesCounter = document.getElementById("likesCounter");
+if (likesCounter) {
+  likesCounter.classList.toggle("hidden-overlay");
+}
+
+
+    
 
     // 🆕 Alternar el encabezado DECOM y botones
     const socialHeader = document.getElementById("socialHeader");
@@ -4647,16 +4856,37 @@ document.querySelector('.swiper').addEventListener('click', () => {
         }
     });
 
-    // Lógica para subir la barra de comentarios
-    commentInput.addEventListener('focus', () => {
-        // Mueve el cuerpo del documento para que el input sea visible
-        document.body.style.transform = `translateY(-58%)`;
-    });
+// ✅ Detectar iOS (incluye iPadOS)
+const isIOS = (() => {
+  const ua = navigator.userAgent || "";
+  const iOSUA = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return iOSUA || iPadOS;
+})();
 
-    commentInput.addEventListener('blur', () => {
-        // Vuelve el cuerpo del documento a su posición original
-        document.body.style.transform = 'translateY(0)';
-    });
+let iosScrollYBeforeFocus = 0;
+
+// Lógica teclado/comentarios
+commentInput.addEventListener("focus", () => {
+  if (isIOS) {
+    // ✅ iOS: dejamos que Safari haga el scroll natural
+    iosScrollYBeforeFocus = window.scrollY || 0;
+    return;
+  }
+
+});
+
+commentInput.addEventListener("blur", () => {
+  
+
+  if (isIOS) {
+    // ✅ iOS: fuerza volver al scroll anterior (Safari a veces no “baja” solo)
+    setTimeout(() => {
+      window.scrollTo(0, iosScrollYBeforeFocus);
+    }, 50);
+  }
+});
+
 
     function normalizarComentarios(lista) {
       if (!Array.isArray(lista)) return [];
@@ -4792,6 +5022,12 @@ setInterval(actualizarContador, INTERVALO_VERIFICACION);
         const comentarios = comentariosPorAnuncio[anuncioActual.id] || [];
         anuncioActual.comentarios = normalizarComentarios(comentarios);
         updateContentOverlay(activeIndex);
+
+        // ❤️ Actualizar Me gusta del anuncio actual
+            if (anunciosData && anunciosData.length > 0) {
+              const anuncioActual = anunciosData[activeIndex];
+              if (anuncioActual && anuncioActual.id) actualizarLikeUI(anuncioActual.id);
+            }
         
         console.log(`📌 Comentarios actualizados para el anuncio: ${anuncioActual.titulo}`);
         
@@ -5283,6 +5519,13 @@ async function resolveFotoPerfil(correo, nombre="") {
             const activeIndex = swiperInstance.realIndex;
             updateContentOverlay(activeIndex);
 
+   // ✅ Actualizar contador/estado de likes INMEDIATO al cambiar de slide
+    const anuncioSlide = anunciosData[activeIndex];
+    if (anuncioSlide && anuncioSlide.id) {
+      actualizarLikeUI(anuncioSlide.id);
+    }
+
+
             if(window.AppInventor && anunciosData.length > 0) {
                 const anuncioActual = anunciosData[activeIndex];
                 
@@ -5474,12 +5717,19 @@ function showCustommostrarAviso(title, titlesList) {
         overlay.style.display = 'flex';
     }
 
-    setInterval(actualizarContador, 5000);
+    //setInterval(actualizarContador, 5000);
     setInterval(verificarComentarios, 5000);
 
-    verificarComentarios().then(() => {
-        cargarImagenes();
-    });
+    setInterval(verificarLikes, 5000);
+
+
+    verificarLikes();
+
+   verificarComentarios().then(() => {
+  cargarImagenes();
+  verificarLikes(); // ✅ fuerza primera carga visible
+});
+
 
     if (lblContador) {
         lblContador.addEventListener('click', () => {
@@ -5542,15 +5792,49 @@ setTimeout(() => {
     left: 0,
     width: "100vw",
     height: "100vh",
-    objectFit: "cover",
+    objectFit: "contain",              // ✅ iOS: evita recorte/zoom
+    backgroundColor: "black",          // ✅ relleno para barras
     zIndex: "999999",
-    backgroundColor: "black",
     opacity: "0",
     transition: "opacity 1s ease",
   });
   document.body.appendChild(videoIntro);
 
-  // 🟡 Crear botón "Omitir intro" (inicialmente oculto)
+  // 🔊 Botón "Activar sonido" (inmediato, arriba derecha con margen)
+  const soundBtn = document.createElement("button");
+  soundBtn.innerText = "🔊 Sonido";
+  Object.assign(soundBtn.style, {
+    position: "fixed",
+    top: "22px",                       // ✅ más espacio arriba
+    right: "16px",                     // ✅ un pelín más de aire lateral
+    padding: "10px 14px",
+    fontSize: "14px",
+    background: "rgba(0, 0, 0, 0.6)",
+    color: "white",
+    border: "1px solid rgba(255,255,255,0.3)",
+    borderRadius: "10px",
+    cursor: "pointer",
+    zIndex: "1000000",
+    opacity: "1",
+    transition: "opacity 0.3s ease",
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)",
+  });
+  document.body.appendChild(soundBtn);
+
+  soundBtn.addEventListener("click", async () => {
+    try {
+      videoIntro.muted = false;
+      videoIntro.volume = 1;
+      await videoIntro.play();
+      soundBtn.style.opacity = "0";
+      setTimeout(() => soundBtn.remove(), 300);
+    } catch (e) {
+      console.warn("No se pudo activar sonido:", e);
+    }
+  });
+
+  // 🟡 Botón "Omitir intro" (inicialmente oculto)
   const skipBtn = document.createElement("button");
   skipBtn.innerText = "Omitir intro";
   Object.assign(skipBtn.style, {
@@ -5571,51 +5855,51 @@ setTimeout(() => {
     backdropFilter: "blur(6px)",
   });
 
-  // Acción del botón "Omitir"
   skipBtn.addEventListener("click", () => {
     videoIntro.style.opacity = "0";
     skipBtn.style.opacity = "0";
+    soundBtn.style.opacity = "0";
     setTimeout(() => {
       videoIntro.remove();
       skipBtn.remove();
+      soundBtn.remove();
     }, 700);
   });
 
-  // Insertar el botón
   document.body.appendChild(skipBtn);
 
-  // Cuando el video puede reproducirse
   videoIntro.addEventListener("canplaythrough", () => {
     if (loader) loader.style.display = "none";
     videoIntro.style.opacity = "1";
     videoIntro.play().catch(() => {});
 
-    // 🔥 Mostrar el botón de "Omitir" después de 3 segundos
     setTimeout(() => {
       skipBtn.style.opacity = "1";
     }, 3000);
   });
 
-  // Al finalizar el video
   videoIntro.addEventListener("ended", () => {
     videoIntro.style.opacity = "0";
     skipBtn.style.opacity = "0";
+    soundBtn.style.opacity = "0";
     setTimeout(() => {
       videoIntro.remove();
       skipBtn.remove();
+      soundBtn.remove();
     }, 1000);
   });
 
-  // Autocierre si autoplay falla
   setTimeout(() => {
     if (videoIntro.readyState < 3 || videoIntro.paused) {
       console.warn("iOS bloqueó autoplay, omitiendo video...");
       videoIntro.remove();
       skipBtn.remove();
+      soundBtn.remove();
       if (loader) loader.style.display = "none";
     }
   }, 6000);
 }, 300);
+
 
 
   const imagesBtn = document.getElementById("imagesBtn");
@@ -7050,14 +7334,3 @@ function agregarEfectoRipple(boton) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
