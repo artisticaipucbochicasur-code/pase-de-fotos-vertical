@@ -3116,6 +3116,14 @@ style="position:relative;">
   <span id="notificationCount"></span>
 </div>
 
+      <!-- Aviso exclusivo de nuevos seguidores; independiente de las notificaciones de anuncios -->
+      <button id="fpFollowHeader" class="header-btn" type="button"
+        title="Nuevos seguidores" aria-label="Nuevos seguidores"
+        style="display:none;position:relative;">
+        <i class="fas fa-user-plus"></i>
+        <b aria-hidden="true" style="display:none;position:absolute;top:-4px;right:-4px;min-width:8px;height:8px;border-radius:50%;background:#e41e3f;"></b>
+      </button>
+
 
       <button id="btnBuscar" class="header-btn" title="Buscar anuncios">
         <i class="fas fa-search"></i>
@@ -3210,8 +3218,12 @@ style="position:relative;">
 
           <!-- Botones -->
 
-
-
+<button id="fpBell" class="menu-btn" type="button" aria-label="Actividad y nuevos seguidores"
+  style="position:relative;">
+  <i class="fas fa-bell"></i>
+  <span>Actividad y seguidores</span>
+  <b aria-hidden="true" style="display:none;margin-left:auto;min-width:18px;height:18px;border-radius:9px;background:#e41e3f;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;padding:0 4px;"></b>
+</button>
 
 <button id="btnMiPerfil" class="menu-btn">
   <i class="fas fa-user-circle"></i>
@@ -26192,8 +26204,10 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
 })();
 </script>
 <style id="fp-extra-css">
-#fpBell{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:2147483100;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center}
-#fpBell b{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;border-radius:9px;background:#e41e3f;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;padding:0 4px;display:none}
+#userMenu #fpBell{position:relative;display:flex;align-items:center;width:100%;text-align:left}
+#userMenu #fpBell b{display:none;position:static;margin-left:auto;min-width:18px;height:18px;border-radius:9px;background:#e41e3f;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;padding:0 4px}
+#fpFollowHeader{align-items:center;justify-content:center}
+#fpFollowHeader b{pointer-events:none}
 #fpNot{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2147483200;display:none;align-items:flex-end;justify-content:center}
 #fpNot.open{display:flex}
 .fp-n-sub{font-size:12px;opacity:.65}
@@ -26228,10 +26242,12 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
   }
 
   /* --- campanita y panel --- */
-  var tab='avisos',panel,bell;
+  var tab='avisos',panel,bell,followHeader;
   function crearUI(){
-    bell=document.createElement('button');bell.id='fpBell';bell.type='button';bell.setAttribute('aria-label','Notificaciones');
-    bell.innerHTML='<i class="fas fa-bell"></i><b></b>';bell.onclick=abrir;document.body.appendChild(bell);
+    bell=document.getElementById('fpBell');
+    followHeader=document.getElementById('fpFollowHeader');
+    if(bell){bell.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()}abrir()};}
+    if(followHeader){followHeader.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();abrir()});}
     panel=document.createElement('div');panel.id='fpNot';
     panel.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><b>Actividad</b><button type="button" class="fp-red-x" aria-label="Cerrar">×</button></div><div class="fp-red-tabs"><button type="button" data-t="avisos">Avisos</button><button type="button" data-t="sug">A quién seguir</button></div><div class="fp-red-list"></div></div>';
     panel.addEventListener('click',function(e){if(e.target===panel||e.target.closest('.fp-red-x'))panel.classList.remove('open')});
@@ -26239,8 +26255,18 @@ body.dark-mode .fp-red-sheet{background:#202124;color:#f5f5f5}
     document.body.appendChild(panel);
   }
   async function contar(){
-    try{var r=await supabaseClient.from('notificaciones').select('id',{count:'exact',head:true}).eq('para_correo',yo()).eq('leida',false);
-      var b=$('b',bell),n=r.count||0;b.textContent=n>99?'99+':n;b.style.display=n?'block':'none'}catch(e){}
+    try{
+      var r=await supabaseClient.from('notificaciones').select('id',{count:'exact',head:true})
+        .eq('para_correo',yo()).eq('leida',false);
+      var n=r.count||0,menuBadge=bell?$('b',bell):null;
+      if(menuBadge){menuBadge.textContent=n>99?'99+':n;menuBadge.style.display=n?'inline-block':'none'}
+      // El icono del header se activa únicamente por nuevos seguidores sin leer.
+      var f=await supabaseClient.from('notificaciones').select('id',{count:'exact',head:true})
+        .eq('para_correo',yo()).eq('leida',false).eq('tipo','seguir');
+      var nuevos=f.count||0,headerBadge=followHeader?$('b',followHeader):null;
+      if(followHeader)followHeader.style.display=nuevos?'inline-flex':'none';
+      if(headerBadge){headerBadge.style.display=nuevos?'block':'none';headerBadge.title=nuevos?(nuevos+' nuevos seguidores sin leer'):''}
+    }catch(e){}
   }
   function abrir(){panel.classList.add('open');pintar()}
   function avatar(nombre,foto){var a=document.createElement(foto?'img':'span');a.className='fp-red-av';if(foto){a.src=foto;a.alt=''}else a.textContent=(nombre||'?').charAt(0).toUpperCase();return a}
