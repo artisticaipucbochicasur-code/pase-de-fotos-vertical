@@ -25808,15 +25808,15 @@ html,body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
 /* Corazón del doble toque */
 .fp-heart{position:absolute;z-index:40;font-size:92px;color:#ff3b5c;pointer-events:none;transform:translate(-50%,-50%) scale(.2);opacity:0;filter:drop-shadow(0 4px 14px rgba(0,0,0,.45));animation:fpHeart .85s ease-out forwards}
 @keyframes fpHeart{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}18%{transform:translate(-50%,-50%) scale(1.15);opacity:1}35%{transform:translate(-50%,-50%) scale(.95)}70%{transform:translate(-50%,-60%) scale(1);opacity:1}100%{transform:translate(-50%,-90%) scale(1.05);opacity:0}}
-/* Controles del visor de video: se ocultan/ muestran al tocar el video */
+/* Controles compactos centrados: retroceder 5 s, play/pausa y avanzar 5 s. */
 #fpVideoViewer .fp-fs-close,#fpVideoViewer .fp-fs-audio{opacity:1;transition:opacity .18s ease,transform .18s ease}
-#fpVideoViewer .fp-fs-controls{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:64px 16px calc(16px + env(safe-area-inset-bottom,0px));color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.88));font:14px/1.35 system-ui,sans-serif;pointer-events:auto;transition:opacity .18s ease,transform .18s ease}
-#fpVideoViewer .fp-fs-title{font-size:15px;font-weight:700;line-height:1.35;margin:0 0 12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 3px #000}
-#fpVideoViewer .fp-fs-control-row{display:flex;align-items:center;gap:10px}
-#fpVideoViewer .fp-fs-play{flex:0 0 42px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
-#fpVideoViewer .fp-fs-time{font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:38px}
-#fpVideoViewer .fp-fs-seek{flex:1;min-width:40px;width:100%;accent-color:#fff;cursor:pointer;touch-action:pan-x}
-#fpVideoViewer.fp-fs-chrome-off .fp-fs-close,#fpVideoViewer.fp-fs-chrome-off .fp-fs-audio,#fpVideoViewer.fp-fs-chrome-off .fp-fs-controls{opacity:0;pointer-events:none;transform:scale(.98)}
+#fpVideoViewer .fp-fs-controls{position:absolute;left:0;right:0;top:50%;z-index:9;display:flex;justify-content:center;align-items:center;transform:translateY(-50%);padding:12px;color:#fff;font:14px/1.35 system-ui,sans-serif;pointer-events:auto;transition:opacity .18s ease}
+#fpVideoViewer .fp-fs-control-row{display:flex;align-items:center;justify-content:center;gap:18px}
+#fpVideoViewer .fp-fs-play,#fpVideoViewer .fp-fs-skip{flex:0 0 52px;width:52px;height:52px;border:0;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.55);color:#fff;font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.28);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);cursor:pointer;touch-action:manipulation}
+#fpVideoViewer .fp-fs-play{width:60px;height:60px;flex-basis:60px;font-size:23px;background:rgba(255,255,255,.2)}
+#fpVideoViewer .fp-fs-skip span{display:block;font:700 13px/1 system-ui,sans-serif;margin-top:2px}
+#fpVideoViewer .fp-fs-play:active,#fpVideoViewer .fp-fs-skip:active{transform:scale(.93)}
+#fpVideoViewer.fp-fs-chrome-off .fp-fs-close,#fpVideoViewer.fp-fs-chrome-off .fp-fs-audio,#fpVideoViewer.fp-fs-chrome-off .fp-fs-controls{opacity:0;pointer-events:none}
 /* Botones del video (sonido y pantalla completa), siempre a la vista */
 .fp-video-btns{position:absolute;right:12px;bottom:58px;display:flex;flex-direction:column;gap:10px;z-index:30}
 .fp-video-btns button{width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -25919,32 +25919,60 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function iniciarControlesViewer(sl){
     if(!videoViewer)return;
     if(videoViewerControls)videoViewerControls.remove();
-    videoViewerControls=document.createElement('div');videoViewerControls.className='fp-fs-controls';
-    var title=document.createElement('div');title.className='fp-fs-title';
-    var author=sl&&$('.feed-post-author',sl),postTitle=sl&&$('.feed-post-title',sl),caption=sl&&$('.feed-post-caption',sl);
-    title.textContent=[author&&author.textContent,postTitle&&postTitle.textContent,caption&&caption.textContent].map(function(x){return (x||'').trim()}).filter(Boolean).join(' · ')||'Video';
-    var row=document.createElement('div');row.className='fp-fs-control-row';
-    videoViewerPlayButton=document.createElement('button');videoViewerPlayButton.type='button';videoViewerPlayButton.className='fp-fs-play';videoViewerPlayButton.innerHTML='<i class="fas fa-pause"></i>';videoViewerPlayButton.setAttribute('aria-label','Pausar video');
-    videoViewerPlayButton.addEventListener('click',function(e){e.stopPropagation();comandoViewer(videoViewerPlaying?'pauseVideo':'playVideo');videoViewerPlaying=!videoViewerPlaying;if(videoViewerFrame)videoViewerFrame.dataset.playing=videoViewerPlaying?'true':'false';pintarPlayViewer()});
-    videoViewerCurrentTime=document.createElement('span');videoViewerCurrentTime.className='fp-fs-time';videoViewerCurrentTime.textContent='0:00';
-    videoViewerSeek=document.createElement('input');videoViewerSeek.type='range';videoViewerSeek.className='fp-fs-seek';videoViewerSeek.min='0';videoViewerSeek.max='100';videoViewerSeek.step='.1';videoViewerSeek.value='0';videoViewerSeek.setAttribute('aria-label','Línea de tiempo del video');
-    videoViewerSeek.addEventListener('pointerdown',function(e){e.stopPropagation();videoViewerSeeking=true},{passive:true});
-    videoViewerSeek.addEventListener('input',function(e){e.stopPropagation();var d=Number(videoViewerDuration&&videoViewerDuration.dataset.seconds)||0;if(d>0&&videoViewerCurrentTime)videoViewerCurrentTime.textContent=formatoTiempoViewer(d*Number(videoViewerSeek.value)/100)});
-    videoViewerSeek.addEventListener('change',function(e){e.stopPropagation();var d=Number(videoViewerDuration&&videoViewerDuration.dataset.seconds)||0;if(d>0)comandoViewer('seekTo',[d*Number(videoViewerSeek.value)/100,true]);videoViewerSeeking=false});
-    videoViewerDuration=document.createElement('span');videoViewerDuration.className='fp-fs-time';videoViewerDuration.textContent='0:00';videoViewerDuration.dataset.seconds='0';
-    row.appendChild(videoViewerPlayButton);row.appendChild(videoViewerCurrentTime);row.appendChild(videoViewerSeek);row.appendChild(videoViewerDuration);videoViewerControls.appendChild(title);videoViewerControls.appendChild(row);videoViewer.appendChild(videoViewerControls);
-    ['pointerdown','pointerup','touchstart','touchend','click'].forEach(function(ev){videoViewerControls.addEventListener(ev,function(e){e.stopPropagation()},{passive:ev!=='click'})});
-    videoViewerPlaying=true;pintarPlayViewer();
+    videoViewerControls=document.createElement('div');
+    videoViewerControls.className='fp-fs-controls';
+    var row=document.createElement('div');
+    row.className='fp-fs-control-row';
+
+    function crearSalto(texto, etiqueta, segundos){
+      var b=document.createElement('button');
+      b.type='button';
+      b.className='fp-fs-skip';
+      b.setAttribute('aria-label',etiqueta);
+      b.title=etiqueta;
+      b.innerHTML='<span>'+texto+'</span>';
+      b.addEventListener('click',function(e){
+        e.preventDefault();e.stopPropagation();
+        if(!videoViewerFrame)return;
+        var actual=Number(videoViewerFrame.dataset.currentTime||0);
+        var destino=Math.max(0,actual+segundos);
+        comandoViewer('seekTo',[destino,true]);
+        videoViewerFrame.dataset.currentTime=String(destino);
+      });
+      return b;
+    }
+
+    var atras=crearSalto('−5','Retroceder 5 segundos',-5);
+    videoViewerPlayButton=document.createElement('button');
+    videoViewerPlayButton.type='button';
+    videoViewerPlayButton.className='fp-fs-play';
+    videoViewerPlayButton.innerHTML='<i class="fas fa-pause"></i>';
+    videoViewerPlayButton.setAttribute('aria-label','Pausar video');
+    videoViewerPlayButton.addEventListener('click',function(e){
+      e.preventDefault();e.stopPropagation();
+      comandoViewer(videoViewerPlaying?'pauseVideo':'playVideo');
+      videoViewerPlaying=!videoViewerPlaying;
+      if(videoViewerFrame)videoViewerFrame.dataset.playing=videoViewerPlaying?'true':'false';
+      pintarPlayViewer();
+    });
+    var adelante=crearSalto('+5','Avanzar 5 segundos',5);
+    row.appendChild(atras);
+    row.appendChild(videoViewerPlayButton);
+    row.appendChild(adelante);
+    videoViewerControls.appendChild(row);
+    videoViewer.appendChild(videoViewerControls);
+    ['pointerdown','pointerup','touchstart','touchend','click'].forEach(function(ev){
+      videoViewerControls.addEventListener(ev,function(e){e.stopPropagation()},{passive:ev!=='click'});
+    });
+    videoViewerPlaying=true;
+    pintarPlayViewer();
   }
   window.addEventListener('message',function(ev){
     if(!videoViewerFrame||ev.source!==videoViewerFrame.contentWindow)return;
     var data=ev.data;try{if(typeof data==='string')data=JSON.parse(data)}catch(e){return}
     var info=data&&data.info;if(!info)return;
-    if(typeof info.currentTime==='number'){
-      videoViewerFrame.dataset.currentTime=String(info.currentTime);
-      if(videoViewerCurrentTime&&!videoViewerSeeking){videoViewerCurrentTime.textContent=formatoTiempoViewer(info.currentTime);if(videoViewerSeek){var dur=Number(videoViewerDuration&&videoViewerDuration.dataset.seconds)||Number(info.duration)||0;if(dur>0)videoViewerSeek.value=String(Math.min(100,info.currentTime/dur*100))}}
-    }
-    if(typeof info.duration==='number'&&info.duration>0&&videoViewerDuration){videoViewerDuration.dataset.seconds=String(info.duration);videoViewerDuration.textContent=formatoTiempoViewer(info.duration)}
+    if(typeof info.currentTime==='number')videoViewerFrame.dataset.currentTime=String(info.currentTime);
+    if(typeof info.duration==='number'&&info.duration>0)videoViewerFrame.dataset.duration=String(info.duration);
     if(typeof info.playerState==='number'){videoViewerPlaying=info.playerState===1;videoViewerFrame.dataset.playing=videoViewerPlaying?'true':'false';pintarPlayViewer()}
   });
   function urlViewer(src, controls, time, playing){
