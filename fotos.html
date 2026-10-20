@@ -26929,23 +26929,62 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
     }catch(e){}
   }
   async function pintarSugeridos(L){
-    var r=await supabaseClient.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(400);
+    var c=supabaseClient;
+    var r=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(400);
     if(r.error)throw r.error;
-    var yoU=r.data.find(function(u){return norm(u.correo)===yo()})||{},seg=window.fpSeguidosSet?window.fpSeguidosSet():new Set(),act={};
-    try{anunciosData.forEach(function(a){var c=norm(a.correo);act[c]=(act[c]||0)+1})}catch(e){}
-    var lista=r.data.filter(function(u){return norm(u.correo)!==yo()}).map(function(u){
-      var s=Math.min(3,act[norm(u.correo)]||0),why=[];
+    var datos=r.data||[],miCorreo=yo();
+    var yoU=datos.find(function(u){return norm(u.correo)===miCorreo})||{};
+    if(!yoU.id&&miCorreo){try{var propio=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').ilike('correo',miCorreo).maybeSingle();if(!propio.error&&propio.data)yoU=propio.data}catch(e){}}
+    var seg=window.fpSeguidosSet?window.fpSeguidosSet():new Set(),act={},mutuos={},meSiguen=new Set();
+    try{anunciosData.forEach(function(a){var em=norm(a.correo);act[em]=(act[em]||0)+1})}catch(e){}
+    /* Recomendaciones por conexiones reales: amigos de personas que ya sigues.
+       Si la consulta de relaciones falla, se conserva el ranking por afinidad general. */
+    if(yoU.id){
+      try{
+        var rel=await c.from('seguidores').select('seguidor_id,seguido_id,seguidor_correo,seguido_correo').or('seguidor_id.eq.'+yoU.id+',seguido_id.eq.'+yoU.id).limit(3000);
+        if(!rel.error){
+          var sigoIds=[],sigoCorreos=[];
+          (rel.data||[]).forEach(function(e){
+            if(String(e.seguidor_id)===String(yoU.id)){
+              if(e.seguido_id)sigoIds.push(e.seguido_id);
+              if(e.seguido_correo)sigoCorreos.push(norm(e.seguido_correo));
+            }else if(String(e.seguido_id)===String(yoU.id)&&e.seguidor_correo){
+              meSiguen.add(norm(e.seguidor_correo));
+            }
+          });
+          var ids=Array.from(new Set(sigoIds));
+          if(ids.length){
+            for(var ix=0;ix<ids.length;ix+=150){
+              var lote=ids.slice(ix,ix+150);
+              var rr=await c.from('seguidores').select('seguidor_id,seguido_id,seguido_correo').in('seguidor_id',lote).limit(3000);
+              if(!rr.error)(rr.data||[]).forEach(function(e){
+                if(String(e.seguido_id)===String(yoU.id))return;
+                var target=datos.find(function(u){return String(u.id)===String(e.seguido_id)});
+                var correo=norm((target&&target.correo)||e.seguido_correo);
+                if(!correo||correo===miCorreo||seg.has(correo)||sigoCorreos.indexOf(correo)>=0)return;
+                mutuos[correo]=(mutuos[correo]||0)+1;
+              });
+            }
+          }
+        }
+      }catch(e){}
+    }
+    var lista=datos.filter(function(u){var em=norm(u.correo);return em&&em!==miCorreo&&!seg.has(em)}).map(function(u){
+      var em=norm(u.correo),s=0,why=[],m=mutuos[em]||0;
+      if(m){s+=Math.min(18,m*6);why.push(m===1?'Conexión en común':m+' conexiones en común')}
       if(yoU.congregacion&&norm(u.congregacion)===norm(yoU.congregacion)){s+=5;why.push('Tu congregación')}
       if(yoU.ciudad&&norm(u.ciudad)===norm(yoU.ciudad)){s+=3;why.push('Tu ciudad')}
-      if(act[norm(u.correo)])why.push('Activo en la app');
+      if(meSiguen.has(em)){s+=2;why.push('Te sigue')}
+      if(act[em]){s+=Math.min(3,act[em]);why.push('Activo en la app')}
       return {u:u,s:s,why:why};
     }).sort(function(a,b){return b.s-a.s}).slice(0,20);
-    L.textContent='';if(!lista.length){L.textContent='No hay personas para sugerir por ahora';return}
+    L.textContent='';
+    if(!lista.length){L.textContent='No hay personas para sugerir por ahora';return}
     lista.forEach(function(x){
       var u=x.u,row=document.createElement('div');row.className='fp-red-row';
       row.appendChild(window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(u.nombre,u.foto_perfil,u.correo):avatar(u.nombre,u.foto_perfil));
       var t=document.createElement('span');t.className='fp-red-name';t.textContent=u.nombre||u.correo;
-      var s=document.createElement('div');s.className='fp-n-sub';s.textContent=[u.cargo].concat(x.why).filter(Boolean).join(' · ');t.appendChild(s);
+      var sub=document.createElement('div');sub.className='fp-n-sub';sub.textContent=[u.cargo].concat(x.why).filter(Boolean).join(' · ');t.appendChild(sub);
       t.style.cursor='pointer';t.onclick=function(){panel.classList.remove('open');try{abrirPerfilPorCorreo(u.correo)}catch(e){}};
       var bt=document.createElement('button');bt.type='button';bt.className='fp-red-btn';bt.style.cssText='border:1px solid rgba(128,128,128,.6);background:transparent;color:inherit;border-radius:999px;padding:6px 14px;font:700 13px system-ui,sans-serif';
       function pintarBoton(){var sigue=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(u.correo));bt.textContent=sigue?'Siguiendo':'Seguir';bt.classList.toggle('on',sigue)}
@@ -26958,20 +26997,16 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
           if(sigue){
             var ok=await confirmarAccion('Dejar de seguir','¿Quieres dejar de seguir a '+(u.nombre||u.correo)+'?','Dejar de seguir',true);
             if(!ok){bt.disabled=false;return}
-            var del=await supabaseClient.from('seguidores').delete().eq('seguidor_id',m).eq('seguido_id',u.id);
-            if(del.error)throw del.error;
+            var del=await c.from('seguidores').delete().eq('seguidor_id',m).eq('seguido_id',u.id);if(del.error)throw del.error;
             try{window.fpSeguidosSet().delete(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}
             pintarBoton();
           }else{
-            // Consultar antes de insertar evita relaciones duplicadas y notificaciones repetidas.
-            var existe=await supabaseClient.from('seguidores').select('id').eq('seguidor_id',m).eq('seguido_id',u.id).maybeSingle();
-            if(existe.error)throw existe.error;
-            if(!existe.data){var ins=await supabaseClient.from('seguidores').insert([{seguidor_id:m,seguido_id:u.id,seguidor_correo:yo(),seguido_correo:u.correo}]);if(ins.error)throw ins.error}
+            var existe=await c.from('seguidores').select('id').eq('seguidor_id',m).eq('seguido_id',u.id).maybeSingle();if(existe.error)throw existe.error;
+            if(!existe.data){var ins=await c.from('seguidores').insert([{seguidor_id:m,seguido_id:u.id,seguidor_correo:miCorreo,seguido_correo:u.correo}]);if(ins.error)throw ins.error}
             try{window.fpSeguidosSet().add(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}
             pintarBoton();
           }
-        }catch(e){bt.textContent='Reintentar';}
-        finally{bt.disabled=false}
+        }catch(e){bt.textContent='Reintentar'}finally{bt.disabled=false}
       };
       row.appendChild(t);row.appendChild(bt);L.appendChild(row);
     });
@@ -27383,7 +27418,9 @@ function css(){
   '#fpMenuReacs button{background:none;border:0;font-size:22px;cursor:pointer;padding:2px 5px;border-radius:9px;line-height:1.2}'+
   '#fpMenuReacs button.mia{background:#e8f0ff}'+
   '.fp-marcar-todas{display:block;margin:2px 16px 8px auto;background:none;border:0;color:#3B82F6;font-size:13px;font-weight:600;cursor:pointer;padding:4px 0}';
-  document.head.appendChild(st);
+  st.textContent += '\n'+
+'#fpHC{backdrop-filter:blur(10px);padding:14px;box-sizing:border-box}#fpHC .c{width:min(94vw,480px);max-height:min(90dvh,850px);padding:20px;border:1px solid rgba(127,127,127,.2);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.3);background:linear-gradient(160deg,#fff,#f4f7fb)}.dark-mode #fpHC .c{background:linear-gradient(160deg,#242832,#15171c);border-color:#ffffff1c}#fpHC h3{font-size:21px;letter-spacing:-.4px;margin-bottom:14px}#fpHC .tabs{padding:4px;background:rgba(127,127,127,.12);border-radius:16px;gap:5px}#fpHC .tabs button{border:0;border-radius:12px;padding:10px;color:inherit}#fpHC .tabs button.on{background:#1769e0;color:#fff;box-shadow:0 4px 12px #1769e044}#fpHC input[type=text],#fpHC textarea{border:1px solid rgba(127,127,127,.32);background:rgba(127,127,127,.06);color:inherit;outline:none;border-radius:14px;padding:12px;margin:7px 0}#fpHC input[type=text]:focus,#fpHC textarea:focus{border-color:#3984f6;box-shadow:0 0 0 3px #3984f622}#fpHC textarea{min-height:160px;color:#fff;background:#1a73e8}#fpHC .btn{border-radius:14px;padding:12px 16px;box-shadow:0 5px 16px #1a73e833}#fpHV .bot button{transition:transform .15s ease,background .15s ease}#fpHV .bot button:active{transform:scale(.94)}#fpHV .rx button{min-width:42px;min-height:42px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px)}#fpHV .rp input{min-height:42px;backdrop-filter:blur(8px)}#fpHV .top{padding-top:calc(10px + env(safe-area-inset-top))}#fpHV .cap{left:12px;right:12px;bottom:105px;border-radius:14px;backdrop-filter:blur(10px)}#fpHStrip{box-shadow:0 12px 34px rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(16px);scrollbar-width:thin}#fpHStrip .fpit{width:76px}#fpHStrip .fpit span{max-width:76px}#fpHis .hd{background:linear-gradient(120deg,#123c75,#1976d2 65%,#35a5e8);box-shadow:0 4px 18px rgba(0,0,0,.12)}#fpHis .fr{transition:background .15s ease}#fpHis .fr:active{background:rgba(127,127,127,.12)}@media(max-width:600px){#fpHC{padding:8px}#fpHC .c{width:100%;border-radius:22px;padding:16px;max-height:92dvh}#fpHV .bot{gap:7px;padding-left:8px;padding-right:8px}#fpHV .rx{gap:4px}}';
+document.head.appendChild(st);
 }
 
 /* ---------- identificadores ---------- */
@@ -28870,7 +28907,14 @@ function atras(){
   mostrar();
 }
 function marcarVista(it){if(it._v)return;it._v=1;VIS[it.id]=1;try{sb().rpc('marcar_historia_vista',{p_historia:it.id}).then(function(){},function(){})}catch(e){}}
-async function reaccionar(it,e){var r=await sb().rpc('reaccionar_historia',{p_historia:it.id,p_emoji:e});toast(r.error?'No se pudo enviar la reacción':e+' enviado')}
+async function reaccionar(it,e){
+  var c=sb();if(!c)return toast('No hay conexión');
+  /* Guardar la reacción en la historia y, además, enviarla como respuesta por DM. */
+  var r=await c.rpc('reaccionar_historia',{p_historia:it.id,p_emoji:e});
+  if(r.error)return toast('No se pudo guardar la reacción');
+  var enviado=await responderDM(it,own(Q[qi]),e);
+  toast(enviado?'Reacción enviada por mensaje '+e:'Reacción guardada, pero no se pudo enviar el mensaje');
+}
 function mostrar(){
   cancelAnimationFrame(raf);corre=false;hoja=false;
   var k=Q[qi],its=G(k),it=its[si],ow=own(k),hl=String(k).charAt(0)==='★';if(!it)return cerrarVisor();
