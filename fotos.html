@@ -28989,7 +28989,7 @@ function mostrar(){
   var down=false,tmh=null,sost=false;
   cuerpo.addEventListener('pointerdown',function(){down=true;sost=false;clearTimeout(tmh);tmh=setTimeout(function(){sost=true;pausado=true},220)});
   var gestoY=0; cuerpo.addEventListener('pointerdown',function(e){gestoY=e.clientY});
-  cuerpo.addEventListener('pointerup',function(e){if(!down)return;down=false;clearTimeout(tmh);if(sost){pausado=false;return}var dy=e.clientY-gestoY;if(dy < -55){abrirRespuesta();return}if(dy > 65){cerrarRespuesta();return}var r=cuerpo.getBoundingClientRect();(e.clientX-r.left)<r.width*0.3?atras():siguiente()});
+  cuerpo.addEventListener('pointerup',function(e){if(!down)return;down=false;clearTimeout(tmh);var dy=e.clientY-gestoY;if(sost){pausado=false;sost=false;if(dy>=-55&&dy<=65)return}if(dy < -55){abrirRespuesta();return}if(dy > 65){cerrarRespuesta();return}var r=cuerpo.getBoundingClientRect();(e.clientX-r.left)<r.width*0.3?atras():siguiente()});
   cuerpo.addEventListener('pointercancel',function(){down=false;clearTimeout(tmh);pausado=false});
   cuerpo.addEventListener('contextmenu',function(e){e.preventDefault()});
   V.appendChild(cuerpo);
@@ -29005,7 +29005,7 @@ function mostrar(){
     if(!hl){var vb=el('button',null,'👁 …','vb');vb.type='button';vb.onclick=function(e){e.stopPropagation();verVistas(it)};bot.appendChild(vb);
     try{sb().from('historias_vistas').select('usuario_correo',{count:'exact',head:true}).eq('historia_id',it.id).then(function(r){if(!r.error)vb.textContent='👁 '+(r.count||0)},function(){})}catch(e){}}
   }else{
-    var swipe=el('button',null,'↑  Desliza hacia arriba para responder','fp-reply-hint');swipe.type='button';swipe.onclick=function(e){e.stopPropagation();abrirRespuesta()};bot.appendChild(swipe);
+    var swipe=el('button',null,'Enviar mensaje…','fp-reply-hint');swipe.type='button';swipe.onclick=function(e){e.stopPropagation();abrirRespuesta()};bot.appendChild(swipe);
     if(!hl){var rx=el('div',null,null,'rx fp-viewer-reactions');REAC.forEach(function(e){var b=el('button',null,e);b.type='button';b.onclick=function(ev){ev.stopPropagation();reaccionar(it,e)};rx.appendChild(b)});bot.appendChild(rx);marcarVista(it)}
   }
   function abrirRespuesta(){if(mio||hl)return;var old=$('#fpReplySheet',V);if(old){old.classList.add('is-open');var existing=$('input',old);if(existing)existing.focus();hoja=true;return}hoja=true;pausado=true;var sheet=el('div',null,null,'fp-reply-sheet');sheet.id='fpReplySheet';var grip=el('div',null,null,'fp-reply-grip');sheet.appendChild(grip);var title=el('div',null,'Responder a '+nom(ow),'fp-reply-title');sheet.appendChild(title);var emoji=el('div',null,null,'fp-reply-emojis');['❤️','😂','😮','😢','👍','🔥','🥰','👏','🙏','😍','💯','✨'].forEach(function(em){var eb=el('button',null,em);eb.type='button';eb.onclick=async function(){eb.disabled=true;await reaccionar(it,em);eb.disabled=false};emoji.appendChild(eb)});sheet.appendChild(emoji);var form=el('div',null,null,'fp-reply-form'),ri=el('input'),rs=el('button',null,'Enviar ➤');ri.type='text';ri.maxLength=300;ri.placeholder='Escribe una respuesta…';rs.type='button';rs.onclick=env;ri.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();env()}};async function env(){var text=ri.value.trim();if(!text)return;rs.disabled=true;var ok=await responderDM(it,ow,text);rs.disabled=false;if(ok){ri.value='';sheet.classList.remove('is-open');hoja=false;pausado=false;toast('Respuesta enviada')}else toast('No se pudo enviar')};form.append(ri,rs);sheet.appendChild(form);var closeSheet=el('button',null,'Listo','fp-reply-close');closeSheet.type='button';closeSheet.onclick=function(){sheet.classList.remove('is-open');hoja=false;pausado=false};sheet.appendChild(closeSheet);V.appendChild(sheet);requestAnimationFrame(function(){sheet.classList.add('is-open');ri.focus()})}
@@ -29217,7 +29217,7 @@ function crear(){
   var urlMap=new WeakMap(),thumbs=el('div',null,null,'fp-editor-thumbs'),replaceIdx=-1;
   thumbs.style.display='none';fo.insertBefore(thumbs,stage.nextSibling);
   function urlOf(f){var u=urlMap.get(f);if(!u){u=URL.createObjectURL(f);urlMap.set(f,u)}return u}
-  function imgSrc(img,f){img.onerror=function(){img.onerror=null;var r=new FileReader();r.onload=function(){img.src=r.result};r.onerror=function(){toast('No se pudo mostrar esa imagen')};r.readAsDataURL(f)};img.src=urlOf(f)}
+  var dataMap=new WeakMap();function imgSrc(img,f){var tk=img._tk=(img._tk||0)+1;img.onerror=function(){if(img._tk!==tk||img._fb)return;img._fb=1;img.src=urlOf(f)};img._fb=0;var d=dataMap.get(f);if(d){img.src=d;return}var r=new FileReader();r.onload=function(){dataMap.set(f,r.result);if(img._tk===tk)img.src=r.result};r.onerror=function(){if(img._tk===tk)img.src=urlOf(f)};r.readAsDataURL(f)}
   function renderThumbs(){thumbs.textContent='';thumbs.style.display=files.length>1?'flex':'none';files.forEach(function(f,i){var b=el('button',null,null,'fp-thumb'+(i===fileIndex?' on':''));b.type='button';b.setAttribute('aria-label','Foto '+(i+1)+' de '+files.length);var im=document.createElement('img');im.alt='';imgSrc(im,f);b.appendChild(im);b.onclick=function(){if(i===fileIndex)return;fileIndex=i;rotation=0;flipX=false;zoom=1;objects=[];renderImage()};var x=el('span',null,'×','fp-thumb-x');x.setAttribute('role','button');x.setAttribute('aria-label','Quitar foto');x.onclick=function(e){e.stopPropagation();quitarFoto(i)};b.appendChild(x);thumbs.appendChild(b)})}
   function quitarFoto(i){files.splice(i,1);if(!files.length){fileIndex=0;pv.style.display='none';pv.removeAttribute('src');empty.style.display='';addMore.style.display='none';pick.textContent='Elegir foto';objects=[];drawOverlays();renderThumbs();return}if(fileIndex>=files.length)fileIndex=files.length-1;else if(i<fileIndex)fileIndex--;else if(i===fileIndex){rotation=0;flipX=false;zoom=1;objects=[]}addMore.style.display='flex';renderImage()}
   function renderImage(){if(!files.length)return;empty.style.display='none';pv.style.display='block';imgSrc(pv,files[fileIndex]);pv.style.objectFit=ratio==='original'?'contain':'cover';pv.style.transform='rotate('+rotation+'deg) scaleX('+(flipX?-1:1)+') scale('+zoom+')';stage.classList.toggle('ratio-square',ratio==='square');stage.classList.toggle('ratio-original',ratio==='original');drawOverlays();pick.textContent='Cambiar foto';renderThumbs()}
@@ -29228,7 +29228,7 @@ function crear(){
     var valid=chosen.filter(function(f){return (/^image\//.test(f.type)||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name||''))&&f.size<=20*1024*1024});
     if(!valid.length){fi.value='';return toast('Selecciona imágenes válidas de hasta 20 MB')}
     /* Copiamos cada archivo a memoria ANTES de limpiar el input: en Android el archivo original puede dejar de ser legible y la vista previa sale rota. */
-    var mem=[];for(var k=0;k<valid.length;k++){try{var buf=await valid[k].arrayBuffer();mem.push(new File([buf],valid[k].name||('foto'+k+'.jpg'),{type:valid[k].type||'image/jpeg'}))}catch(e){mem.push(valid[k])}}
+    var mem=[];for(var k=0;k<valid.length;k++){try{var buf=await valid[k].arrayBuffer();var ff=new File([buf],valid[k].name||('foto'+k+'.jpg'),{type:valid[k].type||'image/jpeg'});mem.push(window.fpNormalizarImagen?await window.fpNormalizarImagen(ff):ff)}catch(e){mem.push(valid[k])}}
     fi.value='';
     var antes=files.length;
     if(replaceIdx>=0&&files.length){
@@ -29397,7 +29397,7 @@ async function aceptar(o){
 var registro={};/* id -> [{b,set}] para mantener sincronizados los botones del mismo usuario */
 function sincronizar(id,st,except){var k=String(id),l=(registro[k]||[]).filter(function(x){return x.b.isConnected});registro[k]=l;l.forEach(function(x){if(x.b!==except)x.set(st)})}
 var ETQ={ninguna:'＋ Agregar amigo',enviada:'✓ Solicitud enviada',recibida:'Aceptar solicitud',aceptada:'✓ Amigos'};
-function crearBoton(u,inicial,cls){
+function crearBoton(u,inicial,cls,cb){
   var b=document.createElement('button');b.type='button';b.className=(cls?cls+' ':'')+'fp-amistad-btn';
   var st=inicial||'ninguna',busy=false,nombre=u.nombre||u.correo||'esta persona';
   function pintar(){b.dataset.estado=st;b.classList.toggle('on',st==='enviada'||st==='aceptada');b.textContent=ETQ[st]||ETQ.ninguna;b.setAttribute('aria-label',(ETQ[st]||'')+' · '+nombre)}
@@ -29423,11 +29423,11 @@ function crearBoton(u,inicial,cls){
     }catch(e){
       console.warn('Amistad:',e);st=prev;pintar();sincronizar(u.id,st,b);
       toast(prev==='ninguna'?'No se pudo enviar la solicitud. Inténtalo de nuevo':'No se pudo completar la acción. Inténtalo de nuevo');
-    }finally{busy=false}
+    }finally{busy=false;if(cb)try{cb(st)}catch(e){}}
   };
   return b;
 }
-window.fpAmistad={crearBoton:crearBoton,estadoPar:estadoPar,enviar:enviar,cancelar:cancelar,eliminar:eliminar,aceptar:aceptar};
+window.fpAmistad={yoIdPublic:yoId,crearBoton:crearBoton,estadoPar:estadoPar,enviar:enviar,cancelar:cancelar,eliminar:eliminar,aceptar:aceptar};
 
 /* ---------- Carrusel "Personas que quizás conozcas" dentro del feed ---------- */
 var PK={n:0,next:5+Math.floor(Math.random()*3),last:0,cargando:false};
@@ -29499,6 +29499,139 @@ function enganchar(){
 }
 setInterval(enganchar,2000);
 window.fpMostrarSugerenciasAmigos=mostrarPK;
+})();
+</script>
+
+<!-- ===== DECOM v2: visor de historias (gesto/respuesta), vista previa robusta y "Mis amigos" ===== -->
+<style id="fpExtraCSS2">
+/* Visor de historias: el gesto de deslizar hacia arriba necesita touch-action:none o Android cancela el gesto */
+#fpHV,#fpHV .cuerpo{touch-action:none!important}
+#fpHV .bot{pointer-events:none}
+#fpHV .bot button,#fpHV .bot .rx{pointer-events:auto}
+#fpHV .bot .fp-reply-hint{width:auto!important;max-width:92%;margin:0 auto 8px;padding:8px 22px!important;font-size:13.5px!important;font-weight:600!important;background:rgba(0,0,0,.35)!important;border:1px solid rgba(255,255,255,.28)!important;text-align:center}
+/* Mis amigos */
+#fpAmigos{position:fixed;inset:0;z-index:2147482060;display:flex;flex-direction:column;background:#f6f8fb;color:#1e293b;font-family:system-ui,sans-serif;--am-line:rgba(15,23,42,.12);--am-soft:rgba(15,23,42,.06);--am-input:#eaeff6}
+body.dark-mode #fpAmigos{background:#121212;color:#e8eaed;--am-line:rgba(255,255,255,.12);--am-soft:rgba(255,255,255,.07);--am-input:#262b36}
+#fpAmigos .am-head{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--am-line);background:#fff}
+body.dark-mode #fpAmigos .am-head{background:#1f1f1f}
+#fpAmigos .am-head b{flex:1;font-size:18px}
+#fpAmigos .am-x{border:0;width:38px;height:38px;border-radius:50%;background:var(--am-soft);color:inherit;font-size:20px;cursor:pointer}
+#fpAmigos .am-tabs{display:flex;gap:8px;padding:10px 14px 0}
+#fpAmigos .am-tabs button{flex:1;border:1px solid var(--am-line);background:var(--am-soft);color:inherit;border-radius:12px;padding:9px;font:700 13px system-ui,sans-serif;cursor:pointer}
+#fpAmigos .am-tabs button.on{background:rgba(24,119,242,.16);border-color:#1877f2}
+#fpAmigos .am-search{margin:10px 14px 4px;border:1px solid var(--am-line);border-radius:12px;padding:11px 13px;background:var(--am-input);color:inherit;font-size:15px;outline:none;width:calc(100% - 28px);box-sizing:border-box}
+#fpAmigos .am-list{flex:1;overflow-y:auto;padding:4px 0 calc(16px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+#fpAmigos .am-sec{padding:12px 16px 4px;font-size:12px;font-weight:800;opacity:.6;text-transform:uppercase}
+#fpAmigos .am-row{display:flex;align-items:center;gap:12px;padding:9px 14px}
+#fpAmigos .am-av{flex:0 0 48px;width:48px;height:48px;border-radius:50%;background:#cfd8e6 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:19px;cursor:pointer}
+#fpAmigos .am-av.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff)}
+#fpAmigos .am-info{flex:1;min-width:0;cursor:pointer}
+#fpAmigos .am-info b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fpAmigos .am-info small{display:block;opacity:.65;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fpAmigos .am-row .fp-amistad-btn{flex:0 0 auto;padding:8px 12px}
+#fpAmigos .am-no{background:rgba(128,128,128,.2)!important;color:inherit!important;border:1px solid rgba(128,128,128,.35)!important}
+#fpAmigos .am-vacio{padding:38px 24px;text-align:center;opacity:.7;line-height:1.5}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__fpAmigosV2)return;window.__fpAmigosV2=1;
+var $=function(s,r){return (r||document).querySelector(s)};
+function norm(x){return String(x||'').trim().toLowerCase()}
+function el(tag,css,txt,cls){var e=document.createElement(tag);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e}
+function sb(){try{return supabaseClient}catch(e){return null}}
+function miCorreo(){try{if(usuarioActual&&usuarioActual.correo)return norm(usuarioActual.correo)}catch(e){}try{return norm(currentAuthorEmail)}catch(e){}return ''}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2600)}
+
+/* ---- Normaliza las fotos elegidas (HEIC, enormes, con rotación EXIF) a JPEG: evita la vista previa rota en Android ---- */
+window.fpNormalizarImagen=async function(f){
+  try{
+    if(/gif$/i.test(f.type))return f;
+    var bmp=null,w,h,srcImg;
+    try{bmp=await createImageBitmap(f,{imageOrientation:'from-image'})}catch(e){try{bmp=await createImageBitmap(f)}catch(e2){}}
+    if(bmp){w=bmp.width;h=bmp.height;srcImg=bmp}
+    else{
+      var url=await new Promise(function(res){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=function(){res(null)};r.readAsDataURL(f)});if(!url)return f;
+      var im=await new Promise(function(res){var i=new Image();i.onload=function(){res(i)};i.onerror=function(){res(null)};i.src=url});if(!im)return f;
+      w=im.naturalWidth;h=im.naturalHeight;srcImg=im;
+    }
+    if(!w||!h)return f;
+    var k=Math.min(1,1600/Math.max(w,h)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*k));cv.height=Math.max(1,Math.round(h*k));
+    cv.getContext('2d').drawImage(srcImg,0,0,cv.width,cv.height);if(bmp&&bmp.close)bmp.close();
+    var blob=await new Promise(function(res){cv.toBlob(res,'image/jpeg',.9)});if(!blob)return f;
+    return new File([blob],((f.name||'foto').replace(/\.[^.]+$/,''))+'.jpg',{type:'image/jpeg'});
+  }catch(e){return f}
+};
+
+/* ---- Mis amigos ---- */
+var TAB='amigos',DATOS=null;
+function foto(u,cls){var d=el('div',null,null,cls);var f=u.foto_perfil;if(f&&/^(https?:|data:|blob:)/.test(f))d.style.backgroundImage='url("'+String(f).replace(/"/g,'%22')+'")';else{d.textContent=(u.nombre||u.correo||'?').trim().charAt(0).toUpperCase();d.classList.add('ini')}return d}
+async function cargar(){
+  var c=sb(),me=await window.fpAmistad.yoIdPublic();if(!c||!me)throw new Error('sin sesión');
+  var r=await c.from('solicitudes_amigos').select('id,solicitante_id,solicitado_id,estado').or('solicitante_id.eq.'+me+',solicitado_id.eq.'+me).limit(1000);
+  if(r.error)throw r.error;
+  var amigos=[],recibidas=[],enviadas=[],ids=[];
+  (r.data||[]).forEach(function(q){var mio=String(q.solicitante_id)===String(me),o=mio?q.solicitado_id:q.solicitante_id;
+    if(q.estado==='aceptada'){amigos.push({id:o});ids.push(o)}else if(q.estado==='pendiente'){(mio?enviadas:recibidas).push({id:o,sol:q.id});ids.push(o)}});
+  var users={};ids=Array.from(new Set(ids.map(String)));
+  for(var i=0;i<ids.length;i+=150){var u=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').in('id',ids.slice(i,i+150));(u.data||[]).forEach(function(x){users[String(x.id)]=x})}
+  function mapa(l){return l.map(function(x){return {u:users[String(x.id)],sol:x.sol}}).filter(function(x){return x.u}).sort(function(a,b){return String(a.u.nombre||'').localeCompare(String(b.u.nombre||''),'es')})}
+  return {amigos:mapa(amigos),recibidas:mapa(recibidas),enviadas:mapa(enviadas)};
+}
+function abrirPerfil(u){cerrar();try{abrirPerfilPorCorreo(u.correo)}catch(e){}}
+function cerrar(){var e=$('#fpAmigos');if(e)e.remove()}
+function fila(it,tipo,pintar){
+  var u=it.u,row=el('div',null,null,'am-row');
+  var av=foto(u,'am-av');av.onclick=function(){abrirPerfil(u)};
+  var info=el('div',null,null,'am-info');info.appendChild(el('b',null,u.nombre||u.correo));info.appendChild(el('small',null,[u.cargo,u.congregacion,u.ciudad].filter(Boolean).join(' · ')||u.correo));info.onclick=function(){abrirPerfil(u)};
+  row.append(av,info);
+  if(tipo==='amigo'){row.appendChild(window.fpAmistad.crearBoton(u,'aceptada','',function(st){if(st==='ninguna'){DATOS.amigos=DATOS.amigos.filter(function(x){return x.u.id!==u.id});pintar()}}))}
+  else if(tipo==='enviada'){row.appendChild(window.fpAmistad.crearBoton(u,'enviada','',function(st){if(st==='ninguna'){DATOS.enviadas=DATOS.enviadas.filter(function(x){return x.u.id!==u.id});pintar()}}))}
+  else{
+    var ok=el('button',null,'Aceptar','fp-amistad-btn'),no=el('button',null,'Rechazar','fp-amistad-btn am-no');ok.type=no.type='button';
+    async function resp(acepta){ok.disabled=no.disabled=true;try{var z=await sb().rpc('responder_solicitud_amistad',{p_solicitud_id:it.sol,p_aceptar:acepta});if(z.error)throw z.error;
+      DATOS.recibidas=DATOS.recibidas.filter(function(x){return x.u.id!==u.id});if(acepta){DATOS.amigos.push({u:u});DATOS.amigos.sort(function(a,b){return String(a.u.nombre||'').localeCompare(String(b.u.nombre||''),'es')})}
+      toast(acepta?'Ahora son amigos':'Solicitud rechazada');pintar()}catch(e){ok.disabled=no.disabled=false;toast('No se pudo completar. Inténtalo de nuevo')}}
+    ok.onclick=function(){resp(true)};no.onclick=function(){resp(false)};row.append(ok,no);
+  }
+  return row;
+}
+async function abrir(){
+  cerrar();
+  var box=el('div',null,null);box.id='fpAmigos';box.setAttribute('role','dialog');box.setAttribute('aria-label','Mis amigos');
+  var head=el('div',null,null,'am-head'),x=el('button',null,'←','am-x');x.type='button';x.setAttribute('aria-label','Volver');x.onclick=cerrar;head.append(x,el('b',null,'Mis amigos'));
+  var tabs=el('div',null,null,'am-tabs'),t1=el('button'),t2=el('button');t1.type=t2.type='button';tabs.append(t1,t2);
+  var q=el('input',null,null,'am-search');q.type='search';q.placeholder='Buscar amigo…';
+  var list=el('div',null,'Cargando…','am-list');list.firstChild&&(list.style.padding='20px');
+  box.append(head,tabs,q,list);document.body.appendChild(box);
+  function pintar(){
+    if(!DATOS)return;t1.textContent='Amigos ('+DATOS.amigos.length+')';t2.textContent='Solicitudes'+(DATOS.recibidas.length?' ('+DATOS.recibidas.length+')':'');
+    t1.classList.toggle('on',TAB==='amigos');t2.classList.toggle('on',TAB==='solicitudes');q.style.display=TAB==='amigos'?'block':'none';
+    list.textContent='';list.style.padding='';var f=norm(q.value);
+    if(TAB==='amigos'){
+      var l=DATOS.amigos.filter(function(x){return !f||norm(x.u.nombre).indexOf(f)>=0||norm(x.u.correo).indexOf(f)>=0});
+      if(!l.length){list.appendChild(el('div',null,DATOS.amigos.length?'Ningún amigo coincide con la búsqueda.':'Aún no tienes amigos. Envía solicitudes desde “Personas que quizás conozcas”.','am-vacio'));return}
+      l.forEach(function(it){list.appendChild(fila(it,'amigo',pintar))});
+    }else{
+      if(!DATOS.recibidas.length&&!DATOS.enviadas.length){list.appendChild(el('div',null,'No tienes solicitudes pendientes.','am-vacio'));return}
+      if(DATOS.recibidas.length){list.appendChild(el('div',null,'Recibidas','am-sec'));DATOS.recibidas.forEach(function(it){list.appendChild(fila(it,'recibida',pintar))})}
+      if(DATOS.enviadas.length){list.appendChild(el('div',null,'Enviadas','am-sec'));DATOS.enviadas.forEach(function(it){list.appendChild(fila(it,'enviada',pintar))})}
+    }
+  }
+  t1.onclick=function(){TAB='amigos';pintar()};t2.onclick=function(){TAB='solicitudes';pintar()};q.oninput=pintar;
+  try{DATOS=await cargar();pintar()}catch(e){console.warn('Mis amigos:',e);list.textContent='No se pudieron cargar tus amigos. Revisa tu conexión.';list.style.padding='24px'}
+}
+window.fpAbrirAmigos=abrir;
+/* entrada en el menú del usuario, justo debajo de "Mi red" */
+function montarMenu(){
+  var menu=document.getElementById('userMenu');if(!menu||document.getElementById('fpAmigosMenu'))return;
+  var ref=document.getElementById('fpMiRedMenu');if(!ref)return;
+  var b=document.createElement('button');b.type='button';b.id='fpAmigosMenu';b.className='menu-btn';
+  b.innerHTML='<i class="fas fa-user-check" aria-hidden="true"></i><span>Mis amigos</span>';
+  b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();try{menu.style.display='none'}catch(_){}abrir()});
+  ref.parentNode.insertBefore(b,ref.nextSibling);
+}
+setInterval(montarMenu,1500);
 })();
 </script>
 
