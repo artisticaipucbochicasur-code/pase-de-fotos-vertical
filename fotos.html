@@ -12862,7 +12862,7 @@ async function limpiezaInicialArchivosChat(){
     try{
         const correo = usuarioActual && usuarioActual.correo;
         if(!correo) return false;
-        const clave = "fp_limpieza_archivos_v1_" + String(correo).toLowerCase();
+        const clave = "fp_limpieza_archivos_v2_" + String(correo).toLowerCase();
         if(localStorage.getItem(clave)) return true;
 
         const miId = await obtenerIdUsuarioPorCorreo(correo);
@@ -27417,7 +27417,7 @@ async function cargarMeta(){
   await resolverIds();
   for(var i=0;i<ids.length;i+=80){
     var parte=ids.slice(i,i+80);
-    var _rs=await Promise.all([c.from('chat_mensajes').select('id,leido_en,responde_a').in('id',parte),c.from('chat_reacciones').select('mensaje_id,usuario_id,emoji').in('mensaje_id',parte)]);
+    var _rs=await Promise.all([c.from('chat_mensajes').select('id,leido_en,responde_a').in('id',parte),c.from('chat_reacciones').select('mensaje_id,usuario_id,emoji').in('mensaje_id',parte),c.from('chat_mensajes').select('id,entregado_en').in('id',parte)]);
     var r=_rs[0];
     if(r.error){
       console.warn('Pro3: no se pudo leer leido_en/responde_a (¿ejecutaste fotos_pro_3.sql?)',r.error.message);
@@ -27427,6 +27427,7 @@ async function cargarMeta(){
     var vistos={};
     (r.data||[]).forEach(function(m){META.set(String(m.id),{leido_en:m.leido_en||null,responde_a:m.responde_a||null});vistos[m.id]=1});
     parte.forEach(function(id){if(!vistos[id]&&!META.has(id))META.set(id,{leido_en:null,responde_a:null})});
+    if(_rs[2]&&!_rs[2].error)(_rs[2].data||[]).forEach(function(m){var a=META.get(String(m.id));if(a)a.entregado_en=m.entregado_en||null});
     var r2=_rs[1];
     if(!r2.error){
       parte.forEach(function(id){REAC.delete(id)});
@@ -27474,10 +27475,10 @@ function pintarBurbuja(b,id){
   if(mio&&sm){
     var t=$('.fp-tick',sm);
     if(!t){t=document.createElement('span');t.className='fp-tick';sm.appendChild(t)}
-    var txt=meta.leido_en?'✓✓':'✓',cls='fp-tick'+(meta.leido_en?' leido':'');
+    var ent=!!meta.entregado_en,txt=(meta.leido_en||ent)?'✓✓':'✓',cls='fp-tick'+(meta.leido_en?' leido':'');
     if(t.textContent!==txt)t.textContent=txt;
     if(t.className!==cls)t.className=cls;
-    t.title=meta.leido_en?'Leído':'Enviado';
+    t.title=meta.leido_en?'Leído':ent?'Entregado':'Enviado';
   }
   /* cita de "responder" */
   var q=$('.fp-quote',b);
@@ -27622,7 +27623,7 @@ async function suscribir(){
      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'chat_mensajes',filter:'remitente_id=eq.'+miId},function(p){
         var m=p.new;if(!m||!m.id)return;
         var a=META.get(String(m.id))||{responde_a:m.responde_a||null};
-        a.leido_en=m.leido_en||null;META.set(String(m.id),a);pedirDecorar();
+        a.leido_en=m.leido_en||null;a.entregado_en=m.entregado_en||null;META.set(String(m.id),a);pedirDecorar();
      })
      .on('postgres_changes',{event:'*',schema:'public',table:'chat_reacciones'},function(p){
         if(p.eventType==='DELETE'){var o=p.old||{};if(o.mensaje_id)quitarReac(o.mensaje_id,o.usuario_id)}
@@ -27826,7 +27827,7 @@ async function enviarFoto(file){
   if(!(await sesionOk()))return;
   toast('Enviando foto…');
   try{var b=await comprimir(file),u=await subir(b,/gif$/i.test(file.type)?'gif':'jpg');enviarToken('[[img:'+u+']]')}
-  catch(e){toast('No se pudo enviar la foto')}
+  catch(e){console.error('Foto:',e);toast('No se pudo enviar la foto: '+((e&&e.message)||e))}
 }
 var rec=null,chunks=[],t0=0,tick=null,cancelar=false,barra;
 async function grabar(){
@@ -27841,7 +27842,7 @@ async function grabar(){
     var seg=Math.round((Date.now()-t0)/1000);if(cancelar||!chunks.length||seg<1)return;
     var tipo=r.mimeType||mime||'audio/webm',ext=/mp4/.test(tipo)?'m4a':/ogg/.test(tipo)?'ogg':'webm';
     toast('Enviando nota de voz…');
-    try{var u=await subir(new Blob(chunks,{type:tipo}),ext);enviarToken('[[aud:'+u+'|'+seg+']]')}catch(e){toast('No se pudo enviar el audio')}
+    try{var u=await subir(new Blob(chunks,{type:tipo}),ext);enviarToken('[[aud:'+u+'|'+seg+']]')}catch(e){console.error('Audio:',e);toast('No se pudo enviar el audio: '+((e&&e.message)||e))}
   };
   r.start();t0=Date.now();barra.style.display='flex';var T=$('.fp-t',barra);T.textContent='Grabando 0:00';
   tick=setInterval(function(){var s=Math.round((Date.now()-t0)/1000);T.textContent='Grabando '+fmt(s);if(s>=120&&r.state==='recording')r.stop()},400);
@@ -28137,6 +28138,73 @@ function montar(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',montar);else montar();
 setTimeout(montar,1500);
+})();
+</script>
+<script id="fp-pro7-js">
+/* ===== DECOM Pro 7: ✓✓ entregado y "visto por última vez" (chat_mensajes.entregado_en, presencia_usuarios) ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function sb(){try{return supabaseClient}catch(e){return null}}
+function yo(){try{return String(usuarioActual.correo).trim().toLowerCase()}catch(e){return ''}}
+var miId=null,avisado=false;
+async function id(){if(miId)return miId;try{miId=await obtenerIdUsuarioPorCorreo(usuarioActual.correo)}catch(e){}return miId}
+function avisa(e){if(!avisado){avisado=true;console.warn('Pro7: no se pudo actualizar (¿ejecutaste fotos_pro_7.sql?)',e&&e.message||e)}}
+
+/* ---- entregado: marco como entregados los mensajes que me llegaron ---- */
+async function marcarPendientes(){
+  var c=sb();if(!c||!yo()||document.visibilityState==='hidden')return;var i=await id();if(!i)return;
+  try{
+    var desde=new Date(Date.now()-7*864e5).toISOString();
+    var r=await c.from('chat_mensajes').update({entregado_en:new Date().toISOString()}).eq('destinatario_id',i).is('entregado_en',null).gt('fecha_creacion',desde);
+    if(r.error)avisa(r.error);
+  }catch(e){avisa(e)}
+}
+var sus=false,cola=null;
+async function suscribir(){
+  var c=sb();if(sus||!c||!yo())return;var i=await id();if(!i)return;sus=true;
+  try{c.channel('fp-entrega-'+i).on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_mensajes',filter:'destinatario_id=eq.'+i},function(){
+    clearTimeout(cola);cola=setTimeout(marcarPendientes,400);
+  }).subscribe()}catch(e){sus=false}
+}
+
+/* ---- última vez ---- */
+async function latir(){
+  var c=sb();if(!c||!yo()||document.visibilityState==='hidden')return;
+  try{var r=await c.from('presencia_usuarios').upsert({usuario_correo:yo(),ultima_vez:new Date().toISOString()},{onConflict:'usuario_correo'});if(r.error)avisa(r.error)}catch(e){avisa(e)}
+}
+function hora(d){return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
+function texto(iso){
+  var d=new Date(iso),ahora=new Date(),dif=ahora-d;
+  if(dif<90000)return 'en línea';
+  var h0=new Date(ahora.getFullYear(),ahora.getMonth(),ahora.getDate()),ayer=new Date(h0-864e5);
+  if(d>=h0)return 'últ. vez hoy a las '+hora(d);
+  if(d>=ayer)return 'últ. vez ayer a las '+hora(d);
+  return 'últ. vez '+d.toLocaleDateString([], {day:'numeric',month:'short'})+' · '+hora(d);
+}
+var ultimo='';
+async function mostrar(){
+  var c=sb(),el=$('#chatCorreo');if(!c||!el)return;
+  var otro;try{otro=chatConUsuario&&String(chatConUsuario.correo).trim().toLowerCase()}catch(e){}
+  var f=$('#fpUltVez');
+  if(!otro){if(f)f.textContent='';return}
+  if(!f){f=document.createElement('div');f.id='fpUltVez';f.style.cssText='font-size:11px;opacity:.9;line-height:1.15;margin-top:1px';el.parentNode.insertBefore(f,el.nextSibling)}
+  if(ultimo!==otro){f.textContent='';ultimo=otro}
+  try{
+    var r=await c.from('presencia_usuarios').select('ultima_vez').ilike('usuario_correo',otro).maybeSingle();
+    if(r.error||!r.data){if(r.error)avisa(r.error);f.textContent='';return}
+    f.textContent=texto(r.data.ultima_vez);
+  }catch(e){}
+}
+function arrancar(){
+  if(!yo()||typeof supabaseClient==='undefined')return false;
+  suscribir();marcarPendientes();latir();return true;
+}
+var n=0,t=setInterval(function(){if(arrancar()||++n>20)clearInterval(t)},3000);
+setInterval(latir,60000);setInterval(mostrar,30000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){marcarPendientes();latir();mostrar()}});
+var nom=$('#chatNombre');if(nom)new MutationObserver(function(){ultimo='';mostrar()}).observe(nom,{childList:true,characterData:true,subtree:true});
+setTimeout(mostrar,4000);
 })();
 </script>
 </body>
