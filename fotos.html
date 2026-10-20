@@ -9103,6 +9103,7 @@ document.getElementById("chatEnviar").onclick = async () => {
     const tempId =
     "temp_" + Date.now();
     const fpResp = (window.fpTomarRespuesta ? window.fpTomarRespuesta() : null);
+    if(fpResp && fpResp.id && window.fpMeta){ window.fpMeta(tempId,{ responde_a: fpResp.id }); }
 
 
 
@@ -10029,6 +10030,21 @@ function actualizarUltimoMensaje({ mensaje, fecha }) {
 async function cargarConversacion() {
 
     if (!chatConUsuario || !usuarioActual) return;
+    try{
+        const _c = chatConUsuario.correo, _ahora = Date.now();
+        window.__fpUltSync = window.__fpUltSync || {};
+        const _cont = document.getElementById("chatMensajes");
+        if(
+            chatHistorialCompleto[_c] === true &&
+            Array.isArray(chatCache[_c]) && chatCache[_c].length > 0 &&
+            _cont && !/Cargando mensajes|Sin mensajes aún/.test(_cont.textContent || "") &&
+            _ahora - (window.__fpUltSync[_c] || 0) < 20000
+        ){
+            console.log("⚡ Chat al día: no se consulta Supabase");
+            return;
+        }
+        window.__fpUltSync[_c] = _ahora;
+    }catch(e){}
 
 
     try {
@@ -12043,6 +12059,26 @@ async function activarRealtimeGlobalChats(){
 
 
 async function obtenerIdUsuarioPorCorreo(correo){
+    if(!correo) return null;
+    window.__fpIdCache = window.__fpIdCache || new Map();
+    const _k = String(correo).trim().toLowerCase();
+    if(window.__fpIdCache.has(_k)) return window.__fpIdCache.get(_k);
+    try{
+        const _ls = (JSON.parse(localStorage.getItem("fp_idcache") || "{}"))[_k];
+        if(_ls){ window.__fpIdCache.set(_k,_ls); return _ls; }
+    }catch(e){}
+    const _id = await obtenerIdUsuarioPorCorreoSinCache(correo);
+    if(_id){
+        window.__fpIdCache.set(_k,_id);
+        try{
+            const _o = JSON.parse(localStorage.getItem("fp_idcache") || "{}");
+            _o[_k] = _id;
+            localStorage.setItem("fp_idcache", JSON.stringify(_o));
+        }catch(e){}
+    }
+    return _id;
+}
+async function obtenerIdUsuarioPorCorreoSinCache(correo){
 
     if(!correo) return null;
 
@@ -27263,7 +27299,8 @@ async function cargarMeta(){
   await resolverIds();
   for(var i=0;i<ids.length;i+=80){
     var parte=ids.slice(i,i+80);
-    var r=await c.from('chat_mensajes').select('id,leido_en,responde_a').in('id',parte);
+    var _rs=await Promise.all([c.from('chat_mensajes').select('id,leido_en,responde_a').in('id',parte),c.from('chat_reacciones').select('mensaje_id,usuario_id,emoji').in('mensaje_id',parte)]);
+    var r=_rs[0];
     if(r.error){
       console.warn('Pro3: no se pudo leer leido_en/responde_a (¿ejecutaste fotos_pro_3.sql?)',r.error.message);
       parte.forEach(function(id){if(!META.has(id))META.set(id,{leido_en:null,responde_a:null})});
@@ -27272,7 +27309,7 @@ async function cargarMeta(){
     var vistos={};
     (r.data||[]).forEach(function(m){META.set(String(m.id),{leido_en:m.leido_en||null,responde_a:m.responde_a||null});vistos[m.id]=1});
     parte.forEach(function(id){if(!vistos[id]&&!META.has(id))META.set(id,{leido_en:null,responde_a:null})});
-    var r2=await c.from('chat_reacciones').select('mensaje_id,usuario_id,emoji').in('mensaje_id',parte);
+    var r2=_rs[1];
     if(!r2.error){
       parte.forEach(function(id){REAC.delete(id)});
       (r2.data||[]).forEach(function(x){setReac(x.mensaje_id,x.usuario_id,x.emoji)});
@@ -27643,7 +27680,7 @@ async function sesionOk(){
 function enviarToken(tok){
   var inp=$('#chatInput'),btn=$('#chatEnviar');if(!inp||!btn)return;
   try{if(mensajeEnEdicion){toast('Termina de editar el mensaje primero');return}}catch(e){}
-  var borrador=inp.value;inp.value=tok;btn.click();
+  var borrador=inp.value;inp.value=tok;btn.click();[0,150,450].forEach(function(t){setTimeout(function(){try{inp.blur()}catch(e){}},t)});
   setTimeout(function(){if(inp.value===''||inp.value===tok)inp.value=borrador},250);
 }
 async function subir(blob,ext){
@@ -27777,6 +27814,7 @@ function hoja(correo,nombre){
   function op(t,fn){var b=document.createElement('button');b.type='button';b.className='fp-pro-opt';b.textContent=t;b.onclick=function(e){e.stopPropagation();ov.remove();fn()};L.appendChild(b)}
   op(a.f?'📌 Quitar de fijados':'📌 Fijar chat',function(){poner(correo,'f',!a.f)});
   op(a.s?'🔔 Quitar silencio':'🔕 Silenciar chat',function(){poner(correo,'s',!a.s)});
+  if(window.fpDestacados)op('⭐ Mensajes destacados',function(){window.fpDestacados(correo)});
   if(window.fpPro){
     op('🚩 Denunciar a '+(nombre||'esta persona'),function(){window.fpPro.denunciar({tipo:'usuario',id:correo,correo:correo})});
     op('⛔ Bloquear',async function(){await window.fpPro.bloquear(correo,nombre||correo);var c=actual();if(c&&norm(c.correo)===norm(correo)){try{cerrarChat()}catch(e){}}lista()});
@@ -27824,7 +27862,7 @@ function enviarLoc(){
   toast('Obteniendo ubicación…');
   navigator.geolocation.getCurrentPosition(function(p){
     var tok='[[loc:'+p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6)+']]',bor=i.value;
-    i.value=tok;b.click();setTimeout(function(){if(i.value===''||i.value===tok)i.value=bor},250);
+    i.value=tok;b.click();[0,150,450].forEach(function(t){setTimeout(function(){try{i.blur()}catch(e){}},t)});setTimeout(function(){if(i.value===''||i.value===tok)i.value=bor},250);
   },function(){toast('Permite la ubicación para compartirla')},{enableHighAccuracy:true,timeout:12000});
 }
 function montarLoc(){
@@ -27851,6 +27889,79 @@ function iniciar(){
   var t=setInterval(function(){if(!yo()||!sb())return;clearInterval(t);cargarAjustes();lista()},800);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+})();
+</script>
+<script id="fp-pro6-js">
+/* ===== DECOM Pro 6: mensajes destacados (⭐) y re-sincronización al volver ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var norm=function(x){return String(x||'').trim().toLowerCase()};
+function sb(){try{return supabaseClient}catch(e){return null}}
+function yo(){try{return norm(usuarioActual.correo)}catch(e){return ''}}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2400)}
+var UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var ST=new Set();
+function kLS(){return 'fp_dest_'+yo()}
+try{ST=new Set(JSON.parse(localStorage.getItem(kLS())||'[]'))}catch(e){}
+function guardar(){try{localStorage.setItem(kLS(),JSON.stringify(Array.from(ST)))}catch(e){}}
+async function cargar(){var c=sb();if(!c||!yo())return;try{var r=await c.from('mensajes_destacados').select('mensaje_id').eq('usuario_correo',yo());if(!r.error){ST=new Set((r.data||[]).map(function(x){return String(x.mensaje_id)}));guardar()}}catch(e){}}
+function limpio(t){return String(t||'').replace(/\[\[(img|aud|loc):[^\]]*\]\]/g,function(x){return x.indexOf('[[img')===0?'📷 Foto':x.indexOf('[[loc')===0?'📍 Ubicación':'🎤 Nota de voz'})}
+async function alternar(m){
+  var id=String(m.id),on=!ST.has(id),c=sb(),chat;try{chat=chatConUsuario.correo}catch(e){chat=''}
+  if(on)ST.add(id);else ST.delete(id);guardar();toast(on?'⭐ Mensaje destacado':'Quitado de destacados');
+  try{
+    var r=on?await c.from('mensajes_destacados').insert([{usuario_correo:yo(),mensaje_id:id,chat_correo:norm(chat),autor_correo:norm(m.de),texto:String(m.mensaje||'').slice(0,600)}])
+            :await c.from('mensajes_destacados').delete().eq('usuario_correo',yo()).eq('mensaje_id',id);
+    if(r.error&&r.error.code!=='23505')throw r.error;
+  }catch(e){if(on)ST.delete(id);else ST.add(id);guardar();toast('No se pudo guardar en tu cuenta')}
+}
+var AM=window.abrirMenuMensaje;
+if(typeof AM==='function')window.abrirMenuMensaje=function(){
+  var r=AM.apply(this,arguments);
+  setTimeout(function(){
+    var menu=$('#menuMensajeChat'),m=null;try{m=mensajeSeleccionadoMenu}catch(e){}
+    if(!menu||!m||!UUID.test(String(m.id))||m.eliminado_para_todos)return;
+    var b=$('#fpBtnDestacar',menu);
+    if(!b){
+      b=document.createElement('div');b.id='fpBtnDestacar';
+      b.style.cssText='display:flex;align-items:center;gap:10px;padding:13px 16px;font-size:14px;color:#222;cursor:pointer;border-bottom:1px solid #eee';
+      var ref=$('#fpBtnResponder',menu);if(ref)ref.insertAdjacentElement('afterend',b);else menu.insertBefore(b,menu.firstChild);
+    }
+    var on=ST.has(String(m.id));
+    b.innerHTML='<i class="'+(on?'fas':'far')+' fa-star" style="width:16px;color:#e6a100"></i> '+(on?'Quitar de destacados':'Destacar');
+    b.onclick=function(ev){ev.stopPropagation();try{cerrarMenuMensaje()}catch(x){}alternar(m)};
+  },0);
+  return r;
+};
+window.fpDestacados=async function(correoChat){
+  var c=sb();if(!c)return;
+  var ov=document.createElement('div');ov.className='fp-confirm-overlay';
+  var card=document.createElement('div');card.className='fp-confirm-card';card.innerHTML='<h3>⭐ Mensajes destacados</h3><div class="fp-pro-list">Cargando…</div>';
+  var L=$('.fp-pro-list',card);
+  ov.addEventListener('click',function(e){e.stopPropagation();if(e.target===ov)ov.remove()});ov.appendChild(card);document.body.appendChild(ov);
+  try{
+    var q=c.from('mensajes_destacados').select('*').eq('usuario_correo',yo()).order('fecha_destacado',{ascending:false}).limit(100);
+    if(correoChat)q=q.eq('chat_correo',norm(correoChat));
+    var r=await q;if(r.error)throw r.error;L.textContent='';
+    if(!r.data.length)L.textContent='Aún no tienes mensajes destacados.';
+    r.data.forEach(function(d){
+      var f=document.createElement('div');f.className='fp-pro-row';f.style.alignItems='flex-start';
+      var t=document.createElement('span');t.style.whiteSpace='normal';t.textContent=(norm(d.autor_correo)===yo()?'Tú: ':'')+limpio(d.texto);
+      var ir=document.createElement('button');ir.type='button';ir.className='fp-pro-opt';ir.textContent='Ir';
+      ir.onclick=function(e){e.stopPropagation();var el=document.querySelector('#chatMensajes .mensaje[data-id="'+String(d.mensaje_id).replace(/"/g,'')+'"]');if(el){ov.remove();el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('fp-flash')}else toast('Abre ese chat para ir al mensaje')};
+      var q2=document.createElement('button');q2.type='button';q2.className='fp-pro-opt';q2.textContent='Quitar';
+      q2.onclick=async function(e){e.stopPropagation();f.remove();ST.delete(String(d.mensaje_id));guardar();try{await c.from('mensajes_destacados').delete().eq('usuario_correo',yo()).eq('mensaje_id',String(d.mensaje_id))}catch(x){}};
+      f.appendChild(t);f.appendChild(ir);f.appendChild(q2);L.appendChild(f);
+    });
+  }catch(e){L.textContent='No se pudieron cargar. Revisa tu conexión'}
+  var x=document.createElement('button');x.type='button';x.className='fp-confirm-cancel fp-pro-opt';x.textContent='Cerrar';x.onclick=function(e){e.stopPropagation();ov.remove()};card.appendChild(x);
+};
+/* Al volver a la app o recuperar internet, el próximo chat que abras sí consulta mensajes nuevos */
+function forzar(){window.__fpUltSync={}}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')forzar()});
+window.addEventListener('online',forzar);
+var t=setInterval(function(){if(!yo()||!sb())return;clearInterval(t);cargar()},800);
 })();
 </script>
 </body>
