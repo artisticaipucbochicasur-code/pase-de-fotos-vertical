@@ -23358,7 +23358,7 @@ document.getElementById("btnMiPerfil")
 
     document.getElementById("userMenu").style.display="none";
 
-    abrirPerfil();
+    (window.fpAbrirMiPerfil || abrirPerfil)();
 
 });
 
@@ -23812,13 +23812,9 @@ if (fondo) {
 
 
 
-  const btnMiPerfil = document.querySelector("#userMenu .menu-btn");
-
-  if (btnMiPerfil) {
-    btnMiPerfil.addEventListener("click", () => {
-      abrirPerfil();
-    });
-  }
+  /* (Quitado) Antes este bloque enganchaba abrirPerfil() al PRIMER botón del menú,
+     que ahora es la campanita de Actividad, y abría el perfil viejo detrás.
+     "Mi perfil" se maneja arriba con #btnMiPerfil. */
 
   });
 
@@ -26596,7 +26592,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   };
   var tabRed='seg',filtroRed='todos',redCache={sig:[],seg:[]},redInfo={};
   function panelRed(){var p=$('#fpRed');if(p)return p;p=document.createElement('div');p.id='fpRed';
-    p.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><b>Mi red</b><button type="button" class="fp-red-x" aria-label="Cerrar">×</button></div><div class="fp-red-tabs"><button type="button" data-t="seg">Seguidores</button><button type="button" data-t="sig">Siguiendo</button></div><div class="fp-red-filters"><button type="button" data-f="todos" class="on">Todos</button><button type="button" data-f="online">En línea</button><button type="button" data-f="nuevos">Nuevos</button></div><div class="fp-red-list"></div></div>';
+    p.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><button type="button" class="fp-red-x" aria-label="Volver"><i class="fas fa-arrow-left" aria-hidden="true"></i></button><b>Mi red</b><span class="fp-red-acts"><button type="button" class="fp-red-ic" data-fpa="buscar" aria-label="Buscar personas"><i class="fas fa-user-plus" aria-hidden="true"></i></button><button type="button" class="fp-red-ic" data-fpa="amigos" aria-label="Mis amigos"><i class="fas fa-user-group" aria-hidden="true"></i></button></span></div><div class="fp-red-tabs"><button type="button" data-t="seg">Seguidores</button><button type="button" data-t="sig">Siguiendo</button></div><div class="fp-red-find"><i class="fas fa-search" aria-hidden="true"></i><input type="search" placeholder="Buscar en esta lista" aria-label="Buscar en esta lista" autocomplete="off"></div><div class="fp-red-filters"><button type="button" data-f="todos" class="on">Todos</button><button type="button" data-f="online">● En línea</button><button type="button" data-f="nuevos">✨ Recientes</button></div><div class="fp-red-hint">Mostrando: todas las personas de esta lista</div><div class="fp-red-list"></div></div>';
     document.body.appendChild(p);
     p.addEventListener('click',function(e){if(e.target===p||e.target.closest('.fp-red-x'))p.classList.remove('open')});
     $$('.fp-red-tabs button',p).forEach(function(b){b.onclick=function(){tabRed=b.dataset.t;filtroRed='todos';$$('.fp-red-filters button',p).forEach(function(x){x.classList.toggle('on',x.dataset.f===filtroRed)});abrirRed()}});
@@ -26625,7 +26621,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
       var lista=rows.map(function(row){return {row:row,correo:tabRed==='sig'?row.seguido_correo:row.seguidor_correo}}).filter(function(x){return x.correo});
       if(filtroRed==='online')lista=lista.filter(function(x){return (window.fpOnlineSet?window.fpOnlineSet():new Set()).has(norm(x.correo))});
       L.textContent='';
-      if(!lista.length){L.textContent=filtroRed==='online'?'No hay personas en línea en esta lista.':filtroRed==='nuevos'?'No hay relaciones recientes para mostrar.':tabRed==='sig'?'Aún no sigues a nadie.':'Aún nadie te sigue.';return}
+      if(!lista.length){L.textContent=filtroRed==='online'?'No hay personas en línea en esta lista.':filtroRed==='nuevos'?'Aún no hay personas recientes en esta lista.':tabRed==='sig'?'Aún no sigues a nadie.':'Aún nadie te sigue.';return}
       lista.forEach(function(item){
         var c=item.correo,d=info[norm(c)]||{},nombre=d.nombre||c,row=document.createElement('div');row.className='fp-red-row';
         row.appendChild(window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(nombre,d.foto_perfil,c):avatar(nombre,d.foto_perfil));
@@ -26815,7 +26811,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
     if(bell){bell.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()}abrir()};}
     if(followHeader){followHeader.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();abrir()});}
     panel=document.createElement('div');panel.id='fpNot';
-    panel.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><b>Actividad</b><button type="button" class="fp-red-x" aria-label="Cerrar">×</button></div><div class="fp-red-tabs"><button type="button" data-t="avisos">Avisos</button><button type="button" data-t="sug">A quién seguir</button></div><div class="fp-red-list"></div></div>';
+    panel.innerHTML='<div class="fp-red-sheet"><div class="fp-red-top"><button type="button" class="fp-red-x" aria-label="Volver"><i class="fas fa-arrow-left" aria-hidden="true"></i></button><b>Actividad</b><span class="fp-red-acts"><button type="button" class="fp-red-ic" data-fpa="buscar" aria-label="Buscar personas"><i class="fas fa-search" aria-hidden="true"></i></button><button type="button" class="fp-red-ic" data-fpa="amigos" aria-label="Mis amigos"><i class="fas fa-user-group" aria-hidden="true"></i></button></span></div><div class="fp-red-tabs"><button type="button" data-t="avisos">Avisos</button><button type="button" data-t="sug">A quién seguir</button></div><div class="fp-red-list"></div></div>';
     panel.addEventListener('click',function(e){if(e.target===panel||e.target.closest('.fp-red-x'))panel.classList.remove('open')});
     panel.querySelectorAll('.fp-red-tabs button').forEach(function(b){b.onclick=function(){tab=b.dataset.t;pintar()}});
     document.body.appendChild(panel);
@@ -26928,9 +26924,10 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
       setTimeout(function(){try{ctx.close()}catch(e){}},700);
     }catch(e){}
   }
+  function leerOcultas(){try{return new Set(JSON.parse(localStorage.getItem('fp_sug_ocultas')||'[]').map(norm))}catch(e){return new Set()}}
+  function guardarOculta(c){try{var s=Array.from(leerOcultas());s.push(norm(c));localStorage.setItem('fp_sug_ocultas',JSON.stringify(s.slice(-300)))}catch(e){}}
   async function pintarSugeridos(L){
-    var c=supabaseClient,root=L.parentElement;
-    var reqBar=root.querySelector('.fp-friend-requests-bar');if(!reqBar){reqBar=document.createElement('div');reqBar.className='fp-friend-requests-bar';var reqBtn=document.createElement('button');reqBtn.type='button';reqBtn.textContent='♧ Solicitudes de amistad';reqBar.appendChild(reqBtn);root.insertBefore(reqBar,L);reqBtn.onclick=function(){mostrarSolicitudesAmigos(L)};}
+    var c=supabaseClient;
     var r=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(400);
     if(r.error)throw r.error;
     var datos=r.data||[],miCorreo=yo();
@@ -26940,8 +26937,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
     if(yoU.id){try{var sr=await c.from('solicitudes_amigos').select('id,solicitante_id,solicitado_id,estado').or('solicitante_id.eq.'+yoU.id+',solicitado_id.eq.'+yoU.id).limit(1000);if(!sr.error)(sr.data||[]).forEach(function(q){var other=String(q.solicitante_id)===String(yoU.id)?String(q.solicitado_id):String(q.solicitante_id);if(q.estado==='aceptada')solicitudesEstado[other]='aceptada';else if(q.estado==='pendiente')solicitudesEstado[other]=String(q.solicitante_id)===String(yoU.id)?'enviada':'recibida'})}catch(e){}}
     var seg=window.fpSeguidosSet?window.fpSeguidosSet():new Set(),act={},mutuos={},meSiguen=new Set();
     try{anunciosData.forEach(function(a){var em=norm(a.correo);act[em]=(act[em]||0)+1})}catch(e){}
-    /* Recomendaciones por conexiones reales: amigos de personas que ya sigues.
-       Si la consulta de relaciones falla, se conserva el ranking por afinidad general. */
+    /* Conexiones en común: a quién siguen las personas que ya sigues. */
     if(yoU.id){
       try{
         var rel=await c.from('seguidores').select('seguidor_id,seguido_id,seguidor_correo,seguido_correo').or('seguidor_id.eq.'+yoU.id+',seguido_id.eq.'+yoU.id).limit(3000);
@@ -26956,42 +26952,93 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
             }
           });
           var ids=Array.from(new Set(sigoIds));
-          if(ids.length){
-            for(var ix=0;ix<ids.length;ix+=150){
-              var lote=ids.slice(ix,ix+150);
-              var rr=await c.from('seguidores').select('seguidor_id,seguido_id,seguido_correo').in('seguidor_id',lote).limit(3000);
-              if(!rr.error)(rr.data||[]).forEach(function(e){
-                if(String(e.seguido_id)===String(yoU.id))return;
-                var target=datos.find(function(u){return String(u.id)===String(e.seguido_id)});
-                var correo=norm((target&&target.correo)||e.seguido_correo);
-                if(!correo||correo===miCorreo||seg.has(correo)||sigoCorreos.indexOf(correo)>=0)return;
-                mutuos[correo]=(mutuos[correo]||0)+1;
-              });
-            }
+          for(var ix=0;ix<ids.length;ix+=150){
+            var lote=ids.slice(ix,ix+150);
+            var rr=await c.from('seguidores').select('seguidor_id,seguido_id,seguido_correo').in('seguidor_id',lote).limit(3000);
+            if(!rr.error)(rr.data||[]).forEach(function(e){
+              if(String(e.seguido_id)===String(yoU.id))return;
+              var target=datos.find(function(u){return String(u.id)===String(e.seguido_id)});
+              var correo=norm((target&&target.correo)||e.seguido_correo);
+              if(!correo||correo===miCorreo||seg.has(correo)||sigoCorreos.indexOf(correo)>=0)return;
+              mutuos[correo]=(mutuos[correo]||0)+1;
+            });
           }
         }
       }catch(e){}
     }
-    var lista=datos.filter(function(u){var em=norm(u.correo);return em&&em!==miCorreo&&!seg.has(em)}).map(function(u){
-      var em=norm(u.correo),s=0,why=[],m=mutuos[em]||0;
-      if(m){s+=Math.min(18,m*6);why.push(m===1?'Conexión en común':m+' conexiones en común')}
-      if(yoU.congregacion&&norm(u.congregacion)===norm(yoU.congregacion)){s+=5;why.push('Tu congregación')}
-      if(yoU.ciudad&&norm(u.ciudad)===norm(yoU.ciudad)){s+=3;why.push('Tu ciudad')}
-      if(meSiguen.has(em)){s+=2;why.push('Te sigue')}
-      if(act[em]){s+=Math.min(3,act[em]);why.push('Activo en la app')}
-      return {u:u,s:s,why:why};
-    }).sort(function(a,b){return b.s-a.s}).slice(0,20);
+    /* Algoritmo de afinidad: me gusta y comentarios.
+       inter  = quienes reaccionaron o comentaron TUS publicaciones
+       afin   = autores de publicaciones que TÚ reaccionaste o comentaste
+       coLike = quienes reaccionaron a las mismas publicaciones que tú */
+    var inter={},afin={},coLike={},pubAutor={},misPubs=new Set();
+    try{anunciosData.forEach(function(a){var ca=norm(a.correo);pubAutor[String(a.id)]=ca;if(ca===miCorreo)misPubs.add(String(a.id))})}catch(e){}
+    try{
+      var res=await Promise.all([c.from('likes').select('publicacion_id,correo').limit(4000),c.from('comentarios').select('publicacion_id,correo').limit(4000)]);
+      var lk=res[0].error?[]:(res[0].data||[]),cm=res[1].error?[]:(res[1].data||[]);
+      var misLikes=new Set();
+      lk.forEach(function(x){if(norm(x.correo)===miCorreo)misLikes.add(String(x.publicacion_id))});
+      var sumar=function(o,k,v){if(!k||k===miCorreo)return;o[k]=(o[k]||0)+v};
+      lk.forEach(function(x){var p=String(x.publicacion_id),em=norm(x.correo);
+        if(em===miCorreo)sumar(afin,pubAutor[p],2);
+        else{if(misPubs.has(p))sumar(inter,em,3);if(misLikes.has(p))sumar(coLike,em,1)}});
+      cm.forEach(function(x){var p=String(x.publicacion_id),em=norm(x.correo);
+        if(em===miCorreo)sumar(afin,pubAutor[p],3);
+        else{if(misPubs.has(p))sumar(inter,em,4);if(misLikes.has(p))sumar(coLike,em,1)}});
+    }catch(e){}
+    var ocultas=leerOcultas();
+    var lista=datos.filter(function(u){var em=norm(u.correo);return em&&em!==miCorreo&&!seg.has(em)&&!ocultas.has(em)}).map(function(u){
+      var em=norm(u.correo),s=0,why=[],cat='otros';
+      var i=inter[em]||0,m=mutuos[em]||0,a=afin[em]||0,cl=coLike[em]||0;
+      var mismaCong=yoU.congregacion&&norm(u.congregacion)===norm(yoU.congregacion),mismaCiu=yoU.ciudad&&norm(u.ciudad)===norm(yoU.ciudad);
+      if(i){s+=Math.min(24,i*3);why.push('Reaccionó a tus publicaciones');cat='inter'}
+      if(m){s+=Math.min(18,m*6);why.push(m===1?'1 conexión en común':m+' conexiones en común');if(cat==='otros')cat='conoces'}
+      if(meSiguen.has(em)){s+=6;why.push('Te sigue');if(cat==='otros')cat='conoces'}
+      if(a){s+=Math.min(16,a*2);why.push('Te gustan sus publicaciones');if(cat==='otros')cat='afin'}
+      if(cl){s+=Math.min(8,cl);why.push('Le gustan publicaciones como a ti');if(cat==='otros')cat='afin'}
+      if(mismaCong){s+=5;why.push('Tu congregación');if(cat==='otros')cat='cerca'}
+      if(mismaCiu){s+=3;why.push('Tu ciudad');if(cat==='otros')cat='cerca'}
+      if(act[em])s+=Math.min(3,act[em]);
+      if(u.foto_perfil)s+=1;
+      return {u:u,s:s,why:why,cat:cat};
+    });
     L.textContent='';
-    if(!lista.length){L.textContent='No hay personas para sugerir por ahora';return}
-    lista.forEach(function(x){
-      var u=x.u,row=document.createElement('div');row.className='fp-red-row fp-suggest-card';row.setAttribute('role','button');row.setAttribute('tabindex','0');row.setAttribute('aria-label','Ver perfil de '+(u.nombre||u.correo));row.onclick=function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('button'))return;try{panel.classList.remove('open');abrirPerfilPorCorreo(u.correo)}catch(e){}};row.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();try{panel.classList.remove('open');abrirPerfilPorCorreo(u.correo)}catch(e){}}};
-      row.appendChild(window.fpCrearAvatarEstado?window.fpCrearAvatarEstado(u.nombre,u.foto_perfil,u.correo):avatar(u.nombre,u.foto_perfil));
-      var t=document.createElement('span');t.className='fp-red-name';t.textContent=u.nombre||u.correo;
-      var sub=document.createElement('div');sub.className='fp-n-sub';sub.textContent=[u.cargo].concat(x.why).filter(Boolean).join(' · ');t.appendChild(sub);
-      t.style.cursor='pointer';t.onclick=function(){panel.classList.remove('open');try{abrirPerfilPorCorreo(u.correo)}catch(e){}};
-      var friendBtn=window.fpAmistad.crearBoton(u,solicitudesEstado[String(u.id)]||'ninguna','fp-red-btn fp-friend-request-btn');
-      var bt=document.createElement('button');bt.type='button';bt.className='fp-red-btn fp-follow-suggest';bt.style.cssText='border:1px solid rgba(128,128,128,.6);background:transparent;color:inherit;border-radius:10px;padding:7px 10px;font:700 12px system-ui,sans-serif;width:calc(100% - 20px);margin:0 10px';
-      function pintarBoton(){var sigue=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(u.correo));bt.textContent=sigue?'✓ Siguiendo':'＋ Seguir';bt.classList.toggle('on',sigue)}
+    /* Buscador + accesos rápidos */
+    var bus=document.createElement('button');bus.type='button';bus.className='fp-sg-search';
+    bus.innerHTML='<i class="fas fa-search" aria-hidden="true"></i><span>Buscar personas por nombre, ciudad o congregación</span>';
+    bus.onclick=function(){window.fpIrSub&&window.fpIrSub('fpNot','buscar')};
+    var quick=document.createElement('div');quick.className='fp-sg-quick';
+    var bReq=document.createElement('button');bReq.type='button';bReq.innerHTML='<i class="fas fa-user-plus" aria-hidden="true"></i>Solicitudes de amistad';
+    bReq.onclick=async function(){
+      await mostrarSolicitudesAmigos(L);
+      var back=document.createElement('button');back.type='button';back.className='fp-sg-back';back.innerHTML='<i class="fas fa-arrow-left" aria-hidden="true"></i> Volver a sugerencias';
+      back.onclick=function(){pintar()};L.insertBefore(back,L.firstChild);
+    };
+    var bAmg=document.createElement('button');bAmg.type='button';bAmg.innerHTML='<i class="fas fa-user-group" aria-hidden="true"></i>Mis amigos';
+    bAmg.onclick=function(){window.fpIrSub&&window.fpIrSub('fpNot','amigos')};
+    quick.appendChild(bReq);quick.appendChild(bAmg);
+    L.appendChild(bus);L.appendChild(quick);
+    if(!lista.length){var vac=document.createElement('div');vac.className='fp-msg';vac.textContent='No hay personas para sugerir por ahora';L.appendChild(vac);return}
+    var SEC=[
+      {k:'inter',t:'Interactúan con tus publicaciones',d:'Reaccionaron o comentaron lo que compartes'},
+      {k:'conoces',t:'Quizás los conozcas',d:'Conexiones en común y personas que te siguen'},
+      {k:'afin',t:'Con intereses parecidos',d:'Según los me gusta y comentarios'},
+      {k:'cerca',t:'Cerca de ti',d:'De tu congregación o de tu ciudad'},
+      {k:'otros',t:'Más personas de DECOM',d:'Descubre nuevas conexiones'}
+    ];
+    function tarjeta(x,fila,sec){
+      var u=x.u,card=document.createElement('div');card.className='fp-sg-card';
+      function verPerfil(){panel.classList.remove('open');try{abrirPerfilPorCorreo(u.correo)}catch(e){}}
+      var xb=document.createElement('button');xb.type='button';xb.className='fp-sg-x';xb.setAttribute('aria-label','Quitar sugerencia');xb.innerHTML='<i class="fas fa-xmark" aria-hidden="true"></i>';
+      xb.onclick=function(e){e.stopPropagation();guardarOculta(u.correo);card.classList.add('fp-sg-out');setTimeout(function(){card.remove();if(!fila.children.length)sec.remove()},220)};
+      var av=document.createElement('div');av.className='fp-sg-av';
+      if(u.foto_perfil&&/^(https?:|data:|blob:)/.test(u.foto_perfil)){av.style.backgroundImage='url("'+String(u.foto_perfil).replace(/["\\()\s]/g,function(ch){return '%'+ch.charCodeAt(0).toString(16).toUpperCase()})+'")'}
+      else{av.classList.add('ini');var pp=String(u.nombre||'?').trim().split(/\s+/);av.textContent=((pp[0]||'?').charAt(0)+(pp[1]?pp[1].charAt(0):'')).toUpperCase()}
+      try{if(window.fpOnlineSet&&window.fpOnlineSet().has(norm(u.correo))){var d=document.createElement('span');d.className='fp-sg-dot';av.appendChild(d)}}catch(e){}
+      av.onclick=verPerfil;
+      var nm=document.createElement('div');nm.className='fp-sg-name';nm.textContent=u.nombre||u.correo;nm.onclick=verPerfil;
+      var wy=document.createElement('div');wy.className='fp-sg-why';wy.textContent=x.why.slice(0,2).join(' · ')||u.cargo||'Sugerido para ti';
+      var bt=document.createElement('button');bt.type='button';bt.className='fp-sg-follow';
+      function pintarBoton(){var sigue=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(u.correo));bt.textContent=sigue?'✓ Siguiendo':'Seguir';bt.classList.toggle('on',sigue)}
       pintarBoton();
       bt.onclick=async function(){
         if(bt.disabled)return;bt.disabled=true;
@@ -27003,16 +27050,26 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
             if(!ok){bt.disabled=false;return}
             var del=await c.from('seguidores').delete().eq('seguidor_id',m).eq('seguido_id',u.id);if(del.error)throw del.error;
             try{window.fpSeguidosSet().delete(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}
-            pintarBoton();
           }else{
             var existe=await c.from('seguidores').select('id').eq('seguidor_id',m).eq('seguido_id',u.id).maybeSingle();if(existe.error)throw existe.error;
             if(!existe.data){var ins=await c.from('seguidores').insert([{seguidor_id:m,seguido_id:u.id,seguidor_correo:miCorreo,seguido_correo:u.correo}]);if(ins.error)throw ins.error}
             try{window.fpSeguidosSet().add(norm(u.correo));if(window.fpReordenar)window.fpReordenar()}catch(e){}
-            pintarBoton();
           }
+          pintarBoton();
         }catch(e){bt.textContent='Reintentar'}finally{bt.disabled=false}
       };
-      row.appendChild(t);row.appendChild(friendBtn);row.appendChild(bt);L.appendChild(row);
+      var friendBtn=window.fpAmistad.crearBoton(u,solicitudesEstado[String(u.id)]||'ninguna','fp-friend-request-btn');
+      card.appendChild(xb);card.appendChild(av);card.appendChild(nm);card.appendChild(wy);card.appendChild(bt);card.appendChild(friendBtn);
+      return card;
+    }
+    SEC.forEach(function(S){
+      var items=lista.filter(function(x){return x.cat===S.k}).sort(function(a,b){return b.s-a.s}).slice(0,S.k==='otros'?10:14);
+      if(!items.length)return;
+      var sec=document.createElement('section');sec.className='fp-sg-sec';
+      var h=document.createElement('h4');h.textContent=S.t;var p=document.createElement('p');p.textContent=S.d;
+      var fila=document.createElement('div');fila.className='fp-sg-row';
+      items.forEach(function(x){fila.appendChild(tarjeta(x,fila,sec))});
+      sec.appendChild(h);sec.appendChild(p);sec.appendChild(fila);L.appendChild(sec);
     });
   }
   async function mostrarSolicitudesAmigos(L){
@@ -27272,7 +27329,7 @@ function engancharRed(){
   var p=$('#fpRed');if(!p||p.dataset.pro)return;p.dataset.pro='1';
   var F=$('.fp-red-filters',p);
   if(F){
-    var b=document.createElement('button');b.type='button';b.textContent='Amigos';
+    var b=document.createElement('button');b.type='button';b.textContent='👥 Solo amigos';
     b.onclick=function(){var on=!p.classList.contains('fp-solo-amigos');p.classList.toggle('fp-solo-amigos',on);b.classList.toggle('on',on);marcarAmigos(p)};
     F.appendChild(b);
     $$('button',F).forEach(function(x){if(x!==b)x.addEventListener('click',function(){p.classList.remove('fp-solo-amigos');b.classList.remove('on')})});
@@ -30559,6 +30616,154 @@ function montarAccesos(){
   }
 }
 setInterval(montarAccesos,1200);
+})();
+</script>
+
+
+<!-- =====================================================================
+     LOTE 14: Mi perfil → perfil nuevo · Actividad y Mi red a pantalla
+     completa y modernos · A quién seguir con carruseles y buscador
+====================================================================== -->
+<style id="fp-red-moderno">
+#fpRed,#fpNot{--r-bg:#fff;--r-card:#f0f2f5;--r-tx:#0f172a;--r-sub:#65676b;--r-line:rgba(15,23,42,.1);--r-acc:#1877f2;--r-soft:rgba(24,119,242,.1);background:rgba(0,0,0,.5);align-items:stretch!important;justify-content:center!important}
+body.dark-mode #fpRed,body.dark-mode #fpNot{--r-bg:#18191a;--r-card:#242526;--r-tx:#e4e6eb;--r-sub:#b0b3b8;--r-line:rgba(255,255,255,.12);--r-acc:#2d88ff;--r-soft:rgba(45,136,255,.18)}
+@keyframes fprUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+#fpRed .fp-red-sheet,#fpNot .fp-red-sheet{width:100%;max-width:640px;height:100%;max-height:none;border-radius:0;background:var(--r-bg);color:var(--r-tx);overflow:hidden;animation:fprUp .26s cubic-bezier(.2,.8,.2,1)}
+#fpRed *,#fpNot *{box-sizing:border-box}
+/* cabecera */
+#fpRed .fp-red-top,#fpNot .fp-red-top{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 10px 8px;font-size:22px}
+#fpRed .fp-red-top b,#fpNot .fp-red-top b{flex:1;font-size:23px;font-weight:800;letter-spacing:-.3px}
+#fpRed .fp-red-x,#fpNot .fp-red-x,#fpRed .fp-red-ic,#fpNot .fp-red-ic{width:42px;height:42px;flex:0 0 42px;border-radius:50%;border:0;background:var(--r-card);color:var(--r-tx);font-size:16px;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#fpRed .fp-red-x:active,#fpNot .fp-red-x:active,#fpRed .fp-red-ic:active,#fpNot .fp-red-ic:active{transform:scale(.94)}
+.fp-red-acts{display:flex;gap:8px}
+/* pestañas */
+#fpRed .fp-red-tabs,#fpNot .fp-red-tabs{display:flex;gap:0;padding:0 6px;border-bottom:1px solid var(--r-line)}
+#fpRed .fp-red-tabs button,#fpNot .fp-red-tabs button{flex:1;background:none!important;border-radius:0;padding:13px 6px;font-size:15px;font-weight:700;color:var(--r-sub)!important;border-bottom:3px solid transparent}
+#fpRed .fp-red-tabs button.on,#fpNot .fp-red-tabs button.on{color:var(--r-tx)!important;border-bottom-color:var(--r-acc)}
+/* buscador de la lista, chips y pista */
+.fp-red-find{position:relative;margin:12px 14px 0}
+.fp-red-find i{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--r-sub);pointer-events:none;font-size:14px}
+.fp-red-find input{width:100%;border:0;background:var(--r-card);color:var(--r-tx);border-radius:12px;padding:12px 14px 12px 40px;font-size:16px;outline:none;font-family:inherit}
+#fpRed .fp-red-filters{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:12px 14px 2px;scrollbar-width:none}
+#fpRed .fp-red-filters::-webkit-scrollbar{display:none}
+#fpRed .fp-red-filters button{flex:0 0 auto;min-width:0;padding:8px 15px;font-size:13px;border-radius:999px;border:0;background:var(--r-card);color:var(--r-tx);cursor:pointer}
+#fpRed .fp-red-filters button.on{background:var(--r-acc);color:#fff}
+#fpRed .fp-amigos-chip{display:none!important}
+.fp-red-hint{padding:6px 16px 4px;font-size:12.5px;color:var(--r-sub)}
+.fp-friend-requests-bar{display:none!important}
+/* lista y filas */
+#fpRed .fp-red-list,#fpNot .fp-red-list{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:6px 14px calc(24px + env(safe-area-inset-bottom,0px))}
+#fpRed .fp-red-row,#fpNot .fp-red-row{padding:10px 8px;gap:14px;border-radius:14px}
+#fpRed .fp-red-row:active,#fpNot .fp-red-row:active{background:var(--r-card)}
+#fpRed .fp-avatar-wrap,#fpNot .fp-avatar-wrap{width:54px;height:54px;flex:0 0 54px}
+#fpRed .fp-red-av,#fpNot .fp-red-av{width:54px;height:54px;flex:0 0 54px;font-size:20px}
+#fpRed .fp-online-dot,#fpNot .fp-online-dot{width:15px;height:15px;border-color:var(--r-bg)}
+#fpRed .fp-red-name,#fpNot .fp-red-name{font-size:16px}
+#fpRed .fp-n-sub,#fpNot .fp-n-sub{font-size:13px;opacity:1;color:var(--r-sub);font-weight:500}
+#fpNot .fp-n-un{background:var(--r-soft);border-radius:14px}
+#fpRed .fp-red-btn,#fpNot .fp-red-btn{border:0!important;border-radius:999px;padding:9px 17px;background:var(--r-acc)!important;color:#fff!important;font:700 13px system-ui,sans-serif;cursor:pointer}
+#fpRed .fp-red-btn.on,#fpNot .fp-red-btn.on,#fpNot .fp-request-reject{background:var(--r-card)!important;color:var(--r-tx)!important}
+#fpRed .fp-red-contact{width:40px;height:40px;border-radius:50%;border:0;background:var(--r-card);color:var(--r-tx);padding:0;display:flex;align-items:center;justify-content:center}
+#fpRed .fp-amigo{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(49,162,76,.16);color:#31a24c}
+#fpNot .fp-marcar-todas{margin:2px 6px 8px auto;color:var(--r-acc);font-size:14px;font-weight:700}
+.fp-msg{padding:56px 24px;text-align:center;color:var(--r-sub);font-size:15px;line-height:1.5}
+/* A quién seguir */
+.fp-sg-search{display:flex;align-items:center;gap:10px;width:100%;border:0;background:var(--r-card);color:var(--r-sub);padding:13px 16px;border-radius:14px;font:500 15px system-ui,sans-serif;text-align:left;cursor:pointer;margin:10px 0}
+.fp-sg-search span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-sg-quick{display:flex;gap:8px;overflow-x:auto;padding:0 0 4px;scrollbar-width:none}
+.fp-sg-quick::-webkit-scrollbar{display:none}
+.fp-sg-quick button,.fp-sg-back{flex:0 0 auto;border:0;background:var(--r-soft);color:var(--r-acc);font:700 13px system-ui,sans-serif;border-radius:999px;padding:9px 15px;display:flex;gap:7px;align-items:center;cursor:pointer}
+.fp-sg-back{margin:0 0 10px}
+.fp-sg-sec{margin-top:20px}
+.fp-sg-sec h4{margin:0;font-size:18px;font-weight:800;letter-spacing:-.2px}
+.fp-sg-sec p{margin:2px 0 10px;font-size:13px;color:var(--r-sub)}
+.fp-sg-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -14px;padding:2px 14px 8px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x pan-y;scrollbar-width:none}
+.fp-sg-row::-webkit-scrollbar{display:none}
+.fp-sg-card{position:relative;flex:0 0 160px;scroll-snap-align:start;background:var(--r-card);border:1px solid var(--r-line);border-radius:18px;padding:20px 10px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;transition:opacity .2s,transform .2s}
+.fp-sg-card.fp-sg-out{opacity:0;transform:scale(.9)}
+.fp-sg-x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:0;background:transparent;color:var(--r-sub);cursor:pointer;font-size:14px}
+.fp-sg-av{position:relative;width:88px;height:88px;border-radius:50%;background:#cfd8e6 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:30px;cursor:pointer}
+.fp-sg-av.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff)}
+.fp-sg-dot{position:absolute;right:3px;bottom:3px;width:17px;height:17px;border-radius:50%;background:#31a24c;border:3px solid var(--r-card)}
+.fp-sg-name{max-width:100%;font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;margin-top:4px}
+.fp-sg-why{font-size:12px;color:var(--r-sub);min-height:30px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:100%}
+.fp-sg-card .fp-sg-follow{width:100%;border:0;border-radius:10px;padding:10px;margin-top:4px;background:var(--r-acc);color:#fff;font:800 13px system-ui,sans-serif;cursor:pointer}
+.fp-sg-card .fp-sg-follow.on{background:var(--r-bg);color:var(--r-tx);border:1px solid var(--r-line)}
+.fp-sg-card .fp-amistad-btn{width:100%;border-radius:10px;padding:9px 6px;font-size:12.5px}
+</style>
+
+<script id="fp-lote14-js">
+(function(){
+  'use strict';
+  if(window.__fpLote14)return;window.__fpLote14=1;
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+
+  /* 1) "Mi perfil" abre el perfil NUEVO (el de edición sigue en "Editar mi perfil") */
+  window.fpAbrirMiPerfil=function(){
+    var c='';
+    try{c=(usuarioActual&&usuarioActual.correo)||''}catch(e){}
+    if(!c){try{c=currentAuthorEmail||''}catch(e){}}
+    if(!c){try{c=localStorage.getItem('correo')||''}catch(e){}}
+    c=String(c).trim();
+    if(!c||typeof abrirPerfilPorCorreo!=='function'){if(typeof abrirPerfil==='function')abrirPerfil();return}
+    try{if(typeof perfilCache!=='undefined'&&perfilCache&&typeof normalizeText==='function')delete perfilCache[normalizeText(c.toLowerCase())]}catch(e){}
+    abrirPerfilPorCorreo(c);
+  };
+
+  /* 2) Ir al buscador / Mis amigos desde un panel y volver al panel al cerrarlos */
+  window.fpIrSub=function(panelId,tipo){
+    var p=document.getElementById(panelId);if(p)p.classList.remove('open');
+    function volver(){if(panelId==='fpRed'){if(window.fpAbrirRed)window.fpAbrirRed()}else if(window.fpAbrirActividad)window.fpAbrirActividad()}
+    var sel=tipo==='buscar'?'#fpBuscaPro':'#fpAmigos',fn=tipo==='buscar'?window.fpBuscarPersonas:window.fpAbrirAmigos;
+    if(typeof fn!=='function'){volver();return}
+    try{fn()}catch(e){volver();return}
+    var visto=false,n=0,iv=setInterval(function(){
+      if(document.querySelector(sel)){visto=true;return}
+      if(visto||++n>10){clearInterval(iv);volver()}
+    },300);
+  };
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-fpa]');if(!b)return;
+    var p=b.closest('#fpRed,#fpNot');if(!p)return;
+    e.preventDefault();e.stopPropagation();window.fpIrSub(p.id,b.dataset.fpa);
+  },true);
+
+  /* 3) Mi red: pista de qué hace cada filtro + buscador de la lista */
+  var FR={todos:'todas las personas de esta lista',online:'conectados ahora',nuevos:'los 10 más recientes',amigos:'que además son tus amigos'};
+  function pista(){
+    var p=$('#fpRed');if(!p)return;
+    var h=$('.fp-red-hint',p);if(!h)return;
+    var ks=[];
+    $$('.fp-red-filters button.on',p).forEach(function(b){
+      var d=b.dataset.f||'',t=b.textContent.toLowerCase();
+      if(d==='online')ks.push(FR.online);else if(d==='nuevos')ks.push(FR.nuevos);else if(/amigos/.test(t)&&!/mis/.test(t))ks.push(FR.amigos);
+    });
+    h.textContent='Mostrando: '+(ks.length?ks.join(' · '):FR.todos);
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('#fpRed .fp-red-filters button, #fpRed .fp-red-tabs button');if(!b)return;
+    var i=$('#fpRed .fp-red-find input');if(i)i.value='';
+    setTimeout(pista,40);
+  });
+  document.addEventListener('input',function(e){
+    var i=e.target;if(!i||!i.closest||!i.closest('#fpRed .fp-red-find'))return;
+    var q=i.value.trim().toLowerCase();
+    $$('#fpRed .fp-red-list .fp-red-row').forEach(function(r){
+      var n=$('.fp-red-name',r);r.style.display=(!q||(n&&n.textContent.toLowerCase().indexOf(q)>=0))?'':'none';
+    });
+  });
+
+  /* 4) Mensajes vacíos centrados */
+  function vigilar(){
+    ['#fpRed','#fpNot'].forEach(function(s){
+      var p=$(s);if(!p||p.dataset.l14)return;p.dataset.l14='1';
+      var L=$('.fp-red-list',p);if(!L)return;
+      var fn=function(){var vacio=!L.firstElementChild&&L.textContent.trim();L.classList.toggle('fp-msg',!!vacio)};
+      new MutationObserver(fn).observe(L,{childList:true});fn();
+    });
+  }
+  setInterval(vigilar,1000);
 })();
 </script>
 
