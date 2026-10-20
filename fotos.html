@@ -27826,7 +27826,10 @@ async function enviarFoto(file){
   if(file.size>15*1024*1024)return toast('La imagen es muy pesada (máx. 15 MB)');
   if(!(await sesionOk()))return;
   toast('Enviando foto…');
-  try{var b=await comprimir(file),u=await subir(b,/gif$/i.test(file.type)?'gif':'jpg');enviarToken('[[img:'+u+']]')}
+  try{
+    var b;try{b=await comprimir(file)}catch(x){console.warn('No se pudo comprimir, se envía original',x);b=file}
+    var ext=/gif$/i.test(file.type)?'gif':(b===file?(/png/i.test(file.type)?'png':/webp/i.test(file.type)?'webp':'jpg'):'jpg');
+    var u=await subir(b,ext);enviarToken('[[img:'+u+']]')}
   catch(e){console.error('Foto:',e);toast('No se pudo enviar la foto: '+((e&&e.message)||e))}
 }
 var rec=null,chunks=[],t0=0,tick=null,cancelar=false,barra;
@@ -27850,7 +27853,12 @@ async function grabar(){
 function montarEnvio(){
   var env=$('#chatEnviar');if(!env||$('#fpClip'))return;
   var f=document.createElement('input');f.type='file';f.accept='image/*';f.hidden=true;f.id='fpFile';
-  f.addEventListener('change',function(){var a=f.files&&f.files[0];f.value='';enviarFoto(a)});
+  f.addEventListener('change',async function(){
+    var a=f.files&&f.files[0];if(!a)return;
+    /* En Android, vaciar el input invalida el archivo elegido: primero lo copio a memoria */
+    var cp=a;try{cp=new File([await a.arrayBuffer()],a.name||'foto.jpg',{type:a.type||'image/jpeg'})}catch(e){}
+    f.value='';enviarFoto(cp);
+  });
   var clip=document.createElement('button');clip.type='button';clip.id='fpClip';clip.className='fp-cbtn';clip.setAttribute('aria-label','Enviar foto');clip.innerHTML='<i class="fas fa-image"></i>';
   clip.onclick=function(){f.click()};
   var mic=document.createElement('button');mic.type='button';mic.id='fpMic';mic.className='fp-cbtn';mic.setAttribute('aria-label','Grabar nota de voz');mic.innerHTML='<i class="fas fa-microphone"></i>';
@@ -28249,6 +28257,69 @@ async function limpiarVencidos(){
   }catch(e){}
 }
 setTimeout(limpiarVencidos,9000);setInterval(limpiarVencidos,600000);
+})();
+</script>
+<script id="fp-pro9-js">
+/* ===== DECOM Pro 9: vista previa de enlaces (Edge Function link-preview) ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function sb(){try{return supabaseClient}catch(e){return null}}
+var st=document.createElement('style');
+st.textContent='.fp-lp{display:block;margin-top:6px;max-width:260px;border-radius:10px;overflow:hidden;background:rgba(0,0,0,.07);border-left:3px solid #1a73e8;text-decoration:none;color:inherit;cursor:pointer}.fp-lp img{display:block;width:100%;max-height:140px;object-fit:cover;background:#0001}.fp-lp div{padding:6px 9px}.fp-lp b{display:block;font-size:13px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.fp-lp p{margin:2px 0 0;font-size:12px;opacity:.8;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.fp-lp small{display:block;margin-top:3px;font-size:10.5px;opacity:.6}';
+document.head.appendChild(st);
+var KEY='fp_lp_cache_v1',MEM=new Map(),FALLO=new Set(),PEND=new Map(),activas=0,espera=[];
+try{var o=JSON.parse(localStorage.getItem(KEY)||'{}');Object.keys(o).forEach(function(k){MEM.set(k,o[k])})}catch(e){}
+function guardar(){try{var ks=Array.from(MEM.keys()).slice(-150),o={};ks.forEach(function(k){o[k]=MEM.get(k)});localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}
+var RE=/https?:\/\/[^\s<>"']+/i;
+function urlDe(b){
+  var t=b.textContent||'';if(t.indexOf('[[')>-1)return null;
+  var m=t.match(RE);if(!m)return null;var u=m[0].replace(/[.,;:!?)\]]+$/,'');
+  if(/\/storage\/v1\/object\//.test(u))return null;
+  return u;
+}
+function pedir(url){
+  if(MEM.has(url))return Promise.resolve(MEM.get(url));
+  if(FALLO.has(url))return Promise.resolve(null);
+  if(PEND.has(url))return PEND.get(url);
+  var p=new Promise(function(ok){
+    function correr(){
+      activas++;
+      var c=sb();
+      (c&&c.functions?c.functions.invoke('link-preview',{body:{url:url}}):Promise.resolve({error:1})).then(function(r){
+        var d=r&&r.data;
+        if(!r||r.error||!d||d.error){FALLO.add(url);ok(null)}else{MEM.set(url,d);guardar();ok(d)}
+      }).catch(function(){FALLO.add(url);ok(null)}).then(function(){activas--;PEND.delete(url);var n=espera.shift();if(n)n()});
+    }
+    if(activas<2)correr();else espera.push(correr);
+  });
+  PEND.set(url,p);return p;
+}
+function pintar(b,url,d){
+  if(!d||!b.isConnected)return;
+  var viejo=$('.fp-lp',b);if(viejo&&viejo.dataset.u===url)return;if(viejo)viejo.remove();
+  var a=document.createElement('a');a.className='fp-lp';a.dataset.u=url;a.href=d.url||url;a.target='_blank';a.rel='noopener noreferrer nofollow';
+  a.addEventListener('click',function(e){e.stopPropagation()});
+  if(d.image){var im=document.createElement('img');im.loading='lazy';im.referrerPolicy='no-referrer';im.alt='';im.src=d.image;im.onerror=function(){im.remove()};a.appendChild(im)}
+  var x=document.createElement('div');
+  if(d.title){var t=document.createElement('b');t.textContent=d.title;x.appendChild(t)}
+  if(d.description){var p=document.createElement('p');p.textContent=d.description;x.appendChild(p)}
+  var s=document.createElement('small');s.textContent=d.site||'';x.appendChild(s);a.appendChild(x);
+  var sm=$('small',b);if(sm&&sm.parentNode===b)b.insertBefore(a,sm);else b.appendChild(a);
+}
+function pasada(){
+  var C=$('#chatMensajes');if(!C)return;
+  Array.prototype.slice.call(C.querySelectorAll('.mensaje')).slice(-40).forEach(function(b){
+    if(b.dataset.eliminadoParaTodos==='1'){var v=$('.fp-lp',b);if(v)v.remove();return}
+    var u=urlDe(b),card=$('.fp-lp',b);
+    if(!u){if(card)card.remove();return}
+    if(card&&card.dataset.u===u)return;
+    pedir(u).then(function(d){pintar(b,u,d)});
+  });
+}
+var raf=0;function pronto(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;pasada()})}
+function iniciar(){var C=$('#chatMensajes');if(!C)return;new MutationObserver(pronto).observe(C,{childList:true,subtree:true});pronto()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
 })();
 </script>
 </body>
