@@ -3116,12 +3116,12 @@ style="position:relative;">
   <span id="notificationCount"></span>
 </div>
 
-      <!-- Aviso exclusivo de nuevos seguidores; independiente de las notificaciones de anuncios -->
+      <!-- Campana de notificaciones: aparece mientras haya avisos sin leer (seguidores, comentarios, likes, menciones) y se quita al leerlos -->
       <button id="fpFollowHeader" class="header-btn" type="button"
-        title="Nuevos seguidores" aria-label="Nuevos seguidores"
+        title="Notificaciones" aria-label="Notificaciones"
         style="display:none;position:relative;">
-        <i class="fas fa-user-plus"></i>
-        <b aria-hidden="true" style="display:none;position:absolute;top:-4px;right:-4px;min-width:8px;height:8px;border-radius:50%;background:#e41e3f;"></b>
+        <i class="fas fa-bell"></i>
+        <b aria-hidden="true" style="display:none;position:absolute;top:-5px;right:-6px;min-width:16px;height:16px;border-radius:8px;background:#e41e3f;color:#fff;font:700 10px/16px system-ui,sans-serif;text-align:center;padding:0 3px;box-sizing:border-box;"></b>
       </button>
 
 
@@ -26666,12 +26666,10 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
         .eq('para_correo',yo()).eq('leida',false);
       var n=r.count||0,menuBadge=bell?$('b',bell):null;
       if(menuBadge){menuBadge.textContent=n>99?'99+':n;menuBadge.style.display=n?'inline-block':'none'}
-      // El icono del header se activa únicamente por nuevos seguidores sin leer.
-      var f=await supabaseClient.from('notificaciones').select('id',{count:'exact',head:true})
-        .eq('para_correo',yo()).eq('leida',false).eq('tipo','seguir');
-      var nuevos=f.count||0,headerBadge=followHeader?$('b',followHeader):null;
-      if(followHeader)followHeader.style.display=nuevos?'inline-flex':'none';
-      if(headerBadge){headerBadge.style.display=nuevos?'block':'none';headerBadge.title=nuevos?(nuevos+' nuevos seguidores sin leer'):''}
+      // El icono del header se activa con cualquier notificación sin leer y se quita al leerlas.
+      var headerBadge=followHeader?$('b',followHeader):null;
+      if(followHeader)followHeader.style.display=n?'inline-flex':'none';
+      if(headerBadge){headerBadge.textContent=n>99?'99+':n;headerBadge.style.display=n?'block':'none';headerBadge.title=n?(n+' notificaciones sin leer'):''}
     }catch(e){}
   }
   function abrir(){panel.classList.add('open');pintar()}
@@ -27512,5 +27510,185 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 <script src="decom-extras.js"></script>
+<script id="fp-pro4-js">
+/* ===== DECOM Pro 4: chat (buscador de chats, buscar en la conversación, fotos y notas de voz) ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var BUCKET='decom-media',TOK=/^\[\[(img|aud):(https:\/\/[^\]|\s]+?)(?:\|(\d{1,4}))?\]\]$/,TOKG=/\[\[(img|aud):[^\]]*\]\]/g;
+function sb(){try{return supabaseClient}catch(e){return null}}
+function miCorreo(){try{return usuarioActual&&usuarioActual.correo||''}catch(e){return ''}}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2600)}
+function sinAcento(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
+function fmt(s){return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
+
+/* ---------- estilos ---------- */
+var st=document.createElement('style');st.id='fp-pro4-css';
+st.textContent='#fpBuscaChats{display:block;box-sizing:border-box;width:calc(100% - 24px);margin:8px 12px;padding:10px 14px;border:1px solid rgba(128,128,128,.35);border-radius:22px;font-size:14px;background:rgba(128,128,128,.12);color:inherit;outline:none}'+
+'.fp-cbtn{width:40px;height:40px;border:0;border-radius:50%;background:rgba(128,128,128,.18);color:#444;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}'+
+'#fpChatLupa{margin-left:auto;background:transparent;color:inherit;width:36px;height:36px}'+
+'#fpChatBusca{display:none;position:absolute;left:0;right:0;top:100%;align-items:center;gap:6px;padding:6px 10px;background:#fff;color:#222;box-shadow:0 2px 6px rgba(0,0,0,.2);z-index:5}'+
+'#fpChatBusca input{flex:1;min-width:0;border:1px solid #ccc;border-radius:18px;padding:7px 12px;font-size:14px;outline:none}'+
+'#fpChatBusca button{border:0;background:none;font-size:16px;cursor:pointer;padding:4px 8px;color:#333}#fpChatBusca span{font-size:12px;color:#666;min-width:34px;text-align:center}'+
+'.mensaje.fp-hit{outline:2px solid #f5a623}.mensaje.fp-hit-on{outline:3px solid #e41e3f}'+
+'.fp-img{display:block;max-width:100%;max-height:260px;border-radius:8px;cursor:zoom-in;background:#0001}'+
+'.fp-aud{display:flex;flex-direction:column;gap:2px}.fp-aud audio{width:210px;max-width:100%;height:38px}.fp-aud small{font-size:10px;opacity:.7}'+
+'#fpRec{display:none;position:fixed;left:0;right:0;bottom:0;z-index:2147483000;align-items:center;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:#fff;color:#222;box-shadow:0 -2px 10px rgba(0,0,0,.25);font:600 15px system-ui,sans-serif}'+
+'#fpRec i{color:#e41e3f;animation:fpRp 1s infinite}@keyframes fpRp{50%{opacity:.25}}#fpRec .fp-t{flex:1}'+
+'#fpRec button{border:0;border-radius:18px;padding:9px 16px;font:600 14px system-ui,sans-serif;cursor:pointer;background:#eee;color:#222}#fpRec .fp-ok{background:#5A8DEE;color:#fff}'+
+'#fpVisor{position:fixed;inset:0;z-index:2147483100;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}#fpVisor img{max-width:96vw;max-height:92vh}';
+document.head.appendChild(st);
+
+/* ---------- 1) Buscador de chats (lista) ---------- */
+function filtrarLista(){
+  var L=$('#listaChatsContenido'),i=$('#fpBuscaChats');if(!L||!i)return;
+  var q=sinAcento(i.value.trim());
+  Array.prototype.forEach.call(L.children,function(r){r.style.display=(!q||sinAcento(r.textContent).indexOf(q)>-1)?'':'none'});
+}
+function montarBuscaChats(){
+  var L=$('#listaChatsContenido');if(!L||$('#fpBuscaChats'))return;
+  var i=document.createElement('input');i.id='fpBuscaChats';i.type='search';i.placeholder='Buscar chats';i.autocomplete='off';
+  i.addEventListener('input',filtrarLista);L.parentNode.insertBefore(i,L);
+  new MutationObserver(function(){filtrarLista();limpiar(L)}).observe(L,{childList:true,subtree:true,characterData:true});
+}
+
+/* ---------- 2) Buscar dentro de la conversación (mensajes cargados) ---------- */
+var hits=[],pos=-1;
+function montarBuscaConv(){
+  var back=$('.chat-back-btn');if(!back||$('#fpChatLupa'))return;
+  var H=back.parentElement;
+  var b=document.createElement('button');b.type='button';b.id='fpChatLupa';b.className='fp-cbtn';b.setAttribute('aria-label','Buscar en la conversación');b.innerHTML='<i class="fas fa-search"></i>';
+  H.appendChild(b);
+  var bar=document.createElement('div');bar.id='fpChatBusca';
+  bar.innerHTML='<input type="search" placeholder="Buscar en este chat" autocomplete="off"><span></span><button type="button" data-d="-1">▲</button><button type="button" data-d="1">▼</button><button type="button" data-x="1">✕</button>';
+  H.appendChild(bar);
+  var inp=$('input',bar),cnt=$('span',bar);
+  function limpiarHits(){$$('#chatMensajes .fp-hit').forEach(function(m){m.classList.remove('fp-hit','fp-hit-on')})}
+  function ir(d){
+    if(!hits.length)return;
+    if(hits[pos])hits[pos].classList.remove('fp-hit-on');
+    pos=(pos+d+hits.length)%hits.length;hits[pos].classList.add('fp-hit-on');
+    hits[pos].scrollIntoView({block:'center',behavior:'smooth'});cnt.textContent=(pos+1)+'/'+hits.length;
+  }
+  function buscar(){
+    limpiarHits();hits=[];pos=-1;var q=sinAcento(inp.value.trim());
+    if(q.length<2){cnt.textContent='';return}
+    $$('#chatMensajes > .mensaje').forEach(function(m){
+      if(m.dataset.eliminadoParaTodos==='1')return;var t=m.dataset.mensaje||'';if(TOK.test(t))return;
+      if(sinAcento(t).indexOf(q)>-1){m.classList.add('fp-hit');hits.push(m)}
+    });
+    if(!hits.length){cnt.textContent='0';return}
+    pos=hits.length-1;ir(0);
+  }
+  inp.addEventListener('input',buscar);
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();ir(e.shiftKey?-1:1)}});
+  bar.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)return;if(t.dataset.x){bar.style.display='none';inp.value='';limpiarHits();hits=[];cnt.textContent=''}else if(t.dataset.d)ir(Number(t.dataset.d))});
+  b.addEventListener('click',function(e){e.stopPropagation();var ab=bar.style.display==='flex';bar.style.display=ab?'none':'flex';if(!ab)inp.focus();else{inp.value='';limpiarHits()}});
+}
+
+/* ---------- 3) Mostrar fotos y notas de voz dentro de la burbuja ---------- */
+function urlOk(u){return u.indexOf('/storage/v1/object/public/')>-1}
+function decorar(){
+  $$('#chatMensajes > .mensaje').forEach(function(b){
+    if(b.dataset.eliminadoParaTodos==='1')return;
+    var tok=(b.dataset.mensaje||'').trim(),m=TOK.exec(tok);if(!m||!urlOk(m[2]))return;
+    var d=Array.prototype.find.call(b.children,function(c){return c.tagName==='DIV'&&(c.classList.contains('fp-media')||c.textContent.trim()===tok)});
+    if(!d||d.classList.contains('fp-media'))return;
+    d.className='fp-media';d.textContent='';
+    if(m[1]==='img'){
+      var im=document.createElement('img');im.className='fp-img';im.loading='lazy';im.alt='Foto';im.src=m[2];
+      im.onerror=function(){d.textContent='📷 Foto no disponible'};
+      im.addEventListener('click',function(e){var sel=$('#chatSeleccionHeader');if(sel&&getComputedStyle(sel).display!=='none')return;e.stopPropagation();visor(m[2])});
+      d.appendChild(im);
+    }else{
+      d.classList.add('fp-aud');var a=document.createElement('audio');a.controls=true;a.preload='none';a.src=m[2];
+      a.addEventListener('click',function(e){e.stopPropagation()});
+      var s=document.createElement('small');s.textContent='🎤 Nota de voz'+(m[3]?' · '+fmt(Number(m[3])):'');
+      d.appendChild(a);d.appendChild(s);
+    }
+  });
+}
+function visor(u){var v=document.createElement('div');v.id='fpVisor';var i=document.createElement('img');i.src=u;v.appendChild(i);v.addEventListener('click',function(){v.remove()});document.body.appendChild(v)}
+function limpiar(root){
+  if(!root)return;var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),n,L=[];
+  while((n=w.nextNode()))if(n.nodeValue.indexOf('[[')>-1)L.push(n);
+  L.forEach(function(n){n.nodeValue=n.nodeValue.replace(TOKG,function(x){return x.indexOf('[[img')===0?'📷 Foto':'🎤 Nota de voz'})});
+}
+function pasada(){decorar();$$('#chatMensajes .fp-quote').forEach(limpiar);limpiar($('#fpRespBanner'))}
+var raf=0;function pronto(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;pasada()})}
+
+/* ---------- 4) Enviar fotos y notas de voz (Storage + el envío normal del chat) ---------- */
+function enviarToken(tok){
+  var inp=$('#chatInput'),btn=$('#chatEnviar');if(!inp||!btn)return;
+  try{if(mensajeEnEdicion){toast('Termina de editar el mensaje primero');return}}catch(e){}
+  var borrador=inp.value;inp.value=tok;btn.click();
+  setTimeout(function(){if(inp.value===''||inp.value===tok)inp.value=borrador},250);
+}
+async function subir(blob,ext){
+  var c=sb();if(!c)throw new Error('sin conexión');
+  var ruta='chat/'+miCorreo().replace(/[^a-z0-9]/gi,'_')+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+  var r=await c.storage.from(BUCKET).upload(ruta,blob,{contentType:blob.type||undefined,cacheControl:'31536000',upsert:false});
+  if(r.error)throw r.error;
+  return c.storage.from(BUCKET).getPublicUrl(ruta).data.publicUrl;
+}
+function comprimir(file){
+  return new Promise(function(ok,mal){
+    if(/gif$/i.test(file.type))return ok(file);
+    var img=new Image(),u=URL.createObjectURL(file);
+    img.onload=function(){
+      var k=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);
+      c.toBlob(function(b){b?ok(b):ok(file)},'image/jpeg',0.82);
+    };
+    img.onerror=function(){URL.revokeObjectURL(u);mal(new Error('imagen no válida'))};img.src=u;
+  });
+}
+async function enviarFoto(file){
+  if(!file||!/^image\//.test(file.type))return toast('Elige una imagen');
+  if(file.size>15*1024*1024)return toast('La imagen es muy pesada (máx. 15 MB)');
+  toast('Enviando foto…');
+  try{var b=await comprimir(file),u=await subir(b,/gif$/i.test(file.type)?'gif':'jpg');enviarToken('[[img:'+u+']]')}
+  catch(e){toast('No se pudo enviar la foto')}
+}
+var rec=null,chunks=[],t0=0,tick=null,cancelar=false,barra;
+async function grabar(){
+  if(!window.MediaRecorder||!navigator.mediaDevices)return toast('Tu navegador no permite grabar audio');
+  var stm;try{stm=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Permite el micrófono para grabar')}
+  var mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].filter(function(m){return MediaRecorder.isTypeSupported(m)})[0]||'';
+  var r=rec=new MediaRecorder(stm,mime?{mimeType:mime}:{});chunks=[];cancelar=false;
+  r.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+  r.onstop=async function(){
+    stm.getTracks().forEach(function(t){t.stop()});clearInterval(tick);barra.style.display='none';
+    var seg=Math.round((Date.now()-t0)/1000);if(cancelar||!chunks.length||seg<1)return;
+    var tipo=r.mimeType||mime||'audio/webm',ext=/mp4/.test(tipo)?'m4a':/ogg/.test(tipo)?'ogg':'webm';
+    toast('Enviando nota de voz…');
+    try{var u=await subir(new Blob(chunks,{type:tipo}),ext);enviarToken('[[aud:'+u+'|'+seg+']]')}catch(e){toast('No se pudo enviar el audio')}
+  };
+  r.start();t0=Date.now();barra.style.display='flex';var T=$('.fp-t',barra);T.textContent='Grabando 0:00';
+  tick=setInterval(function(){var s=Math.round((Date.now()-t0)/1000);T.textContent='Grabando '+fmt(s);if(s>=120&&r.state==='recording')r.stop()},400);
+}
+function montarEnvio(){
+  var env=$('#chatEnviar');if(!env||$('#fpClip'))return;
+  var f=document.createElement('input');f.type='file';f.accept='image/*';f.hidden=true;f.id='fpFile';
+  f.addEventListener('change',function(){var a=f.files&&f.files[0];f.value='';enviarFoto(a)});
+  var clip=document.createElement('button');clip.type='button';clip.id='fpClip';clip.className='fp-cbtn';clip.setAttribute('aria-label','Enviar foto');clip.innerHTML='<i class="fas fa-image"></i>';
+  clip.onclick=function(){f.click()};
+  var mic=document.createElement('button');mic.type='button';mic.id='fpMic';mic.className='fp-cbtn';mic.setAttribute('aria-label','Grabar nota de voz');mic.innerHTML='<i class="fas fa-microphone"></i>';
+  mic.onclick=grabar;
+  env.parentNode.insertBefore(clip,env);env.parentNode.insertBefore(mic,env);env.parentNode.appendChild(f);
+  barra=document.createElement('div');barra.id='fpRec';barra.innerHTML='<i class="fas fa-circle"></i><span class="fp-t"></span><button type="button" class="fp-no">Cancelar</button><button type="button" class="fp-ok">Enviar</button>';
+  $('.fp-no',barra).onclick=function(){cancelar=true;if(rec&&rec.state==='recording')rec.stop()};
+  $('.fp-ok',barra).onclick=function(){if(rec&&rec.state==='recording')rec.stop()};
+  document.body.appendChild(barra);
+}
+
+function iniciar(){
+  montarBuscaChats();montarBuscaConv();montarEnvio();
+  var C=$('#chatMensajes');if(C)new MutationObserver(pronto).observe(C,{childList:true,subtree:true});
+  pronto();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+})();
+</script>
 </body>
 </html>
