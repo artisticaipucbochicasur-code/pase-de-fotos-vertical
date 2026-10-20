@@ -27592,9 +27592,9 @@ function decorar(){
   $$('#chatMensajes > .mensaje').forEach(function(b){
     if(b.dataset.eliminadoParaTodos==='1')return;
     var tok=(b.dataset.mensaje||'').trim(),m=TOK.exec(tok);if(!m||!urlOk(m[2]))return;
-    var d=Array.prototype.find.call(b.children,function(c){return c.tagName==='DIV'&&(c.classList.contains('fp-media')||c.textContent.trim()===tok)});
+    var d=Array.prototype.find.call(b.children,function(c){return c.tagName==='DIV'&&(c.classList.contains('fp-media')||c.textContent.trim().indexOf(tok)===0)});
     if(!d||d.classList.contains('fp-media'))return;
-    d.className='fp-media';d.textContent='';
+    var cola=d.textContent.trim().slice(tok.length).trim();d.className='fp-media';d.textContent='';
     if(m[1]==='img'){
       var im=document.createElement('img');im.className='fp-img';im.loading='lazy';im.alt='Foto';im.src=m[2];
       im.onerror=function(){d.textContent='📷 Foto no disponible'};
@@ -27606,9 +27606,11 @@ function decorar(){
       var s=document.createElement('small');s.textContent='🎤 Nota de voz'+(m[3]?' · '+fmt(Number(m[3])):'');
       d.appendChild(a);d.appendChild(s);
     }
+    colaTxt(d,cola);
   });
 }
-function visor(u){var v=document.createElement('div');v.id='fpVisor';var i=document.createElement('img');i.src=u;v.appendChild(i);v.addEventListener('click',function(){v.remove()});document.body.appendChild(v)}
+function colaTxt(d,cola){if(cola){var x=document.createElement('small');x.style.cssText='display:block;color:#b3261e';x.textContent=cola;d.appendChild(x)}}
+function visor(u){var v=document.createElement('div');v.id='fpVisor';var i=document.createElement('img');i.src=u;v.appendChild(i);v.addEventListener('click',function(e){e.stopPropagation();v.remove()});document.body.appendChild(v)}
 function limpiar(root){
   if(!root)return;var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),n,L=[];
   while((n=w.nextNode()))if(n.nodeValue.indexOf('[[')>-1)L.push(n);
@@ -27616,6 +27618,24 @@ function limpiar(root){
 }
 function pasada(){decorar();$$('#chatMensajes .fp-quote').forEach(limpiar);limpiar($('#fpRespBanner'))}
 var raf=0;function pronto(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;pasada()})}
+
+/* ---------- Sesión: si Supabase ya no tiene sesión, las consultas llegan como anónimas (401) ---------- */
+function bannerSesion(){
+  if($('#fpSesion'))return;
+  var d=document.createElement('div');d.id='fpSesion';
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483600;background:#b3261e;color:#fff;padding:10px 14px;font:600 13px system-ui,sans-serif;display:flex;gap:10px;align-items:center';
+  d.innerHTML='<span style="flex:1">Tu sesión expiró: los chats y los envíos no funcionarán. Cierra sesión y vuelve a entrar.</span><button type="button" data-a="s" style="border:0;border-radius:14px;padding:6px 12px;font-weight:700;cursor:pointer">Cerrar sesión</button><button type="button" data-a="x" style="border:0;background:none;color:#fff;font-size:18px;cursor:pointer">✕</button>';
+  d.addEventListener('click',function(e){e.stopPropagation();var t=e.target.closest('button');if(!t)return;if(t.dataset.a==='s'){var l=$('#logoutBtn');if(l)l.click();else toast('Usa Cerrar sesión en el menú')}d.remove()});
+  document.body.appendChild(d);
+}
+async function sesionOk(){
+  var c=sb();if(!c||!c.auth||!miCorreo())return true;
+  try{
+    var r=await c.auth.getSession();if(r.data&&r.data.session)return true;
+    var f=await c.auth.refreshSession();if(f.data&&f.data.session)return true;
+  }catch(e){return true}
+  bannerSesion();return false;
+}
 
 /* ---------- 4) Enviar fotos y notas de voz (Storage + el envío normal del chat) ---------- */
 function enviarToken(tok){
@@ -27646,6 +27666,7 @@ function comprimir(file){
 async function enviarFoto(file){
   if(!file||!/^image\//.test(file.type))return toast('Elige una imagen');
   if(file.size>15*1024*1024)return toast('La imagen es muy pesada (máx. 15 MB)');
+  if(!(await sesionOk()))return;
   toast('Enviando foto…');
   try{var b=await comprimir(file),u=await subir(b,/gif$/i.test(file.type)?'gif':'jpg');enviarToken('[[img:'+u+']]')}
   catch(e){toast('No se pudo enviar la foto')}
@@ -27653,6 +27674,7 @@ async function enviarFoto(file){
 var rec=null,chunks=[],t0=0,tick=null,cancelar=false,barra;
 async function grabar(){
   if(!window.MediaRecorder||!navigator.mediaDevices)return toast('Tu navegador no permite grabar audio');
+  if(!(await sesionOk()))return;
   var stm;try{stm=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Permite el micrófono para grabar')}
   var mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].filter(function(m){return MediaRecorder.isTypeSupported(m)})[0]||'';
   var r=rec=new MediaRecorder(stm,mime?{mimeType:mime}:{});chunks=[];cancelar=false;
@@ -27679,6 +27701,7 @@ function montarEnvio(){
   barra=document.createElement('div');barra.id='fpRec';barra.innerHTML='<i class="fas fa-circle"></i><span class="fp-t"></span><button type="button" class="fp-no">Cancelar</button><button type="button" class="fp-ok">Enviar</button>';
   $('.fp-no',barra).onclick=function(){cancelar=true;if(rec&&rec.state==='recording')rec.stop()};
   $('.fp-ok',barra).onclick=function(){if(rec&&rec.state==='recording')rec.stop()};
+  barra.addEventListener('click',function(e){e.stopPropagation()});
   document.body.appendChild(barra);
 }
 
@@ -27686,6 +27709,8 @@ function iniciar(){
   montarBuscaChats();montarBuscaConv();montarEnvio();
   var C=$('#chatMensajes');if(C)new MutationObserver(pronto).observe(C,{childList:true,subtree:true});
   pronto();
+  setTimeout(sesionOk,3500);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')sesionOk()});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
 })();
