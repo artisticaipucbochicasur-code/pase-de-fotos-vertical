@@ -12785,6 +12785,121 @@ function actualizarResumenChatDespuesDeEliminarParaMi(correoChat, cache){
 
 }
 
+// =====================================
+// 🧹 STORAGE: BORRAR FOTOS/AUDIOS DE MENSAJES ELIMINADOS PARA TODOS
+// Solo toca archivos de TU carpeta (chat/<tu correo>/), y solo si
+// ningún otro mensaje vivo (por ejemplo un reenvío) usa el mismo archivo.
+// Si falla algo, no afecta al chat: solo avisa en la consola.
+// Devuelve cuántos archivos borró, o null si no pudo comprobar.
+// =====================================
+async function limpiarArchivosChatEliminados(filas){
+    try{
+        if(!usuarioActual || !usuarioActual.correo) return null;
+        if(!Array.isArray(filas) || !filas.length) return 0;
+
+        const carpeta = (
+            "chat/" +
+            String(usuarioActual.correo).replace(/[^a-z0-9]/gi, "_") +
+            "/"
+        ).toLowerCase();
+        const marca = "/object/public/decom-media/";
+        const rutas = new Set();
+
+        filas.forEach(f => {
+            const txt = String((f && f.mensaje) || "");
+            const re = /\[\[(?:img|aud):(https:\/\/[^\]|\s]+)/g;
+            let m;
+            while((m = re.exec(txt))){
+                const u = m[1];
+                const i = u.indexOf(marca);
+                if(i === -1) continue;
+                let ruta = u.slice(i + marca.length).split("?")[0];
+                try{ ruta = decodeURIComponent(ruta); }catch(e){}
+                if(ruta.toLowerCase().startsWith(carpeta)) rutas.add(ruta);
+            }
+        });
+
+        if(!rutas.size) return 0;
+
+        const borrar = [];
+        for(const ruta of rutas){
+            const nombre = ruta.split("/").pop();
+            const { data: enUso, error: errUso } =
+            await supabaseClient.rpc("chat_archivo_en_uso", { p_nombre: nombre });
+            if(errUso){
+                console.warn("⚠️ No se pudo comprobar si el archivo está en uso (¿ejecutaste fotos_pro_5.sql?):", errUso);
+                return null;
+            }
+            if(!enUso) borrar.push(ruta);
+        }
+
+        if(!borrar.length) return 0;
+
+        const { data: quitados, error } = await supabaseClient.storage.from("decom-media").remove(borrar);
+        if(error){
+            console.warn("⚠️ No se pudieron borrar archivos del Storage:", error);
+            return null;
+        }
+
+        // Storage devuelve éxito con lista vacía cuando la política (RLS) no deja borrar.
+        const cuantos = Array.isArray(quitados) ? quitados.length : 0;
+        console.log("🧹 Storage: pedidos", borrar, "→ borrados", cuantos, quitados);
+        if(cuantos < borrar.length){
+            console.warn("⚠️ Storage no borró todos los archivos. Falta la política de borrado: ejecuta fotos_pro_5.sql");
+            return null;
+        }
+        return cuantos;
+
+    }catch(e){
+        console.warn("⚠️ Limpieza de Storage:", e);
+        return null;
+    }
+}
+
+// Limpieza única por cuenta: archivos de mensajes que ya habías eliminado
+// para todos antes de este arreglo.
+async function limpiezaInicialArchivosChat(){
+    try{
+        const correo = usuarioActual && usuarioActual.correo;
+        if(!correo) return false;
+        const clave = "fp_limpieza_archivos_v1_" + String(correo).toLowerCase();
+        if(localStorage.getItem(clave)) return true;
+
+        const miId = await obtenerIdUsuarioPorCorreo(correo);
+        if(!miId) return false;
+
+        const { data, error } = await supabaseClient
+        .from("chat_mensajes")
+        .select("id,mensaje")
+        .eq("remitente_id", miId)
+        .eq("eliminado_para_todos", true)
+        .like("mensaje", "%[[%")
+        .limit(1000);
+
+        if(error) return false;
+
+        const r = await limpiarArchivosChatEliminados(data || []);
+        if(r !== null) localStorage.setItem(clave, "1");
+        return r !== null;
+    }catch(e){
+        return false;
+    }
+}
+
+(function(){
+    let intentos = 0;
+    const t = setInterval(async function(){
+        intentos++;
+        if(intentos > 12){ clearInterval(t); return; }
+        try{
+            if(typeof supabaseClient === "undefined" || !usuarioActual || !usuarioActual.correo) return;
+        }catch(e){ return; }
+        clearInterval(t);
+        await limpiezaInicialArchivosChat();
+    }, 4000);
+})();
+
+
 async function confirmarEliminarMensaje(paraTodos){
 
     const modal = document.getElementById("modalEliminarMensaje");
@@ -12911,6 +13026,9 @@ async function confirmarEliminarMensaje(paraTodos){
         data.forEach(
             actualizado => aplicarActualizacionMensaje(actualizado)
         );
+
+        // Borra de Storage las fotos/audios (sin esperar, en segundo plano)
+        limpiarArchivosChatEliminados(data);
 
         const cantidad = data.length;
 
@@ -27962,6 +28080,63 @@ function forzar(){window.__fpUltSync={}}
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')forzar()});
 window.addEventListener('online',forzar);
 var t=setInterval(function(){if(!yo()||!sb())return;clearInterval(t);cargar()},800);
+})();
+</script>
+<script id="fp-pro6-js">
+/* ===== DECOM Pro 6: respuestas rápidas (Supabase: respuestas_rapidas) ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function sb(){try{return supabaseClient}catch(e){return null}}
+function yo(){try{return String(usuarioActual.correo).trim().toLowerCase()}catch(e){return ''}}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2400)}
+var st=document.createElement('style');st.textContent='#fpRR{display:none;position:fixed;left:0;right:0;bottom:0;z-index:2147483000;max-height:60vh;overflow:auto;background:#fff;color:#222;border-radius:16px 16px 0 0;box-shadow:0 -2px 12px rgba(0,0,0,.3);padding:10px 12px calc(12px + env(safe-area-inset-bottom));font:14px system-ui,sans-serif}#fpRR .rr{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid #eee}#fpRR .rr span{flex:1;cursor:pointer;word-break:break-word}#fpRR button{border:0;background:none;font-size:16px;cursor:pointer;color:#b3261e}#fpRR .add{display:flex;gap:6px;margin-top:10px}#fpRR input{flex:1;min-width:0;border:1px solid #ccc;border-radius:18px;padding:8px 12px;font-size:14px;outline:none}#fpRR .add button{color:#fff;background:#1a73e8;border-radius:18px;padding:8px 14px;font-weight:600}#fpRR h4{margin:0 0 4px}';
+document.head.appendChild(st);
+var L=[],KEY=function(){return 'fp_rr_'+yo()};
+try{L=JSON.parse(localStorage.getItem(KEY())||'[]')}catch(e){L=[]}
+function loc(){try{localStorage.setItem(KEY(),JSON.stringify(L))}catch(e){}}
+async function cargar(){
+  var c=sb();if(!c||!yo())return;
+  try{var r=await c.from('respuestas_rapidas').select('id,texto').eq('usuario_correo',yo()).order('id');if(r.error)return;L=r.data||[];loc();pintar()}catch(e){}
+}
+var P;
+function pintar(){
+  if(!P)return;var h='<h4>⚡ Respuestas rápidas</h4>';
+  if(!L.length)h+='<div style="padding:8px 4px;color:#777">Aún no tienes. Agrega una abajo.</div>';
+  L.forEach(function(x){h+='<div class="rr" data-id="'+x.id+'"><span></span><button type="button" aria-label="Borrar">🗑</button></div>'});
+  h+='<div class="add"><input id="fpRRn" maxlength="300" placeholder="Nueva respuesta rápida"><button type="button" id="fpRRa">Guardar</button></div>';
+  P.innerHTML=h;var f=P.querySelectorAll('.rr');L.forEach(function(x,i){f[i].firstChild.textContent=x.texto})
+}
+function cerrar(){if(P)P.style.display='none'}
+function abrir(){
+  if(!P){P=document.createElement('div');P.id='fpRR';document.body.appendChild(P);
+    P.addEventListener('click',async function(e){
+      e.stopPropagation();var c=sb(),row=e.target.closest('.rr');
+      if(e.target.id==='fpRRa'){
+        var i=$('#fpRRn'),t=i.value.trim();if(!t)return;if(L.length>=30)return toast('Máximo 30 respuestas');
+        var tmp={id:'t'+Date.now(),texto:t};L.push(tmp);loc();pintar();
+        try{var r=await c.from('respuestas_rapidas').insert({usuario_correo:yo(),texto:t}).select('id,texto').single();if(r.error)throw r.error;tmp.id=r.data.id;loc()}
+        catch(x){L=L.filter(function(y){return y!==tmp});loc();pintar();toast('No se pudo guardar (¿ejecutaste fotos_pro_6.sql?)')}
+      }else if(row&&e.target.tagName==='BUTTON'){
+        var id=row.dataset.id;L=L.filter(function(y){return String(y.id)!==id});loc();pintar();
+        try{await c.from('respuestas_rapidas').delete().eq('id',id).eq('usuario_correo',yo())}catch(x){}
+      }else if(row){
+        var inp=$('#chatInput'),t2=L.filter(function(y){return String(y.id)===row.dataset.id})[0];
+        if(inp&&t2){inp.value=t2.texto;inp.dispatchEvent(new Event('input',{bubbles:true}));cerrar();inp.focus()}
+      }
+    });
+    document.addEventListener('click',function(e){if(P.style.display==='block'&&!P.contains(e.target)&&e.target.id!=='fpRRbtn')cerrar()});
+  }
+  pintar();P.style.display='block';cargar();
+}
+function montar(){
+  var env=$('#chatEnviar');if(!env||$('#fpRRbtn'))return;
+  var b=document.createElement('button');b.type='button';b.id='fpRRbtn';b.className='fp-cbtn';b.setAttribute('aria-label','Respuestas rápidas');b.textContent='⚡';
+  b.onclick=function(e){e.stopPropagation();P&&P.style.display==='block'?cerrar():abrir()};
+  env.parentNode.insertBefore(b,$('#fpClip')||env);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',montar);else montar();
+setTimeout(montar,1500);
 })();
 </script>
 </body>
