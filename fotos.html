@@ -27934,6 +27934,7 @@ function hoja(correo,nombre){
   op(a.f?'📌 Quitar de fijados':'📌 Fijar chat',function(){poner(correo,'f',!a.f)});
   op(a.s?'🔔 Quitar silencio':'🔕 Silenciar chat',function(){poner(correo,'s',!a.s)});
   if(window.fpDestacados)op('⭐ Mensajes destacados',function(){window.fpDestacados(correo)});
+  if(window.fpTemporales)op('⏳ Mensajes temporales',function(){window.fpTemporales(correo,nombre)});
   if(window.fpPro){
     op('🚩 Denunciar a '+(nombre||'esta persona'),function(){window.fpPro.denunciar({tipo:'usuario',id:correo,correo:correo})});
     op('⛔ Bloquear',async function(){await window.fpPro.bloquear(correo,nombre||correo);var c=actual();if(c&&norm(c.correo)===norm(correo)){try{cerrarChat()}catch(e){}}lista()});
@@ -28205,6 +28206,49 @@ setInterval(latir,60000);setInterval(mostrar,30000);
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){marcarPendientes();latir();mostrar()}});
 var nom=$('#chatNombre');if(nom)new MutationObserver(function(){ultimo='';mostrar()}).observe(nom,{childList:true,characterData:true,subtree:true});
 setTimeout(mostrar,4000);
+})();
+</script>
+<script id="fp-pro8-js">
+/* ===== DECOM Pro 8: mensajes temporales (chats_temporales + cron) y limpieza de sus archivos ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function sb(){try{return supabaseClient}catch(e){return null}}
+function yo(){try{return String(usuarioActual.correo).trim().toLowerCase()}catch(e){return ''}}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2800)}
+function par(o){o=String(o).trim().toLowerCase();var m=yo();return m<o?[m,o]:[o,m]}
+var OPC=[[0,'Desactivado'],[1,'1 hora'],[24,'24 horas'],[168,'7 días']];
+window.fpTemporales=async function(correo,nombre){
+  var c=sb();if(!c||!yo())return;var p=par(correo),actual=0;
+  try{var r=await c.from('chats_temporales').select('horas').eq('par_a',p[0]).eq('par_b',p[1]).maybeSingle();if(r.error)throw r.error;actual=(r.data&&r.data.horas)||0}
+  catch(e){return toast('No disponible (¿ejecutaste fotos_pro_8.sql?)')}
+  var ov=document.createElement('div');ov.className='fp-confirm-overlay';
+  var card=document.createElement('div');card.className='fp-confirm-card';
+  var h=document.createElement('h3');h.textContent='⏳ Mensajes temporales';card.appendChild(h);
+  var d=document.createElement('div');d.style.cssText='font-size:12.5px;opacity:.8;padding:0 4px 8px';d.textContent='Afecta a los mensajes nuevos de este chat para ambos. Al vencer se eliminan para todos.';card.appendChild(d);
+  var L=document.createElement('div');L.className='fp-pro-list';card.appendChild(L);
+  OPC.forEach(function(o){
+    var b=document.createElement('button');b.type='button';b.className='fp-pro-opt';b.textContent=(o[0]===actual?'✔ ':'')+o[1];
+    b.onclick=async function(e){e.stopPropagation();ov.remove();
+      try{var w=await c.from('chats_temporales').upsert({par_a:p[0],par_b:p[1],horas:o[0],actualizado:new Date().toISOString()},{onConflict:'par_a,par_b'});if(w.error)throw w.error;
+        toast(o[0]?'Mensajes temporales: '+o[1]:'Mensajes temporales desactivados')}
+      catch(x){toast('No se pudo guardar')}};
+    L.appendChild(b)});
+  var x=document.createElement('button');x.type='button';x.className='fp-confirm-cancel fp-pro-opt';x.textContent='Cancelar';x.onclick=function(e){e.stopPropagation();ov.remove()};L.appendChild(x);
+  ov.addEventListener('click',function(e){e.stopPropagation();if(e.target===ov)ov.remove()});ov.appendChild(card);document.body.appendChild(ov);
+};
+/* archivos de mis mensajes ya vencidos: se borran del Storage (el cron de Supabase solo marca el mensaje) */
+async function limpiarVencidos(){
+  var c=sb();if(!c||!yo()||typeof limpiarArchivosChatEliminados!=='function')return;
+  try{
+    var i=await obtenerIdUsuarioPorCorreo(usuarioActual.correo);if(!i)return;
+    var r=await c.from('chat_mensajes').select('id,mensaje').eq('remitente_id',i).eq('eliminado_para_todos',true).not('expira_en','is',null).eq('archivo_limpio',false).limit(100);
+    if(r.error||!r.data||!r.data.length)return;
+    var n=await limpiarArchivosChatEliminados(r.data);if(n===null)return;
+    await c.from('chat_mensajes').update({archivo_limpio:true}).in('id',r.data.map(function(m){return m.id}));
+  }catch(e){}
+}
+setTimeout(limpiarVencidos,9000);setInterval(limpiarVencidos,600000);
 })();
 </script>
 </body>
