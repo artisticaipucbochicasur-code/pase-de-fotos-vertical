@@ -2850,35 +2850,6 @@ body.dark-mode .likes-people-spinner {
 }
 
   </style>
-
-<style id="decom-story-theme-fixes">
-/* Ajustes aislados del editor de historias: respeta los temas globales de DECOM */
-.fp-editor-stage{background:var(--fp-card,var(--card-bg,var(--surface,#111827)));position:relative}
-.fp-editor-stage img{display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-position:center}
-.fp-editor-stage .fp-editor-empty{z-index:2}
-.fp-editor-tools{overflow-x:auto;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:thin}
-.fp-editor-tools button{flex:0 0 auto}
-.fp-editor-add-more{display:flex!important}
-.fp-editor-caption,.fp-editor-textarea{color:var(--text-color,var(--text,var(--fg,#111827)));background:var(--input-bg,var(--surface-2,#f3f4f6));border-color:var(--border-color,rgba(128,128,128,.3))}
-.fp-friend-requests-bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-.fp-friend-requests-bar button{border-radius:12px;padding:10px 14px;font-weight:700}
-.fp-red-btn.on{background:#e8f0ff!important;color:#155eef!important}
-.fp-red-row{min-width:0}
-.fp-red-row .fp-red-name{overflow-wrap:anywhere}
-@media(prefers-color-scheme:light){
-  body:not(.dark):not(.theme-dark) .fp-editor-modal,
-  body:not(.dark):not(.theme-dark) .fp-editor,
-  body:not(.dark):not(.theme-dark) .fp-editor-shell{background:#fff!important;color:#172033!important}
-  body:not(.dark):not(.theme-dark) .fp-editor-heading small{color:#64748b!important}
-  body:not(.dark):not(.theme-dark) .fp-editor-stage{background:linear-gradient(145deg,#e9efff,#f8fafc)!important;border-color:#cbd5e1!important}
-  body:not(.dark):not(.theme-dark) .fp-tool-btn,
-  body:not(.dark):not(.theme-dark) .fp-editor-caption,
-  body:not(.dark):not(.theme-dark) .fp-editor-textarea{background:#f1f5f9!important;color:#172033!important;border-color:#cbd5e1!important}
-}
-html[data-theme="light"] .fp-editor-modal,html[data-theme="light"] .fp-editor,body.theme-light .fp-editor-modal,body.theme-light .fp-editor{background:var(--bg,#fff)!important;color:var(--text,#172033)!important}
-html[data-theme="light"] .fp-editor-stage,body.theme-light .fp-editor-stage{background:linear-gradient(145deg,#e9efff,#f8fafc)!important;border-color:#cbd5e1!important}
-html[data-theme="light"] .fp-tool-btn,html[data-theme="light"] .fp-editor-caption,body.theme-light .fp-tool-btn,body.theme-light .fp-editor-caption{background:#f1f5f9!important;color:#172033!important;border-color:#cbd5e1!important}
-</style>
 </head>
 
 <body>
@@ -27018,10 +26989,7 @@ body.dark-mode .fp-confirm-card{--fp-confirm-bg:#202124;--fp-confirm-fg:#f5f5f5}
       var t=document.createElement('span');t.className='fp-red-name';t.textContent=u.nombre||u.correo;
       var sub=document.createElement('div');sub.className='fp-n-sub';sub.textContent=[u.cargo].concat(x.why).filter(Boolean).join(' · ');t.appendChild(sub);
       t.style.cursor='pointer';t.onclick=function(){panel.classList.remove('open');try{abrirPerfilPorCorreo(u.correo)}catch(e){}};
-      var friendBtn=document.createElement('button');friendBtn.type='button';friendBtn.className='fp-red-btn fp-friend-request-btn';friendBtn.style.cssText='border:0;background:#2478f2;color:white;border-radius:10px;padding:9px 10px;font:800 12px system-ui,sans-serif;width:calc(100% - 20px);margin:0 10px';
-      function pintarAmistad(){var st=solicitudesEstado[String(u.id)]||'ninguna';friendBtn.disabled=false;friendBtn.textContent=st==='aceptada'?'✓ Amigos · Opciones':st==='enviada'?'Solicitud enviada · Cancelar':st==='recibida'?'Aceptar solicitud':'＋ Agregar amigo';friendBtn.classList.toggle('on',st==='aceptada'||st==='enviada')}
-      pintarAmistad();
-      friendBtn.onclick=async function(){if(friendBtn.disabled)return;friendBtn.disabled=true;try{var st=solicitudesEstado[String(u.id)]||'ninguna';if(st==='aceptada'){var okFriend=await confirmarAccion('Dejar de ser amigos','¿Quieres eliminar la amistad con '+(u.nombre||u.correo)+'?','Eliminar amistad',true);if(!okFriend){friendBtn.disabled=false;return}var delFriend=await c.from('solicitudes_amigos').delete().or('and(solicitante_id.eq.'+yoU.id+',solicitado_id.eq.'+u.id+',estado.eq.aceptada),and(solicitante_id.eq.'+u.id+',solicitado_id.eq.'+yoU.id+',estado.eq.aceptada)');if(delFriend.error)throw delFriend.error;solicitudesEstado[String(u.id)]='ninguna';pintarAmistad();toast('Amistad eliminada')}else if(st==='enviada'){var okCancel=await confirmarAccion('Cancelar solicitud','¿Quieres cancelar la solicitud enviada a '+(u.nombre||u.correo)+'?','Cancelar solicitud',true);if(!okCancel){friendBtn.disabled=false;return}var delReq=await c.from('solicitudes_amigos').delete().eq('solicitante_id',yoU.id).eq('solicitado_id',u.id).eq('estado','pendiente');if(delReq.error)throw delReq.error;solicitudesEstado[String(u.id)]='ninguna';pintarAmistad();toast('Solicitud cancelada')}else if(st==='recibida'){var incoming=await c.from('solicitudes_amigos').select('id').eq('solicitante_id',u.id).eq('solicitado_id',yoU.id).eq('estado','pendiente').maybeSingle();if(incoming.error)throw incoming.error;if(!incoming.data)throw new Error('No se encontró la solicitud');var ac=await c.rpc('responder_solicitud_amistad',{p_solicitud_id:incoming.data.id,p_aceptar:true});if(ac.error)throw ac.error;solicitudesEstado[String(u.id)]='aceptada';amg.t=0;pintarAmistad();toast('Ahora son amigos')}else{var sent=await c.rpc('enviar_solicitud_amistad',{p_destinatario_id:u.id});if(sent.error)throw sent.error;solicitudesEstado[String(u.id)]=sent.data&&sent.data.estado==='aceptada'?'aceptada':'enviada';pintarAmistad();toast(solicitudesEstado[String(u.id)]==='aceptada'?'Ahora son amigos':'Solicitud de amistad enviada')}}catch(e){pintarAmistad();friendBtn.disabled=false;toast('No se pudo completar la acción. Revisa la conexión o los permisos de Supabase');console.warn('Solicitud de amistad:',e)}};
+      var friendBtn=window.fpAmistad.crearBoton(u,solicitudesEstado[String(u.id)]||'ninguna','fp-red-btn fp-friend-request-btn');
       var bt=document.createElement('button');bt.type='button';bt.className='fp-red-btn fp-follow-suggest';bt.style.cssText='border:1px solid rgba(128,128,128,.6);background:transparent;color:inherit;border-radius:10px;padding:7px 10px;font:700 12px system-ui,sans-serif;width:calc(100% - 20px);margin:0 10px';
       function pintarBoton(){var sigue=(window.fpSeguidosSet?window.fpSeguidosSet():new Set()).has(norm(u.correo));bt.textContent=sigue?'✓ Siguiendo':'＋ Seguir';bt.classList.toggle('on',sigue)}
       pintarBoton();
@@ -29246,8 +29214,34 @@ function crear(){
   function drawOverlays(){overlay.textContent='';objects.forEach(function(o,i){if(o.kind==='draw'){var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none';var path=document.createElementNS('http://www.w3.org/2000/svg','polyline');path.setAttribute('points',(o.points||[]).map(function(p){return p.x+','+p.y}).join(' '));path.setAttribute('fill','none');path.setAttribute('stroke',o.color||'#fff');path.setAttribute('stroke-width',String(o.width||1.3));path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');svg.appendChild(path);overlay.appendChild(svg);return}var d=el('div',null,o.kind==='blur'?'◌':(o.text||o.shape),'fp-editor-sticker '+(o.kind==='text'?'sticker-text':'sticker-shape')+(o.kind==='blur'?' sticker-blur':''));d.style.left=o.x+'%';d.style.top=o.y+'%';d.style.transform='translate(-50%,-50%) rotate('+(o.rot||0)+'deg)';if(o.color)d.style.color=o.color;if(o.kind==='text')d.style.background=o.bg||'rgba(0,0,0,.22)';if(o.kind==='blur'){d.style.width=(o.size||24)+'%';d.style.height=(o.size||24)+'%';d.style.borderRadius='12px';d.style.background='rgba(255,255,255,.18)';d.style.backdropFilter='blur(12px)';d.style.border='1px solid rgba(255,255,255,.35)'}d.title='Arrastra para mover · doble clic para quitar';var moved=false,startX=0,startY=0,origX=0,origY=0;d.addEventListener('pointerdown',function(e){if(activeTool==='draw')return;e.preventDefault();e.stopPropagation();moved=false;startX=e.clientX;startY=e.clientY;origX=o.x;origY=o.y;d.setPointerCapture&&d.setPointerCapture(e.pointerId)});d.addEventListener('pointermove',function(e){if(!d.hasPointerCapture||!d.hasPointerCapture(e.pointerId))return;var r=stage.getBoundingClientRect(),dx=(e.clientX-startX)/r.width*100,dy=(e.clientY-startY)/r.height*100;if(Math.abs(dx)+Math.abs(dy)>1)moved=true;if(moved){o.x=Math.max(3,Math.min(97,origX+dx));o.y=Math.max(3,Math.min(97,origY+dy));d.style.left=o.x+'%';d.style.top=o.y+'%'}});d.addEventListener('pointerup',function(e){if(moved)saveHistory()});d.ondblclick=function(e){e.stopPropagation();saveHistory();objects.splice(i,1);drawOverlays()};overlay.appendChild(d)})}
   stage.addEventListener('pointerdown',function(e){if(activeTool!=='draw'||!files.length||e.target.closest('.fp-editor-sticker'))return;var r=stage.getBoundingClientRect();drawing={kind:'draw',color:'#fff',width:1.2,points:[{x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))}]};objects.push(drawing);stage.setPointerCapture&&stage.setPointerCapture(e.pointerId);drawOverlays()});stage.addEventListener('pointermove',function(e){if(!drawing)return;var r=stage.getBoundingClientRect();drawing.points.push({x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))});drawOverlays()});function stopDrawing(){if(drawing){drawing=null;saveHistory();activeTool='select'}}stage.addEventListener('pointerup',stopDrawing);stage.addEventListener('pointercancel',stopDrawing);
   stage.addEventListener('click',function(e){if(!files.length||e.target===pv||e.target===empty||e.target===stage){if(activeTool==='text'){var text=prompt('Texto para la historia');if(text&&text.trim()){saveHistory();saveHistory();objects.push({kind:'text',text:text.trim().slice(0,100),x:50,y:48,color:'#fff',bg:'rgba(0,0,0,.28)',rot:0});drawOverlays();activeTool='select'}}}});
-  function renderImage(){if(!files.length)return;empty.style.display='none';pv.style.display='block';var f=files[fileIndex];if(f.__decomDataUrl){pv.src=f.__decomDataUrl}else{var reader=new FileReader();reader.onload=function(ev){f.__decomDataUrl=ev.target.result;if(files[fileIndex]===f){pv.src=ev.target.result}};reader.onerror=function(){toast('No se pudo mostrar la imagen. Prueba con otra fotografía')};reader.readAsDataURL(f)}pv.onerror=function(){toast('No se pudo mostrar la vista previa de esta imagen')};pv.style.objectFit=ratio==='original'?'contain':'cover';pv.style.transform='rotate('+rotation+'deg) scaleX('+(flipX?-1:1)+') scale('+zoom+')';stage.classList.toggle('ratio-square',ratio==='square');stage.classList.toggle('ratio-original',ratio==='original');drawOverlays();pick.textContent='Cambiar foto'}
-  fi.onchange=function(){var chosen=Array.prototype.slice.call(fi.files||[]);fi.value='';var valid=chosen.filter(function(f){return /^image\//.test(f.type)&&f.size<=20*1024*1024});if(!valid.length)return toast('Selecciona imágenes válidas de hasta 20 MB');var existing=files.slice(),room=Math.max(0,10-existing.length);if(valid.length>room)toast('Máximo 10 imágenes; se añadirán las que quepan');files=existing.concat(valid.slice(0,room));if(!existing.length){fileIndex=0;rotation=0;flipX=false;zoom=1;objects=[];undoStack=[];redoStack=[];saveHistory()}addMore.style.display=files.length?'flex':'none';renderImage();if(files.length>1)toast(files.length+' imágenes disponibles. Usa “Siguiente foto” para cambiar de imagen')};
+  var urlMap=new WeakMap(),thumbs=el('div',null,null,'fp-editor-thumbs'),replaceIdx=-1;
+  thumbs.style.display='none';fo.insertBefore(thumbs,stage.nextSibling);
+  function urlOf(f){var u=urlMap.get(f);if(!u){u=URL.createObjectURL(f);urlMap.set(f,u)}return u}
+  function imgSrc(img,f){img.onerror=function(){img.onerror=null;var r=new FileReader();r.onload=function(){img.src=r.result};r.onerror=function(){toast('No se pudo mostrar esa imagen')};r.readAsDataURL(f)};img.src=urlOf(f)}
+  function renderThumbs(){thumbs.textContent='';thumbs.style.display=files.length>1?'flex':'none';files.forEach(function(f,i){var b=el('button',null,null,'fp-thumb'+(i===fileIndex?' on':''));b.type='button';b.setAttribute('aria-label','Foto '+(i+1)+' de '+files.length);var im=document.createElement('img');im.alt='';imgSrc(im,f);b.appendChild(im);b.onclick=function(){if(i===fileIndex)return;fileIndex=i;rotation=0;flipX=false;zoom=1;objects=[];renderImage()};var x=el('span',null,'×','fp-thumb-x');x.setAttribute('role','button');x.setAttribute('aria-label','Quitar foto');x.onclick=function(e){e.stopPropagation();quitarFoto(i)};b.appendChild(x);thumbs.appendChild(b)})}
+  function quitarFoto(i){files.splice(i,1);if(!files.length){fileIndex=0;pv.style.display='none';pv.removeAttribute('src');empty.style.display='';addMore.style.display='none';pick.textContent='Elegir foto';objects=[];drawOverlays();renderThumbs();return}if(fileIndex>=files.length)fileIndex=files.length-1;else if(i<fileIndex)fileIndex--;else if(i===fileIndex){rotation=0;flipX=false;zoom=1;objects=[]}addMore.style.display='flex';renderImage()}
+  function renderImage(){if(!files.length)return;empty.style.display='none';pv.style.display='block';imgSrc(pv,files[fileIndex]);pv.style.objectFit=ratio==='original'?'contain':'cover';pv.style.transform='rotate('+rotation+'deg) scaleX('+(flipX?-1:1)+') scale('+zoom+')';stage.classList.toggle('ratio-square',ratio==='square');stage.classList.toggle('ratio-original',ratio==='original');drawOverlays();pick.textContent='Cambiar foto';renderThumbs()}
+  pick.onclick=function(){replaceIdx=files.length?fileIndex:-1;fi.click()};
+  addMore.onclick=function(){replaceIdx=-1;fi.click()};
+  fi.onchange=async function(){
+    var chosen=Array.prototype.slice.call(fi.files||[]);
+    var valid=chosen.filter(function(f){return (/^image\//.test(f.type)||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name||''))&&f.size<=20*1024*1024});
+    if(!valid.length){fi.value='';return toast('Selecciona imágenes válidas de hasta 20 MB')}
+    /* Copiamos cada archivo a memoria ANTES de limpiar el input: en Android el archivo original puede dejar de ser legible y la vista previa sale rota. */
+    var mem=[];for(var k=0;k<valid.length;k++){try{var buf=await valid[k].arrayBuffer();mem.push(new File([buf],valid[k].name||('foto'+k+'.jpg'),{type:valid[k].type||'image/jpeg'}))}catch(e){mem.push(valid[k])}}
+    fi.value='';
+    var antes=files.length;
+    if(replaceIdx>=0&&files.length){
+      files[replaceIdx]=mem[0];fileIndex=replaceIdx;rotation=0;flipX=false;zoom=1;objects=[];
+      var room1=Math.max(0,10-files.length);files=files.concat(mem.slice(1,1+room1));
+    }else{
+      var room=Math.max(0,10-files.length);if(mem.length>room)toast('Máximo 10 imágenes; se añadirán las que quepan');
+      files=files.concat(mem.slice(0,room));
+      if(!antes){fileIndex=0;rotation=0;flipX=false;zoom=1;objects=[];undoStack=[];redoStack=[];saveHistory()}
+      else if(files.length>antes)toast((files.length-antes)+(files.length-antes===1?' foto añadida':' fotos añadidas')+' · '+files.length+' en total');
+    }
+    replaceIdx=-1;addMore.style.display=files.length?'flex':'none';renderImage();
+  };
   tool('Recortar','▣',function(){ratio=ratio==='story'?'square':ratio==='square'?'original':'story';renderImage();toast(ratio==='story'?'Recorte vertical 9:16':ratio==='square'?'Recorte cuadrado 1:1':'Imagen completa')});
   tool('Girar','↻',function(){rotation=(rotation+90)%360;renderImage()});
   tool('Voltear','⇋',function(){flipX=!flipX;renderImage()});
@@ -29298,5 +29292,215 @@ setInterval(function(){if(document.visibilityState==='visible'&&okH&&yo()&&sb()&
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&okH&&yo()&&sb()&&$('#fpHisBtn'))cargar()});
 })();
 </script>
+<!-- ===== DECOM: amistad robusta + "Personas que quizás conozcas" en el feed + tema del editor de historias ===== -->
+<style id="fpExtraCSS">
+/* ---------- Editor de historias: sigue el tema claro/oscuro de la app ---------- */
+body #fpHC.fp-story-editor-open .fp-story-editor{--st-bg:#f6f8fb;--st-panel:#ffffff;--st-fg:#1e293b;--st-muted:#64748b;--st-line:rgba(15,23,42,.13);--st-soft:rgba(15,23,42,.055);--st-soft2:rgba(15,23,42,.10);--st-input:#eef2f7;--st-stage:linear-gradient(160deg,#e6ecf6,#cfd9ea)}
+body.dark-mode #fpHC.fp-story-editor-open .fp-story-editor{--st-bg:#161a22;--st-panel:#1f1f1f;--st-fg:#e8eaed;--st-muted:#9aa6bd;--st-line:rgba(255,255,255,.11);--st-soft:rgba(255,255,255,.06);--st-soft2:rgba(255,255,255,.12);--st-input:#262b36;--st-stage:radial-gradient(ellipse at 20% 10%,#263a63,#10182b 55%,#080c16)}
+body #fpHC.fp-story-editor-open .fp-story-editor{background:var(--st-bg)!important;color:var(--st-fg)!important;border-color:var(--st-line)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-head,
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-bottom{background:var(--st-panel)!important;color:var(--st-fg)!important;border-color:var(--st-line)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-close{background:var(--st-soft2)!important;color:var(--st-fg)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-heading small{color:var(--st-muted)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-mode button{background:var(--st-soft)!important;color:var(--st-muted)!important;border-color:var(--st-line)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-mode button.on{background:rgba(40,124,255,.16)!important;border-color:#2f7bff!important;color:var(--st-fg)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-stage{background:var(--st-stage)!important;border-color:var(--st-line)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-empty{color:var(--st-fg)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-empty small{color:var(--st-muted)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-tool-btn{background:var(--st-soft)!important;border-color:var(--st-line)!important;color:var(--st-fg)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-tool-btn:hover{background:rgba(40,124,255,.16)!important;border-color:#2f7bff!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-photo>.fp-tool-btn,
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-add-more{background:rgba(40,124,255,.12)!important;border-color:rgba(40,124,255,.5)!important;color:var(--st-fg)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-caption,
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-select,
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-extra input{background:var(--st-input)!important;color:var(--st-fg)!important;border-color:var(--st-line)!important}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-caption::placeholder,
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-extra input::placeholder{color:var(--st-muted)!important;opacity:1}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-editor-thumbs{display:flex;gap:8px;max-width:min(100%,380px);width:100%;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:thin}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-thumb{position:relative;flex:0 0 54px;width:54px;height:54px;padding:0;border:2px solid transparent;border-radius:12px;overflow:visible;background:var(--st-soft);cursor:pointer}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-thumb.on{border-color:#2f7bff}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;pointer-events:none}
+body #fpHC.fp-story-editor-open .fp-story-editor .fp-thumb-x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#e5484d;color:#fff;font-size:15px;line-height:20px;text-align:center;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+
+/* ---------- Botón de amistad ---------- */
+.fp-amistad-btn{cursor:pointer;border:0;border-radius:10px;padding:9px 10px;font:800 12px system-ui,sans-serif;background:#1877f2;color:#fff;transition:background .15s,transform .1s}
+.fp-amistad-btn:active{transform:scale(.97)}
+.fp-amistad-btn.on{background:rgba(128,128,128,.2)!important;color:inherit!important;border:1px solid rgba(128,128,128,.35)!important}
+
+/* ---------- Carrusel "Personas que quizás conozcas" en el feed ---------- */
+#fpPK{position:fixed;left:8px;right:8px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:2147482050;max-width:720px;margin:0 auto;border-radius:18px;padding:12px 0 12px;background:#fff;color:#1e293b;border:1px solid rgba(15,23,42,.12);box-shadow:0 14px 44px rgba(0,0,0,.32);font-family:system-ui,sans-serif;animation:fpPKin .28s ease}
+body.dark-mode #fpPK{background:#1f1f1f;color:#e8eaed;border-color:rgba(255,255,255,.12)}
+@keyframes fpPKin{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+#fpPK .fp-pk-head{display:flex;align-items:center;gap:8px;padding:0 14px 8px}
+#fpPK .fp-pk-head b{flex:1;font-size:15px;min-width:0}
+#fpPK .fp-pk-all{border:0;background:none;color:#1877f2;font:700 13px system-ui,sans-serif;cursor:pointer;padding:4px 6px}
+#fpPK .fp-pk-x{border:0;width:30px;height:30px;border-radius:50%;background:rgba(128,128,128,.18);color:inherit;font-size:15px;cursor:pointer}
+#fpPK .fp-pk-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 14px 4px;scroll-snap-type:x proximity;touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#fpPK .fp-pk-row::-webkit-scrollbar{display:none}
+#fpPK .fp-pk-card{position:relative;flex:0 0 152px;width:152px;display:flex;flex-direction:column;gap:6px;padding-bottom:10px;border-radius:14px;overflow:hidden;scroll-snap-align:start;background:#f4f6fa;border:1px solid rgba(15,23,42,.1)}
+body.dark-mode #fpPK .fp-pk-card{background:#2a2d33;border-color:rgba(255,255,255,.1)}
+#fpPK .fp-pk-ph{width:100%;height:132px;background:#cfd8e6 center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#fpPK .fp-pk-ph.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff);color:#fff;font-size:44px;font-weight:800}
+#fpPK .fp-pk-name{padding:0 10px;font-weight:800;font-size:14px;line-height:1.2;cursor:pointer;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:34px}
+#fpPK .fp-pk-sub{padding:0 10px;font-size:11px;opacity:.7;line-height:1.3;min-height:28px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#fpPK .fp-pk-btn{margin:0 10px;width:calc(100% - 20px)}
+#fpPK .fp-pk-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:13px;cursor:pointer;z-index:2}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__fpAmistadV2)return;window.__fpAmistadV2=1;
+var $=function(s,r){return (r||document).querySelector(s)};
+function norm(x){return String(x||'').trim().toLowerCase()}
+function el(tag,css,txt,cls){var e=document.createElement(tag);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e}
+function sb(){try{return supabaseClient}catch(e){return null}}
+function miCorreo(){try{if(usuarioActual&&usuarioActual.correo)return norm(usuarioActual.correo)}catch(e){}try{return norm(currentAuthorEmail)}catch(e){}return ''}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2600)}
+function confirmar(t,m,a,d){return window.fpConfirmarAccion?window.fpConfirmarAccion(t,m,a,d):Promise.resolve(window.confirm(m))}
+
+/* ---------- Amistad ---------- */
+var meId=null;
+async function yoId(){if(meId)return meId;var c=sb();if(!c)return null;try{var r=await c.from('usuarios').select('id').ilike('correo',miCorreo()).maybeSingle();if(!r.error&&r.data)meId=r.data.id}catch(e){}return meId}
+function filtroPar(me,o){return 'and(solicitante_id.eq.'+me+',solicitado_id.eq.'+o+'),and(solicitante_id.eq.'+o+',solicitado_id.eq.'+me+')'}
+/* Estado real en la base de datos: 'ninguna' | 'enviada' | 'recibida' | 'aceptada' (null si no se pudo verificar) */
+async function estadoPar(o){
+  var c=sb(),me=await yoId();if(!c||!me)return null;
+  var r=await c.from('solicitudes_amigos').select('id,solicitante_id,solicitado_id,estado').or(filtroPar(me,o)).limit(6);
+  if(r.error)return null;var st='ninguna';
+  (r.data||[]).forEach(function(q){if(q.estado==='aceptada')st='aceptada';else if(q.estado==='pendiente'&&st!=='aceptada')st=String(q.solicitante_id)===String(me)?'enviada':'recibida'});
+  return st;
+}
+async function enviar(o){
+  var r=await sb().rpc('enviar_solicitud_amistad',{p_destinatario_id:o});
+  if(!r.error)return (r.data&&r.data.estado==='aceptada')?'aceptada':'enviada';
+  /* Si la RPC respondió con error pero la solicitud ya existe, NO es un fallo real. */
+  var v=await estadoPar(o);if(v&&v!=='ninguna')return v;throw r.error;
+}
+async function cancelar(o){
+  var c=sb(),me=await yoId();
+  var r=await c.rpc('cancelar_solicitud_amistad',{p_otro_id:String(o)});
+  if(r.error)await c.from('solicitudes_amigos').delete().eq('solicitante_id',me).eq('solicitado_id',o).eq('estado','pendiente');
+  var v=await estadoPar(o);if(v==='enviada')throw new Error('No se pudo cancelar; ejecuta fotos_amistad_fix.sql en Supabase');
+}
+async function eliminar(o){
+  var c=sb(),me=await yoId();
+  var r=await c.rpc('eliminar_amistad',{p_otro_id:String(o)});
+  if(r.error)await c.from('solicitudes_amigos').delete().eq('estado','aceptada').or(filtroPar(me,o));
+  var v=await estadoPar(o);if(v==='aceptada')throw new Error('No se pudo eliminar la amistad; ejecuta fotos_amistad_fix.sql en Supabase');
+}
+async function aceptar(o){
+  var c=sb(),me=await yoId();
+  var inc=await c.from('solicitudes_amigos').select('id').eq('solicitante_id',o).eq('solicitado_id',me).eq('estado','pendiente').maybeSingle();
+  if(inc.error||!inc.data)throw new Error('No se encontró la solicitud');
+  var ac=await c.rpc('responder_solicitud_amistad',{p_solicitud_id:inc.data.id,p_aceptar:true});if(ac.error)throw ac.error;
+}
+var registro={};/* id -> [{b,set}] para mantener sincronizados los botones del mismo usuario */
+function sincronizar(id,st,except){var k=String(id),l=(registro[k]||[]).filter(function(x){return x.b.isConnected});registro[k]=l;l.forEach(function(x){if(x.b!==except)x.set(st)})}
+var ETQ={ninguna:'＋ Agregar amigo',enviada:'✓ Solicitud enviada',recibida:'Aceptar solicitud',aceptada:'✓ Amigos'};
+function crearBoton(u,inicial,cls){
+  var b=document.createElement('button');b.type='button';b.className=(cls?cls+' ':'')+'fp-amistad-btn';
+  var st=inicial||'ninguna',busy=false,nombre=u.nombre||u.correo||'esta persona';
+  function pintar(){b.dataset.estado=st;b.classList.toggle('on',st==='enviada'||st==='aceptada');b.textContent=ETQ[st]||ETQ.ninguna;b.setAttribute('aria-label',(ETQ[st]||'')+' · '+nombre)}
+  pintar();
+  (registro[String(u.id)]=registro[String(u.id)]||[]).push({b:b,set:function(s){st=s;pintar()}});
+  b.onclick=async function(ev){
+    if(ev){ev.stopPropagation();ev.preventDefault()}
+    if(busy)return;var prev=st;
+    try{
+      if(st==='ninguna'){
+        busy=true;st='enviada';pintar();sincronizar(u.id,st,b);/* cambia al instante */
+        var r=await enviar(u.id);st=r;pintar();sincronizar(u.id,st,b);
+        toast(r==='aceptada'?'Ahora son amigos':r==='recibida'?'Esta persona ya te había enviado una solicitud':'Solicitud de amistad enviada');
+      }else if(st==='recibida'){
+        busy=true;st='aceptada';pintar();sincronizar(u.id,st,b);await aceptar(u.id);toast('Ahora son amigos');
+      }else if(st==='enviada'){
+        var ok=await confirmar('Cancelar solicitud','¿Quieres cancelar la solicitud de amistad enviada a '+nombre+'?','Cancelar solicitud',true);if(!ok)return;
+        busy=true;st='ninguna';pintar();sincronizar(u.id,st,b);await cancelar(u.id);toast('Solicitud cancelada');
+      }else if(st==='aceptada'){
+        var ok2=await confirmar('Dejar de ser amigos','¿Quieres dejar de ser amigo de '+nombre+'? Podrás enviarle otra solicitud más adelante.','Dejar de ser amigo',true);if(!ok2)return;
+        busy=true;st='ninguna';pintar();sincronizar(u.id,st,b);await eliminar(u.id);toast('Ya no son amigos');
+      }
+    }catch(e){
+      console.warn('Amistad:',e);st=prev;pintar();sincronizar(u.id,st,b);
+      toast(prev==='ninguna'?'No se pudo enviar la solicitud. Inténtalo de nuevo':'No se pudo completar la acción. Inténtalo de nuevo');
+    }finally{busy=false}
+  };
+  return b;
+}
+window.fpAmistad={crearBoton:crearBoton,estadoPar:estadoPar,enviar:enviar,cancelar:cancelar,eliminar:eliminar,aceptar:aceptar};
+
+/* ---------- Carrusel "Personas que quizás conozcas" dentro del feed ---------- */
+var PK={n:0,next:5+Math.floor(Math.random()*3),last:0,cargando:false};
+function ocultosGet(){try{return JSON.parse(localStorage.getItem('fp_pk_ocultos')||'[]').map(String)}catch(e){return[]}}
+function ocultar(id){try{var l=ocultosGet();if(l.indexOf(String(id))<0)l.push(String(id));localStorage.setItem('fp_pk_ocultos',JSON.stringify(l.slice(-200)))}catch(e){}}
+function cerrarPK(){var e=$('#fpPK');if(e)e.remove()}
+async function candidatos(){
+  var c=sb(),me=await yoId();if(!c||!me)return[];
+  var r=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(400);if(r.error)return[];
+  var datos=r.data||[],yoU=datos.find(function(u){return String(u.id)===String(me)})||{},mia=miCorreo(),est={},bloq=new Set();
+  try{var sr=await c.from('solicitudes_amigos').select('solicitante_id,solicitado_id,estado').or('solicitante_id.eq.'+me+',solicitado_id.eq.'+me).limit(1000);
+    (sr.data||[]).forEach(function(q){var o=String(q.solicitante_id)===String(me)?String(q.solicitado_id):String(q.solicitante_id);if(q.estado==='aceptada')est[o]='aceptada';else if(q.estado==='pendiente')est[o]=String(q.solicitante_id)===String(me)?'enviada':'recibida'})}catch(e){}
+  try{var a=await c.from('bloqueos').select('bloqueado_correo').eq('bloqueador_correo',mia),b=await c.from('bloqueos').select('bloqueador_correo').eq('bloqueado_correo',mia);
+    (a.data||[]).forEach(function(x){bloq.add(norm(x.bloqueado_correo))});(b.data||[]).forEach(function(x){bloq.add(norm(x.bloqueador_correo))})}catch(e){}
+  var oc=ocultosGet();
+  return datos.filter(function(u){return u.id!=null&&String(u.id)!==String(me)&&norm(u.correo)!==mia&&u.nombre&&est[String(u.id)]!=='aceptada'&&oc.indexOf(String(u.id))<0&&!bloq.has(norm(u.correo))})
+   .map(function(u){var s=Math.random(),why=[];
+     if(yoU.congregacion&&norm(u.congregacion)===norm(yoU.congregacion)){s+=5;why.push('Tu congregación')}
+     if(yoU.ciudad&&norm(u.ciudad)===norm(yoU.ciudad)){s+=3;why.push('Tu ciudad')}
+     if(u.foto_perfil)s+=2;if(est[String(u.id)]==='recibida'){s+=6;why.unshift('Te envió una solicitud')}
+     return {u:u,s:s,why:why,estado:est[String(u.id)]||'ninguna'}})
+   .sort(function(a,b){return b.s-a.s}).slice(0,12);
+}
+function foto(u){var d=el('div',null,null,'fp-pk-ph');var f=u.foto_perfil;if(f&&/^(https?:|data:|blob:)/.test(f))d.style.backgroundImage='url("'+String(f).replace(/"/g,'%22')+'")';else{d.textContent=(u.nombre||'?').trim().charAt(0).toUpperCase();d.classList.add('ini')}return d}
+function abrirPerfil(u){cerrarPK();try{abrirPerfilPorCorreo(u.correo)}catch(e){}}
+function hayModal(){
+  var ids=[['#fpHC','none'],['#fpHV','none'],['#fpHis','none'],['#fpHStrip','none']];
+  for(var i=0;i<ids.length;i++){var e=$(ids[i][0]);if(e&&getComputedStyle(e).display!==ids[i][1])return true}
+  return !!($('#fpNot.open')||$('.fp-confirm-overlay'));
+}
+async function mostrarPK(){
+  if(PK.cargando||$('#fpPK')||hayModal()||!miCorreo()||!sb())return;
+  PK.cargando=true;
+  try{
+    var lista=await candidatos();if(!lista.length||$('#fpPK')||hayModal())return;
+    PK.last=Date.now();
+    var box=el('div',null,null);box.id='fpPK';box.setAttribute('role','region');box.setAttribute('aria-label','Personas que quizás conozcas');
+    var head=el('div',null,null,'fp-pk-head');head.appendChild(el('b',null,'Personas que quizás conozcas'));
+    var all=el('button',null,'Ver todas ›','fp-pk-all');all.type='button';all.onclick=function(){cerrarPK();var bell=document.getElementById('fpBell');if(bell){bell.click();setTimeout(function(){var t=$('#fpNot [data-t="sug"]');if(t)t.click()},80)}};
+    var x=el('button',null,'✕','fp-pk-x');x.type='button';x.setAttribute('aria-label','Cerrar');x.onclick=cerrarPK;
+    head.append(all,x);box.appendChild(head);
+    var row=el('div',null,null,'fp-pk-row');box.appendChild(row);
+    lista.forEach(function(it){
+      var u=it.u,card=el('div',null,null,'fp-pk-card');
+      var del=el('button',null,'✕','fp-pk-del');del.type='button';del.setAttribute('aria-label','Quitar sugerencia');del.onclick=function(e){e.stopPropagation();ocultar(u.id);card.remove();if(!row.children.length)cerrarPK()};
+      var ph=foto(u);ph.onclick=function(){abrirPerfil(u)};
+      var nm=el('div',null,u.nombre,'fp-pk-name');nm.onclick=function(){abrirPerfil(u)};
+      var sub=el('div',null,it.why.length?it.why.join(' · '):(u.cargo||u.congregacion||u.ciudad||'Sugerido para ti'),'fp-pk-sub');
+      card.append(del,ph,nm,sub,crearBoton(u,it.estado,'fp-pk-btn'));row.appendChild(card);
+    });
+    /* arrastrar con ratón en escritorio; en el móvil se usa el desplazamiento táctil nativo */
+    row.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'||e.button!==0)return;var x0=e.clientX,s0=row.scrollLeft,drag=false;
+      function mv(ev){var dx=ev.clientX-x0;if(Math.abs(dx)>4)drag=true;if(drag)row.scrollLeft=s0-dx}
+      function up(){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);if(drag){row.dataset.dragged='1';setTimeout(function(){delete row.dataset.dragged},120)}}
+      document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up)});
+    row.addEventListener('click',function(e){if(row.dataset.dragged==='1'){e.preventDefault();e.stopPropagation()}},true);
+    document.body.appendChild(box);
+  }catch(e){console.warn('Personas que quizás conozcas:',e)}
+  finally{PK.cargando=false}
+}
+function enganchar(){
+  var sw;try{sw=swiperInstance}catch(e){}
+  if(!sw||!sw.on||sw.__fpPK)return;sw.__fpPK=1;
+  sw.on('slideChange',function(){
+    PK.n++;var e=$('#fpPK');
+    if(e){e._sw=(e._sw||0)+1;if(e._sw>=3)cerrarPK();return}/* se retira solo tras deslizar el feed 3 veces */
+    if(PK.n>=PK.next&&Date.now()-PK.last>60000){PK.n=0;PK.next=6+Math.floor(Math.random()*5);mostrarPK()}
+  });
+}
+setInterval(enganchar,2000);
+window.fpMostrarSugerenciasAmigos=mostrarPK;
+})();
+</script>
+
 </body>
 </html>
