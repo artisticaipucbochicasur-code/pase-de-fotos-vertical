@@ -32011,8 +32011,9 @@ body.dark-mode #fpEdit{--s-acc:#2d88ff}
 /* Editar perfil moderno */
 #fpEdit .fps-top .gd{flex:0 0 auto;border:0;border-radius:999px;padding:9px 18px;background:var(--s-acc);color:#fff;font:800 14px system-ui,sans-serif;cursor:pointer}
 #fpEdit .fps-top .gd:disabled{opacity:.55}
-#fpEdit .fpe-cover{height:104px;margin:-14px -14px 0;background:linear-gradient(135deg,#1877f2,#6366f1 60%,#a855f7)}
-#fpEdit .fpe-avwrap{position:relative;width:112px;height:112px;margin:-56px auto 0}
+#fpEdit .fpe-cover{position:relative;height:120px;margin:-14px -14px 0;background:linear-gradient(135deg,#1877f2,#6366f1 60%,#a855f7) center/cover no-repeat}
+#fpEdit .fpe-cv{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:6px;padding:7px 12px;border:0;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font:800 12.5px system-ui,sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#fpEdit .fpe-avwrap{position:relative;z-index:1;width:112px;height:112px;margin:-56px auto 0}
 #fpEdit .fpe-av{width:100%;height:100%;border-radius:50%;border:4px solid var(--s-bg);background:#cfd8e6 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:36px;cursor:pointer;padding:0}
 #fpEdit .fpe-av.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff)}
 #fpEdit .fpe-cam{position:absolute;right:0;bottom:2px;width:36px;height:36px;border-radius:50%;border:3px solid var(--s-bg);background:var(--s-acc);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -32559,15 +32560,17 @@ function abrirVistaCompartir(blob,txt,B){
 
 /* ---------- editar perfil moderno ---------- */
 function usuarioLocal(){try{return JSON.parse(localStorage.getItem('usuario'))||null}catch(e){return null}}
-function recorteCuadrado(file,lado){
+function recorte(file,w,h){
   return new Promise(function(res,rej){
     var fr=new FileReader();fr.onerror=function(){rej(new Error('lectura'))};
     fr.onload=function(){
       var im=new Image();im.onerror=function(){rej(new Error('imagen'))};
       im.onload=function(){
-        var s=Math.min(im.width,im.height),sx=(im.width-s)/2,sy=(im.height-s)/2,d=Math.min(lado,s);
-        var c=document.createElement('canvas');c.width=d;c.height=d;
-        c.getContext('2d').drawImage(im,sx,sy,s,s,0,0,d,d);
+        var ar=w/h,cw,ch;
+        if(im.width/im.height>ar){ch=im.height;cw=ch*ar}else{cw=im.width;ch=cw/ar}
+        var sx=(im.width-cw)/2,sy=(im.height-ch)/2,dw=Math.min(w,Math.round(cw)),dh=Math.max(1,Math.round(dw/ar));
+        var c=document.createElement('canvas');c.width=dw;c.height=dh;
+        c.getContext('2d').drawImage(im,sx,sy,cw,ch,0,0,dw,dh);
         c.toBlob(function(b){b?res(b):rej(new Error('blob'))},'image/jpeg',.86);
       };
       im.src=fr.result;
@@ -32583,7 +32586,7 @@ function pedirCerrarEditor(){
 }
 function cerrarEditor(){
   var r=document.getElementById('fpEdit');
-  if(r){try{if(r.__url)URL.revokeObjectURL(r.__url)}catch(e){}r.remove()}
+  if(r){try{if(r.__url)URL.revokeObjectURL(r.__url);if(r.__curl)URL.revokeObjectURL(r.__curl)}catch(e){}r.remove()}
   EDIT=null;quitarTecla();
 }
 function abrirEditor(){
@@ -32597,8 +32600,11 @@ function abrirEditor(){
     ponerTecla();
     function pedirCerrar(){pedirCerrarEditor()}
 
-    var fotoUrl=base.foto_perfil||base.fotoPerfil||'',fotoBlob=null,row=null,bioCol=null;
-    sc.appendChild(el('div','fpe-cover'));
+    var fotoUrl=base.foto_perfil||base.fotoPerfil||'',fotoBlob=null,row=null,bioCol=null,portadaCol=null,portadaUrl='',portadaBlob=null;
+    var cover=el('div','fpe-cover'),cvBtn=el('button','fpe-cv');cvBtn.type='button';cvBtn.append(ic('fas fa-camera'),document.createTextNode('Portada'));cvBtn.style.display='none';cvBtn.setAttribute('aria-label','Cambiar foto de portada');
+    var cvInp=document.createElement('input');cvInp.type='file';cvInp.accept='image/*';cvInp.style.display='none';
+    cover.append(cvBtn,cvInp);sc.appendChild(cover);
+    function pintarPortada(u){cover.style.backgroundImage='';if(urlOk(u)){bg(cover,u);cover.classList.add('real')}else cover.classList.remove('real')}
     var aw=el('div','fpe-avwrap'),av=el('button','fpe-av');av.type='button';av.setAttribute('aria-label','Cambiar foto de perfil');
     var cam=el('button','fpe-cam');cam.type='button';cam.setAttribute('aria-label','Cambiar foto');cam.appendChild(ic('fas fa-camera'));
     var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.style.display='none';
@@ -32630,7 +32636,7 @@ function abrirEditor(){
     var bioC=null;
     function valores(o){Object.keys(campos).forEach(function(k){var c=campos[k];if(c.tocado)return;var v=o[k]==null?'':String(o[k]);c.input.value=v;c.ini=v;if(k==='bio')c.input.dispatchEvent(new Event('input'))})}
     valores(base);pintarAv(fotoUrl);
-    function sucio(){return !!fotoBlob||Object.keys(campos).some(function(k){return campos[k].input.value.trim()!==String(campos[k].ini||'').trim()})}
+    function sucio(){return !!fotoBlob||!!portadaBlob||Object.keys(campos).some(function(k){return campos[k].input.value.trim()!==String(campos[k].ini||'').trim()})}
     EDIT={sucio:sucio};
 
     /* datos frescos de la base (no pisa lo que ya empezaste a escribir) */
@@ -32647,6 +32653,8 @@ function abrirEditor(){
           bioC=campo('bio','Biografía','fas fa-quote-left',{area:true,max:160,ph:'Cuéntanos algo sobre ti'});
           bioC.input.value=String(row[bioCol]||'');bioC.ini=bioC.input.value;bioC.input.dispatchEvent(new Event('input'));
         }
+        ['foto_portada','portada'].some(function(k){if(Object.prototype.hasOwnProperty.call(row,k)){portadaCol=k;return true}return false});
+        if(portadaCol){portadaUrl=String(row[portadaCol]||'');cvBtn.style.display='';if(!portadaBlob)pintarPortada(portadaUrl)}
         pintarAv(fotoBlob?root.__url:fotoUrl);
       }catch(e){}
     })();
@@ -32657,11 +32665,23 @@ function abrirEditor(){
       var f=inp.files&&inp.files[0];if(!f)return;
       if(!/^image\//.test(f.type)){toast('Elige una imagen');return}
       try{
-        var b=await recorteCuadrado(f,640);
+        var b=await recorte(f,640,640);
         try{if(root.__url)URL.revokeObjectURL(root.__url)}catch(e){}
         fotoBlob=b;root.__url=URL.createObjectURL(b);pintarAv(root.__url);
       }catch(e){toast('No se pudo leer esa imagen')}
       inp.value='';
+    });
+
+    cvBtn.onclick=function(){cvInp.click()};
+    cvInp.addEventListener('change',async function(){
+      var f=cvInp.files&&cvInp.files[0];if(!f)return;
+      if(!/^image\//.test(f.type)){toast('Elige una imagen');return}
+      try{
+        var b=await recorte(f,1200,400);
+        try{if(root.__curl)URL.revokeObjectURL(root.__curl)}catch(e){}
+        portadaBlob=b;root.__curl=URL.createObjectURL(b);pintarPortada(root.__curl);
+      }catch(e){toast('No se pudo leer esa imagen')}
+      cvInp.value='';
     });
 
     function validar(){
@@ -32685,17 +32705,26 @@ function abrirEditor(){
           ciudad:campos.ciudad.input.value.trim(),actualizado:new Date().toISOString()
         };
         if(bioCol&&campos.bio)datos[bioCol]=campos.bio.input.value.trim();
-        var nuevaFoto=fotoUrl;
-        if(fotoBlob){
-          var authId=null;
+        var nuevaFoto=fotoUrl,authId=null;
+        async function obtenerAuthId(){
+          if(authId)return authId;
           try{var au=await c.auth.getUser();authId=au&&au.data&&au.data.user&&au.data.user.id}catch(e){}
           if(!authId&&row&&row.auth_id)authId=row.auth_id;
           if(!authId)throw new Error('Sin sesión activa');
-          var ruta='usuarios/'+authId+'/perfil.jpg';
+          return authId;
+        }
+        if(fotoBlob){
+          var id1=await obtenerAuthId(),ruta='usuarios/'+id1+'/perfil.jpg';
           var up=await c.storage.from('perfiles').upload(ruta,fotoBlob,{cacheControl:'3600',upsert:true,contentType:'image/jpeg'});
           if(up.error)throw up.error;
           nuevaFoto=c.storage.from('perfiles').getPublicUrl(ruta).data.publicUrl+'?v='+Date.now();
           datos.foto_perfil=nuevaFoto;
+        }
+        if(portadaBlob&&portadaCol){
+          var id2=await obtenerAuthId(),rutaP='usuarios/'+id2+'/portada.jpg';
+          var upP=await c.storage.from('perfiles').upload(rutaP,portadaBlob,{cacheControl:'3600',upsert:true,contentType:'image/jpeg'});
+          if(upP.error)throw upP.error;
+          datos[portadaCol]=c.storage.from('perfiles').getPublicUrl(rutaP).data.publicUrl+'?v='+Date.now();
         }
         var correoDb=(row&&row.correo)||base.correo;
         var res=await c.from('usuarios').update(datos).eq('correo',correoDb);
