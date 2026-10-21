@@ -31864,5 +31864,32 @@ body.dark-mode #commentsModal{--cm-bg:#161718;--cm-fg:#f1f3f5;--cm-mut:#9aa0a6;-
 .swiper-slide .feed-post-action-like.is-liked{color:var(--dc-red)}
 .swiper-slide .feed-post-footer.fp-exp .feed-post-actions{background:var(--dc-bg)}
 </style>
+
+<!-- ======================================================================
+     LOTE 17: la publicación es UNA sola tarjeta (foto + pie) y el fondo
+     alrededor de las fotos usa el tema activo (claro/oscuro), no negro
+====================================================================== -->
+<style id="fp-lote17-tarjeta-unica">
+/* 1) La tarjeta entera toma el color del tema */
+.swiper-slide{background:var(--dc-bg)}
+.swiper-slide:not(.video) .swiper-zoom-container,
+.swiper-slide:not(.video) .swiper-zoom-container.fp-ok-wrap{background:var(--dc-bg);animation:none}
+/* Mientras carga la foto: brillo suave con colores del tema (antes era gris oscuro fijo) */
+.swiper-slide:not(.video) .swiper-zoom-container:not(.fp-ok-wrap){
+  background:linear-gradient(110deg,var(--dc-card) 30%,var(--dc-line) 50%,var(--dc-card) 70%);
+  background-size:200% 100%;animation:fpShimmer 1.4s linear infinite}
+/* El video sigue en negro: es el reproductor, no un fondo decorativo */
+.swiper-slide.video .swiper-zoom-container{background:#000;animation:none}
+/* Pantalla completa de foto/video: se mantiene negro */
+.swiper-slide .swiper-zoom-container.fp-fs{background:#000!important}
+
+/* 2) El pie queda pegado a la foto, sin esquinas redondeadas ni sombra (misma superficie) */
+.swiper-slide .feed-post-footer:not(.fp-exp){border-radius:0;box-shadow:none;border-top:0}
+/* Expandido sí flota sobre la foto, ahí se conservan las esquinas */
+.swiper-slide .feed-post-footer.fp-exp{border-radius:20px 20px 0 0}
+
+/* 3) Solo la franja inferior separa esta publicación de la siguiente */
+.swiper-slide .feed-post-footer:not(.fp-exp){border-bottom:12px solid var(--dc-line)}
+</style>
 </body>
 </html>
