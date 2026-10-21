@@ -30906,5 +30906,362 @@ body.dark-mode #fpRed,body.dark-mode #fpNot{--r-bg:#18191a;--r-card:#242526;--r-
 })();
 </script>
 
+
+<!-- =====================================================================
+     LOTE 16:
+     1) Video (vista normal): la línea de tiempo se oculta cuando la
+        descripción está expandida (pantalla completa NO se toca).
+     2) Tocar el texto (título / descripción) también expande.
+     3) Menú de usuario rediseñado (estilo Facebook / Instagram) con
+        temas claro y oscuro correctos, "Mi red" dentro de la lista y
+        Seguidores / Siguiendo en la tarjeta de perfil.
+====================================================================== -->
+<style id="fp-lote16-css">
+/* ---------- 1) Video: sin línea de tiempo sobre el texto expandido ---------- */
+.swiper-slide:has(.feed-post-footer.fp-exp) .youtube-minimal-controls,
+.swiper-slide.fp-slide-exp .youtube-minimal-controls{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+.swiper-slide.fp-slide-exp .youtube-timeline-hitarea,
+.swiper-slide:has(.feed-post-footer.fp-exp) .youtube-timeline-hitarea{pointer-events:none!important}
+
+/* ---------- 2) Texto tocable ---------- */
+.swiper-slide .feed-post-footer:not(.fp-exp):has(.fp-post-more.show) .feed-post-title,
+.swiper-slide .feed-post-footer:not(.fp-exp):has(.fp-post-more.show) .feed-post-description{cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+/* ---------- 3) Menú de usuario ---------- */
+#userMenu{
+  --um-bg:#ffffff;--um-card:#f0f2f5;--um-tx:#050505;--um-sub:#65676b;
+  --um-line:rgba(0,0,0,.1);--um-acc:#1877f2;--um-hov:rgba(0,0,0,.06);--um-ico:#e4e6eb;--um-red:#e41e3f;
+  background:rgba(0,0,0,.5)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body.dark-mode #userMenu{
+  --um-bg:#18191a;--um-card:#242526;--um-tx:#e4e6eb;--um-sub:#b0b3b8;
+  --um-line:rgba(255,255,255,.12);--um-acc:#2d88ff;--um-hov:rgba(255,255,255,.08);--um-ico:#3a3b3c;--um-red:#ff6b81}
+@keyframes fpUmIn{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
+#userMenu > #fpUM{
+  position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;
+  width:min(390px,94vw)!important;max-width:none!important;height:100%!important;
+  padding:0!important;margin:0!important;border:0!important;border-radius:0!important;
+  background:var(--um-bg)!important;color:var(--um-tx)!important;
+  box-shadow:-10px 0 34px rgba(0,0,0,.35)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  display:flex;flex-direction:column;box-sizing:border-box;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  animation:fpUmIn .26s cubic-bezier(.2,.8,.2,1)!important}
+#fpUM *{box-sizing:border-box}
+#fpUM .um-hide{display:none!important}
+
+/* cabecera */
+#fpUM .um-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top,0px)) 14px 10px 18px;background:var(--um-bg)}
+#fpUM .um-top b{font-size:24px;font-weight:800;letter-spacing:-.4px;color:var(--um-tx)}
+#fpUM .um-close{position:static!important;width:38px!important;height:38px!important;margin:0!important;padding:0!important;
+  border:0!important;border-radius:50%!important;background:var(--um-card)!important;color:var(--um-tx)!important;
+  display:flex!important;align-items:center;justify-content:center;font-size:17px!important;cursor:pointer}
+#fpUM .um-close i{color:inherit!important;font-size:17px!important;width:auto!important}
+
+/* tarjeta de perfil */
+#fpUM .um-card{margin:4px 12px 6px;padding:14px;background:var(--um-bg);border-radius:14px;
+  box-shadow:0 0 0 1px var(--um-line),0 2px 6px rgba(0,0,0,.08)}
+#fpUM .um-me{display:flex;align-items:center;gap:14px;min-width:0}
+#userMenu #userMenuPhoto{width:64px!important;height:64px!important;flex:0 0 64px;margin:0!important;border:0!important;
+  border-radius:50%!important;box-shadow:none!important;overflow:hidden!important;font-size:24px!important;
+  background:linear-gradient(135deg,#1877f2,#6c63ff)!important;color:#fff!important;
+  display:flex!important;align-items:center;justify-content:center}
+#userMenu #userMenuPhoto img,#userMenu #userMenuPhoto > div{width:100%!important;height:100%!important;border:0!important;border-radius:50%!important;object-fit:cover}
+#fpUM .um-id{min-width:0;flex:1}
+#userMenu #userName{margin:0!important;font-size:18px!important;font-weight:800!important;line-height:1.2;text-align:left!important;
+  color:var(--um-tx)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#userMenu #userEmail{margin:3px 0 0!important;font-size:13px!important;text-align:left!important;
+  color:var(--um-sub)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fpUM .um-stats{display:flex;margin-top:14px;padding-top:10px;border-top:1px solid var(--um-line)}
+#fpUM button.um-stat{flex:1;display:flex!important;flex-direction:column;align-items:center;gap:1px;margin:0!important;padding:6px 0!important;
+  background:transparent!important;border:0!important;border-radius:10px!important;color:var(--um-tx)!important;cursor:pointer;width:auto!important}
+#fpUM button.um-stat + button.um-stat{border-left:1px solid var(--um-line)!important;border-radius:0 10px 10px 0!important}
+#fpUM button.um-stat:active{background:var(--um-hov)!important}
+#fpUM .um-stat b{font-size:19px;font-weight:800;line-height:1.2;color:var(--um-tx)}
+#fpUM .um-stat span{font-size:12.5px;font-weight:500;color:var(--um-sub)}
+
+/* secciones y filas */
+#fpUM .um-sec{padding:10px 20px 2px;font-size:13px;font-weight:700;color:var(--um-sub)}
+#fpUM .um-list{display:flex;flex-direction:column;padding:2px 8px}
+#fpUM button.um-row{display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;min-height:48px;
+  margin:0!important;padding:7px 10px!important;background:transparent!important;border:0!important;border-radius:12px!important;
+  color:var(--um-tx)!important;font-size:15.5px!important;font-weight:600!important;text-align:left;cursor:pointer;
+  position:relative;transform:none!important;-webkit-tap-highlight-color:transparent;font-family:inherit}
+#fpUM button.um-row:hover,#fpUM button.um-row:active{background:var(--um-hov)!important}
+#fpUM button.um-row > i:first-child{width:38px!important;height:38px;flex:0 0 38px;border-radius:50%;background:var(--um-ico);
+  display:flex;align-items:center;justify-content:center;font-size:17px!important;color:var(--um-sub)!important}
+#fpUM button.um-row > span:not(.um-sw):not(.fp-mi-red-counts){flex:1;min-width:0;text-align:left;color:inherit!important;font-size:inherit!important;font-weight:inherit!important}
+#fpUM button.um-row .fp-mi-red-counts{display:none!important}
+#fpUM button.um-row.um-nav::after{content:"\f054";font-family:"Font Awesome 6 Free","Font Awesome 5 Free";font-weight:900;font-size:12px;color:var(--um-sub);opacity:.7;margin-left:2px}
+#fpUM #fpBell b{color:#fff!important;margin-left:0}
+/* color propio de cada icono */
+#fpUM #btnMiPerfil > i:first-child{color:#1877f2!important}
+#fpUM #fpMiRedMenu > i:first-child{color:#2d88ff!important}
+#fpUM #fpAmigosMenu > i:first-child{color:#31a24c!important}
+#fpUM #fpBuscaMenu > i:first-child{color:#8b5cf6!important}
+#fpUM #fpBell > i:first-child{color:#e41e3f!important}
+#fpUM #publishBtn > i:first-child{color:#f59e0b!important}
+#fpUM #openSavedMenu > i:first-child{color:#a855f7!important}
+#fpUM #btnConnectYoutube > i:first-child{color:#ff0000!important}
+#fpUM #themeToggle > i:first-child{color:#f59e0b!important}
+#fpUM #whatsappBtn > i:first-child{color:#25d366!important}
+/* interruptor del tema */
+#fpUM .um-sw{position:relative;flex:0 0 44px;width:44px;height:26px;border-radius:13px;background:#b0b3b8;transition:background .2s}
+#fpUM .um-sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .2s}
+body.dark-mode #fpUM .um-sw{background:var(--um-acc)}
+body.dark-mode #fpUM .um-sw::after{transform:translateX(18px)}
+
+/* pie */
+#fpUM .um-foot{margin-top:auto;padding:16px 12px calc(18px + env(safe-area-inset-bottom,0px))}
+#userMenu #logoutBtn{position:static!important;display:flex!important;align-items:center;justify-content:center;gap:8px!important;
+  width:100%!important;margin:0!important;padding:13px!important;background:var(--um-card)!important;border:0!important;border-radius:12px!important;
+  color:var(--um-red)!important;font-size:15px!important;font-weight:700!important;cursor:pointer}
+#userMenu #logoutBtn i,#userMenu #logoutBtn span{color:inherit!important}
+#fpUM .um-ver{margin:12px 0 0!important;padding:0!important;border:0!important;text-align:center;font-size:12px!important;color:var(--um-sub)!important}
+@media (prefers-reduced-motion:reduce){#userMenu > #fpUM{animation:none!important}}
+</style>
+
+<script id="fp-lote16-js">
+(function(){
+  'use strict';
+  if(window.__fpLote16)return;window.__fpLote16=1;
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+
+  /* ======================================================================
+     1) Línea de tiempo del video: se marca el slide con la descripción abierta
+        (el CSS usa :has(), esto es el respaldo para navegadores sin :has)
+  ====================================================================== */
+  var pendSl=false;
+  function marcarSlides(){
+    pendSl=false;
+    $$('.swiper-slide').forEach(function(s){
+      s.classList.toggle('fp-slide-exp',!!s.querySelector('.feed-post-footer.fp-exp'));
+    });
+  }
+  function programarSlides(){if(pendSl)return;pendSl=true;requestAnimationFrame(marcarSlides)}
+  function vigilarSlides(){
+    var w=$('.swiper-wrapper');
+    if(!w){setTimeout(vigilarSlides,800);return}
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){
+        var m=ms[i];
+        if(m.type==='childList'||(m.target&&m.target.classList&&m.target.classList.contains('feed-post-footer'))){programarSlides();return}
+      }
+    }).observe(w,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+    marcarSlides();
+  }
+
+  /* ======================================================================
+     2) Tocar el texto (título o descripción) también expande
+        Solo expande; para cerrar se usa "Ver menos".
+  ====================================================================== */
+  document.addEventListener('click',function(e){
+    var t=e.target;if(!t||!t.closest)return;
+    var txt=t.closest('.swiper-slide .feed-post-title, .swiper-slide .feed-post-description');
+    if(!txt)return;
+    if(t.closest('a,button,input,textarea,[data-mention],.mention'))return;
+    try{var sel=window.getSelection&&window.getSelection();if(sel&&String(sel).length>0)return}catch(_){}
+    var f=txt.closest('.feed-post-footer');
+    if(!f||f.classList.contains('fp-exp'))return;
+    var b=f.querySelector('.fp-post-more');
+    if(!b||!b.classList.contains('show'))return;
+    b.click();
+  },false);
+
+  /* ======================================================================
+     3) Menú de usuario
+  ====================================================================== */
+  var menu,panel,construido=false,ocupado=false;
+  var G=[
+    {t:'Mi cuenta',ids:['btnMiPerfil','fpMiRedMenu','fpAmigosMenu','fpBuscaMenu','fpBell']},
+    {t:'Contenido',ids:['publishBtn','openSavedMenu','btnConnectYoutube']},
+    {t:'Ajustes',ids:['themeToggle','whatsappBtn']}
+  ];
+  var stats={seg:null,sig:null},ultimaCarga=0;
+
+  function mk(tag,cls,html){var n=document.createElement(tag);if(cls)n.className=cls;if(html!=null)n.innerHTML=html;return n}
+
+  function construir(){
+    menu=document.getElementById('userMenu');
+    if(!menu)return false;
+    panel=menu.querySelector(':scope > div');
+    if(!panel)return false;
+    if(panel.id==='fpUM'){construido=true;return true}
+
+    var cerrar=$$('button',panel).filter(function(b){return (b.getAttribute('onclick')||'').indexOf("display='none'")>-1})[0];
+    var logout=document.getElementById('logoutBtn');
+    var foto=document.getElementById('userMenuPhoto');
+    var nombre=document.getElementById('userName');
+    var correo=document.getElementById('userEmail');
+    var viejoWrap=foto?foto.parentElement:null;
+    var ver=Array.prototype.slice.call(panel.children).filter(function(c){return !c.children.length&&/v\d+\.\d+/.test(c.textContent||'')})[0];
+
+    $$('style',panel).forEach(function(s){s.remove()});
+    panel.id='fpUM';panel.removeAttribute('style');
+
+    var top=mk('div','um-top','<b>Menú</b>');
+    if(cerrar){cerrar.removeAttribute('style');cerrar.className='um-close';cerrar.setAttribute('aria-label','Cerrar menú');top.appendChild(cerrar)}
+
+    var card=mk('div','um-card');
+    var me=mk('div','um-me');
+    if(foto)me.appendChild(foto);
+    var id=mk('div','um-id');
+    if(nombre)id.appendChild(nombre);
+    if(correo)id.appendChild(correo);
+    me.appendChild(id);
+    card.appendChild(me);
+    card.appendChild(mk('div','um-stats',
+      '<button type="button" class="um-stat" data-t="seg"><b id="umSeg">–</b><span>Seguidores</span></button>'+
+      '<button type="button" class="um-stat" data-t="sig"><b id="umSig">–</b><span>Siguiendo</span></button>'));
+
+    var frag=document.createDocumentFragment();
+    frag.appendChild(top);frag.appendChild(card);
+    G.forEach(function(g){
+      frag.appendChild(mk('div','um-sec',g.t));
+      g.el=mk('div','um-list');
+      frag.appendChild(g.el);
+    });
+    var foot=mk('div','um-foot');
+    if(logout){logout.removeAttribute('style');foot.appendChild(logout)}
+    if(ver){ver.removeAttribute('style');ver.className='um-ver';foot.appendChild(ver)}
+    frag.appendChild(foot);
+
+    if(viejoWrap&&viejoWrap!==panel)viejoWrap.classList.add('um-hide');
+    panel.insertBefore(frag,panel.firstChild);
+    construido=true;
+    return true;
+  }
+
+  function limpiarEstilos(){
+    if(!panel)return;
+    panel.style.removeProperty('color');panel.style.removeProperty('background');
+    $$('[style]',panel).forEach(function(n){
+      if(n.id==='userMenuPhoto'||n.closest('#userMenuPhoto'))return;
+      if(n.style&&n.style.color)n.style.removeProperty('color');
+    });
+  }
+
+  function ajustarTema(){
+    var t=document.getElementById('themeToggle');if(!t)return;
+    var sp=document.getElementById('themeText');if(sp&&sp.textContent!=='Modo oscuro')sp.textContent='Modo oscuro';
+    var ic=document.getElementById('themeIcon');if(ic&&ic.className!=='fas fa-moon')ic.className='fas fa-moon';
+    if(!t.querySelector('.um-sw'))t.appendChild(mk('span','um-sw'));
+    t.setAttribute('role','switch');
+    t.setAttribute('aria-checked',document.body.classList.contains('dark-mode')?'true':'false');
+  }
+
+  function pintarStats(){
+    var a=document.getElementById('umSeg'),b=document.getElementById('umSig');
+    function f(n){return n==null?'–':(n>=10000?(Math.round(n/100)/10)+' mil':String(n))}
+    if(a)a.textContent=f(stats.seg);
+    if(b)b.textContent=f(stats.sig);
+  }
+  function leerContadoresMiRed(){
+    var c=$('#fpMiRedMenu .fp-mi-red-counts');if(!c)return;
+    $$('span',c).forEach(function(x){
+      var m=/(Seguidores|Siguiendo)\s+(\d+)/.exec(x.textContent||'');
+      if(m)stats[m[1]==='Seguidores'?'seg':'sig']=parseInt(m[2],10);
+    });
+    pintarStats();
+  }
+  function vigilarContadores(){
+    var c=$('#fpMiRedMenu .fp-mi-red-counts');
+    if(!c||c.dataset.um16)return;c.dataset.um16='1';
+    new MutationObserver(leerContadoresMiRed).observe(c,{childList:true,subtree:true,characterData:true});
+    leerContadoresMiRed();
+  }
+  async function cargarContadores(){
+    var correo='';try{correo=String(currentAuthorEmail||'').trim().toLowerCase()}catch(_){}
+    if(!correo||typeof supabaseClient==='undefined')return;
+    if(Date.now()-ultimaCarga<8000)return;ultimaCarga=Date.now();
+    try{
+      var a=await supabaseClient.from('seguidores').select('*',{count:'exact',head:true}).eq('seguido_correo',correo);
+      var b=await supabaseClient.from('seguidores').select('*',{count:'exact',head:true}).eq('seguidor_correo',correo);
+      if(a&&!a.error&&a.count!=null)stats.seg=a.count;
+      if(b&&!b.error&&b.count!=null)stats.sig=b.count;
+      pintarStats();
+    }catch(_){}
+  }
+
+  function organizar(){
+    if(ocupado)return;ocupado=true;
+    try{
+      if(!construido&&!construir())return;
+      /* botones por id → su grupo, en orden */
+      G.forEach(function(g){
+        g.ids.forEach(function(id){
+          var b=document.getElementById(id);if(!b)return;
+          b.classList.add('um-row');
+          if(id!=='themeToggle')b.classList.add('um-nav');
+          if(b.parentNode!==g.el)g.el.appendChild(b);
+        });
+        var pres=g.ids.map(function(id){return document.getElementById(id)}).filter(function(b){return b&&b.parentNode===g.el});
+        var orden=Array.prototype.slice.call(g.el.children);
+        var ok=pres.every(function(b,i){return orden[i]===b});
+        if(!ok)pres.forEach(function(b){g.el.appendChild(b)});
+      });
+      /* botones sueltos: el de "Notificaciones" sin función se oculta; el resto va a Contenido */
+      $$('button.menu-btn',menu).forEach(function(b){
+        if(b.closest('.um-list'))return;
+        var txt=(b.textContent||'').trim();
+        if(!b.id&&/^notificaciones$/i.test(txt)){b.classList.add('um-hide');return}
+        b.classList.add('um-row','um-nav');G[1].el.appendChild(b);
+      });
+      /* YouTube: icono coherente con el resto */
+      var yt=document.getElementById('btnConnectYoutube');
+      if(yt&&!yt.dataset.um16){yt.dataset.um16='1';yt.innerHTML='<i class="fab fa-youtube" aria-hidden="true"></i><span>Conectar YouTube</span>'}
+      /* contadores del menú viejo (si existen) alimentan la tarjeta */
+      vigilarContadores();
+      ajustarTema();
+      limpiarEstilos();
+    }finally{ocupado=false}
+  }
+
+  /* ---- eventos ---- */
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('#fpUM .um-stat');
+    if(!b)return;
+    e.preventDefault();e.stopPropagation();
+    var m=document.getElementById('userMenu');if(m)m.style.display='none';
+    if(typeof window.fpAbrirRed!=='function')return;
+    window.fpAbrirRed();
+    var t=b.dataset.t;
+    setTimeout(function(){var tab=document.querySelector('#fpRed .fp-red-tabs [data-t="'+t+'"]');if(tab)tab.click()},180);
+  },true);
+
+  /* tocar fuera del panel cierra el menú */
+  document.addEventListener('click',function(e){
+    var m=document.getElementById('userMenu');
+    if(m&&e.target===m)m.style.display='none';
+  },false);
+
+  function iniciar(){
+    organizar();
+    vigilarSlides();
+    var n=0,iv=setInterval(function(){
+      organizar();
+      if((construido&&document.getElementById('fpMiRedMenu')&&document.getElementById('fpAmigosMenu'))||++n>60)clearInterval(iv);
+    },700);
+    setInterval(organizar,4000);
+
+    /* cambio de tema → limpiar colores inline que pone el código viejo */
+    new MutationObserver(function(){requestAnimationFrame(function(){ajustarTema();limpiarEstilos()})})
+      .observe(document.body,{attributes:true,attributeFilter:['class']});
+
+    /* al abrir el menú: ordenar, limpiar y refrescar contadores */
+    var m=document.getElementById('userMenu');
+    if(m){
+      new MutationObserver(function(){
+        if(m.style.display&&m.style.display!=='none'){organizar();limpiarEstilos();cargarContadores()}
+      }).observe(m,{attributes:true,attributeFilter:['style']});
+      /* botones que otros scripts agregan después */
+      new MutationObserver(function(){if(!ocupado)organizar()}).observe(m,{childList:true,subtree:true});
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+})();
+</script>
+
 </body>
 </html>
