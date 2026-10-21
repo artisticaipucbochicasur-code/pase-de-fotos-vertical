@@ -33069,5 +33069,202 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 window.fpSincronia={abrirPar:abrirPar,abrirRanking:abrirRanking,abrirEditor:abrirEditor,_t:{comparar:comparar,nivel:nivel,cargar:cargar,dibujar:dibujar}};
 })();
 </script>
+
+<!-- =====================================================================
+     RETROCESO GRADUAL: cada pantalla (menú, Mi red, Mis amigos, perfiles, chats, etc.)
+     se apila en el historial; "atrás" cierra solo la de arriba y vuelve a la anterior
+     hasta llegar al carrusel. No modifica el código existente.
+====================================================================== -->
+<script id="fpNavJS">
+(function(){
+'use strict';
+if(window.__fpNav)return;window.__fpNav=1;
+try{if(localStorage.getItem('fpNavOff')==='1')return}catch(e){}
+
+/* ---------- utilidades ---------- */
+function $(s,r){return (r||document).querySelector(s)}
+function vis(e){
+  if(!e)return false;
+  try{var c=getComputedStyle(e);return c.display!=='none'&&c.visibility!=='hidden'&&e.getClientRects().length>0}catch(_){return false}
+}
+function clic(sel,raiz){var b=$(sel,raiz);if(b){b.click();return true}return false}
+function llamar(n){try{var f=window[n];if(typeof f==='function'){f();return true}}catch(e){}return false}
+
+/* a quién se abrió en el perfil (para poder volver a él) */
+var perfilArgs=null;
+function envolverPerfil(){
+  var f=window.mostrarPerfilAutor;
+  if(typeof f!=='function')return false;
+  if(f.__fpNavW)return true;
+  var g=function(d){
+    try{if(d&&(d.correo||d.nombre))perfilArgs=d}catch(e){}
+    return f.apply(this,arguments);
+  };
+  try{Object.keys(f).forEach(function(k){g[k]=f[k]})}catch(e){}
+  g.__fpNavW=1;window.mostrarPerfilAutor=g;return true;
+}
+(function(){var n=0,iv=setInterval(function(){envolverPerfil();if(++n>90)clearInterval(iv)},700)})();
+
+/* ---------- pantallas conocidas ---------- */
+/* el(): devuelve el elemento si la pantalla está abierta · close(): la cierra como lo haría su propio botón
+   reopen(): la vuelve a abrir cuando se regresa a ella (solo si no se queda debajo de otra) */
+var REG=[
+  {k:'confirm',el:function(){var e=$('.fp-confirm-overlay');return vis(e)?e:null},
+    close:function(e){var bs=Array.prototype.slice.call(e.querySelectorAll('button')),b=bs.filter(function(x){return /cancel|no\b|volver|cerrar/i.test(x.textContent||'')})[0];if(b)b.click();else e.click()}},
+  {k:'covview',el:function(){return $('#fpCovView')},close:function(e){e.click()}},
+  {k:'covadj',el:function(){return $('#fpCov')},close:function(){if(typeof window.__fpCovEsc==='function')window.__fpCovEsc()}},
+  {k:'sincshare',el:function(){return $('#fpSincShare')},close:function(e){clic('.fps-x',e)}},
+  {k:'sincpub',el:function(){return $('#fpSincPub')},close:function(e){clic('.fps-x',e)}},
+  {k:'edit',el:function(){return $('#fpEdit')},close:function(e){clic('.fps-x',e)}},
+  {k:'sinc',el:function(){return $('#fpSinc')},close:function(e){clic('.fps-x',e)}},
+  {k:'perfillb',el:function(){return $('#fpPerfilPro .fpp-lb')},close:function(e){clic('.fpp-lb-x',e)}},
+  {k:'perfilsm',el:function(){return $('#fpPerfilPro .fpp-sm')},close:function(e){e.remove()}},
+  {k:'perfil',el:function(){return $('#fpPerfilPro')},close:function(e){clic('.fpp-back',e)},
+    snap:function(){return perfilArgs},
+    reopen:function(en){
+      var a=en.snap;
+      try{if(a&&typeof window.mostrarPerfilAutor==='function'){window.mostrarPerfilAutor(a);return true}}catch(e){}
+      try{if(a&&a.correo&&typeof window.abrirPerfilPorCorreo==='function'){window.abrirPerfilPorCorreo(a.correo);return true}}catch(e){}
+      return false;
+    }},
+  {k:'busca',el:function(){return $('#fpBuscaPro')},close:function(e){clic('.fpb-x',e)},reopen:function(){return llamar('fpBuscarPersonas')}},
+  {k:'amigos',el:function(){return $('#fpAmigos')},close:function(e){clic('.am-x',e)},reopen:function(){return llamar('fpAbrirAmigos')}},
+  {k:'act',el:function(){return $('#fpNot.open')},close:function(e){e.classList.remove('open')},reopen:function(){return llamar('fpAbrirActividad')}},
+  {k:'red',el:function(){return $('#fpRed.open')},close:function(e){e.classList.remove('open')},reopen:function(){return llamar('fpAbrirRed')}},
+  {k:'historia',el:function(){var e=$('#fpHV');return vis(e)?e:null},close:function(e){clic('button[aria-label="Cerrar"]',e)}},
+  {k:'historias',el:function(){var e=$('#fpHis');return vis(e)?e:null},close:function(e){clic('.hd button',e)}},
+  {k:'chat',el:function(){var e=$('#chatBox');return e&&e.style.display==='flex'&&vis(e)?e:null},close:function(){if(typeof window.cerrarChat==='function')window.cerrarChat()}},
+  {k:'chats',el:function(){var e=$('#listaChatsBox');return vis(e)?e:null},close:function(){if(typeof window.cerrarListaChats==='function')window.cerrarListaChats()},
+    reopen:function(){if(typeof window.abrirListaChats==='function'){window.abrirListaChats();return true}return false}},
+  {k:'comentarios',el:function(){var e=$('#commentsModal.open');return e},close:function(){clic('#closeCommentsModal')}},
+  {k:'likes',el:function(){return $('#likesPeopleModal.open')},close:function(){clic('#closeLikesPeopleModal')}},
+  {k:'acciones',el:function(){return $('#feedActionsModal.open')},close:function(){if(typeof window.cerrarMenuAccionesPublicacion==='function')window.cerrarMenuAccionesPublicacion()}},
+  {k:'publicar',el:function(){var e=$('#publishModal');return e&&e.style.display==='flex'&&vis(e)?e:null},close:function(){clic('#closePublishModal')}},
+  {k:'guardados',el:function(){var e=$('#savedModal');return e&&e.style.display==='flex'&&vis(e)?e:null},close:function(e){e.style.display='none'}},
+  {k:'menu',el:function(){var e=$('#userMenu');return vis(e)?e:null},close:function(e){e.style.display='none'},
+    reopen:function(){var m=$('#userMenu');if(!m)return false;m.style.display='block';return true}}
+];
+var DEF={};REG.forEach(function(d,i){d.i=i;DEF[d.k]=d});
+
+/* ---------- pila de pantallas ligada al historial ---------- */
+var stack=[],hist=0,ignore=0,ignoreT=0,POLL=80,DELAY=220;
+/* pares que ya vuelven solos con código existente: se espera un poco antes de reabrir */
+var PROPIO={red:{busca:1,amigos:1},act:{busca:1,amigos:1},amigos:{busca:1}};
+
+function buscar(k){for(var i=0;i<stack.length;i++)if(stack[i].d.k===k)return stack[i];return null}
+function abiertas(){
+  var out=[];
+  REG.forEach(function(d){var e=null;try{e=d.el()}catch(_){}if(e)out.push({d:d,e:e})});
+  return out;
+}
+function zi(e){var z=0;try{z=parseInt(getComputedStyle(e).zIndex,10)||0}catch(_){}return z}
+function empujar(){hist++;try{history.pushState({fpNav:hist},'')}catch(e){hist--;return false}return true}
+var pb=0;
+function atrasProg(){
+  if(hist<=0)return;hist--;pb++;
+  if(pb===1)setTimeout(function(){var n=pb;pb=0;ignore=1;ignoreT=Date.now();try{history.go(-n)}catch(e){ignore=0}},0);
+}
+
+function quitar(en){var i=stack.indexOf(en);if(i>=0)stack.splice(i,1)}
+function topActivo(){for(var i=stack.length-1;i>=0;i--)if(!stack[i].susp)return stack[i];return null}
+
+/* tras cerrar una pantalla: si debajo quedó una pantalla "pausada" (que el código cerró al abrir esta), se reabre */
+function volverAlPadre(hijoK){
+  var padre=null;
+  while(stack.length){
+    var t=stack[stack.length-1];
+    if(!t.susp)return;               /* ya hay una pantalla abierta debajo: nada que hacer */
+    if(t.d.el&&safe(t.d.el)){t.susp=false;return}  /* ya volvió a abrirse sola */
+    if(!t.d.reopen){quitar(t);atrasProg();continue}   /* no se puede reabrir: se salta */
+    padre=t;break;
+  }
+  if(!padre)return;
+  var espera=(PROPIO[padre.d.k]&&PROPIO[padre.d.k][hijoK])?520:0;
+  setTimeout(function(){
+    if(stack.indexOf(padre)<0)return;
+    if(safe(padre.d.el)){padre.susp=false;return}
+    var ok=false;try{ok=!!padre.d.reopen(padre)}catch(e){}
+    if(!ok){quitar(padre);atrasProg();volverAlPadre(padre.d.k)}
+  },espera);
+}
+function safe(f){try{return f()}catch(e){return null}}
+
+function terminar(en,porNav){
+  quitar(en);
+  if(!porNav)atrasProg();
+  volverAlPadre(en.d.k);
+}
+
+function tick(){
+  if(document.hidden)return;
+  var now=Date.now();
+  if(ignore>0&&now-ignoreT>900)ignore=0;     /* seguridad: un retroceso programático nunca queda esperando */
+  var cur=abiertas(),open={};
+  cur.forEach(function(c){open[c.d.k]=c});
+
+  /* a) cerradas por el botón "atrás" del teléfono */
+  stack.slice().forEach(function(en){if(en.nav&&!open[en.d.k])terminar(en,true)});
+
+  /* b) pantallas que acaban de abrirse */
+  var nuevas=[];
+  cur.forEach(function(c){
+    var en=buscar(c.d.k);
+    if(en){en.susp=false;en.pend=0;en.e=c.e;return}
+    nuevas.push(c);
+  });
+  if(nuevas.length&&ignore===0&&pb===0){
+    nuevas.sort(function(a,b){return (zi(a.e)-zi(b.e))||(a.d.i>b.d.i?-1:1)});
+    nuevas.forEach(function(c){
+      var en={d:c.d,e:c.e,susp:false,pend:0,nav:false,tries:0,snap:c.d.snap?c.d.snap():null};
+      /* lo que se cerró justo antes o al mismo tiempo (y está debajo) queda "pausado" */
+      stack.forEach(function(o){if(!open[o.d.k]&&!o.susp){o.susp=true;o.pend=0}});
+      stack.push(en);
+      if(!empujar())quitar(en);
+    });
+  }else if(nuevas.length){/* hay un retroceso en curso: se registran en el siguiente ciclo */}
+
+  /* c) cerradas por su propio botón o por código */
+  stack.slice().forEach(function(en){
+    if(open[en.d.k]||en.susp||en.nav)return;
+    var encima=false;
+    for(var i=stack.indexOf(en)+1;i<stack.length;i++)if(!stack[i].susp&&open[stack[i].d.k])encima=true;
+    if(encima){en.susp=true;en.pend=0;return}
+    if(!en.pend){en.pend=now;return}
+    if(now-en.pend>=DELAY){if(ignore===0&&pb===0)terminar(en,false)}
+  });
+}
+setInterval(tick,POLL);
+try{if(history.state&&history.state.fpNav)history.replaceState(null,'')}catch(e){}
+
+/* ---------- botón "atrás" del teléfono / navegador ---------- */
+function cerrarTope(){
+  var en=topActivo();
+  if(!en)return false;
+  en.nav=true;en.tries++;
+  try{en.d.close(en.e&&en.e.isConnected?en.e:safe(en.d.el))}catch(e){}
+  setTimeout(function(){
+    if(stack.indexOf(en)<0)return;
+    if(!safe(en.d.el))return;                 /* ya se cerró: lo termina el ciclo normal */
+    /* sigue abierta (p. ej. el usuario canceló "¿salir sin guardar?"): se restablece el historial */
+    en.nav=false;
+    if(en.tries<3){if(!empujar()){quitar(en)}}
+    else{quitar(en)}                          /* no se deja cerrar: no se atrapa al usuario */
+  },380);
+  return true;
+}
+window.addEventListener('popstate',function(e){
+  if(ignore>0){ignore--;return}
+  var dest=(e.state&&e.state.fpNav)||0;
+  if(dest>hist){                              /* se fue "adelante" a una entrada que ya no existe */
+    ignore++;ignoreT=Date.now();try{history.back()}catch(_){ignore=0}return;
+  }
+  if(dest>=hist)return;
+  var n=hist-dest;hist=dest;
+  for(var i=0;i<n;i++){if(!cerrarTope())break}
+});
+
+window.fpNav={pila:function(){return stack.map(function(x){return x.d.k+(x.susp?'*':'')})},hist:function(){return hist}};
+})();
+</script>
 </body>
 </html>
