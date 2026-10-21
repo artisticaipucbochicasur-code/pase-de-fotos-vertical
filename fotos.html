@@ -30931,6 +30931,7 @@ body.dark-mode #fpRed,body.dark-mode #fpNot{--r-bg:#18191a;--r-card:#242526;--r-
 #userMenu{
   --um-bg:#ffffff;--um-card:#f0f2f5;--um-tx:#050505;--um-sub:#65676b;
   --um-line:rgba(0,0,0,.1);--um-acc:#1877f2;--um-hov:rgba(0,0,0,.06);--um-ico:#e4e6eb;--um-red:#e41e3f;
+  position:fixed!important;inset:0!important;width:100%!important;height:100vh!important;height:100dvh!important;z-index:2147483100!important;
   background:rgba(0,0,0,.5)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 body.dark-mode #userMenu{
   --um-bg:#18191a;--um-card:#242526;--um-tx:#e4e6eb;--um-sub:#b0b3b8;
@@ -30938,7 +30939,7 @@ body.dark-mode #userMenu{
 @keyframes fpUmIn{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
 #userMenu > #fpUM{
   position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;
-  width:min(390px,94vw)!important;max-width:none!important;height:100%!important;
+  width:min(390px,94vw)!important;max-width:none!important;height:100vh!important;height:100dvh!important;
   padding:0!important;margin:0!important;border:0!important;border-radius:0!important;
   background:var(--um-bg)!important;color:var(--um-tx)!important;
   box-shadow:-10px 0 34px rgba(0,0,0,.35)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
@@ -31054,7 +31055,7 @@ body.dark-mode #fpUM .um-sw::after{transform:translateX(18px)}
 
   /* ======================================================================
      2) Tocar el texto (título o descripción) también expande
-        Solo expande; para cerrar se usa "Ver menos".
+        Expande o contrae (igual que el botón).
   ====================================================================== */
   document.addEventListener('click',function(e){
     var t=e.target;if(!t||!t.closest)return;
@@ -31063,7 +31064,7 @@ body.dark-mode #fpUM .um-sw::after{transform:translateX(18px)}
     if(t.closest('a,button,input,textarea,[data-mention],.mention'))return;
     try{var sel=window.getSelection&&window.getSelection();if(sel&&String(sel).length>0)return}catch(_){}
     var f=txt.closest('.feed-post-footer');
-    if(!f||f.classList.contains('fp-exp'))return;
+    if(!f)return;
     var b=f.querySelector('.fp-post-more');
     if(!b||!b.classList.contains('show'))return;
     b.click();
@@ -31085,6 +31086,7 @@ body.dark-mode #fpUM .um-sw::after{transform:translateX(18px)}
   function construir(){
     menu=document.getElementById('userMenu');
     if(!menu)return false;
+    if(menu.parentElement!==document.body){var ov=document.getElementById('userOverlay');if(ov&&ov.parentElement!==document.body)document.body.appendChild(ov);document.body.appendChild(menu)}
     panel=menu.querySelector(':scope > div');
     if(!panel)return false;
     if(panel.id==='fpUM'){construido=true;return true}
