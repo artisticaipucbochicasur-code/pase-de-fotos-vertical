@@ -30817,5 +30817,94 @@ body.dark-mode #fpRed,body.dark-mode #fpNot{--r-bg:#18191a;--r-card:#242526;--r-
 })();
 </script>
 
+
+<!-- =====================================================================
+     LOTE 15: título y descripción con "Ver más / Ver menos" sin deformar
+     el feed (los botones de me gusta, comentarios, etc. no se mueven)
+====================================================================== -->
+<style id="fp-ver-mas">
+.swiper-slide{position:relative}
+.swiper-slide .feed-post-footer{max-height:none;overflow:visible}
+.swiper-slide .feed-post-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.swiper-slide .feed-post-description{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;margin-bottom:2px}
+.fp-post-more{display:none;margin:0 0 8px;padding:2px 0;border:0;background:none;color:#8ab4ff;font:700 13px/1.2 system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fp-post-more.show{display:block}
+@keyframes fpMoreUp{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
+/* Expandido: el pie se abre HACIA ARRIBA sobre la imagen; la barra de acciones queda en el mismo lugar */
+.swiper-slide .feed-post-footer.fp-exp{position:absolute;left:0;right:0;bottom:0;z-index:40;max-height:68%;overflow-y:auto;padding-bottom:0;overscroll-behavior:contain;touch-action:pan-y;box-shadow:0 -16px 32px rgba(0,0,0,.5);animation:fpMoreUp .2s ease}
+.swiper-slide .feed-post-footer.fp-exp .feed-post-title,
+.swiper-slide .feed-post-footer.fp-exp .feed-post-description{display:block;-webkit-line-clamp:unset;overflow:visible}
+.swiper-slide .feed-post-footer.fp-exp .feed-post-actions{position:sticky;bottom:0;z-index:2;background:#080808;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+</style>
+<script id="fp-lote15-js">
+(function(){
+  'use strict';
+  if(window.__fpLote15)return;window.__fpLote15=1;
+  var vistos=new WeakSet();
+  function medir(f){
+    var b=f.querySelector('.fp-post-more');if(!b)return;
+    if(f.classList.contains('fp-exp')){b.classList.add('show');return}
+    var sobra=false;
+    ['.feed-post-title','.feed-post-description'].forEach(function(s){var e=f.querySelector(s);if(e&&e.scrollHeight>e.clientHeight+2)sobra=true});
+    b.classList.toggle('show',sobra);
+  }
+  function medirTodos(){Array.prototype.forEach.call(document.querySelectorAll('.swiper-slide .feed-post-footer'),medir)}
+  function decorar(f){
+    if(vistos.has(f))return;vistos.add(f);
+    var b=f.querySelector('.fp-post-more');
+    if(!b){
+      var d=f.querySelector('.feed-post-description')||f.querySelector('.feed-post-title');if(!d)return;
+      b=document.createElement('button');b.type='button';b.className='fp-post-more';b.textContent=f.classList.contains('fp-exp')?'Ver menos':'Ver más';
+      d.parentNode.insertBefore(b,d.nextSibling);
+    }
+    var mo=new MutationObserver(function(){medir(f)});
+    ['.feed-post-title','.feed-post-description'].forEach(function(s){var e=f.querySelector(s);if(e)mo.observe(e,{childList:true,characterData:true,subtree:true})});
+    medir(f);setTimeout(function(){medir(f)},400);setTimeout(function(){medir(f)},1500);
+  }
+  function decorarTodos(){Array.prototype.forEach.call(document.querySelectorAll('.swiper-slide .feed-post-footer'),decorar)}
+  var pend=false;
+  function programar(){if(pend)return;pend=true;requestAnimationFrame(function(){pend=false;decorarTodos()})}
+  function colapsar(excepto){
+    Array.prototype.forEach.call(document.querySelectorAll('.feed-post-footer.fp-exp'),function(f){
+      if(f===excepto)return;
+      f.classList.remove('fp-exp','swiper-no-swiping');
+      var b=f.querySelector('.fp-post-more');if(b)b.textContent='Ver más';
+      var sl=f.closest('.swiper-slide');if(sl)Array.prototype.forEach.call(sl.querySelectorAll('.fp-post-spacer'),function(x){x.remove()});
+      medir(f);
+    });
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('.fp-post-more');if(!b)return;
+    e.preventDefault();e.stopPropagation();
+    var f=b.closest('.feed-post-footer');if(!f)return;
+    var abrir=!f.classList.contains('fp-exp');
+    colapsar(abrir?f:null);
+    if(abrir){
+      /* un espaciador conserva la altura del pie para que la imagen NO cambie de tamaño */
+      var sp=document.createElement('div');sp.className='fp-post-spacer';sp.style.cssText='flex:0 0 auto;height:'+f.offsetHeight+'px';
+      f.parentNode.insertBefore(sp,f);
+      f.classList.add('fp-exp','swiper-no-swiping');f.scrollTop=0;b.textContent='Ver menos';
+    }else{
+      f.classList.remove('fp-exp','swiper-no-swiping');b.textContent='Ver más';
+      var sl=f.closest('.swiper-slide');if(sl)Array.prototype.forEach.call(sl.querySelectorAll('.fp-post-spacer'),function(x){x.remove()});
+    }
+    medir(f);
+  },true);
+  function iniciar(){
+    var w=document.querySelector('.swiper-wrapper');
+    if(w)new MutationObserver(programar).observe(w,{childList:true,subtree:true});
+    decorarTodos();
+    window.addEventListener('resize',function(){colapsar(null);medirTodos()});
+    var n=0,iv=setInterval(function(){
+      var sw;try{sw=swiperInstance}catch(e){}
+      if(sw&&sw.on&&!sw.__fpMas){sw.__fpMas=1;sw.on('slideChange',function(){colapsar(null);setTimeout(medirTodos,80)});clearInterval(iv)}
+      else if(++n>40)clearInterval(iv);
+      decorarTodos();
+    },1000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+})();
+</script>
+
 </body>
 </html>
