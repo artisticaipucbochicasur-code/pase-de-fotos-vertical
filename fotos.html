@@ -31554,5 +31554,271 @@ body:has(#fpPerfilPro) #dcNav,body:has(#fpBuscaPro) #dcNav,body:has(#fpAmigos) #
 })();
 </script>
 
+
+<!-- =====================================================================
+     COMENTARIOS PRO: comentarios rotativos bajo la descripción (tipo Facebook)
+     + modal de comentarios moderno (estilo Instagram/TikTok).
+     Es un parche aditivo: no cambia la lógica de envío, respuestas, me gusta
+     ni denuncias; solo apariencia y el carrusel de comentarios del feed.
+====================================================================== -->
+<style id="fp-comentarios-pro-css">
+/* ---------- Comentarios rotativos en el feed ---------- */
+.fp-ticker{display:flex;align-items:center;gap:10px;margin:2px 0 8px;padding:6px 10px 6px 7px;min-height:34px;box-sizing:border-box;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.1);border-radius:999px;cursor:pointer;overflow:hidden;-webkit-tap-highlight-color:transparent;color:#fff;font-size:13px;line-height:1.25;text-align:left}
+.fp-ticker[hidden]{display:none}
+.fp-tk-swap{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;transition:opacity .2s ease,transform .2s ease}
+.fp-tk-swap.out{opacity:0;transform:translateY(-8px)}
+.fp-tk-swap.in{animation:fpTkIn .28s ease both}
+@keyframes fpTkIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fp-tk-av{flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#1877f2) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.fp-tk-body{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-tk-name{font-weight:700;margin-right:2px}
+.fp-tk-text{color:rgba(255,255,255,.88)}
+.fp-tk-n{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:rgba(255,255,255,.8);padding-left:8px;border-left:1px solid rgba(255,255,255,.18)}
+.fp-tk-n::before{content:"\1F4AC";font-size:12px}
+@media (prefers-reduced-motion:reduce){.fp-tk-swap.in{animation:none}.fp-tk-swap{transition:none}}
+
+/* ---------- Modal de comentarios moderno ---------- */
+#commentsModal{--cm-bg:#ffffff;--cm-fg:#0f1419;--cm-mut:#6b7280;--cm-line:#eceef1;--cm-chip:#f2f3f5;--cm-acc:#1877f2;--cm-heart:#ed4956}
+body.dark-mode #commentsModal{--cm-bg:#161718;--cm-fg:#f1f3f5;--cm-mut:#9aa0a6;--cm-line:rgba(255,255,255,.08);--cm-chip:#26282b}
+#commentsModal.facebook-comments-modal{background:rgba(8,10,14,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#commentsModal .facebook-comments-sheet{background:var(--cm-bg)!important;color:var(--cm-fg)!important;border-radius:26px 26px 0 0;box-shadow:0 -12px 50px rgba(0,0,0,.35);height:min(86dvh,780px)}
+.fp-cm-grab{width:40px;height:5px;border-radius:99px;background:rgba(128,128,128,.45);margin:9px auto 0;flex:0 0 auto;touch-action:none;cursor:grab}
+#commentsModal .facebook-comments-header{min-height:52px;padding:4px 14px 6px 18px;border-bottom:1px solid var(--cm-line)!important;touch-action:none}
+#commentsModal .facebook-comments-title{font-size:17px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;gap:8px;color:var(--cm-fg)}
+#commentsModal #commentsModalCount{font-size:12px;font-weight:700;background:var(--cm-chip);color:var(--cm-mut);padding:2px 9px;border-radius:99px;line-height:1.5}
+#commentsModal #commentsModalCount:empty{display:none}
+#commentsModal .facebook-comments-close{width:34px;height:34px;background:var(--cm-chip)!important;color:var(--cm-fg)!important;font-size:22px;transition:transform .15s ease}
+#commentsModal .facebook-comments-close:active{transform:scale(.9)}
+#commentsModal .facebook-comments-body{padding:16px 16px 22px}
+#commentsModal #commentsList.facebook-comments-list li{margin:0 0 18px;border-radius:14px;animation:fpCmIn .25s ease both}
+@keyframes fpCmIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#commentsModal #commentsList .comment-content{background:var(--cm-bg)!important;gap:11px}
+#commentsModal .fb-comment-avatar-button,
+#commentsModal .fb-comment-avatar-img,
+#commentsModal .fb-comment-avatar-fallback{width:38px;height:38px;min-width:38px}
+#commentsModal .fb-comment-avatar-fallback{background:linear-gradient(135deg,#7c5cff,#1877f2)}
+#commentsModal .fb-comment-bubble{background:transparent!important;padding:0;border-radius:0;display:block}
+#commentsModal .fb-comment-author{display:inline-block;font-size:13.5px;font-weight:700;color:var(--cm-fg)!important;margin:0 0 2px}
+#commentsModal .fb-comment-text{font-size:14.5px;line-height:1.42;color:var(--cm-fg)!important}
+#commentsModal .fb-comment-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 16px;margin:6px 0 0;color:var(--cm-mut)!important;font-size:12px;font-weight:500}
+#commentsModal .fb-comment-meta .fp-reply{margin:0;padding:2px 0;font-size:12px;font-weight:700;color:var(--cm-mut)}
+#commentsModal .fb-comment-meta .fp-like.on{color:var(--cm-heart)}
+#commentsModal #commentsList > li.fp-reply-li{margin-left:48px!important;padding-left:0!important;border-left:none!important}
+#commentsModal #commentsList > li.fp-reply-li .fb-comment-avatar-button,
+#commentsModal #commentsList > li.fp-reply-li .fb-comment-avatar-img,
+#commentsModal #commentsList > li.fp-reply-li .fb-comment-avatar-fallback{width:28px;height:28px;min-width:28px}
+#commentsModal .delete-btn-container{background:#ef4444;border-radius:14px}
+#commentsModal .fb-comments-empty{flex-direction:column;gap:8px;min-height:260px;color:var(--cm-mut)!important;font-size:14.5px;font-weight:600}
+#commentsModal .fb-comments-empty::before{content:"\1F4AC";font-size:46px;line-height:1}
+/* Barra inferior: reacciones rápidas + campo en cápsula */
+#commentsModal .comment-input-container{background:var(--cm-bg)!important;border-top:1px solid var(--cm-line)!important;padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
+.fp-cm-emojis{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 9px;scrollbar-width:none}
+.fp-cm-emojis::-webkit-scrollbar{display:none}
+.fp-cm-emojis button{flex:0 0 auto;border:0;background:var(--cm-chip);width:38px;height:38px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer;padding:0;transition:transform .12s ease}
+.fp-cm-emojis button:active{transform:scale(.86)}
+#commentsModal .comment-input-wrapper{background:var(--cm-chip)!important;border:1.5px solid transparent!important;border-radius:999px;padding:4px 5px 4px 6px;gap:8px;transition:border-color .15s ease}
+#commentsModal .comment-input-wrapper:focus-within{border-color:var(--cm-acc)!important}
+.fp-cm-me{flex:0 0 32px;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#1877f2) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
+#commentsModal .comment-input-wrapper input{font-size:16px;padding:8px 4px;color:var(--cm-fg)!important}
+#commentsModal .comment-input-wrapper input::placeholder{color:var(--cm-mut)!important}
+#commentsModal .comment-input-wrapper button.send-comment-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;font-size:15px;background:transparent!important;color:var(--cm-mut)!important;transition:background .15s ease,color .15s ease,transform .12s ease}
+#commentsModal .comment-input-container.fp-has-text .send-comment-btn{background:var(--cm-acc)!important;color:#fff!important}
+#commentsModal .comment-input-container.fp-has-text .send-comment-btn:active{transform:scale(.9)}
+@media (min-width:769px){
+  #commentsModal .facebook-comments-sheet{border-radius:22px;height:min(80vh,740px)}
+}
+</style>
+<script id="fp-comentarios-pro-js">
+(function(){
+  'use strict';
+  if(window.__fpComPro)return;window.__fpComPro=1;
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var reduce=false;try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+  var fotos=new Map();
+
+  function anuncios(){try{return Array.isArray(anunciosData)?anunciosData:[]}catch(e){return[]}}
+  function inicial(n){n=String(n||'?').trim();return (n.charAt(0)||'?').toUpperCase()}
+  function ts(f){try{var d=parseFechaComentario(f);return d?d.getTime():0}catch(e){return 0}}
+
+  /* Foto de perfil con caché; si no hay, queda la inicial */
+  function ponerFoto(el,correo,nombre){
+    var key=String(correo||nombre||'').toLowerCase();
+    el.dataset.k=key;
+    if(fotos.has(key)){aplicar(el,fotos.get(key));return}
+    if(typeof resolveFotoPerfil!=='function')return;
+    Promise.resolve(resolveFotoPerfil(correo,nombre)).then(function(u){
+      u=(typeof u==='string')?u:'';fotos.set(key,u);
+      if(el.dataset.k===key)aplicar(el,u);
+    }).catch(function(){});
+  }
+  function aplicar(el,url){
+    if(url){el.style.backgroundImage='url("'+String(url).replace(/"/g,'%22')+'")';el.textContent=''}
+  }
+
+  /* ---------- Comentarios rotativos ---------- */
+  function lista(a){
+    var arr=Array.isArray(a&&a.comentarios)?a.comentarios:[];
+    var out=arr.filter(function(c){return c&&!c.parent_id&&String(c.textoPuro||'').trim()});
+    out.sort(function(x,y){return ts(y.fechaOriginal)-ts(x.fechaOriginal)});
+    return out.slice(0,12);
+  }
+  function crear(){
+    var t=document.createElement('div');
+    t.className='fp-ticker';t.hidden=true;
+    t.setAttribute('role','button');t.setAttribute('aria-label','Ver comentarios');
+    t.innerHTML='<span class="fp-tk-swap"><span class="fp-tk-av"></span><span class="fp-tk-body"><b class="fp-tk-name"></b><span class="fp-tk-text"></span></span></span><span class="fp-tk-n"></span>';
+    t.addEventListener('click',function(e){
+      e.preventDefault();e.stopPropagation();
+      var sl=t.closest('.swiper-slide');
+      if(sl&&!sl.classList.contains('swiper-slide-active'))return;
+      var b=document.getElementById('commentsCounter');if(b)b.click();
+    });
+    return t;
+  }
+  function pintar(t,c){
+    var av=$('.fp-tk-av',t);
+    $('.fp-tk-name',t).textContent=c.autor||'Anónimo';
+    $('.fp-tk-text',t).textContent=' '+String(c.textoPuro||'').replace(/\s+/g,' ').trim();
+    av.style.backgroundImage='';av.textContent=inicial(c.autor);
+    ponerFoto(av,String(c.autorCorreo||''),c.autor);
+  }
+  function mostrar(t,c,animar){
+    var sw=$('.fp-tk-swap',t);
+    if(!animar||reduce){pintar(t,c);return}
+    sw.classList.remove('in');sw.classList.add('out');
+    setTimeout(function(){
+      pintar(t,c);sw.classList.remove('out');sw.classList.add('in');
+      setTimeout(function(){sw.classList.remove('in')},320);
+    },200);
+  }
+  function sync(){
+    var mapa=new Map();
+    anuncios().forEach(function(a){if(a&&a.id!==null&&a.id!==undefined)mapa.set(String(a.id),a)});
+    Array.prototype.forEach.call(document.querySelectorAll('.swiper-slide[data-id]'),function(sl){
+      var f=sl.querySelector('.feed-post-footer');if(!f)return;
+      var a=mapa.get(String(sl.dataset.id));if(!a)return;
+      var t=f.querySelector(':scope > .fp-ticker');
+      var l=lista(a);
+      if(!l.length){if(t)t.hidden=true;return}
+      if(!t){
+        t=crear();
+        var acc=f.querySelector(':scope > .feed-post-actions');
+        if(acc)f.insertBefore(t,acc);else f.appendChild(t);
+      }
+      var total=Array.isArray(a.comentarios)?a.comentarios.length:l.length;
+      $('.fp-tk-n',t).textContent=total;
+      var firma=l.map(function(c){return c.id+':'+(c.textoPuro||'').length}).join(',');
+      t._lista=l;
+      if(t._firma!==firma){t._firma=firma;t._i=0;mostrar(t,l[0],false)}
+      t.hidden=false;
+    });
+  }
+  function rotar(){
+    if(document.hidden)return;
+    var m=document.getElementById('commentsModal');
+    if(m&&m.classList.contains('open'))return;
+    var sl=document.querySelector('.swiper-slide-active');if(!sl)return;
+    var t=sl.querySelector('.fp-ticker');
+    if(!t||t.hidden||!t._lista||t._lista.length<2)return;
+    t._i=((t._i||0)+1)%t._lista.length;
+    mostrar(t,t._lista[t._i],true);
+  }
+  setInterval(sync,800);
+  setInterval(rotar,4500);
+
+  /* ---------- Modal de comentarios ---------- */
+  function modal(){
+    var m=document.getElementById('commentsModal');
+    if(!m||m.dataset.fpPro)return;
+    m.dataset.fpPro='1';
+    var sheet=$('.facebook-comments-sheet',m),head=$('.facebook-comments-header',m);
+    var inp=document.getElementById('commentInput'),cont=document.getElementById('commentInputContainer');
+    if(!sheet||!head||!inp||!cont)return;
+
+    inp.placeholder='Añade un comentario…';
+
+    var grab=document.createElement('div');grab.className='fp-cm-grab';
+    sheet.insertBefore(grab,sheet.firstChild);
+
+    /* contador como número limpio (sin paréntesis) */
+    var c=document.getElementById('commentsModalCount');
+    if(c){
+      var limpiar=function(){var r=/^\((\d+)\)$/.exec(c.textContent.trim());if(r)c.textContent=r[1]};
+      new MutationObserver(limpiar).observe(c,{childList:true,characterData:true,subtree:true});
+      limpiar();
+    }
+
+    /* reacciones rápidas */
+    var bar=document.createElement('div');bar.className='fp-cm-emojis';
+    ['❤️','🙌','🔥','👏','😢','😍','😮','😂'].forEach(function(e){
+      var b=document.createElement('button');b.type='button';b.textContent=e;b.setAttribute('aria-label','Añadir '+e);
+      b.addEventListener('click',function(ev){
+        ev.stopPropagation();
+        inp.value+=e;
+        inp.dispatchEvent(new Event('input',{bubbles:true}));
+        inp.focus();estado();
+      });
+      bar.appendChild(b);
+    });
+    cont.insertBefore(bar,cont.firstChild);
+
+    /* mi avatar dentro del campo */
+    var wrap=$('.comment-input-wrapper',cont),yo=document.createElement('span');
+    yo.className='fp-cm-me';
+    if(wrap)wrap.insertBefore(yo,wrap.firstChild);
+
+    function estado(){cont.classList.toggle('fp-has-text',inp.value.trim().length>0)}
+    inp.addEventListener('input',estado);
+    var sendBtn=$('.send-comment-btn',cont);
+    if(sendBtn)sendBtn.addEventListener('click',function(){setTimeout(estado,80);setTimeout(estado,500)});
+    inp.addEventListener('keydown',function(){setTimeout(estado,80)});
+
+    function alAbrir(){
+      var correo='';try{correo=currentAuthorEmail||''}catch(e){}
+      yo.style.backgroundImage='';yo.textContent=inicial(correo);
+      if(correo)ponerFoto(yo,correo,'');
+      sheet.style.transform='';sheet.style.transition='';
+      estado();
+    }
+    new MutationObserver(function(){if(m.classList.contains('open'))alAbrir()}).observe(m,{attributes:true,attributeFilter:['class']});
+    setInterval(function(){if(m.classList.contains('open'))estado()},500);
+
+    /* arrastrar hacia abajo para cerrar */
+    var y0=null,dy=0;
+    function down(e){
+      if(e.target.closest&&e.target.closest('.facebook-comments-close'))return;
+      y0=e.clientY;dy=0;sheet.style.transition='none';
+      try{e.currentTarget.setPointerCapture(e.pointerId)}catch(x){}
+    }
+    function move(e){
+      if(y0===null)return;
+      dy=Math.max(0,e.clientY-y0);sheet.style.transform='translateY('+dy+'px)';
+    }
+    function up(){
+      if(y0===null)return;
+      var cerrar=dy>110;y0=null;
+      sheet.style.transition='transform .2s ease';
+      if(cerrar){
+        sheet.style.transform='translateY(100%)';
+        setTimeout(function(){
+          var x=document.getElementById('closeCommentsModal');if(x)x.click();
+          sheet.style.transform='';sheet.style.transition='';
+        },200);
+      }else{
+        sheet.style.transform='';
+        setTimeout(function(){sheet.style.transition=''},220);
+      }
+    }
+    [grab,head].forEach(function(el){
+      el.addEventListener('pointerdown',down);
+      el.addEventListener('pointermove',move);
+      el.addEventListener('pointerup',up);
+      el.addEventListener('pointercancel',up);
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',modal);else modal();
+})();
+</script>
+
 </body>
 </html>
