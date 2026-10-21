@@ -31891,5 +31891,544 @@ body.dark-mode #commentsModal{--cm-bg:#161718;--cm-fg:#f1f3f5;--cm-mut:#9aa0a6;-
 /* 3) Solo la franja inferior separa esta publicación de la siguiente */
 .swiper-slide .feed-post-footer:not(.fp-exp){border-bottom:12px solid var(--dc-line)}
 </style>
+
+<!-- ======================================================================
+     SINCRONÍA: qué tan parecidos son dos perfiles según lo que les gusta.
+     Módulo independiente: no modifica el feed, las historias, el chat ni
+     las notificaciones. Solo LEE las tablas likes, comentarios, seguidores,
+     publicaciones, usuarios y bloqueos (no crea ni escribe nada en Supabase).
+     Entradas: botón en el perfil de otra persona y "Mi sincronía" en el menú.
+     Si algo falla, el resto de la app sigue funcionando igual.
+====================================================================== -->
+<style id="fpSincCSS">
+#fpSinc{--s-bg:#fff;--s-card:#f0f2f5;--s-tx:#1c1e21;--s-sub:#65676b;--s-line:#e4e6eb;--s-acc:#6366f1;position:fixed;inset:0;display:flex;justify-content:center;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--s-tx);-webkit-tap-highlight-color:transparent;animation:fpsFade .2s ease}
+body.dark-mode #fpSinc{--s-bg:#18191a;--s-card:#242526;--s-tx:#e4e6eb;--s-sub:#b0b3b8;--s-line:#3a3b3c;--s-acc:#818cf8}
+#fpSinc,#fpSinc *{box-sizing:border-box}
+@keyframes fpsFade{from{opacity:0}to{opacity:1}}
+@keyframes fpsUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fpsPop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes fpsPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.35)}50%{box-shadow:0 0 0 10px rgba(255,255,255,0)}}
+@keyframes fpsShim{to{background-position:-200% 0}}
+#fpSinc .fps-sheet{width:100%;max-width:520px;height:100%;background:var(--s-bg);display:flex;flex-direction:column;overflow:hidden;animation:fpsUp .25s ease}
+#fpSinc .fps-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;border-bottom:1px solid var(--s-line);flex:0 0 auto}
+#fpSinc .fps-x{flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:0;background:var(--s-card);color:var(--s-tx);font-size:16px;cursor:pointer}
+#fpSinc .fps-top b{flex:1;font-size:17px;font-weight:800}
+#fpSinc .fps-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px 14px calc(26px + env(safe-area-inset-bottom,0px))}
+
+/* Tarjeta principal */
+#fpSinc .fps-hero{position:relative;overflow:hidden;border-radius:24px;padding:22px 12px 20px;text-align:center;color:#fff;background:linear-gradient(135deg,#4f46e5,#9333ea 55%,#ec4899);box-shadow:0 10px 30px rgba(147,51,234,.32)}
+#fpSinc .fps-hero::before,#fpSinc .fps-hero::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.10);pointer-events:none}
+#fpSinc .fps-hero::before{width:190px;height:190px;left:-70px;top:-70px}
+#fpSinc .fps-hero::after{width:230px;height:230px;right:-90px;bottom:-110px}
+#fpSinc .fps-hero-k{position:relative;font-size:11.5px;font-weight:800;letter-spacing:3px;opacity:.85;margin-bottom:12px}
+#fpSinc .fps-duo{position:relative;display:flex;align-items:center;justify-content:center;gap:4px}
+#fpSinc .fps-who{flex:0 0 84px;min-width:0}
+#fpSinc .fps-av{width:68px;height:68px;margin:0 auto;border-radius:50%;border:3px solid rgba(255,255,255,.9);background:#cfd8e6 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:24px}
+#fpSinc .fps-av.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff)}
+#fpSinc .fps-who span{display:block;margin-top:7px;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fpSinc .fps-ring{position:relative;flex:0 0 152px;width:152px;height:152px}
+#fpSinc .fps-ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
+#fpSinc .fps-ring .t{fill:none;stroke:rgba(255,255,255,.25);stroke-width:11}
+#fpSinc .fps-ring .p{fill:none;stroke:#fff;stroke-width:11;stroke-linecap:round}
+#fpSinc .fps-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;letter-spacing:-1px}
+#fpSinc .fps-pct small{font-size:20px;font-weight:800;margin-left:1px;margin-top:8px}
+#fpSinc .fps-lvl{position:relative;margin-top:14px}
+#fpSinc .fps-lvl b{display:block;font-size:21px;font-weight:900}
+#fpSinc .fps-lvl span{display:block;margin-top:3px;font-size:13.5px;opacity:.92;line-height:1.35}
+#fpSinc .fps-lvl .e{display:inline-block;font-size:30px;margin-bottom:2px;animation:fpsPop .6s ease both .5s}
+#fpSinc .fps-mutuo{position:relative;display:inline-block;margin-top:10px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.2);font-size:12px;font-weight:800}
+
+/* Datos */
+#fpSinc .fps-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 4px}
+#fpSinc .fps-stat{background:var(--s-card);border-radius:16px;padding:12px 6px;text-align:center}
+#fpSinc .fps-stat b{display:block;font-size:22px;font-weight:900;color:var(--s-tx)}
+#fpSinc .fps-stat span{display:block;margin-top:2px;font-size:11.5px;line-height:1.25;color:var(--s-sub)}
+#fpSinc .fps-h{margin:20px 2px 10px;font-size:14px;font-weight:800;color:var(--s-tx)}
+#fpSinc .fps-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#fpSinc .fps-th{aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--s-card);display:flex;align-items:center;justify-content:center;color:var(--s-sub);font-size:22px}
+#fpSinc .fps-th img{width:100%;height:100%;object-fit:cover;display:block}
+#fpSinc .fps-people{display:flex;flex-wrap:wrap;gap:8px}
+#fpSinc .fps-pp{display:flex;align-items:center;gap:7px;max-width:100%;padding:5px 12px 5px 5px;border-radius:999px;background:var(--s-card);font-size:13px;font-weight:700;color:var(--s-tx)}
+#fpSinc .fps-pp i{flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:#cfd8e6 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font:800 10px system-ui,sans-serif;font-style:normal}
+#fpSinc .fps-pp i.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff)}
+#fpSinc .fps-pp span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Botones */
+#fpSinc .fps-acts{display:grid;gap:10px;margin-top:22px}
+#fpSinc .fps-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border:0;border-radius:14px;padding:12px 14px;font:800 15px system-ui,sans-serif;cursor:pointer;background:var(--s-card);color:var(--s-tx)}
+#fpSinc .fps-btn.pri{color:#fff;background:linear-gradient(135deg,#6366f1,#a855f7 55%,#ec4899)}
+#fpSinc .fps-btn:disabled{opacity:.6}
+#fpSinc .fps-nota{margin:16px 6px 0;text-align:center;font-size:11.5px;line-height:1.4;color:var(--s-sub)}
+
+/* Estados */
+#fpSinc .fps-vacio{padding:36px 18px;text-align:center;color:var(--s-sub);line-height:1.5}
+#fpSinc .fps-vacio .big{display:block;font-size:44px;margin-bottom:10px}
+#fpSinc .fps-vacio b{display:block;margin-bottom:6px;font-size:18px;color:var(--s-tx)}
+#fpSinc .fps-prog{height:10px;border-radius:99px;background:var(--s-card);overflow:hidden;margin:16px auto 6px;max-width:260px}
+#fpSinc .fps-prog i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#ec4899)}
+#fpSinc .fps-sk{height:230px;border-radius:24px;background:linear-gradient(110deg,var(--s-card) 30%,var(--s-line) 50%,var(--s-card) 70%);background-size:200% 100%;animation:fpsShim 1.3s linear infinite}
+
+/* Ranking */
+#fpSinc .fps-intro{margin:0 2px 12px;font-size:13.5px;line-height:1.45;color:var(--s-sub)}
+#fpSinc .fps-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 8px;border:0;border-bottom:1px solid var(--s-line);background:none;text-align:left;color:var(--s-tx);font-family:inherit;cursor:pointer}
+#fpSinc .fps-row:last-child{border-bottom:0}
+#fpSinc .fps-rk{flex:0 0 22px;text-align:center;font-size:14px;font-weight:900;color:var(--s-sub)}
+#fpSinc .fps-row.top .fps-rk{font-size:18px}
+#fpSinc .fps-rav{flex:0 0 48px;width:48px;height:48px;border-radius:50%;background:#cfd8e6 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px}
+#fpSinc .fps-rav.ini{background:linear-gradient(135deg,#1a73e8,#6c63ff)}
+#fpSinc .fps-rin{flex:1;min-width:0}
+#fpSinc .fps-rin b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fpSinc .fps-rin small{display:block;margin-top:1px;font-size:12px;color:var(--s-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fpSinc .fps-bar{height:6px;border-radius:99px;background:var(--s-card);margin-top:6px;overflow:hidden}
+#fpSinc .fps-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#ec4899)}
+#fpSinc .fps-rp{flex:0 0 auto;font-size:18px;font-weight:900;color:var(--s-acc)}
+
+/* Botón dentro del perfil y del menú */
+#fpPerfilPro .fpp-btn.fps-btn-perfil{grid-column:1/-1;color:#fff;background:linear-gradient(135deg,#6366f1,#a855f7 55%,#ec4899)}
+@media (prefers-reduced-motion:reduce){#fpSinc,#fpSinc *{animation:none!important}}
+</style>
+
+<script id="fpSincJS">
+(function(){
+'use strict';
+if(window.__fpSinc)return;window.__fpSinc=1;
+
+var Z=2147482400,MIN=3,reduce=false;
+try{reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+
+/* ---------- utilidades ---------- */
+function $(s,r){return (r||document).querySelector(s)}
+function norm(x){return String(x||'').trim().toLowerCase()}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function ic(c){var i=document.createElement('i');i.className=c;i.setAttribute('aria-hidden','true');return i}
+function sb(){try{return supabaseClient}catch(e){return null}}
+function miRaw(){try{if(usuarioActual&&usuarioActual.correo)return String(usuarioActual.correo).trim()}catch(e){}try{return String(currentAuthorEmail||'').trim()}catch(e){}return ''}
+function yo(){return norm(miRaw())}
+function urlOk(u){return /^(https?:|data:|blob:)/.test(String(u||''))}
+function bg(e,u){e.style.backgroundImage='url("'+String(u).replace(/["\\()\s]/g,function(c){var h=c.charCodeAt(0).toString(16).toUpperCase();return '%'+(h.length<2?'0':'')+h})+'")'}
+function ini(n){var p=String(n||'?').trim().split(/\s+/);return ((p[0]||'?').charAt(0)+(p[1]?p[1].charAt(0):'')).toUpperCase()}
+function primerNombre(n){return String(n||'').trim().split(/\s+/)[0]||'Alguien'}
+function toast(t){var e=$('#fpToast');if(!e){e=document.createElement('div');e.id='fpToast';document.body.appendChild(e)}e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove('show')},2600)}
+function avatarEl(tag,cls,nombre,foto){var a=el(tag,cls);if(urlOk(foto)){bg(a,foto)}else{a.classList.add('ini');a.textContent=ini(nombre)}return a}
+
+/* ---------- carga de datos (solo lectura, con caché de 2 minutos) ---------- */
+var DS=null,DSP=null,DST=0;
+
+async function paginar(tabla,cols,orden){
+  var c=sb();if(!c)return null;
+  var out=[];
+  for(var p=0;p<15;p++){
+    var r=null;
+    for(var intento=0;intento<2;intento++){
+      try{
+        var qy=c.from(tabla).select(cols);
+        if(orden&&intento===0)qy=qy.order(orden,{ascending:true});
+        r=await qy.range(p*1000,p*1000+999);
+      }catch(e){r={error:e}}
+      if(!r.error)break;
+    }
+    if(r.error)return p?out:null;
+    var d=r.data||[];out=out.concat(d);
+    if(d.length<1000)break;
+  }
+  return out;
+}
+
+async function cargar(force){
+  if(!force&&DS&&Date.now()-DST<120000)return DS;
+  if(DSP)return DSP;
+  DSP=(async function(){
+    try{
+      var c=sb();if(!c)return null;
+      var me=yo();
+      var res=await Promise.all([
+        paginar('likes','publicacion_id,correo','id'),
+        paginar('comentarios','publicacion_id,correo','id'),
+        paginar('seguidores','seguidor_correo,seguido_correo'),
+        paginar('publicaciones','*','id'),
+        paginar('usuarios','correo,nombre,foto_perfil'),
+        (async function(){try{var a=await c.from('bloqueos').select('bloqueado_correo').eq('bloqueador_correo',me);var b=await c.from('bloqueos').select('bloqueador_correo').eq('bloqueado_correo',me);var s=new Set();(a.data||[]).forEach(function(x){s.add(norm(x.bloqueado_correo))});(b.data||[]).forEach(function(x){s.add(norm(x.bloqueador_correo))});return s}catch(e){return new Set()}})()
+      ]);
+      if(res[0]===null&&res[1]===null)return null;
+      var likes=res[0]||[],coms=res[1]||[],segs=res[2]||[],pubs=res[3]||[],usrs=res[4]||[],bloq=res[5]||new Set();
+      var pubInfo={},pubAutor={};
+      pubs.forEach(function(p){var id=String(p.id);pubInfo[id]=p;pubAutor[id]=norm(p.correo)});
+      try{anunciosData.forEach(function(a){var id=String(a.id);if(!pubInfo[id]){pubInfo[id]=a;pubAutor[id]=norm(a.correo)}})}catch(e){}
+      var users={};
+      usrs.forEach(function(u){var k=norm(u.correo);if(k)users[k]={correo:u.correo,nombre:u.nombre,foto:u.foto_perfil}});
+      var V={};
+      function g(k){return V[k]||(V[k]={p:new Map(),a:new Map(),f:new Set(),np2:0,na2:0})}
+      function add(r){var k=norm(r.correo),id=String(r.publicacion_id==null?'':r.publicacion_id);if(!k||!id)return;var m=g(k).p;m.set(id,Math.min(2,(m.get(id)||0)+1))}
+      likes.forEach(add);coms.forEach(add);
+      Object.keys(V).forEach(function(k){
+        var u=V[k];
+        u.p.forEach(function(w,id){u.np2+=w*w;var au=pubAutor[id];if(au&&au!==k)u.a.set(au,(u.a.get(au)||0)+w)});
+        u.a.forEach(function(w){u.na2+=w*w});
+      });
+      segs.forEach(function(r){var a=norm(r.seguidor_correo),b=norm(r.seguido_correo);if(a&&b&&a!==b)g(a).f.add(b)});
+      DS={V:V,users:users,pubInfo:pubInfo,bloq:bloq};DST=Date.now();
+      return DS;
+    }catch(e){console.warn('Sincronía:',e);return null}
+    finally{DSP=null}
+  })();
+  return DSP;
+}
+
+/* ---------- cálculo ---------- */
+function cosMap(A,B,na2,nb2){
+  if(!na2||!nb2)return 0;
+  var s=A.size<=B.size?A:B,o=s===A?B:A,dot=0;
+  s.forEach(function(w,k){var v=o.get(k);if(v)dot+=w*v});
+  return dot/Math.sqrt(na2*nb2);
+}
+function cosSet(A,B){
+  if(!A.size||!B.size)return 0;
+  var s=A.size<=B.size?A:B,o=s===A?B:A,n=0;
+  s.forEach(function(k){if(o.has(k))n++});
+  return n/Math.sqrt(A.size*B.size);
+}
+function comparar(D,ka,kb){
+  var A=D.V[ka],B=D.V[kb];
+  var r={ka:ka,kb:kb,nA:A?A.p.size:0,nB:B?B.p.size:0,min:MIN};
+  if(r.nA<MIN||r.nB<MIN){r.estado='pocos';return r}
+  var comps=[[.45,cosMap(A.p,B.p,A.np2,B.np2)]];
+  if(A.a.size&&B.a.size)comps.push([.35,cosMap(A.a,B.a,A.na2,B.na2)]);
+  if(A.f.size&&B.f.size)comps.push([.20,cosSet(A.f,B.f)]);
+  var sw=0,raw=0;comps.forEach(function(c){sw+=c[0];raw+=c[0]*c[1]});raw=raw/sw;
+  var mn=Math.min(r.nA,r.nB),conf=mn/(mn+4);
+  r.pct=Math.min(99,Math.round(100*Math.sqrt(raw*conf)));
+  r.estado='ok';
+  r.pubs=[];A.p.forEach(function(w,id){var wb=B.p.get(id);if(wb)r.pubs.push({id:id,w:w+wb})});
+  r.pubs.sort(function(x,y){return y.w-x.w});
+  r.aut=[];A.a.forEach(function(w,au){var wb=B.a.get(au);if(wb)r.aut.push({k:au,w:Math.min(w,wb)})});
+  r.aut.sort(function(x,y){return y.w-x.w});
+  r.seg=[];A.f.forEach(function(k){if(B.f.has(k)&&k!==ka&&k!==kb)r.seg.push(k)});
+  r.mutuo=A.f.has(kb)&&B.f.has(ka);
+  return r;
+}
+function nivel(p){
+  if(p>=85)return {e:'🔮',t:'Gemelos del feed',d:'Casi piensan igual. Esto es rarísimo.'};
+  if(p>=70)return {e:'🔥',t:'Misma vibra',d:'Les gusta lo mismo y se nota.'};
+  if(p>=50)return {e:'🎧',t:'Buena sintonía',d:'Coinciden en bastante más de lo que creen.'};
+  if(p>=30)return {e:'⚡',t:'Hay química',d:'Tienen gustos en común para empezar a hablar.'};
+  if(p>=10)return {e:'🌱',t:'Se están conociendo',d:'Aún hay poco en común, pero ahí va.'};
+  return {e:'🪐',t:'Mundos distintos',d:'Por ahora van por caminos diferentes.'};
+}
+function infoDe(D,k,extra){
+  var u=D&&D.users[k];
+  var nombre=(u&&u.nombre)||(extra&&extra.nombre)||'';
+  var foto=(u&&u.foto)||(extra&&extra.foto)||'';
+  if(!nombre){try{if(k===yo()&&usuarioActual&&usuarioActual.nombre)nombre=usuarioActual.nombre}catch(e){}}
+  if(!nombre)nombre=String(k).split('@')[0]||'Alguien';
+  return {correo:k,nombre:nombre,foto:foto};
+}
+function thumbDe(p){
+  if(!p)return '';
+  if(p.tipo_media==='video'||p.youtube_id){
+    if(urlOk(p.thumbnail))return p.thumbnail;
+    if(p.youtube_id)return 'https://img.youtube.com/vi/'+encodeURIComponent(p.youtube_id)+'/hqdefault.jpg';
+    return '';
+  }
+  return urlOk(p.url_media)?p.url_media:(urlOk(p.thumbnail)?p.thumbnail:'');
+}
+
+/* ---------- panel ---------- */
+var keyH=null;
+function cerrar(){
+  if(keyH){document.removeEventListener('keydown',keyH,true);keyH=null}
+  var r=document.getElementById('fpSinc');if(r)r.remove();
+}
+function panel(titulo){
+  cerrar();
+  var root=el('div');root.id='fpSinc';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',titulo);
+  root.style.zIndex=Z;
+  root.addEventListener('click',function(e){if(e.target===root)cerrar()});
+  var sheet=el('div','fps-sheet'),top=el('div','fps-top');
+  var x=el('button','fps-x');x.type='button';x.setAttribute('aria-label','Cerrar');x.appendChild(ic('fas fa-arrow-left'));x.onclick=cerrar;
+  top.append(x,el('b',null,titulo));
+  var sc=el('div','fps-scroll');
+  sheet.append(top,sc);root.appendChild(sheet);document.body.appendChild(root);
+  keyH=function(e){if(e.key==='Escape'&&document.getElementById('fpSinc')){e.preventDefault();e.stopImmediatePropagation();cerrar()}};
+  document.addEventListener('keydown',keyH,true);
+  return {root:root,sc:sc,vivo:function(){return document.getElementById('fpSinc')===root}};
+}
+function esqueleto(P){P.sc.textContent='';P.sc.appendChild(el('div','fps-sk'))}
+function errorUI(P,reintentar){
+  P.sc.textContent='';
+  var v=el('div','fps-vacio');
+  v.append(el('span','big','📡'),el('b',null,'No se pudo calcular'),document.createTextNode('Revisa tu conexión e inténtalo otra vez.'));
+  var b=el('button','fps-btn pri','Reintentar');b.type='button';b.style.marginTop='16px';
+  b.onclick=function(){reintentar()};v.appendChild(b);P.sc.appendChild(v);
+}
+function pocosUI(P,r,nombreOtro){
+  P.sc.textContent='';
+  var v=el('div','fps-vacio');
+  var yoN=Math.min(r.nA,MIN),otroN=Math.min(r.nB,MIN);
+  var yoFalta=r.nA<MIN;
+  v.append(el('span','big','🔒'),el('b',null,'La sincronía se desbloquea con más actividad'));
+  v.appendChild(document.createTextNode(yoFalta
+    ?'Dale me gusta o comenta '+(MIN-r.nA)+(MIN-r.nA===1?' publicación más':' publicaciones más')+' para descubrir qué tan sincronizado estás.'
+    :primerNombre(nombreOtro)+' todavía no ha interactuado lo suficiente con publicaciones. Cuando lo haga, podrás ver su sincronía.'));
+  var pr=el('div','fps-prog'),bar=el('i');bar.style.width=Math.round(100*(yoFalta?yoN:otroN)/MIN)+'%';pr.appendChild(bar);v.appendChild(pr);
+  v.appendChild(el('small',null,(yoFalta?'Tú: ':'Su actividad: ')+(yoFalta?yoN:otroN)+' de '+MIN));
+  if(yoFalta){var b=el('button','fps-btn pri','Ir a las publicaciones');b.type='button';b.style.marginTop='18px';b.onclick=cerrar;v.appendChild(b)}
+  P.sc.appendChild(v);
+}
+
+/* ---------- vista de pareja ---------- */
+function animarAnillo(C,num,pct){
+  var circ=2*Math.PI*60;C.style.strokeDasharray=circ;C.style.strokeDashoffset=circ;
+  var t0=null,dur=reduce?0:1100;
+  function f(t){
+    if(t0===null)t0=t;
+    var k=dur?Math.min(1,(t-t0)/dur):1,e=1-Math.pow(1-k,3);
+    C.style.strokeDashoffset=circ*(1-(pct/100)*e);
+    num.textContent=Math.round(pct*e);
+    if(k<1&&document.body.contains(C))requestAnimationFrame(f);
+  }
+  requestAnimationFrame(f);
+}
+function seccionPersonas(P,titulo,keys,D){
+  if(!keys.length)return;
+  P.sc.appendChild(el('div','fps-h',titulo));
+  var w=el('div','fps-people');
+  keys.slice(0,8).forEach(function(k){
+    var u=infoDe(D,k),p=el('div','fps-pp'),i=el('i');
+    if(urlOk(u.foto))bg(i,u.foto);else{i.classList.add('ini');i.textContent=ini(u.nombre)}
+    p.append(i,el('span',null,u.nombre));w.appendChild(p);
+  });
+  P.sc.appendChild(w);
+}
+function pintarPar(P,D,r,A,B){
+  var sc=P.sc;sc.textContent='';
+  if(r.estado==='pocos')return pocosUI(P,r,B.nombre);
+  var nv=nivel(r.pct);
+  var hero=el('div','fps-hero');
+  hero.appendChild(el('div','fps-hero-k','SINCRONÍA'));
+  var duo=el('div','fps-duo');
+  var wa=el('div','fps-who');wa.append(avatarEl('div','fps-av',A.nombre,A.foto),el('span',null,'Tú'));
+  var wb=el('div','fps-who');wb.append(avatarEl('div','fps-av',B.nombre,B.foto),el('span',null,primerNombre(B.nombre)));
+  var ring=el('div','fps-ring');
+  ring.innerHTML='<svg viewBox="0 0 140 140" aria-hidden="true"><circle class="t" cx="70" cy="70" r="60"></circle><circle class="p" cx="70" cy="70" r="60"></circle></svg>';
+  var pc=el('div','fps-pct'),num=el('span','0'),sm=el('small','%');pc.append(num,sm);ring.appendChild(pc);
+  ring.setAttribute('role','img');ring.setAttribute('aria-label','Sincronía del '+r.pct+' por ciento');
+  duo.append(wa,ring,wb);hero.appendChild(duo);
+  var lv=el('div','fps-lvl'),e=el('span','e',nv.e);lv.append(e,el('b',null,nv.t),el('span',null,nv.d));hero.appendChild(lv);
+  if(r.mutuo)hero.appendChild(el('div','fps-mutuo','🤝 Se siguen mutuamente'));
+  sc.appendChild(hero);
+  animarAnillo($('.p',ring),num,r.pct);
+
+  var st=el('div','fps-stats');
+  [[r.pubs.length,'publicaciones que les gustaron a ambos'],[r.aut.length,'autores en común'],[r.seg.length,'personas que siguen los dos']].forEach(function(s){
+    var c=el('div','fps-stat');c.append(el('b',null,String(s[0])),el('span',null,s[1]));st.appendChild(c);
+  });
+  sc.appendChild(st);
+
+  if(r.pubs.length){
+    sc.appendChild(el('div','fps-h','Lo que les gustó a los dos'));
+    var tg=el('div','fps-thumbs');
+    r.pubs.slice(0,6).forEach(function(x){
+      var p=D.pubInfo[x.id],t=thumbDe(p),c=el('div','fps-th');
+      if(t){var im=document.createElement('img');im.loading='lazy';im.decoding='async';im.alt=(p&&p.titulo)||'Publicación';im.src=t;im.onerror=function(){im.remove();c.appendChild(ic('fas fa-image'))};c.appendChild(im)}
+      else c.appendChild(ic('fas fa-image'));
+      tg.appendChild(c);
+    });
+    sc.appendChild(tg);
+  }
+  seccionPersonas(P,'Autores que los unen',r.aut.map(function(x){return x.k}),D);
+  seccionPersonas(P,'Siguen a las mismas personas',r.seg,D);
+
+  var acts=el('div','fps-acts');
+  var sh=el('button','fps-btn pri');sh.type='button';sh.append(ic('fas fa-share-nodes'),document.createTextNode('Compartir mi sincronía'));
+  sh.onclick=function(){compartir(r,A,B,sh)};
+  var rk=el('button','fps-btn');rk.type='button';rk.append(ic('fas fa-ranking-star'),document.createTextNode('Ver con quién más conecto'));
+  rk.onclick=function(){abrirRanking()};
+  acts.append(sh,rk);sc.appendChild(acts);
+  sc.appendChild(el('div','fps-nota','Se calcula con los me gusta, comentarios y personas que siguen. Cambia cuando interactúas.'));
+}
+async function abrirPar(u){
+  try{
+    var P=panel('Sincronía');esqueleto(P);
+    var me=yo(),ko=norm(u&&u.correo);
+    if(!me||!ko){errorUI(P,function(){abrirPar(u)});return}
+    var D=await cargar();
+    if(!P.vivo())return;
+    if(!D){errorUI(P,function(){abrirPar(u)});return}
+    var r=comparar(D,me,ko);
+    pintarPar(P,D,r,infoDe(D,me),infoDe(D,ko,u));
+  }catch(e){console.warn('Sincronía:',e);toast('No se pudo abrir la sincronía')}
+}
+
+/* ---------- ranking ---------- */
+async function abrirRanking(){
+  try{
+    var P=panel('Mi sincronía');esqueleto(P);
+    var me=yo();
+    if(!me){errorUI(P,abrirRanking);return}
+    var D=await cargar();
+    if(!P.vivo())return;
+    if(!D){errorUI(P,abrirRanking);return}
+    var mio=D.V[me],nMio=mio?mio.p.size:0;
+    if(nMio<MIN){pocosUI(P,{nA:nMio,nB:MIN},'');return}
+    var lista=[];
+    Object.keys(D.V).forEach(function(k){
+      if(k===me||D.bloq.has(k))return;
+      var r=comparar(D,me,k);
+      if(r.estado==='ok'&&r.pct>0)lista.push(r);
+    });
+    lista.sort(function(a,b){return b.pct-a.pct||b.pubs.length-a.pubs.length});
+    lista=lista.slice(0,20);
+    var sc=P.sc;sc.textContent='';
+    if(!lista.length){
+      var v=el('div','fps-vacio');v.append(el('span','big','🌱'),el('b',null,'Aún no hay coincidencias'),document.createTextNode('Sigue interactuando con publicaciones: cuando otras personas coincidan contigo, aparecerán aquí.'));
+      sc.appendChild(v);return;
+    }
+    sc.appendChild(el('div','fps-intro','Las personas con las que más coincides en lo que te gusta. Toca una para ver el detalle y compartirlo.'));
+    var medallas=['🥇','🥈','🥉'];
+    lista.forEach(function(r,i){
+      var u=infoDe(D,r.kb),nv=nivel(r.pct);
+      var row=el('button','fps-row'+(i<3?' top':''));row.type='button';
+      var rk=el('div','fps-rk',i<3?medallas[i]:String(i+1));
+      var av=avatarEl('div','fps-rav',u.nombre,u.foto);
+      var inf=el('div','fps-rin');inf.append(el('b',null,u.nombre),el('small',null,nv.e+' '+nv.t));
+      var bar=el('div','fps-bar'),fill=el('i');fill.style.width=r.pct+'%';bar.appendChild(fill);inf.appendChild(bar);
+      var pc=el('div','fps-rp',r.pct+'%');
+      row.append(rk,av,inf,pc);
+      row.onclick=function(){abrirPar({correo:u.correo,nombre:u.nombre,foto:u.foto})};
+      sc.appendChild(row);
+    });
+  }catch(e){console.warn('Sincronía:',e);toast('No se pudo abrir el ranking')}
+}
+
+/* ---------- tarjeta para compartir ---------- */
+function cargarImg(url){
+  return new Promise(function(res){
+    if(!urlOk(url))return res(null);
+    var im=new Image(),fin=false;
+    function ok(v){if(fin)return;fin=true;res(v)}
+    im.crossOrigin='anonymous';
+    im.onload=function(){ok(im)};im.onerror=function(){ok(null)};
+    setTimeout(function(){ok(null)},5000);
+    im.src=url;
+  });
+}
+function recortar(x,t,max){
+  t=String(t||'');if(x.measureText(t).width<=max)return t;
+  while(t.length>1&&x.measureText(t+'…').width>max)t=t.slice(0,-1);
+  return t+'…';
+}
+function avatarCanvas(x,img,nombre,cx,cy,r){
+  x.save();
+  x.beginPath();x.arc(cx,cy,r+12,0,Math.PI*2);x.fillStyle='rgba(255,255,255,.92)';x.fill();
+  x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.closePath();x.clip();
+  if(img){
+    var s=Math.max(2*r/img.width,2*r/img.height),w=img.width*s,h=img.height*s;
+    x.drawImage(img,cx-w/2,cy-h/2,w,h);
+  }else{
+    var g=x.createLinearGradient(cx-r,cy-r,cx+r,cy+r);g.addColorStop(0,'#1a73e8');g.addColorStop(1,'#6c63ff');
+    x.fillStyle=g;x.fillRect(cx-r,cy-r,2*r,2*r);
+    x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';x.font='800 '+Math.round(r*.8)+'px system-ui,sans-serif';
+    x.fillText(ini(nombre),cx,cy+4);
+  }
+  x.restore();
+}
+async function dibujar(r,A,B){
+  var W=1080,H=1920,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  var x=cv.getContext('2d');
+  var g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#312e81');g.addColorStop(.5,'#7e22ce');g.addColorStop(1,'#db2777');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  [[160,300,330,.10],[930,1560,430,.09],[860,430,190,.08],[120,1500,150,.07]].forEach(function(c){x.beginPath();x.arc(c[0],c[1],c[2],0,Math.PI*2);x.fillStyle='rgba(255,255,255,'+c[3]+')';x.fill()});
+  var imgs=await Promise.all([cargarImg(A.foto),cargarImg(B.foto)]);
+  var nv=nivel(r.pct);
+  x.textAlign='center';x.textBaseline='alphabetic';x.fillStyle='#fff';
+  x.globalAlpha=.85;x.font='800 46px system-ui,sans-serif';x.fillText('S I N C R O N Í A',W/2,250);x.globalAlpha=1;
+  avatarCanvas(x,imgs[0],A.nombre,290,610,150);
+  avatarCanvas(x,imgs[1],B.nombre,790,610,150);
+  x.beginPath();x.arc(W/2,610,64,0,Math.PI*2);x.fillStyle='#fff';x.fill();
+  x.font='64px system-ui,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textBaseline='middle';x.fillStyle='#000';x.fillText(nv.e,W/2,616);
+  x.textBaseline='alphabetic';x.fillStyle='#fff';x.font='800 44px system-ui,sans-serif';
+  x.fillText(recortar(x,A.nombre,380),290,830);x.fillText(recortar(x,B.nombre,380),790,830);
+  var cy=1230,R=270;
+  x.lineWidth=42;x.lineCap='round';
+  x.strokeStyle='rgba(255,255,255,.22)';x.beginPath();x.arc(W/2,cy,R,0,Math.PI*2);x.stroke();
+  x.strokeStyle='#fff';x.beginPath();x.arc(W/2,cy,R,-Math.PI/2,-Math.PI/2+Math.PI*2*(r.pct/100));x.stroke();
+  x.fillStyle='#fff';x.font='900 210px system-ui,sans-serif';x.textBaseline='middle';
+  var ptxt=String(r.pct),pw=x.measureText(ptxt).width;
+  x.fillText(ptxt,W/2-34,cy+8);
+  x.font='800 90px system-ui,sans-serif';x.textAlign='left';x.fillText('%',W/2-34+pw/2+6,cy+44);
+  x.textAlign='center';x.textBaseline='alphabetic';
+  x.font='900 78px system-ui,sans-serif';x.fillText(nv.t,W/2,1660);
+  x.globalAlpha=.9;x.font='500 40px system-ui,sans-serif';x.fillText(recortar(x,nv.d,900),W/2,1730);x.globalAlpha=1;
+  x.globalAlpha=.8;x.font='700 38px system-ui,sans-serif';x.fillText('¿Qué tan sincronizado estás conmigo? · DECOM',W/2,1850);x.globalAlpha=1;
+  return await new Promise(function(res,rej){cv.toBlob(function(b){b?res(b):rej(new Error('sin imagen'))},'image/png')});
+}
+async function compartir(r,A,B,btn){
+  if(btn.disabled)return;btn.disabled=true;
+  try{
+    var blob=await dibujar(r,A,B);
+    var nv=nivel(r.pct);
+    var txt='Mi sincronía con '+B.nombre+' en DECOM es del '+r.pct+'% '+nv.e+' ¿Y la tuya?';
+    try{if(/^https?:/.test(location.protocol))txt+=' '+location.origin+location.pathname}catch(e){}
+    var file=null;try{file=new File([blob],'sincronia-decom.png',{type:'image/png'})}catch(e){}
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],text:txt});
+    }else{
+      var u=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=u;a.download='sincronia-decom.png';document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(u)},4000);
+      toast('Tarjeta descargada');
+    }
+  }catch(e){
+    if(!(e&&e.name==='AbortError'))toast('No se pudo crear la tarjeta');
+  }finally{btn.disabled=false}
+}
+
+/* ---------- enganches (no modifican el código existente) ---------- */
+var ultimo=null;
+function instalar(){
+  var f=window.mostrarPerfilAutor;
+  if(typeof f!=='function')return false;
+  if(f.__fpSinc)return true;
+  var g=function(d){
+    try{if(d&&(d.correo||d.nombre))ultimo={correo:d.correo||'',nombre:d.nombre||'',foto:d.fotoPerfil||d.foto_perfil||''}}catch(e){}
+    return f.apply(this,arguments);
+  };
+  try{Object.keys(f).forEach(function(k){g[k]=f[k]})}catch(e){}
+  g.__fpSinc=1;window.mostrarPerfilAutor=g;return true;
+}
+var tries=0;
+if(!instalar()){var iv=setInterval(function(){if(instalar()||++tries>40)clearInterval(iv)},500)}
+
+function inyectarPerfil(){
+  var root=document.getElementById('fpPerfilPro');if(!root||!ultimo)return;
+  var act=root.querySelector('.fpp-actions');if(!act||act.querySelector('.fps-btn-perfil'))return;
+  if((root.getAttribute('aria-label')||'')!=='Perfil de '+(ultimo.nombre||'Anónimo'))return;
+  if(!ultimo.correo||norm(ultimo.correo)===yo())return;
+  var u=ultimo;
+  var b=el('button','fpp-btn fps-btn-perfil');b.type='button';
+  b.append(ic('fas fa-bolt'),document.createTextNode('Ver nuestra sincronía'));
+  b.onclick=function(){abrirPar(u)};
+  act.appendChild(b);
+}
+function inyectarMenu(){
+  var menu=document.getElementById('userMenu');
+  if(!menu||document.getElementById('fpSincMenu'))return;
+  var b=document.createElement('button');b.type='button';b.id='fpSincMenu';b.className='menu-btn';
+  b.innerHTML='<i class="fas fa-bolt" aria-hidden="true"></i><span>Mi sincronía</span>';
+  b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();try{menu.style.display='none'}catch(_){}abrirRanking()});
+  var ref=menu.querySelector('#fpAmigosMenu')||menu.querySelector('.menu-btn');
+  if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref.nextSibling);else menu.appendChild(b);
+}
+var pend=false;
+function ciclo(){pend=false;try{inyectarPerfil()}catch(e){}try{inyectarMenu()}catch(e){}}
+function arrancar(){
+  try{new MutationObserver(function(){if(!pend){pend=true;setTimeout(ciclo,150)}}).observe(document.body,{childList:true,subtree:true})}catch(e){setInterval(ciclo,1200)}
+  ciclo();
+}
+if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',arrancar);
+
+window.fpSincronia={abrirPar:abrirPar,abrirRanking:abrirRanking,_t:{comparar:comparar,nivel:nivel,cargar:cargar}};
+})();
+</script>
 </body>
 </html>
