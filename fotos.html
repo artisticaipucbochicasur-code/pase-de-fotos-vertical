@@ -29152,7 +29152,7 @@ function stripMostrar(){
 function engancharFeed(){
   var sw;try{sw=swiperInstance}catch(e){}
   if(!sw||!sw.on||sw.__fp13)return;sw.__fp13=1;
-  sw.on('slideChange',function(){stripN++;if(stripN>=stripNext){stripN=0;stripNext=4+Math.floor(Math.random()*5);stripMostrar()}});
+  sw.on('slideChange',function(){stripN++;if(stripN>=stripNext&&(!window.__dcStripOk||window.__dcStripOk())){stripN=0;stripNext=4+Math.floor(Math.random()*5);stripMostrar()}});
 }
 setInterval(function(){ganchos();engancharFeed()},2000);
 
@@ -29589,7 +29589,7 @@ function enganchar(){
   sw.on('slideChange',function(){
     PK.n++;var e=$('#fpPK');
     if(e){e._sw=(e._sw||0)+1;if(e._sw>=3)cerrarPK();return}/* se retira solo tras deslizar el feed 3 veces */
-    if(PK.n>=PK.next&&Date.now()-PK.last>60000){PK.n=0;PK.next=6+Math.floor(Math.random()*5);mostrarPK()}
+    if(PK.n>=PK.next&&Date.now()-PK.last>60000&&window.__dcPkOk&&window.__dcPkOk(PK)){PK.n=0;PK.next=6+Math.floor(Math.random()*5);mostrarPK()}
   });
 }
 setInterval(enganchar,2000);
@@ -31415,13 +31415,15 @@ body:has(#fpPerfilPro) #dcNav,body:has(#fpBuscaPro) #dcNav,body:has(#fpAmigos) #
   }
 
   /* ---------- 3) Me gusta: animación, vibración y doble toque ---------- */
-  var vistos=new WeakSet();
+  var vistos=new WeakSet(),intento=0;
+  document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.feed-post-action-like'))intento=Date.now()},true);
+  function esIntencion(){return Date.now()-intento<1500}
   new MutationObserver(function(recs){
     for(var i=0;i<recs.length;i++){
       var t=recs[i].target;
       if(!t||!t.classList||!t.classList.contains('feed-post-action-like'))continue;
       var liked=t.classList.contains('is-liked'),was=vistos.has(t);
-      if(liked&&!was){vistos.add(t);t.classList.remove('dc-pop');void t.offsetWidth;t.classList.add('dc-pop');vib(18);setTimeout(function(x){return function(){x.classList.remove('dc-pop')}}(t),520)}
+      if(liked&&!was){vistos.add(t);if(esIntencion()){t.classList.remove('dc-pop');void t.offsetWidth;t.classList.add('dc-pop');vib(18);setTimeout(function(x){return function(){x.classList.remove('dc-pop')}}(t),520)}}
       else if(!liked&&was){vistos.delete(t)}
     }
   }).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
@@ -31446,7 +31448,7 @@ body:has(#fpPerfilPro) #dcNav,body:has(#fpBuscaPro) #dcNav,body:has(#fpAmigos) #
       var r=slide.getBoundingClientRect(),h=document.createElement('i');
       h.className='fas fa-heart dc-heart-burst';h.style.left=(e.clientX-r.left)+'px';h.style.top=(e.clientY-r.top)+'px';
       slide.appendChild(h);setTimeout(function(){h.remove()},900);
-      if(b&&!b.classList.contains('is-liked'))b.click();else vib(12);
+      intento=Date.now();if(b&&!b.classList.contains('is-liked'))b.click();else vib(12);
     }else{lastTap={t:now,x:e.clientX,y:e.clientY}}
   },true);
 
@@ -31504,6 +31506,25 @@ body:has(#fpPerfilPro) #dcNav,body:has(#fpBuscaPro) #dcNav,body:has(#fpAmigos) #
       clearInterval(hookIv);
     }else if(++hookN>120)clearInterval(hookIv);
   },500);
+
+  /* ---------- Sugerencias (Personas que quizás conozcas / historias): aparecen con mesura ---------- */
+  var T0=Date.now();
+  function ss(k,v){try{if(v===undefined)return parseInt(sessionStorage.getItem(k)||'0',10)||0;sessionStorage.setItem(k,String(v))}catch(_){return 0}}
+  window.__dcPkOk=function(PK){
+    var ahora=Date.now(),n=ss('dc_pk_n'),ult=ss('dc_pk_t');
+    if(n>=3)return false;                       /* máximo 3 veces por sesión */
+    if(PK&&PK.n<20)return false;                /* al menos 20 publicaciones vistas desde la última vez */
+    if(ahora-T0<4*60000)return false;           /* nunca en los primeros 4 minutos */
+    if(ult&&ahora-ult<12*60000)return false;    /* mínimo 12 minutos entre apariciones */
+    if(document.querySelector('.swiper-slide-active iframe[data-playing="true"]'))return false; /* no interrumpir un video en reproducción */
+    ss('dc_pk_n',n+1);ss('dc_pk_t',ahora);return true;
+  };
+  window.__dcStripOk=function(){
+    var ahora=Date.now(),ult=ss('dc_st_t');
+    if(ahora-T0<2*60000)return false;
+    if(ult&&ahora-ult<6*60000)return false;     /* historias: una vez cada 6 minutos como máximo */
+    ss('dc_st_t',ahora);return true;
+  };
 
   /* ---------- Inicio ---------- */
   function iniciar(){decorarLogin();iniciarPub()}
