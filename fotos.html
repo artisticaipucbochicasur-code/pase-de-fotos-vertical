@@ -18625,8 +18625,18 @@ async function compartirAnuncioActivo(){
             if(compartioArchivo) return;
         }
 
-        // En la APK, compartir videos mediante el selector nativo de Android.
-        // El contenido compartido es texto + enlace; no se intenta descargar el video.
+        // Si no fue posible compartir el archivo real, compartir al menos el enlace
+        // mediante Android nativo. Esto funciona también para imágenes en WebView.
+        if (window.AndroidApp && typeof window.AndroidApp.shareLink === "function") {
+            window.AndroidApp.shareLink(
+                String(anuncio.titulo || "DECOM"),
+                String(anuncio.descripcion || ""),
+                String(url)
+            );
+            return;
+        }
+
+        // En navegador/PWA se conserva la Web Share API.
         if (esVideo && window.AndroidApp && typeof window.AndroidApp.shareLink === "function") {
             window.AndroidApp.shareLink(
                 String(anuncio.titulo || "DECOM"),
@@ -26335,8 +26345,13 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   async function compartirEnlace(sl){
     var id=sl.dataset.id,url=location.origin+location.pathname+'?post='+encodeURIComponent(id);
     var a=(typeof anunciosData!=='undefined'&&anunciosData.find(function(x){return String(x.id)===String(id)}))||{};
-    try{if(navigator.share){await navigator.share({title:a.titulo||'Publicación',text:a.titulo||'',url:url});return}}catch(e){if(e&&e.name==='AbortError')return}
-    try{await navigator.clipboard.writeText(url);toast('Enlace copiado')}catch(e){window.prompt('Copia el enlace:',url)}
+    /* En Android WebView usamos primero el selector nativo; navigator.share no siempre existe. */
+    if(window.AndroidApp&&typeof window.AndroidApp.shareLink==='function'){
+      try{window.AndroidApp.shareLink(String(a.titulo||'Publicación'),String(a.titulo||''),String(url));return}
+      catch(nativeError){console.warn('Compartir nativo no disponible:',nativeError)}
+    }
+    try{if(navigator.share){await navigator.share({title:a.titulo||'Publicación',text:a.titulo||'',url:url});return}}catch(e){if(e&&e.name==='AbortError')return;console.warn('Web Share falló:',e)}
+    try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);toast('Enlace copiado')}else{window.prompt('Copia el enlace:',url)}}catch(e){window.prompt('Copia el enlace:',url)}
   }
   window.fpCompartirEnlaceActivo=function(){try{var sl=$$('.swiper-wrapper > .swiper-slide')[swiperInstance.realIndex];if(sl)compartirEnlace(sl)}catch(e){}};
   function botonEnlace(sl){
@@ -27932,7 +27947,7 @@ var rec=null,chunks=[],t0=0,tick=null,cancelar=false,barra;
 async function grabar(){
   if(!window.MediaRecorder||!navigator.mediaDevices)return toast('Tu navegador no permite grabar audio');
   if(!(await sesionOk()))return;
-  var stm;try{stm=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Permite el micrófono para grabar')}
+  var stm;try{stm=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){console.warn('Micrófono WebView:',e&&e.name,e&&e.message,e);return toast('No se pudo abrir el micrófono ('+((e&&e.name)||'error')+'). Revisa permisos de Android')}
   var mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].filter(function(m){return MediaRecorder.isTypeSupported(m)})[0]||'';
   var r=rec=new MediaRecorder(stm,mime?{mimeType:mime}:{});chunks=[];cancelar=false;
   r.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
@@ -28087,7 +28102,7 @@ function enviarLoc(){
   navigator.geolocation.getCurrentPosition(function(p){
     var tok='[[loc:'+p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6)+']]',bor=i.value;
     i.value=tok;b.click();[0,150,450].forEach(function(t){setTimeout(function(){try{i.blur()}catch(e){}},t)});setTimeout(function(){if(i.value===''||i.value===tok)i.value=bor},250);
-  },function(){toast('Permite la ubicación para compartirla')},{enableHighAccuracy:true,timeout:12000});
+  },function(err){console.warn('Geolocalización falló:',err&&err.code,err&&err.message);var detalle=err&&err.code===1?'Permiso denegado':err&&err.code===2?'Ubicación desactivada o no disponible':err&&err.code===3?'Se agotó el tiempo de espera':'Error de ubicación';toast(detalle+'; revisa los permisos y el GPS')},{enableHighAccuracy:false,timeout:20000,maximumAge:60000});
 }
 function montarLoc(){
   var mic=$('#fpMic');if(!mic||$('#fpLocBtn'))return;
@@ -28668,7 +28683,7 @@ async function grabar(){
   var bm=$('.mc',P),bx=$('.mx',P),tx=$('.tx',P);
   if(rec&&rec.state==='recording'){rec.stop();return}
   if(!window.MediaRecorder||!navigator.mediaDevices)return toast('Tu navegador no permite grabar audio');
-  var stm;try{stm=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Permite el micrófono para grabar')}
+  var stm;try{stm=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){console.warn('Micrófono WebView:',e&&e.name,e&&e.message,e);return toast('No se pudo abrir el micrófono ('+((e&&e.name)||'error')+'). Revisa permisos de Android')}
   var mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].filter(function(m){return MediaRecorder.isTypeSupported(m)})[0]||'';
   var r=rec=new MediaRecorder(stm,mime?{mimeType:mime}:{});chunks=[];cancelado=false;
   r.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
@@ -32600,10 +32615,16 @@ function abrirVistaCompartir(blob,txt,B){
   bs.onclick=async function(){
     if(bs.disabled)return;bs.disabled=true;
     try{
-      var file=null;try{file=new File([blob],nombreArchivo,{type:'image/png'})}catch(e){}
-      if(file&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:txt})}
-      else if(navigator.share){await navigator.share({text:txt});toast('Guarda la imagen y adjúntala en tu mensaje')}
-      else{window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');toast('Guarda la imagen y adjúntala en el chat')}
+      /* En APK compartimos el PNG por el puente nativo, sin depender de navigator.share. */
+      if(window.AndroidApp&&typeof window.AndroidApp.shareFile==='function'){
+        var b64=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(String(fr.result).split(',')[1]||'')};fr.onerror=reject;fr.readAsDataURL(blob)});
+        window.AndroidApp.shareFile(b64,'image/png',nombreArchivo,'Sincronía DECOM',txt);
+      }else{
+        var file=null;try{file=new File([blob],nombreArchivo,{type:'image/png'})}catch(e){}
+        if(file&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:txt})}
+        else if(navigator.share){await navigator.share({text:txt});toast('Guarda la imagen y adjúntala en tu mensaje')}
+        else{window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');toast('Guarda la imagen y adjúntala en el chat')}
+      }
     }catch(e){if(!(e&&e.name==='AbortError'))toast('No se pudo abrir el menú de compartir. Guarda la imagen e inténtalo desde tu galería.')}
     finally{bs.disabled=false}
   };
@@ -33157,7 +33178,13 @@ function cerroUsuario(k){return Date.now()-(cerrados[k]||0)<1200}
 var DEF={};REG.forEach(function(d,i){d.i=i;DEF[d.k]=d});
 
 /* ---------- pila de pantallas ligada al historial ---------- */
-var stack=[],hist=0,ignore=0,ignoreT=0,POLL=80,DELAY=220;
+var stack=[],hist=0,ignore=0,ignoreT=0,POLL=50,DELAY=80;
+/* Si una fila de Actividad navega a una publicación, comentario, me gusta, perfil o chat,
+   el menú principal no debe reaparecer por debajo al cerrar la actividad. */
+function navegarDesdeActividad(){
+  window.__fpNoReabrirMenuHasta=Date.now()+1800;
+  try{var m=$('#userMenu');if(m)m.style.display='none'}catch(_){}
+}
 /* pares que ya vuelven solos con código existente: se espera un poco antes de reabrir */
 var PROPIO={red:{busca:1,amigos:1},act:{busca:1,amigos:1},amigos:{busca:1}};
 
@@ -33183,6 +33210,7 @@ function volverAlPadre(hijoK){
   var padre=null;
   while(stack.length){
     var t=stack[stack.length-1];
+    if(t.d.k==='menu'&&Date.now()<(window.__fpNoReabrirMenuHasta||0)){quitar(t);atrasProg();continue}
     if(!t.susp)return;               /* ya hay una pantalla abierta debajo: nada que hacer */
     if(t.d.el&&safe(t.d.el)){t.susp=false;return}  /* ya volvió a abrirse sola */
     if(!t.d.reopen){quitar(t);atrasProg();continue}   /* no se puede reabrir: se salta */
@@ -33270,6 +33298,14 @@ function cerrarTope(){
   },380);
   return true;
 }
+/* Captura la selección antes de que el manejador propio cierre #fpNot. */
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  var panel=t.closest('#fpNot');if(!panel)return;
+  if(t.closest('.fp-red-x,.fp-red-tabs,.fp-red-ic,.fp-marcar-todas,[data-fpa],.fp-sg-follow,.fp-sg-x,.fp-red-btn'))return;
+  if(t.closest('.fp-red-row,.fp-sg-name,.fp-sg-av,.fp-sg-card'))navegarDesdeActividad();
+},true);
+
 window.addEventListener('popstate',function(e){
   if(ignore>0){ignore--;return}
   var dest=(e.state&&e.state.fpNav)||0;
