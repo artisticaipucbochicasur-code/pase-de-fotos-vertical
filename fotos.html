@@ -13522,168 +13522,69 @@ closePublishModal.addEventListener("click", () => {
   }
 });
 
-// Optimización real de la imagen que se sube (no solo de la vista previa).
-// Mantiene GIF animados; redimensiona fotos grandes y evita Base64 para reducir RAM.
-let archivoImagenOptimizado = null;
-let urlPreviewOptimizada = null;
-let tokenProcesamientoImagen = 0;
+// 🔹 Función para comprimir imágenes
+function compressImage(base64, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
 
-async function optimizarImagenPublicacion(file) {
-  if (!file || !/^image\//i.test(file.type)) return file;
-  // No convertir GIF animados en una imagen fija.
-  if (/gif/i.test(file.type)) return file;
+      let width = img.width;
+      let height = img.height;
 
-  let bitmap = null, img = null, source = null, width = 0, height = 0, objectUrl = null;
-  try {
-    if (typeof createImageBitmap === "function") {
-      try {
-        bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        source = bitmap; width = bitmap.width; height = bitmap.height;
-      } catch (_) {
-        try { bitmap = await createImageBitmap(file); source = bitmap; width = bitmap.width; height = bitmap.height; } catch (_) {}
+      // 🔹 Redimensionar si es más grande que el ancho máximo
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
       }
-    }
-    if (!source) {
-      objectUrl = URL.createObjectURL(file);
-      img = await new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error("No se pudo leer la imagen"));
-        image.src = objectUrl;
-      });
-      source = img; width = img.naturalWidth || img.width; height = img.naturalHeight || img.height;
-    }
-    if (!width || !height) throw new Error("Dimensiones de imagen no válidas");
 
-    const originalType = (file.type || "").toLowerCase();
-    // Las fotos se guardan como JPEG; PNG conserva transparencia; WebP conserva su formato.
-    const mime = originalType.includes("png") ? "image/png" :
-                 originalType.includes("webp") ? "image/webp" : "image/jpeg";
-    const maxDimension = 1600;
-    let scale = Math.min(1, maxDimension / Math.max(width, height));
-    let targetW = Math.max(1, Math.round(width * scale));
-    let targetH = Math.max(1, Math.round(height * scale));
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d", { alpha: mime === "image/png" });
-    if (!ctx) throw new Error("No se pudo preparar la imagen");
+      canvas.width = width;
+      canvas.height = height;
 
-    // La codificación se hace con toBlob (asíncrono), no con toDataURL/Base64.
-    async function encode(w, h, quality) {
-      canvas.width = w; canvas.height = h;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.clearRect(0, 0, w, h);
-      if (mime !== "image/png") {
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, w, h);
-      }
-      ctx.drawImage(source, 0, 0, w, h);
-      return await new Promise((resolve, reject) => {
-        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Falló la compresión")), mime, quality);
-      });
-    }
-
-    let blob;
-    if (mime === "image/png") {
-      blob = await encode(targetW, targetH);
-      // PNG muy grande: reducir moderadamente resolución, sin perder transparencia.
-      if (blob.size > 2 * 1024 * 1024 && Math.max(targetW, targetH) > 1200) {
-        const k = 1200 / Math.max(targetW, targetH);
-        blob = await encode(Math.max(1, Math.round(targetW*k)), Math.max(1, Math.round(targetH*k)));
-      }
-    } else {
-      blob = await encode(targetW, targetH, 0.82);
-      if (blob.size > 1.5 * 1024 * 1024) blob = await encode(targetW, targetH, 0.72);
-      if (blob.size > 1.5 * 1024 * 1024) blob = await encode(targetW, targetH, 0.64);
-      if (blob.size > 1.8 * 1024 * 1024 && Math.max(targetW, targetH) > 1280) {
-        const k = 1280 / Math.max(targetW, targetH);
-        blob = await encode(Math.max(1, Math.round(targetW*k)), Math.max(1, Math.round(targetH*k)), 0.68);
-      }
-    }
-
-    const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
-    const baseName = (file.name || "foto").replace(/\.[^.]+$/, "");
-    return new File([blob], baseName + "_optimizada." + ext, {
-      type: mime, lastModified: Date.now()
-    });
-  } finally {
-    if (bitmap && typeof bitmap.close === "function") bitmap.close();
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
-  }
+      // 🔹 Dibujar y comprimir
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+      resolve(compressedBase64);
+    };
+    img.src = base64;
+  });
 }
 
-// Vista previa y preparación del archivo que realmente se enviará a Storage.
-fileInput.addEventListener("change", async function () {
-  const file = this.files && this.files[0];
-  const token = ++tokenProcesamientoImagen;
-  archivoImagenOptimizado = null;
-  base64Imagen = "";
+// 🔹 Vista previa y compresión de imagen
+fileInput.addEventListener("change", function () {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadstart = function () {
+      progressContainer.style.display = "block";
+      progressBar.style.width = "0%";
+    };
+    reader.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        progressBar.style.width = percent + "%";
+      }
+    };
+    reader.onloadend = async function (e) {
+      const originalBase64 = e.target.result;
 
-  if (urlPreviewOptimizada) {
-    URL.revokeObjectURL(urlPreviewOptimizada);
-    urlPreviewOptimizada = null;
+      // 🔹 Comprimir imagen antes de mostrarla
+      const compressedBase64 = await compressImage(originalBase64, 800, 0.7);
+      base64Imagen = compressedBase64.split(",")[1];
+
+      previewImg.src = compressedBase64;
+      previewImg.style.display = "block";
+      previewImg.style.maxWidth = "100%";
+      previewImg.style.maxHeight = "180px";
+      previewImg.style.objectFit = "cover";
+      previewImg.style.borderRadius = "12px";
+
+      progressBar.style.width = "100%";
+      setTimeout(() => (progressContainer.style.display = "none"), 500);
+    };
+    reader.readAsDataURL(file);
   }
-  if (!file) {
-    previewImg.removeAttribute("src");
-    previewImg.style.display = "none";
-    progressContainer.style.display = "none";
-    return;
-  }
-
-  progressContainer.style.display = "block";
-  progressBar.style.width = "10%";
-  mensaje.textContent = "Optimizando foto para que cargue rápido…";
-  mensaje.style.color = "#1877f2";
-  btnPublicar.disabled = true;
-
-  try {
-    const optimizada = await optimizarImagenPublicacion(file);
-    if (token !== tokenProcesamientoImagen) return;
-    archivoImagenOptimizado = optimizada || file;
-    urlPreviewOptimizada = URL.createObjectURL(archivoImagenOptimizado);
-    previewImg.src = urlPreviewOptimizada;
-    previewImg.style.display = "block";
-    previewImg.style.maxWidth = "100%";
-    previewImg.style.maxHeight = "180px";
-    previewImg.style.objectFit = "contain";
-    previewImg.style.borderRadius = "12px";
-
-    const antes = (file.size / 1024 / 1024).toFixed(2);
-    const despues = (archivoImagenOptimizado.size / 1024 / 1024).toFixed(2);
-    progressBar.style.width = "100%";
-    mensaje.textContent = archivoImagenOptimizado.size < file.size
-      ? `Foto optimizada: ${antes} MB → ${despues} MB. Lista para publicar.`
-      : "Foto lista para publicar.";
-    mensaje.style.color = "#16803c";
-  } catch (err) {
-    console.warn("No se pudo optimizar la foto; se conservará el archivo original:", err);
-    if (token !== tokenProcesamientoImagen) return;
-    // No se pierde la publicación si el dispositivo no soporta la codificación.
-    archivoImagenOptimizado = file;
-    urlPreviewOptimizada = URL.createObjectURL(file);
-    previewImg.src = urlPreviewOptimizada;
-    previewImg.style.display = "block";
-    mensaje.textContent = "No se pudo reducir esta imagen en el dispositivo; se usará el original.";
-    mensaje.style.color = "#b45309";
-  } finally {
-    if (token === tokenProcesamientoImagen) {
-      btnPublicar.disabled = false;
-      setTimeout(() => {
-        if (token === tokenProcesamientoImagen) progressContainer.style.display = "none";
-      }, 500);
-    }
-  }
-});
-
-
-// Evita conservar una foto optimizada en memoria después de cerrar el modal.
-closePublishModal.addEventListener("click", () => {
-  tokenProcesamientoImagen++;
-  archivoImagenOptimizado = null;
-  if (urlPreviewOptimizada) { URL.revokeObjectURL(urlPreviewOptimizada); urlPreviewOptimizada = null; }
-  base64Imagen = "";
-  // No permitir que una foto ya descartada se suba después como archivo original.
-  if (fileInput) fileInput.value = "";
 });
 
 // 🔹 Enviar anuncio usando Supabase Storage + Database
@@ -13782,10 +13683,10 @@ try {
     if (!isEditing || fileInput.files[0]) {
 
 
-        const archivo = archivoImagenOptimizado || fileInput.files[0];
+        const archivo = fileInput.files[0];
 
 
-        const extension = (archivo.name.split(".").pop() || "jpg").toLowerCase();
+        const extension = archivo.name.split(".").pop();
 
 
         const nombreArchivo =
@@ -14063,9 +13964,6 @@ const datosActualizar = {
     document.getElementById("descripcion").value="";
 
     fileInput.value="";
-    archivoImagenOptimizado = null;
-    tokenProcesamientoImagen++;
-    if (urlPreviewOptimizada) { URL.revokeObjectURL(urlPreviewOptimizada); urlPreviewOptimizada = null; }
 
 
     previewImg.src="";
@@ -33243,12 +33141,6 @@ function abrirEditor(){
         var correoDb=(row&&row.correo)||base.correo;
         var res=await c.from('usuarios').update(datos).eq('correo',correoDb);
         if(res&&res.error)throw res.error;
-        /* El nombre nuevo también se actualiza en publicaciones y comentarios (autor) */
-        try{
-          await c.from('publicaciones').update({autor:datos.nombre}).eq('correo',correoDb);
-          await c.from('comentarios').update({autor:datos.nombre}).eq('correo',correoDb);
-        }catch(eSync){console.warn('Sincronizar nombre:',eSync)}
-        try{if(typeof window.fpSincNombreAutor==='function')window.fpSincNombreAutor(correoDb,datos.nombre)}catch(e){}
         if(portadaQuitar&&portadaCol){
           try{var id3=await obtenerAuthId();await c.storage.from('perfiles').remove(['usuarios/'+id3+'/portada.jpg','usuarios/'+id3+'/portada_original.jpg'])}catch(e){}
         }
@@ -33852,363 +33744,5 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
 })();
 </script>
 
-
-<!-- ======================================================================
-     AJUSTE: fotos/anuncios del carrusel con menos márgenes + nombre de autor
-     siempre actualizado. Bloque independiente: no cambia la lógica existente.
-====================================================================== -->
-<style id="fp-carrusel-menos-margenes">
-/* Pie un poco más compacto: la foto gana altura sin quitar ningún elemento */
-.swiper-slide .feed-post-footer:not(.fp-exp){padding-top:8px}
-.swiper-slide .feed-post-head{margin-bottom:6px;padding-bottom:6px}
-.swiper-slide .fp-ticker{margin-top:18px}
-/* La foto llena el recuadro cuando recortaría muy poco (se decide por JS) */
-.swiper-slide:not(.video) .swiper-zoom-container:not(.dcm-w)>img.fp-llena{object-fit:cover}
-.swiper-slide .swiper-zoom-container.fp-fs>img.fp-llena{object-fit:contain!important}
-</style>
-<script id="fp-carrusel-nombres">
-(function(){
-if(window.__fpCarruselNombres)return;window.__fpCarruselNombres=1;
-function $$(q,r){return Array.prototype.slice.call((r||document).querySelectorAll(q))}
-function norm(s){return String(s||'').trim().toLowerCase()}
-
-/* ---------- 1) Fotos con menos márgenes ---------- */
-var MAX_RECORTE=0.04; /* solo se recorta si es casi imperceptible (≤4 %); si no, la foto se ve COMPLETA */
-function ajustar(img){
-  try{
-    var z=img.parentNode;
-    if(!z||!z.classList||!z.classList.contains('swiper-zoom-container')||z.classList.contains('dcm-w'))return;
-    var sl=z.closest('.swiper-slide');if(!sl||sl.classList.contains('video'))return;
-    var nw=img.naturalWidth,nh=img.naturalHeight,cw=z.clientWidth,ch=z.clientHeight;
-    if(!nw||!nh||!cw||!ch)return;
-    var ir=nw/nh,cr=cw/ch,recorte=ir<cr?1-ir/cr:1-cr/ir;
-    img.classList.toggle('fp-llena',recorte>0.005&&recorte<=MAX_RECORTE);
-  }catch(e){}
-}
-function ajustarTodas(){$$('.swiper-slide:not(.video) .swiper-zoom-container>img').forEach(function(i){if(i.complete)ajustar(i)})}
-document.addEventListener('load',function(e){var i=e.target;if(i&&i.tagName==='IMG'&&i.matches&&i.matches('.swiper-zoom-container>img'))ajustar(i)},true);
-var rt=null;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(ajustarTodas,200)});
-window.addEventListener('orientationchange',function(){setTimeout(ajustarTodas,300)});
-
-/* ---------- 2) Nombre de autor siempre actualizado ---------- */
-var mapa={},vistos={},TTL=60000;
-function cliente(){try{return supabaseClient}catch(e){return null}}
-function lista(){try{return anunciosData||[]}catch(e){return[]}}
-function aplicar(){
-  var cambio=false,cambioC=false;
-  lista().forEach(function(a){var n=mapa[norm(a&&a.correo)];if(n&&a.autor!==n){a.autor=n;cambio=true}});
-  try{Object.keys(comentariosPorAnuncio||{}).forEach(function(k){(comentariosPorAnuncio[k]||[]).forEach(function(c){
-    var n=mapa[norm(c.autorCorreo||c.correo)];if(n&&c.autor!==n){c.autor=n;cambioC=true}})})}catch(e){}
-  try{(comentariosFilasCache||[]).forEach(function(c){var n=mapa[norm(c.correo)];if(n&&c.autor!==n){c.autor=n;cambioC=true}})}catch(e){}
-  /* pantalla */
-  var porId={};lista().forEach(function(a){if(a)porId[String(a.id)]=a});
-  $$('.swiper-slide[data-id]').forEach(function(sl){
-    var a=porId[sl.dataset.id];if(!a)return;
-    var el=sl.querySelector('.feed-post-author');if(el&&a.autor&&el.textContent!==a.autor)el.textContent=a.autor;
-  });
-  var cont=document.getElementById('autorContainer');
-  if(cont){var n=mapa[norm(cont.dataset.correo)];var nm=cont.querySelector('.fb-post-author-name');if(n&&nm&&nm.textContent!==n)nm.textContent=n}
-  if(cambio){try{guardarCacheAnuncios()}catch(e){}}
-  if(cambioC){try{guardarCacheComentarios()}catch(e){}}
-}
-async function sincronizar(){
-  var c=cliente();if(!c)return;
-  var ahora=Date.now(),pend={};
-  lista().forEach(function(a){var k=norm(a&&a.correo);if(k&&(!vistos[k]||ahora-vistos[k]>TTL))pend[k]=1});
-  try{Object.keys(comentariosPorAnuncio||{}).forEach(function(id){(comentariosPorAnuncio[id]||[]).forEach(function(x){
-    var k=norm(x.autorCorreo||x.correo);if(k&&(!vistos[k]||ahora-vistos[k]>TTL))pend[k]=1})})}catch(e){}
-  var ks=Object.keys(pend);
-  for(var i=0;i<ks.length;i+=100){
-    var parte=ks.slice(i,i+100);
-    try{
-      var r=await c.from('usuarios').select('correo,nombre').in('correo',parte);
-      (r.data||[]).forEach(function(u){var n=String(u.nombre||'').trim();if(n)mapa[norm(u.correo)]=n});
-      parte.forEach(function(k){vistos[k]=ahora});
-    }catch(e){}
-  }
-  aplicar();
-}
-var st=null;function programar(){clearTimeout(st);st=setTimeout(sincronizar,700)}
-/* usado al guardar el perfil: efecto inmediato en pantalla y en memoria local */
-window.fpSincNombreAutor=function(correo,nombre){
-  var k=norm(correo),n=String(nombre||'').trim();if(!k||!n)return;
-  mapa[k]=n;vistos[k]=Date.now();aplicar();
-};
-function iniciar(){
-  var w=document.querySelector('.swiper-wrapper');
-  if(w){try{new MutationObserver(function(){programar();setTimeout(ajustarTodas,250)}).observe(w,{childList:true})}catch(e){}}
-  programar();ajustarTodas();
-  setInterval(sincronizar,TTL);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)programar()});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else setTimeout(iniciar,300);
-})();
-</script>
-
-<!-- ======================================================================
-     FEED A TODO EL ANCHO (estilo Facebook / Instagram), SIN scroll interno:
-     cada publicación ocupa una pantalla y el carrusel las desplaza completas.
-     La foto NUNCA se recorta: se ve completa y centrada en el espacio sobre el
-     pie. Las verticales (9:16) se ajustan a la altura disponible en cualquier
-     teléfono (Android, iPhone, tablet) y en PC; si quedan franjas a los lados,
-     se rellenan con la misma foto difuminada. Videos y álbumes no cambian.
-====================================================================== -->
-<style id="fp-feed-ancho-completo">
-/* iPhone/Safari: 100vh es MÁS alto que la pantalla visible (barras del navegador).
-   Con dvh disponible, se quita ese mínimo para que la publicación mida justo lo visible. */
-@supports (height:100dvh){
-  .swiper-slide:not(.video):not([data-dcm]){min-height:0}
-}
-.swiper-slide:not(.video):not([data-dcm]){
-  box-sizing:border-box;
-  padding-top:var(--fp-hdr,0px);
-}
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container{
-  position:relative;
-  flex:1 1 auto;
-  min-height:0;
-  width:100%;
-  height:auto;
-  display:block;
-  overflow:hidden;
-  background-color:#000;
-}
-/* La foto ocupa todo el recuadro y se ajusta (contain): nunca se corta.
-   Posición absoluta = mismo resultado en todos los navegadores, sin depender de alturas en % */
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img,
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img.fp-llena{
-  position:absolute;
-  inset:0;
-  z-index:1;
-  display:block;
-  width:100%;
-  height:100%;
-  max-width:100%;
-  max-height:100%;
-  margin:0;
-  object-fit:contain;
-  object-position:center;
-}
-/* Solo si el recorte sería casi invisible (≤4 %) llena el recuadro de borde a borde */
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img.fp-llena{object-fit:cover}
-/* Franjas laterales (fotos verticales, PC): la misma foto difuminada de fondo */
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container.fp-bgblur::before{
-  content:"";
-  position:absolute;
-  inset:-30px;
-  z-index:0;
-  background:var(--fp-bg) center/cover no-repeat;
-  -webkit-filter:blur(28px) brightness(.55);
-  filter:blur(28px) brightness(.55);
-  pointer-events:none;
-}
-/* El pie siempre pegado abajo */
-.swiper-slide:not(.video):not([data-dcm]) .feed-post-footer{flex:0 0 auto;margin-top:auto}
-</style>
-<script id="fp-feed-ancho-completo-js">
-(function(){
-if(window.__fpFeedAncho)return;window.__fpFeedAncho=1;
-function medirHeader(){
-  try{
-    var h=document.getElementById('socialHeader'),v=0;
-    if(h&&getComputedStyle(h).display!=='none')v=h.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--fp-hdr',Math.round(v)+'px');
-  }catch(e){}
-}
-medirHeader();
-window.addEventListener('resize',medirHeader);
-window.addEventListener('orientationchange',function(){setTimeout(medirHeader,300)});
-setTimeout(medirHeader,600);setTimeout(medirHeader,2500);
-
-/* Fondo difuminado: solo cuando la foto deja franjas a los lados (verticales / PC) */
-function fondo(img){
-  try{
-    var z=img.parentNode;
-    if(!z||!z.classList||!z.classList.contains('swiper-zoom-container')||z.classList.contains('dcm-w'))return;
-    var sl=z.closest('.swiper-slide');if(!sl||sl.classList.contains('video')||sl.hasAttribute('data-dcm'))return;
-    var nw=img.naturalWidth,nh=img.naturalHeight,cw=z.clientWidth,ch=z.clientHeight;
-    if(!nw||!nh||!cw||!ch)return;
-    var k=Math.min(cw/nw,ch/nh),laterales=cw-nw*k>8;
-    if(laterales&&img.classList.contains('fp-llena'))laterales=false;
-    if(laterales){
-      var src=img.currentSrc||img.src;
-      if(!src)return;
-      if(z.__fpBg!==src){z.__fpBg=src;z.style.setProperty('--fp-bg','url("'+String(src).replace(/"/g,'%22')+'")')}
-      z.classList.add('fp-bgblur');
-    }else z.classList.remove('fp-bgblur');
-  }catch(e){}
-}
-function fondoTodas(){
-  Array.prototype.forEach.call(document.querySelectorAll('.swiper-slide:not(.video) .swiper-zoom-container>img'),function(i){if(i.complete)fondo(i)});
-}
-document.addEventListener('load',function(e){var i=e.target;if(i&&i.tagName==='IMG'&&i.matches&&i.matches('.swiper-zoom-container>img')){fondo(i);setTimeout(function(){fondo(i)},250)}},true);
-var rf=null;
-window.addEventListener('resize',function(){clearTimeout(rf);rf=setTimeout(fondoTodas,250)});
-window.addEventListener('orientationchange',function(){setTimeout(fondoTodas,350)});
-if(window.visualViewport)window.visualViewport.addEventListener('resize',function(){clearTimeout(rf);rf=setTimeout(fondoTodas,250)});
-try{var wr=document.querySelector('.swiper-wrapper');if(wr)new MutationObserver(function(){clearTimeout(rf);rf=setTimeout(fondoTodas,300)}).observe(wr,{childList:true})}catch(e){}
-setTimeout(fondoTodas,800);setTimeout(fondoTodas,3000);
-})();
-</script>
-
 </body>
 </html>
-
-
-<!-- DECOM PATCH AISLADO: carruseles de sugerencias dentro del feed -->
-<style id="decom-feed-suggestions-carousel-css">
-/* Estilos aislados: nunca modifican imágenes, videos, slides ni pies de publicación existentes. */
-.decom-feed-insert{position:relative;z-index:1;box-sizing:border-box;width:100%;margin:10px 0 4px;padding:12px;background:var(--feed-card-bg,#fff);color:var(--feed-text,#171717);border:1px solid rgba(128,128,128,.22);border-radius:14px;font-family:inherit;}
-body.dark-mode .decom-feed-insert{background:#191b1f;color:#f1f3f5;border-color:rgba(255,255,255,.12)}
-.decom-feed-insert *{box-sizing:border-box}
-.decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:16px;font-weight:800;line-height:1.25}
-.decom-feed-insert-head span{flex:1;min-width:0}
-.decom-feed-insert-sub{font-size:12px;font-weight:500;opacity:.68;margin-top:3px}
-.decom-feed-insert-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 7px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:thin}
-.decom-feed-insert-row::-webkit-scrollbar{height:4px}.decom-feed-insert-row::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:8px}
-.decom-feed-person{position:relative;display:flex;flex:0 0 164px;max-width:164px;min-height:220px;flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid rgba(128,128,128,.22);border-radius:13px;background:rgba(128,128,128,.055);scroll-snap-align:start}
-.decom-feed-person-photo{width:100%;height:135px;flex:0 0 135px;display:flex;align-items:center;justify-content:center;background:#dce4ee center/cover no-repeat;color:#fff;font-size:32px;font-weight:800;cursor:pointer}
-.decom-feed-person-name{padding:9px 9px 3px;font-size:13px;font-weight:800;line-height:1.25;min-height:38px;overflow-wrap:anywhere}
-.decom-feed-person-reason{padding:0 9px 7px;font-size:11px;opacity:.7;line-height:1.25;min-height:25px}
-.decom-feed-person .fp-amistad-btn{margin:auto 8px 9px;width:calc(100% - 16px);min-height:34px;font-size:12px}
-.decom-feed-person-dismiss{position:absolute;right:6px;top:6px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.56);color:#fff;font-size:17px;cursor:pointer}
-.decom-feed-story{position:relative;flex:0 0 108px;width:108px;scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
-.decom-feed-story-media{height:150px;width:108px;border-radius:13px;background:#dce4ee center/cover no-repeat;display:flex;align-items:flex-end;padding:8px;color:#fff;overflow:hidden;box-shadow:inset 0 -55px 35px -25px rgba(0,0,0,.75)}
-.decom-feed-story-avatar{position:absolute;top:7px;left:7px;width:34px;height:34px;border-radius:50%;border:3px solid #1877f2;background:#ddd center/cover no-repeat}
-.decom-feed-story-name{font-size:12px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
-.decom-feed-insert-link{display:block;margin:7px auto 0;border:0;background:transparent;color:#1877f2;font-weight:750;padding:5px 8px;cursor:pointer}
-@media(max-width:480px){.decom-feed-insert{margin:8px 0;padding:10px}.decom-feed-person{flex-basis:148px;max-width:148px}.decom-feed-person-photo{height:122px;flex-basis:122px}.decom-feed-story{flex-basis:96px;width:96px}.decom-feed-story-media{width:96px;height:138px}}
-</style>
-<script id="decom-feed-suggestions-carousel-js">
-(function(){
- 'use strict';
- if(window.__decomFeedCarouselPatch)return;window.__decomFeedCarouselPatch=true;
- var hiddenKey='decom_feed_suggest_hidden_v1',busy=false;
- function q(s,r){return (r||document).querySelector(s)}
- function norm(v){return String(v||'').trim().toLowerCase()}
- function client(){try{return typeof supabaseClient!=='undefined'?supabaseClient:(typeof sb==='function'?sb():null)}catch(_){return null}}
- function emailMe(){try{return norm(typeof miCorreo==='function'?miCorreo():(localStorage.getItem('correo')||''))}catch(_){return ''}}
- function hidden(){try{return new Set(JSON.parse(localStorage.getItem(hiddenKey)||'[]').map(String))}catch(_){return new Set()}}
- function saveHidden(id){var h=hidden();h.add(String(id));try{localStorage.setItem(hiddenKey,JSON.stringify(Array.from(h).slice(-200)))}catch(_){}}
- function avatarStyle(el,url){if(url&&/^(https?:|data:|blob:)/i.test(url))el.style.backgroundImage='url("'+String(url).replace(/["\\\\]/g,'')+'")'}
- function makeHead(title,sub){var h=document.createElement('div');h.className='decom-feed-insert-head';var w=document.createElement('div');var t=document.createElement('span');t.textContent=title;var d=document.createElement('div');d.className='decom-feed-insert-sub';d.textContent=sub;w.append(t,d);h.append(w);return h}
- async function peopleData(){
-   var c=client(),me=emailMe();if(!c||!me)return [];
-   var r=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(300);
-   if(r.error||!Array.isArray(r.data))return [];
-   var users=r.data.filter(function(u){return norm(u.correo)!==me&&u.nombre&&!hidden().has(String(u.id))});
-   try{
-     var meRow=users.length?null:null;
-     var mine=await c.from('usuarios').select('id').ilike('correo',me).limit(1);
-     var mid=mine.data&&mine.data[0]?String(mine.data[0].id):'';
-     if(mid){
-       var req=await c.from('solicitudes_amigos').select('solicitante_id,solicitado_id,estado').or('solicitante_id.eq.'+mid+',solicitado_id.eq.'+mid).limit(1000);
-       if(!req.error){
-         var blocked=new Set();
-         (req.data||[]).forEach(function(x){var other=String(x.solicitante_id)===mid?String(x.solicitado_id):String(x.solicitante_id);if(x.estado==='aceptada')blocked.add(other)});
-         users=users.filter(function(u){return !blocked.has(String(u.id))});
-       }
-     }
-   }catch(_){}
-   return users.slice(0,14);
- }
- function profileOpen(u){try{if(typeof abrirPerfilPorCorreo==='function')abrirPerfilPorCorreo(u.correo)}catch(_){}}
- function renderPeople(host,users){
-   if(!users.length)return;
-   var section=document.createElement('section');section.className='decom-feed-insert decom-feed-people';section.dataset.decomFeedInsert='people';
-   section.appendChild(makeHead('Personas que quizás conozcas','Desliza horizontalmente para descubrir personas'));
-   var row=document.createElement('div');row.className='decom-feed-insert-row';
-   users.forEach(function(u){
-     var card=document.createElement('article');card.className='decom-feed-person';
-     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)section.remove()};
-     var ph=document.createElement('div');ph.className='decom-feed-person-photo';avatarStyle(ph,u.foto_perfil);if(!u.foto_perfil)ph.textContent=String(u.nombre||'?').trim().charAt(0).toUpperCase();ph.onclick=function(){profileOpen(u)};
-     var nm=document.createElement('div');nm.className='decom-feed-person-name';nm.textContent=u.nombre||'Usuario';nm.onclick=function(){profileOpen(u)};
-     var why=document.createElement('div');why.className='decom-feed-person-reason';why.textContent=[u.congregacion,u.ciudad].filter(Boolean).slice(0,2).join(' · ')||'Quizás lo conozcas';
-     card.append(x,ph,nm,why);
-     try{if(window.fpAmistad&&typeof window.fpAmistad.crearBoton==='function')card.appendChild(window.fpAmistad.crearBoton(u,'ninguna','',function(){}))}catch(_){}
-     row.appendChild(card);
-   });
-   section.appendChild(row);
-   var all=document.createElement('button');all.type='button';all.className='decom-feed-insert-link';all.textContent='Ver más sugerencias';all.onclick=function(){var b=q('#fpBell')||q('#fpFollowHeader');if(b)b.click()};
-   section.appendChild(all);host.appendChild(section);
-   keepSuggestionSeparateFromDescriptionScroll(host.closest('.swiper-slide')||host,section);
- }
- async function storiesData(){
-   var c=client(),me=emailMe();if(!c||!me)return [];
-   try{
-     var r=await c.from('historias').select('id,autor_correo,tipo,media_url,texto,expira').gt('expira',new Date().toISOString()).neq('autor_correo',me).order('creado',{ascending:false}).limit(30);
-     if(r.error||!r.data)return [];
-     var seen=new Set(),rows=[];
-     r.data.forEach(function(x){var k=norm(x.autor_correo);if(!k||seen.has(k)||!x.media_url)return;seen.add(k);rows.push(x)});
-     if(!rows.length)return [];
-     var emails=rows.map(function(x){return x.autor_correo});
-     var us=await c.from('usuarios').select('correo,nombre,foto_perfil').in('correo',emails);
-     var map={};(us.data||[]).forEach(function(u){map[norm(u.correo)]=u});
-     return rows.map(function(x){return {story:x,user:map[norm(x.autor_correo)]||{correo:x.autor_correo,nombre:String(x.autor_correo).split('@')[0]}}});
-   }catch(_){return []}
- }
- function renderStories(host,items){
-   if(!items.length)return;
-   var section=document.createElement('section');section.className='decom-feed-insert decom-feed-stories';section.dataset.decomFeedInsert='stories';
-   section.appendChild(makeHead('Historias que te pueden gustar','Historias recientes de personas de DECOM'));
-   var row=document.createElement('div');row.className='decom-feed-insert-row';
-   items.forEach(function(it){
-     var b=document.createElement('button');b.type='button';b.className='decom-feed-story';
-     var media=document.createElement('div');media.className='decom-feed-story-media';avatarStyle(media,it.story.media_url);
-     var nm=document.createElement('span');nm.className='decom-feed-story-name';nm.textContent=it.user.nombre||'Usuario';media.appendChild(nm);
-     var av=document.createElement('div');av.className='decom-feed-story-avatar';avatarStyle(av,it.user.foto_perfil);if(!it.user.foto_perfil)av.style.backgroundImage='linear-gradient(135deg,#1877f2,#7b61ff)';
-     b.append(media,av);b.onclick=function(){try{if(window.fpHistoriasDe)window.fpHistoriasDe(it.story.autor_correo,true)}catch(_){}};
-     row.appendChild(b);
-   });
-   section.appendChild(row);host.appendChild(section);
-   keepSuggestionSeparateFromDescriptionScroll(host.closest('.swiper-slide')||host,section);
- }
- function targetFor(slide){
-   // Las sugerencias se conservan dentro del pie original para no alterar el layout
-   // ni las proporciones del anuncio. Al expandir la descripción se ocultan para que
-   // no participen visualmente del scroll interno del texto; reaparecen al contraer.
-   return slide.querySelector('.feed-post-footer');
- }
- function keepSuggestionSeparateFromDescriptionScroll(slide, section){
-   var footer=slide.querySelector('.feed-post-footer');
-   if(!footer||!section)return;
-   var sync=function(){section.style.display=footer.classList.contains('fp-exp')?'none':''};
-   sync();
-   if(window.MutationObserver){
-     var observer=new MutationObserver(sync);
-     observer.observe(footer,{attributes:true,attributeFilter:['class']});
-     section._decomExpandObserver=observer;
-   }
- }
- async function decorate(){
-   if(busy)return;var wrapper=q('.swiper-wrapper');if(!wrapper)return;
-   var slides=Array.prototype.filter.call(wrapper.children,function(x){return x.classList.contains('swiper-slide')&&!x.classList.contains('swiper-slide-duplicate')});
-   if(!slides.length)return;
-   busy=true;
-   try{
-     var p=null,st=null;
-     // Mucho menos frecuente: una sugerencia cada 9 publicaciones; alternar personas e historias.
-     slides.forEach(function(slide,idx){
-       if((idx+1)%9!==0||!slide.isConnected||q('[data-decom-feed-insert]',slide))return;
-       var host=targetFor(slide);
-       if(!host)return; // si el pie no existe, omitir; jamás alterar tamaño de imagen/video
-       var type=(Math.floor((idx+1)/9)%2===1)?'people':'stories';
-       if(type==='people'){
-         peopleData().then(function(users){if(slide.isConnected&&!q('[data-decom-feed-insert]',slide))renderPeople(host,users)}).catch(function(){});
-       }else{
-         storiesData().then(function(items){if(slide.isConnected&&!q('[data-decom-feed-insert]',slide))renderStories(host,items)}).catch(function(){});
-       }
-     });
-   }catch(e){console.warn('Carruseles de sugerencias DECOM:',e)}
-   finally{busy=false}
- }
-
- var queued=false;
- function schedule(){if(queued)return;queued=true;setTimeout(function(){queued=false;decorate()},700)}
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule);else schedule();
- var w=q('.swiper-wrapper');
- if(w&&window.MutationObserver)new MutationObserver(function(){schedule()}).observe(w,{childList:true});
- document.addEventListener('visibilitychange',function(){if(!document.hidden)schedule()});
- window.addEventListener('resize',schedule);
-})();
-</script>
