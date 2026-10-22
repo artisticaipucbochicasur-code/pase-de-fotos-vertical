@@ -20328,6 +20328,9 @@ function iniciarRealtimeSupabase(){
 
                 if(payload.eventType === "DELETE"){
                     eliminarPublicacionLocal(payload.old?.id);
+                    try {
+                        localStorage.removeItem(ANUNCIOS_LAST_FULL_SYNC_KEY);
+                    } catch (_) {}
                 }
             }
         )
@@ -20520,9 +20523,18 @@ if(nombreArchivo){
             "Anuncio eliminado correctamente."
         );
 
-        // Actualización local inmediata. El evento Realtime posterior
-        // se deduplica y no vuelve a consultar todas las publicaciones.
+        // Actualización local inmediata: feed, caché y localStorage.
         eliminarPublicacionLocal(anuncioId);
+
+        // La consulta incremental no detecta eliminaciones antiguas.
+        // Invalidar la marca de sincronización completa fuerza una reconciliación
+        // con Supabase al volver a abrir/recargar la app.
+        try {
+            localStorage.removeItem(ANUNCIOS_LAST_FULL_SYNC_KEY);
+            guardarCacheAnuncios();
+        } catch (cacheError) {
+            console.warn("No se pudo invalidar la sincronización del feed:", cacheError);
+        }
 
 
 
@@ -21089,7 +21101,9 @@ function initSwiper(initialIndex = 0) {
 
     // Paginado fluido tipo TikTok / Reels: la publicación sigue al dedo y al soltar
     // se acomoda suavemente en la siguiente o en la actual (nunca queda a medias).
-    freeMode: { enabled: true, momentum: true, momentumRatio: 0.85, momentumVelocityRatio: 1, momentumBounce: false, sticky: false },
+    // El feed vertical debe detenerse en una publicación completa.
+    // El modo libre con momentum y sticky:false podía saltar publicaciones al soltar el dedo.
+    freeMode: { enabled: false },
     speed: 380,
     threshold: 6,
     touchAngle: 60,
@@ -34190,7 +34204,16 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1
    });
  }
  async function decorate(){
-   if(busy)return;var wrapper=q('.swiper-wrapper');if(!wrapper)return;
+   if(busy)return;
+   // No insertar ni medir slides mientras el usuario está desplazando el feed.
+   try {
+     if(typeof swiperInstance!=='undefined'&&swiperInstance&&
+        (swiperInstance.animating || swiperInstance.touchEventsData?.isTouched)) {
+       schedule();
+       return;
+     }
+   } catch (_) {}
+   var wrapper=q('.swiper-wrapper');if(!wrapper)return;
    var slides=originalSlides(wrapper);if(slides.length<12)return;
    busy=true;
    try{
