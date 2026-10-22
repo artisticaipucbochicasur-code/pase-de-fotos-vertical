@@ -33789,6 +33789,7 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
     });
     gC().forEach(function(cm){var m=MAP[norm(cm&&cm.correo)];if(m&&cm.autor!==m){cm.autor=m;cambioComentarios=true}});
     try{Object.keys(comentariosPorAnuncio||{}).forEach(function(k){(comentariosPorAnuncio[k]||[]).forEach(function(cm){var m=MAP[norm(cm&&(cm.autorCorreo||cm.correo))];if(m&&cm.autor!==m){cm.autor=m;cambioComentarios=true}})})}catch(e){}
+    parchearPantalla();
     if(!cambioAnuncios&&!cambioComentarios)return;
 
     try{if(cambioAnuncios)guardarCacheAnuncios()}catch(e){}
@@ -33816,6 +33817,11 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
         if(n&&el&&el.textContent!==n){el.textContent=n;var im=cont.querySelector('.fb-post-avatar-wrap img');if(im)im.alt=n}
       }
       var ids={};gA().forEach(function(a){ids[String(a.id)]=a});
+      document.querySelectorAll('.swiper-slide[data-id] .feed-post-author').forEach(function(el){
+        var sl=el.closest('.swiper-slide'),a=sl&&ids[String(sl.dataset.id)];if(!a)return;
+        var n=MAP[norm(a.correo)]||'';if(!n)return;
+        if(el.textContent!==n){el.textContent=n;var av=sl.querySelector('.feed-post-avatar');if(av)av.setAttribute('aria-label','Ver perfil de '+n)}
+      });
       document.querySelectorAll('.swiper-slide[data-id] .fp-ticker').forEach(function(t){
         var sl=t.closest('.swiper-slide'),a=sl&&ids[String(sl.dataset.id)],c=t._lista&&t._lista[t._i||0];
         var m=c&&MAP[norm(c.autorCorreo||c.correo)],nm=t.querySelector('.fp-tk-name');
