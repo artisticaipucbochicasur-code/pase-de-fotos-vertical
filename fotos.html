@@ -32535,33 +32535,54 @@ async function abrirRanking(){
 }
 
 /* ---------- tarjeta para compartir ---------- */
-function cargarImg(url){
+/* En la APK las fotos se descargan con el puente nativo (sin CORS); en la web se usa fetch/Image. */
+window.__decomImgCbs=window.__decomImgCbs||{};
+window.__decomImgCb=function(id,data){var f=window.__decomImgCbs[id];delete window.__decomImgCbs[id];if(f)f(data)};
+function imgNativa(url){
   return new Promise(function(res){
-    if(!urlOk(url))return res(null);
-    var fin=false,obj=null;
-    function ok(v){if(fin)return;fin=true;res(v)}
+    var id='i'+Date.now()+Math.random().toString(36).slice(2),fin=false;
+    function ok(v){if(fin)return;fin=true;clearTimeout(tm);delete window.__decomImgCbs[id];res(v)}
+    var tm=setTimeout(function(){ok(null)},12000);
+    window.__decomImgCbs[id]=function(d){
+      if(!d)return ok(null);
+      var im=new Image();im.onload=function(){ok(im)};im.onerror=function(){ok(null)};im.src=d;
+    };
+    try{window.AndroidApp.fetchImage(id,url)}catch(e){ok(null)}
+  });
+}
+function imgWeb(url){
+  return new Promise(function(res){
+    var fin=false;
+    function ok(v){if(fin)return;fin=true;clearTimeout(tm);res(v)}
     var tm=setTimeout(function(){ok(null)},6000);
     function cargar(src,cors){
       var im=new Image();
       if(cors)im.crossOrigin='anonymous';
-      im.onload=function(){clearTimeout(tm);ok(im)};
-      im.onerror=function(){clearTimeout(tm);ok(null)};
+      im.onload=function(){ok(im)};
+      im.onerror=function(){ok(null)};
       im.src=src;
     }
     try{
-      // La foto ya se mostró en pantalla sin CORS y el navegador puede reutilizar esa copia en caché,
-      // lo que "contamina" el canvas y hace fallar toBlob(). Se pide de nuevo ignorando la caché.
       fetch(url,{mode:'cors',credentials:'omit',cache:'reload'}).then(function(r){
         if(!r.ok)throw new Error('http '+r.status);
         return r.blob();
       }).then(function(b){
-        obj=URL.createObjectURL(b);cargar(obj,false);
+        cargar(URL.createObjectURL(b),false);
       }).catch(function(){
         var sep=url.indexOf('?')>-1?'&':'?';
         cargar(url+sep+'cs='+Date.now(),true);
       });
     }catch(e){ok(null)}
   });
+}
+async function cargarImg(url){
+  if(!urlOk(url))return null;
+  var propia=/^(data:|blob:)/.test(String(url));
+  if(!propia&&window.AndroidApp&&typeof window.AndroidApp.fetchImage==='function'){
+    var im=await imgNativa(url);
+    if(im)return im;
+  }
+  return await imgWeb(url);
 }
 function recortar(x,t,max){
   t=String(t||'');if(x.measureText(t).width<=max)return t;
