@@ -34029,6 +34029,7 @@ body.dark-mode .decom-feed-insert{background:#191b1f;color:#f1f3f5;border-color:
    section.appendChild(row);
    var all=document.createElement('button');all.type='button';all.className='decom-feed-insert-link';all.textContent='Ver más sugerencias';all.onclick=function(){var b=q('#fpBell')||q('#fpFollowHeader');if(b)b.click()};
    section.appendChild(all);host.appendChild(section);
+   keepSuggestionSeparateFromDescriptionScroll(host.closest('.swiper-slide')||host,section);
  }
  async function storiesData(){
    var c=client(),me=emailMe();if(!c||!me)return [];
@@ -34058,10 +34059,24 @@ body.dark-mode .decom-feed-insert{background:#191b1f;color:#f1f3f5;border-color:
      row.appendChild(b);
    });
    section.appendChild(row);host.appendChild(section);
+   keepSuggestionSeparateFromDescriptionScroll(host.closest('.swiper-slide')||host,section);
  }
  function targetFor(slide){
-   // Solo usar el pie real de la publicación. Nunca insertar en el slide ni junto al medio.
+   // Las sugerencias se conservan dentro del pie original para no alterar el layout
+   // ni las proporciones del anuncio. Al expandir la descripción se ocultan para que
+   // no participen visualmente del scroll interno del texto; reaparecen al contraer.
    return slide.querySelector('.feed-post-footer');
+ }
+ function keepSuggestionSeparateFromDescriptionScroll(slide, section){
+   var footer=slide.querySelector('.feed-post-footer');
+   if(!footer||!section)return;
+   var sync=function(){section.style.display=footer.classList.contains('fp-exp')?'none':''};
+   sync();
+   if(window.MutationObserver){
+     var observer=new MutationObserver(sync);
+     observer.observe(footer,{attributes:true,attributeFilter:['class']});
+     section._decomExpandObserver=observer;
+   }
  }
  async function decorate(){
    if(busy)return;var wrapper=q('.swiper-wrapper');if(!wrapper)return;
