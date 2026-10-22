@@ -32253,8 +32253,20 @@ function nivel(p){
 function infoDe(D,k,extra){
   var u=D&&D.users[k];
   var nombre=(u&&u.nombre)||(extra&&extra.nombre)||'';
-  var foto=(u&&u.foto)||(extra&&extra.foto)||'';
-  if(!nombre){try{if(k===yo()&&usuarioActual&&usuarioActual.nombre)nombre=usuarioActual.nombre}catch(e){}}
+  var foto=(u&&u.foto)||(extra&&extra.foto)||(extra&&extra.fotoPerfil)||'';
+  // Para el usuario actual, la app puede tener la foto más reciente en la sesión local.
+  if(k===yo()){
+    try{
+      var ul=JSON.parse(localStorage.getItem('usuario')||'null');
+      if(ul){
+        if(!nombre)nombre=ul.nombre||'';
+        foto=foto||ul.fotoPerfil||ul.foto_perfil||ul.foto||'';
+      }
+    }catch(e){}
+    try{if(!nombre&&usuarioActual&&usuarioActual.nombre)nombre=usuarioActual.nombre;
+      if(!foto&&usuarioActual)foto=usuarioActual.fotoPerfil||usuarioActual.foto_perfil||usuarioActual.foto||'';
+    }catch(e){}
+  }
   if(!nombre)nombre=String(k).split('@')[0]||'Alguien';
   return {correo:(u&&u.correo)||(extra&&extra.correo)||k,nombre:nombre,foto:foto};
 }
@@ -32605,11 +32617,15 @@ async function imgWeb(url){
   return null;
 }
 async function cargarImg(url){
-  if(!urlOk(url))return null;
-  var propia=/^(data:|blob:)/.test(String(url));
+  // No limitar las fotos de perfil al formato exacto de URL pública de Storage:
+  // algunas cuentas guardan URL firmadas, CDN o rutas con parámetros.
+  url=String(url||'').trim();
+  if(!url)return null;
+  var propia=/^(data:|blob:)/i.test(url);
+  var web=/^https?:\/\//i.test(url);
+  if(!propia&&!web)return null;
   if(!propia&&window.AndroidApp&&typeof window.AndroidApp.fetchImage==='function'){
-    var im=await imgNativa(url);
-    if(im)return im;
+    try{var im=await imgNativa(url);if(im)return im}catch(e){}
   }
   return await imgWeb(url);
 }
@@ -32684,18 +32700,9 @@ async function compartir(r,A,B,btn){
   try{
     var blob;
     try{blob=await dibujar(r,A,B,false)}
-    catch(e1){console.warn('Sincronía: la tarjeta con fotos falló, se reintenta sin fotos',e1);FOTO_FALLOS.push('dibujo con fotos: '+((e1&&e1.name)||'Error')+' '+((e1&&e1.message)||''));blob=await dibujar(r,A,B,true)}
+    catch(e1){console.warn('Sincronía: la tarjeta con fotos falló, se reintenta sin fotos',e1);blob=await dibujar(r,A,B,true)}
     abrirVistaCompartir(blob,textoCompartir(r,B),B);
     if(FOTO_FALLOS.length)toast('Tarjeta creada sin foto: '+FOTO_FALLOS[0].slice(0,140));
-    try{
-      var hint=document.querySelector('#fpSincShare .fps-hint');
-      if(hint){
-        var dg=document.createElement('div');
-        dg.style.cssText='margin-top:8px;font-size:11px;line-height:1.35;word-break:break-word;color:'+(FOTO_FALLOS.length?'#b91c1c':'#6b7280');
-        dg.textContent='[v5] '+(FOTO_FALLOS.length?'Sin foto → '+FOTO_FALLOS.join(' || '):'Fotos cargadas correctamente');
-        hint.appendChild(dg);
-      }
-    }catch(e){}
   }catch(e){console.warn('Sincronía: no se pudo crear la tarjeta',e);toast('No se pudo crear la tarjeta'+(e&&e.name?' ('+e.name+')':''))}
   finally{btn.disabled=false;btn.textContent='';btn.append(ic('fas fa-share-nodes'),document.createTextNode('Compartir mi sincronía'))}
 }
