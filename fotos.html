@@ -34233,3 +34233,112 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1
  document.addEventListener('visibilitychange',function(){if(!document.hidden)schedule()});
 })();
 </script>
+
+<!-- Ajuste aislado v3: altura compacta y desplazamiento fluido de sugerencias -->
+<style id="decom-suggestions-compact-smooth-v3">
+/* Solo afecta a las diapositivas de sugerencias; publicaciones/anuncios quedan intactos. */
+.swiper-slide.decom-feed-suggestion-slide{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  flex:0 0 auto!important;
+  align-self:stretch!important;
+  overflow:visible!important;
+  padding:12px 12px 16px!important;
+  box-sizing:border-box!important;
+}
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-insert{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0 auto!important;
+  padding:12px!important;
+}
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-insert-row{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scroll-snap-type:x proximity!important;
+  scroll-behavior:smooth!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x!important;
+  cursor:grab;
+}
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-insert-row:active{cursor:grabbing}
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-person,
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-story{
+  scroll-snap-align:start!important;
+  scroll-snap-stop:normal!important;
+  flex-shrink:0!important;
+}
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-person{
+  min-height:0!important;
+}
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-person-photo,
+.swiper-slide.decom-feed-suggestion-slide .decom-feed-story-media{
+  flex-shrink:0!important;
+}
+/* No usar el alto de pantalla completo para las recomendaciones. */
+.swiper-slide.decom-feed-suggestion-slide::before,
+.swiper-slide.decom-feed-suggestion-slide::after{content:none!important;display:none!important}
+</style>
+<script id="decom-suggestions-smooth-interaction-v3">
+(function(){
+ 'use strict';
+ if(window.__decomSuggestionsSmoothV3)return;
+ window.__decomSuggestionsSmoothV3=true;
+ function setupRows(root){
+   (root||document).querySelectorAll('.decom-feed-suggestion-slide .decom-feed-insert-row').forEach(function(row){
+     if(row.dataset.smoothSetup==='1')return;
+     row.dataset.smoothSetup='1';
+     /* Tell Swiper that horizontal gestures on the nested row belong to the row, not the feed. */
+     row.classList.add('swiper-no-swiping');
+     row.setAttribute('data-swiper-no-swiping','true');
+     ['touchstart','touchmove','touchend','pointerdown','pointermove','pointerup','mousedown','mousemove','mouseup'].forEach(function(type){
+       row.addEventListener(type,function(ev){ev.stopPropagation()}, {passive:true});
+     });
+     var startX=0,startLeft=0,dragging=false,pointerId=null;
+     row.addEventListener('pointerdown',function(ev){
+       if(ev.pointerType==='touch')return;
+       if(ev.button!==0)return;
+       startX=ev.clientX;startLeft=row.scrollLeft;dragging=true;pointerId=ev.pointerId;
+     });
+     row.addEventListener('pointermove',function(ev){
+       if(!dragging||pointerId!==ev.pointerId)return;
+       if(Math.abs(ev.clientX-startX)>3){row.scrollLeft=startLeft-(ev.clientX-startX)}
+     });
+     function end(ev){if(pointerId!==null&&ev.pointerId!==undefined&&ev.pointerId!==pointerId)return;dragging=false;pointerId=null}
+     row.addEventListener('pointerup',end);row.addEventListener('pointercancel',end);row.addEventListener('lostpointercapture',end);
+     row.addEventListener('wheel',function(ev){
+       if(Math.abs(ev.deltaY)>Math.abs(ev.deltaX)&&row.scrollWidth>row.clientWidth){
+         row.scrollLeft+=ev.deltaY;ev.preventDefault();
+       }
+     },{passive:false});
+   });
+ }
+ function apply(){
+   setupRows(document);
+   /* Recalculate only Swiper's geometry after insertion; do not change slide media or ad styles. */
+   try{
+     if(typeof swiperInstance!=='undefined'&&swiperInstance&&typeof swiperInstance.update==='function'){
+       swiperInstance.updateAutoHeight&&swiperInstance.updateAutoHeight(0);
+       swiperInstance.update();
+     }
+   }catch(_){}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+ if(window.MutationObserver){
+   var observer=new MutationObserver(function(records){
+     var relevant=records.some(function(rec){return Array.prototype.some.call(rec.addedNodes,function(n){return n.nodeType===1&&(n.matches&&n.matches('.decom-feed-suggestion-slide,.decom-feed-insert-row')||(n.querySelector&&n.querySelector('.decom-feed-suggestion-slide .decom-feed-insert-row')))});});
+     if(relevant)apply();
+   });
+   var target=document.querySelector('.swiper-wrapper')||document.body;
+   if(target)observer.observe(target,{childList:true,subtree:true});
+ }
+})();
+</script>
