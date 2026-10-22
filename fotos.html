@@ -30391,6 +30391,10 @@ function abrirPro(d){
   }
   function lbAbrir(i){
     if(!root)return;var p=st.posts[i];if(!p)return;
+    /* mismo visor que Sincronía; si no está disponible se usa el visor anterior */
+    try{
+      if(typeof window.fpVisorPublicacion==='function'&&window.fpVisorPublicacion(st.posts,i,{verFeed:verEnFeed}))return;
+    }catch(e){console.warn('Visor:',e)}
     lbCerrar();st.lb=i;
     var o=el('div','fpp-lb'),top=el('div','fpp-lb-top'),x=el('button','fpp-lb-x');x.type='button';x.setAttribute('aria-label','Cerrar');x.appendChild(ic('fas fa-times'));x.onclick=lbCerrar;
     top.append(el('span',null,(i+1)+' / '+(st.cnt.posts!=null&&st.cnt.posts>=st.posts.length?st.cnt.posts:st.posts.length)),x);
@@ -30424,8 +30428,12 @@ function abrirPro(d){
     lbAbrir(n);
   }
   function verEnFeed(p){
+    try{if(window.fpNav&&window.fpNav.irAlFeed)window.fpNav.irAlFeed()}catch(e){}
+    try{var vp=document.getElementById('fpSincPub');if(vp){var vf=vp.querySelector('iframe,video');try{if(vf&&vf.pause)vf.pause()}catch(_){}vp.remove()}}catch(e){}
     cerrarTodo();
+    try{var um=document.getElementById('userMenu');if(um)um.style.display='none'}catch(e){}
     setTimeout(function(){
+      try{var um2=document.getElementById('userMenu');if(um2)um2.style.display='none'}catch(e){}
       try{if(typeof irAAnuncioNotificado==='function'){irAAnuncioNotificado(p.id);return}}catch(e){}
       toast('Abre el feed para ver la publicación');
     },80);
@@ -32360,7 +32368,7 @@ function medioDe(p){
   else{var h=ic('fas fa-image');h.style.cssText='font-size:42px;color:var(--s-sub)';cont.appendChild(h)}
   return cont;
 }
-function abrirPub(D,ids,i){
+function abrirPub(D,ids,i,opts){
   cerrarPub();
   var root=capa('fpSincPub','Publicación',Z+20);
   root.addEventListener('click',function(e){if(e.target===root)cerrarPub()});
@@ -32384,8 +32392,27 @@ function abrirPub(D,ids,i){
     var meta=el('div','fps-meta'),au=p.autor||(D.users[norm(p.correo)]||{}).nombre||'';
     if(au)meta.appendChild(el('span',null,'👤 '+au));
     var n=D.cnt[id]||{l:0,c:0};
-    meta.append(el('span',null,'❤ '+n.l),el('span',null,'💬 '+n.c));
+    var sl=el('span',null,'❤ '+(D.cnt[id]?n.l:'…')),sc2=el('span',null,'💬 '+(D.cnt[id]?n.c:'…'));
+    meta.append(sl,sc2);
     info.appendChild(meta);
+    if(opts&&opts.contar&&!D.cnt[id]){
+      (async function(){
+        var c=sb(),l=0,m=0;
+        try{
+          if(c){
+            var a=await c.from('likes').select('id',{count:'exact',head:true}).eq('publicacion_id',id);
+            var b=await c.from('comentarios').select('id',{count:'exact',head:true}).eq('publicacion_id',id);
+            l=(a&&typeof a.count==='number')?a.count:0;m=(b&&typeof b.count==='number')?b.count:0;
+          }
+        }catch(e){}
+        D.cnt[id]={l:l,c:m};
+        if(ids[idx]===id&&document.body.contains(sl)){sl.textContent='❤ '+l;sc2.textContent='💬 '+m}
+      })();
+    }
+    if(opts&&typeof opts.verFeed==='function'){
+      var go=el('button','fps-btn pri',esVideo(p)?'Ver video en el feed':'Ver publicación en el feed');go.type='button';go.style.marginTop='12px';
+      go.onclick=function(){opts.verFeed(p)};info.appendChild(go);
+    }
     if(!p.titulo&&!p.descripcion&&!au)info.insertBefore(el('p',null,'Esta publicación ya no está disponible.'),meta);
   }
   function ir(d){idx=(idx+d+ids.length)%ids.length;pintar()}
@@ -33205,6 +33232,16 @@ function arrancar(){
 }
 if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',arrancar);
 
+window.fpVisorPublicacion=function(posts,i,opts){
+  try{
+    var D={pubInfo:{},users:{},cnt:{}},ids=[];
+    (posts||[]).forEach(function(p){if(!p||p.id==null)return;var id=String(p.id);D.pubInfo[id]=p;ids.push(id)});
+    if(!ids.length)return false;
+    var o=opts||{};o.contar=true;
+    abrirPub(D,ids,Math.max(0,Math.min(ids.length-1,i||0)),o);
+    return true;
+  }catch(e){console.warn('Visor publicación:',e);return false}
+};
 window.fpSincronia={abrirPar:abrirPar,abrirRanking:abrirRanking,abrirEditor:abrirEditor,_t:{comparar:comparar,nivel:nivel,cargar:cargar,dibujar:dibujar}};
 })();
 </script>
@@ -33318,8 +33355,13 @@ function quitar(en){var i=stack.indexOf(en);if(i>=0)stack.splice(i,1)}
 function topActivo(){for(var i=stack.length-1;i>=0;i--)if(!stack[i].susp)return stack[i];return null}
 
 /* tras cerrar una pantalla: si debajo quedó una pantalla "pausada" (que el código cerró al abrir esta), se reabre */
+var sinPadresHasta=0;
 function volverAlPadre(hijoK){
   var padre=null;
+  if(Date.now()<sinPadresHasta){            /* se fue al feed: no se reabre menú ni nada debajo */
+    while(stack.length&&stack[stack.length-1].susp){quitar(stack[stack.length-1]);atrasProg()}
+    return;
+  }
   while(stack.length){
     var t=stack[stack.length-1];
     if(!t.susp)return;               /* ya hay una pantalla abierta debajo: nada que hacer */
@@ -33420,7 +33462,11 @@ window.addEventListener('popstate',function(e){
   for(var i=0;i<n;i++){if(!cerrarTope())break}
 });
 
-window.fpNav={pila:function(){return stack.map(function(x){return x.d.k+(x.susp?'*':'')})},hist:function(){return hist}};
+window.fpNav={irAlFeed:function(){sinPadresHasta=Date.now()+2500;
+  /* se descartan ya las pantallas pausadas y se limpia lo que quede abierto debajo */
+  var tope=stack.length;
+  stack.slice().forEach(function(en){if(en.susp){quitar(en);atrasProg()}});
+  },pila:function(){return stack.map(function(x){return x.d.k+(x.susp?'*':'')})},hist:function(){return hist}};
 })();
 </script>
 </body>
