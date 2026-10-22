@@ -33141,6 +33141,12 @@ function abrirEditor(){
         var correoDb=(row&&row.correo)||base.correo;
         var res=await c.from('usuarios').update(datos).eq('correo',correoDb);
         if(res&&res.error)throw res.error;
+        /* El nombre nuevo también se actualiza en publicaciones y comentarios (autor) */
+        try{
+          await c.from('publicaciones').update({autor:datos.nombre}).eq('correo',correoDb);
+          await c.from('comentarios').update({autor:datos.nombre}).eq('correo',correoDb);
+        }catch(eSync){console.warn('Sincronizar nombre:',eSync)}
+        try{if(typeof window.fpSincNombreAutor==='function')window.fpSincNombreAutor(correoDb,datos.nombre)}catch(e){}
         if(portadaQuitar&&portadaCol){
           try{var id3=await obtenerAuthId();await c.storage.from('perfiles').remove(['usuarios/'+id3+'/portada.jpg','usuarios/'+id3+'/portada_original.jpg'])}catch(e){}
         }
@@ -33741,6 +33747,238 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
   if(cT){clearTimeout(cT);cT=null;return}           /* segundo toque = doble toque (Me gusta, lo maneja la app) */
   if(Math.hypot(e.clientX-dX,e.clientY-dY)>10)return;
   cT=setTimeout(function(){cT=null;abrir(foto)},300)},true);
+})();
+</script>
+
+
+<!-- ======================================================================
+     AJUSTE: fotos/anuncios del carrusel con menos márgenes + nombre de autor
+     siempre actualizado. Bloque independiente: no cambia la lógica existente.
+====================================================================== -->
+<style id="fp-carrusel-menos-margenes">
+/* Pie un poco más compacto: la foto gana altura sin quitar ningún elemento */
+.swiper-slide .feed-post-footer:not(.fp-exp){padding-top:8px}
+.swiper-slide .feed-post-head{margin-bottom:6px;padding-bottom:6px}
+.swiper-slide .fp-ticker{margin-top:18px}
+/* La foto llena el recuadro cuando recortaría muy poco (se decide por JS) */
+.swiper-slide:not(.video) .swiper-zoom-container:not(.dcm-w)>img.fp-llena{object-fit:cover}
+.swiper-slide .swiper-zoom-container.fp-fs>img.fp-llena{object-fit:contain!important}
+</style>
+<script id="fp-carrusel-nombres">
+(function(){
+if(window.__fpCarruselNombres)return;window.__fpCarruselNombres=1;
+function $$(q,r){return Array.prototype.slice.call((r||document).querySelectorAll(q))}
+function norm(s){return String(s||'').trim().toLowerCase()}
+
+/* ---------- 1) Fotos con menos márgenes ---------- */
+var MAX_RECORTE=0.14; /* se recorta como máximo 14 % de la foto; si no, se ve completa */
+function ajustar(img){
+  try{
+    var z=img.parentNode;
+    if(!z||!z.classList||!z.classList.contains('swiper-zoom-container')||z.classList.contains('dcm-w'))return;
+    var sl=z.closest('.swiper-slide');if(!sl||sl.classList.contains('video'))return;
+    var nw=img.naturalWidth,nh=img.naturalHeight,cw=z.clientWidth,ch=z.clientHeight;
+    if(!nw||!nh||!cw||!ch)return;
+    var ir=nw/nh,cr=cw/ch,recorte=ir<cr?1-ir/cr:1-cr/ir;
+    img.classList.toggle('fp-llena',recorte>0.005&&recorte<=MAX_RECORTE);
+  }catch(e){}
+}
+function ajustarTodas(){$$('.swiper-slide:not(.video) .swiper-zoom-container>img').forEach(function(i){if(i.complete)ajustar(i)})}
+document.addEventListener('load',function(e){var i=e.target;if(i&&i.tagName==='IMG'&&i.matches&&i.matches('.swiper-zoom-container>img'))ajustar(i)},true);
+var rt=null;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(ajustarTodas,200)});
+window.addEventListener('orientationchange',function(){setTimeout(ajustarTodas,300)});
+
+/* ---------- 2) Nombre de autor siempre actualizado ---------- */
+var mapa={},vistos={},TTL=60000;
+function cliente(){try{return supabaseClient}catch(e){return null}}
+function lista(){try{return anunciosData||[]}catch(e){return[]}}
+function aplicar(){
+  var cambio=false,cambioC=false;
+  lista().forEach(function(a){var n=mapa[norm(a&&a.correo)];if(n&&a.autor!==n){a.autor=n;cambio=true}});
+  try{Object.keys(comentariosPorAnuncio||{}).forEach(function(k){(comentariosPorAnuncio[k]||[]).forEach(function(c){
+    var n=mapa[norm(c.autorCorreo||c.correo)];if(n&&c.autor!==n){c.autor=n;cambioC=true}})})}catch(e){}
+  try{(comentariosFilasCache||[]).forEach(function(c){var n=mapa[norm(c.correo)];if(n&&c.autor!==n){c.autor=n;cambioC=true}})}catch(e){}
+  /* pantalla */
+  var porId={};lista().forEach(function(a){if(a)porId[String(a.id)]=a});
+  $$('.swiper-slide[data-id]').forEach(function(sl){
+    var a=porId[sl.dataset.id];if(!a)return;
+    var el=sl.querySelector('.feed-post-author');if(el&&a.autor&&el.textContent!==a.autor)el.textContent=a.autor;
+  });
+  var cont=document.getElementById('autorContainer');
+  if(cont){var n=mapa[norm(cont.dataset.correo)];var nm=cont.querySelector('.fb-post-author-name');if(n&&nm&&nm.textContent!==n)nm.textContent=n}
+  if(cambio){try{guardarCacheAnuncios()}catch(e){}}
+  if(cambioC){try{guardarCacheComentarios()}catch(e){}}
+}
+async function sincronizar(){
+  var c=cliente();if(!c)return;
+  var ahora=Date.now(),pend={};
+  lista().forEach(function(a){var k=norm(a&&a.correo);if(k&&(!vistos[k]||ahora-vistos[k]>TTL))pend[k]=1});
+  try{Object.keys(comentariosPorAnuncio||{}).forEach(function(id){(comentariosPorAnuncio[id]||[]).forEach(function(x){
+    var k=norm(x.autorCorreo||x.correo);if(k&&(!vistos[k]||ahora-vistos[k]>TTL))pend[k]=1})})}catch(e){}
+  var ks=Object.keys(pend);
+  for(var i=0;i<ks.length;i+=100){
+    var parte=ks.slice(i,i+100);
+    try{
+      var r=await c.from('usuarios').select('correo,nombre').in('correo',parte);
+      (r.data||[]).forEach(function(u){var n=String(u.nombre||'').trim();if(n)mapa[norm(u.correo)]=n});
+      parte.forEach(function(k){vistos[k]=ahora});
+    }catch(e){}
+  }
+  aplicar();
+}
+var st=null;function programar(){clearTimeout(st);st=setTimeout(sincronizar,700)}
+/* usado al guardar el perfil: efecto inmediato en pantalla y en memoria local */
+window.fpSincNombreAutor=function(correo,nombre){
+  var k=norm(correo),n=String(nombre||'').trim();if(!k||!n)return;
+  mapa[k]=n;vistos[k]=Date.now();aplicar();
+};
+function iniciar(){
+  var w=document.querySelector('.swiper-wrapper');
+  if(w){try{new MutationObserver(function(){programar();setTimeout(ajustarTodas,250)}).observe(w,{childList:true})}catch(e){}}
+  programar();ajustarTodas();
+  setInterval(sincronizar,TTL);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)programar()});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else setTimeout(iniciar,300);
+})();
+</script>
+
+<!-- ======================================================================
+     FEED A TODO EL ANCHO (estilo Facebook): toda foto ocupa el ancho completo
+     de la pantalla, sin bordes, con su alto natural. Si la publicación es más
+     alta que la pantalla, se desplaza por dentro (foto + pie) y al llegar al
+     final el siguiente gesto pasa a la publicación siguiente.
+     Bloque independiente: no cambia la lógica existente. Videos y álbumes
+     conservan su comportamiento actual.
+====================================================================== -->
+<style id="fp-feed-ancho-completo">
+.swiper-slide:not(.video):not([data-dcm]){
+  box-sizing:border-box;
+  padding-top:var(--fp-hdr,0px);
+  overflow-x:hidden;
+  overflow-y:hidden; /* el desplazamiento lo maneja el script de abajo */
+  overscroll-behavior:none;
+}
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container{
+  flex:0 0 auto;
+  width:100%;
+  height:auto;
+  min-height:0;
+  margin:auto 0;      /* foto corta: centrada; foto alta: sin espacio extra */
+  overflow:visible;
+}
+/* Mientras carga, reserva espacio para que el pie no salte */
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container:not(.fp-ok-wrap){min-height:55dvh}
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img{
+  display:block;
+  width:100%;
+  max-width:100%;
+  height:auto;
+  max-height:none;
+  margin:0;
+  object-fit:contain;
+}
+.swiper-slide:not(.video):not([data-dcm]) .feed-post-footer{flex:0 0 auto}
+/* Pie expandido: queda fijo abajo de la pantalla mientras se desplaza */
+.swiper-slide:not(.video):not([data-dcm]) .feed-post-footer.fp-exp{
+  position:sticky;left:auto;right:auto;bottom:0;z-index:40;max-height:68%;
+}
+.swiper-slide:not(.video):not([data-dcm]) .fp-post-spacer{display:none!important}
+</style>
+<script id="fp-feed-ancho-completo-js">
+(function(){
+if(window.__fpFeedAncho)return;window.__fpFeedAncho=1;
+var SEL='.swiper-slide:not(.video):not([data-dcm])';
+var g=null,raf=0,tragarClickHasta=0;
+
+/* Altura del encabezado fijo, para que la foto no arranque debajo de él */
+function medirHeader(){
+  try{
+    var h=document.getElementById('socialHeader'),v=0;
+    if(h&&getComputedStyle(h).display!=='none')v=h.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--fp-hdr',Math.round(v)+'px');
+  }catch(e){}
+}
+medirHeader();
+window.addEventListener('resize',medirHeader);
+window.addEventListener('orientationchange',function(){setTimeout(medirHeader,300)});
+setTimeout(medirHeader,600);setTimeout(medirHeader,2500);
+
+function slideDe(t){return t&&t.closest?t.closest(SEL):null}
+function maxScroll(sl){return sl.scrollHeight-sl.clientHeight}
+function pararInercia(){if(raf){cancelAnimationFrame(raf);raf=0}}
+
+function inercia(sl,v){
+  var pos=sl.scrollTop,max=maxScroll(sl),last=performance.now();
+  function paso(t){
+    var dt=Math.min(32,t-last);last=t;
+    pos-=v*dt;
+    if(pos<=0){pos=0;v=0}else if(pos>=max){pos=max;v=0}
+    sl.scrollTop=pos;
+    v*=Math.pow(0.95,dt/16);
+    if(Math.abs(v)<0.03){raf=0;return}
+    raf=requestAnimationFrame(paso);
+  }
+  raf=requestAnimationFrame(paso);
+}
+
+function abajo(e){
+  if(e.isPrimary===false)return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  pararInercia();g=null;
+  var t=e.target,sl=slideDe(t);
+  if(!sl||(t.closest&&t.closest('.feed-post-footer.fp-exp,input,textarea,select')))return;
+  if(maxScroll(sl)<=2)return; /* cabe completa: Swiper hace todo como siempre */
+  g={sl:sl,id:e.pointerId,x0:e.clientX,y0:e.clientY,y:e.clientY,t:e.timeStamp,v:0,mode:null};
+}
+function mover(e){
+  if(!g||e.pointerId!==g.id)return;
+  var x=e.clientX,y=e.clientY;
+  if(g.mode===null){
+    var ty=y-g.y0,tx=x-g.x0;
+    if(Math.abs(ty)<3&&Math.abs(tx)<3)return;
+    if(Math.abs(tx)>Math.abs(ty)){g.mode='swiper';return}
+    var st=g.sl.scrollTop,m=maxScroll(g.sl);
+    /* dedo hacia arriba = ver más abajo; hacia abajo = volver arriba */
+    g.mode=(ty<0?st<m-1:st>1)?'inner':'swiper';
+  }
+  if(g.mode!=='inner')return;
+  e.stopPropagation(); /* Swiper no ve este gesto: la publicación se desplaza por dentro */
+  var dy=y-g.y,dt=Math.max(1,e.timeStamp-g.t);
+  g.sl.scrollTop-=dy;
+  g.v=0.7*g.v+0.3*(dy/dt);
+  g.y=y;g.t=e.timeStamp;
+}
+function bloquear(e){if(g&&g.mode==='inner')e.stopPropagation()}
+function arriba(e){
+  if(!g||e.pointerId!==g.id)return;
+  var G=g;g=null;
+  if(G.mode!=='inner')return;
+  tragarClickHasta=Date.now()+250;
+  var parado=(e.timeStamp-G.t)>80;
+  if(e.type==='pointerup'&&!parado&&Math.abs(G.v)>0.15)inercia(G.sl,G.v);
+}
+
+var o={capture:true,passive:true};
+document.addEventListener('pointerdown',abajo,o);
+document.addEventListener('pointermove',mover,o);
+document.addEventListener('touchmove',bloquear,o);
+document.addEventListener('mousemove',bloquear,o);
+document.addEventListener('pointerup',arriba,o);
+document.addEventListener('pointercancel',arriba,o);
+
+/* Tras arrastrar la publicación, el soltar no cuenta como toque (no abre el visor) */
+document.addEventListener('click',function(e){
+  if(Date.now()<tragarClickHasta&&slideDe(e.target)){e.stopPropagation();e.preventDefault()}
+},true);
+
+/* PC: rueda del mouse desplaza la publicación alta */
+document.addEventListener('wheel',function(e){
+  var sl=slideDe(e.target);if(!sl||(e.target.closest&&e.target.closest('.feed-post-footer.fp-exp')))return;
+  var st=sl.scrollTop,m=maxScroll(sl);
+  if(m<=2)return;
+  if((e.deltaY>0&&st<m-1)||(e.deltaY<0&&st>1)){sl.scrollTop=st+e.deltaY;e.preventDefault()}
+},{passive:false});
 })();
 </script>
 
