@@ -33157,13 +33157,7 @@ function cerroUsuario(k){return Date.now()-(cerrados[k]||0)<1200}
 var DEF={};REG.forEach(function(d,i){d.i=i;DEF[d.k]=d});
 
 /* ---------- pila de pantallas ligada al historial ---------- */
-var stack=[],hist=0,ignore=0,ignoreT=0,POLL=50,DELAY=80;
-/* Si una fila de Actividad navega a una publicación, comentario, me gusta, perfil o chat,
-   el menú principal no debe reaparecer por debajo al cerrar la actividad. */
-function navegarDesdeActividad(){
-  window.__fpNoReabrirMenuHasta=Date.now()+1800;
-  try{var m=$('#userMenu');if(m)m.style.display='none'}catch(_){}
-}
+var stack=[],hist=0,ignore=0,ignoreT=0,POLL=80,DELAY=220;
 /* pares que ya vuelven solos con código existente: se espera un poco antes de reabrir */
 var PROPIO={red:{busca:1,amigos:1},act:{busca:1,amigos:1},amigos:{busca:1}};
 
@@ -33189,7 +33183,6 @@ function volverAlPadre(hijoK){
   var padre=null;
   while(stack.length){
     var t=stack[stack.length-1];
-    if(t.d.k==='menu'&&Date.now()<(window.__fpNoReabrirMenuHasta||0)){quitar(t);atrasProg();continue}
     if(!t.susp)return;               /* ya hay una pantalla abierta debajo: nada que hacer */
     if(t.d.el&&safe(t.d.el)){t.susp=false;return}  /* ya volvió a abrirse sola */
     if(!t.d.reopen){quitar(t);atrasProg();continue}   /* no se puede reabrir: se salta */
@@ -33277,14 +33270,6 @@ function cerrarTope(){
   },380);
   return true;
 }
-/* Captura la selección antes de que el manejador propio cierre #fpNot. */
-document.addEventListener('click',function(e){
-  var t=e.target;if(!t||!t.closest)return;
-  var panel=t.closest('#fpNot');if(!panel)return;
-  if(t.closest('.fp-red-x,.fp-red-tabs,.fp-red-ic,.fp-marcar-todas,[data-fpa],.fp-sg-follow,.fp-sg-x,.fp-red-btn'))return;
-  if(t.closest('.fp-red-row,.fp-sg-name,.fp-sg-av,.fp-sg-card'))navegarDesdeActividad();
-},true);
-
 window.addEventListener('popstate',function(e){
   if(ignore>0){ignore--;return}
   var dest=(e.state&&e.state.fpNav)||0;
