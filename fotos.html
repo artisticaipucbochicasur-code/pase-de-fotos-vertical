@@ -33771,7 +33771,7 @@ function $$(q,r){return Array.prototype.slice.call((r||document).querySelectorAl
 function norm(s){return String(s||'').trim().toLowerCase()}
 
 /* ---------- 1) Fotos con menos márgenes ---------- */
-var MAX_RECORTE=0.14; /* se recorta como máximo 14 % de la foto; si no, se ve completa */
+var MAX_RECORTE=0.04; /* solo se recorta si es casi imperceptible (≤4 %); si no, la foto se ve COMPLETA */
 function ajustar(img){
   try{
     var z=img.parentNode;
@@ -33844,37 +33844,61 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <!-- ======================================================================
-     FEED A TODO EL ANCHO (estilo Facebook), SIN scroll interno:
+     FEED A TODO EL ANCHO (estilo Facebook / Instagram), SIN scroll interno:
      cada publicación ocupa una pantalla y el carrusel las desplaza completas.
-     La foto va de borde a borde, sin deformarse; si es más alta que el
-     espacio disponible se recorta un poco arriba/abajo (al tocarla se abre
-     completa en el visor). Videos y álbumes no cambian.
+     La foto NUNCA se recorta: se ve completa y centrada en el espacio sobre el
+     pie. Las verticales (9:16) se ajustan a la altura disponible en cualquier
+     teléfono (Android, iPhone, tablet) y en PC; si quedan franjas a los lados,
+     se rellenan con la misma foto difuminada. Videos y álbumes no cambian.
 ====================================================================== -->
 <style id="fp-feed-ancho-completo">
+/* iPhone/Safari: 100vh es MÁS alto que la pantalla visible (barras del navegador).
+   Con dvh disponible, se quita ese mínimo para que la publicación mida justo lo visible. */
+@supports (height:100dvh){
+  .swiper-slide:not(.video):not([data-dcm]){min-height:0}
+}
 .swiper-slide:not(.video):not([data-dcm]){
   box-sizing:border-box;
   padding-top:var(--fp-hdr,0px);
 }
 .swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container{
+  position:relative;
   flex:1 1 auto;
   min-height:0;
   width:100%;
   height:auto;
-  display:flex;
-  align-items:center;      /* foto corta: centrada en el espacio sobre el pie */
-  justify-content:center;
+  display:block;
   overflow:hidden;
+  background-color:#000;
 }
+/* La foto ocupa todo el recuadro y se ajusta (contain): nunca se corta.
+   Posición absoluta = mismo resultado en todos los navegadores, sin depender de alturas en % */
 .swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img,
 .swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img.fp-llena{
+  position:absolute;
+  inset:0;
+  z-index:1;
   display:block;
   width:100%;
+  height:100%;
   max-width:100%;
-  height:auto;
-  max-height:100%;         /* si es muy alta, se recorta en vez de dejar franjas */
+  max-height:100%;
   margin:0;
-  object-fit:cover;
+  object-fit:contain;
   object-position:center;
+}
+/* Solo si el recorte sería casi invisible (≤4 %) llena el recuadro de borde a borde */
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img.fp-llena{object-fit:cover}
+/* Franjas laterales (fotos verticales, PC): la misma foto difuminada de fondo */
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container.fp-bgblur::before{
+  content:"";
+  position:absolute;
+  inset:-30px;
+  z-index:0;
+  background:var(--fp-bg) center/cover no-repeat;
+  -webkit-filter:blur(28px) brightness(.55);
+  filter:blur(28px) brightness(.55);
+  pointer-events:none;
 }
 /* El pie siempre pegado abajo */
 .swiper-slide:not(.video):not([data-dcm]) .feed-post-footer{flex:0 0 auto;margin-top:auto}
@@ -33893,6 +33917,35 @@ medirHeader();
 window.addEventListener('resize',medirHeader);
 window.addEventListener('orientationchange',function(){setTimeout(medirHeader,300)});
 setTimeout(medirHeader,600);setTimeout(medirHeader,2500);
+
+/* Fondo difuminado: solo cuando la foto deja franjas a los lados (verticales / PC) */
+function fondo(img){
+  try{
+    var z=img.parentNode;
+    if(!z||!z.classList||!z.classList.contains('swiper-zoom-container')||z.classList.contains('dcm-w'))return;
+    var sl=z.closest('.swiper-slide');if(!sl||sl.classList.contains('video')||sl.hasAttribute('data-dcm'))return;
+    var nw=img.naturalWidth,nh=img.naturalHeight,cw=z.clientWidth,ch=z.clientHeight;
+    if(!nw||!nh||!cw||!ch)return;
+    var k=Math.min(cw/nw,ch/nh),laterales=cw-nw*k>8;
+    if(laterales&&img.classList.contains('fp-llena'))laterales=false;
+    if(laterales){
+      var src=img.currentSrc||img.src;
+      if(!src)return;
+      if(z.__fpBg!==src){z.__fpBg=src;z.style.setProperty('--fp-bg','url("'+String(src).replace(/"/g,'%22')+'")')}
+      z.classList.add('fp-bgblur');
+    }else z.classList.remove('fp-bgblur');
+  }catch(e){}
+}
+function fondoTodas(){
+  Array.prototype.forEach.call(document.querySelectorAll('.swiper-slide:not(.video) .swiper-zoom-container>img'),function(i){if(i.complete)fondo(i)});
+}
+document.addEventListener('load',function(e){var i=e.target;if(i&&i.tagName==='IMG'&&i.matches&&i.matches('.swiper-zoom-container>img')){fondo(i);setTimeout(function(){fondo(i)},250)}},true);
+var rf=null;
+window.addEventListener('resize',function(){clearTimeout(rf);rf=setTimeout(fondoTodas,250)});
+window.addEventListener('orientationchange',function(){setTimeout(fondoTodas,350)});
+if(window.visualViewport)window.visualViewport.addEventListener('resize',function(){clearTimeout(rf);rf=setTimeout(fondoTodas,250)});
+try{var wr=document.querySelector('.swiper-wrapper');if(wr)new MutationObserver(function(){clearTimeout(rf);rf=setTimeout(fondoTodas,300)}).observe(wr,{childList:true})}catch(e){}
+setTimeout(fondoTodas,800);setTimeout(fondoTodas,3000);
 })();
 </script>
 
