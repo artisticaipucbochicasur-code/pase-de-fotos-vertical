@@ -32550,30 +32550,59 @@ function imgNativa(url){
     try{window.AndroidApp.fetchImage(id,url)}catch(e){ok(null)}
   });
 }
-function imgWeb(url){
-  return new Promise(function(res){
-    var fin=false;
-    function ok(v){if(fin)return;fin=true;clearTimeout(tm);res(v)}
-    var tm=setTimeout(function(){ok(null)},6000);
-    function cargar(src,cors){
-      var im=new Image();
-      if(cors)im.crossOrigin='anonymous';
-      im.onload=function(){ok(im)};
-      im.onerror=function(){ok(null)};
-      im.src=src;
-    }
-    try{
-      fetch(url,{mode:'cors',credentials:'omit',cache:'reload'}).then(function(r){
-        if(!r.ok)throw new Error('http '+r.status);
-        return r.blob();
-      }).then(function(b){
-        cargar(URL.createObjectURL(b),false);
-      }).catch(function(){
-        var sep=url.indexOf('?')>-1?'&':'?';
-        cargar(url+sep+'cs='+Date.now(),true);
-      });
-    }catch(e){ok(null)}
+var FOTO_FALLOS=[];
+function conTiempo(prom,ms,etq){
+  return new Promise(function(res,rej){
+    var t=setTimeout(function(){rej(new Error(etq+': tiempo agotado'))},ms);
+    prom.then(function(v){clearTimeout(t);res(v)},function(e){clearTimeout(t);rej(e)});
   });
+}
+function imgDesdeSrc(src,cors){
+  return new Promise(function(res,rej){
+    var im=new Image();
+    if(cors)im.crossOrigin='anonymous';
+    im.onload=function(){res(im)};
+    im.onerror=function(){rej(new Error('no se pudo cargar la imagen'))};
+    im.src=src;
+  });
+}
+function imgDesdeBlob(b){
+  var u=URL.createObjectURL(b);
+  return imgDesdeSrc(u,false).then(function(im){return im},function(e){URL.revokeObjectURL(u);throw e});
+}
+/* Ruta pública de Supabase Storage -> {bucket, ruta} para usar la API autenticada (que sí permite CORS). */
+function rutaStorage(url){
+  var m=/\/storage\/v1\/object\/(?:public\/)?([^\/?#]+)\/([^?#]+)/.exec(String(url));
+  if(!m)return null;
+  var ruta;try{ruta=decodeURIComponent(m[2])}catch(e){ruta=m[2]}
+  return {bucket:m[1],ruta:ruta};
+}
+async function imgWeb(url){
+  var motivos=[];
+  // 1) Storage API de Supabase (misma vía que usa la app para subir fotos)
+  try{
+    var rs=rutaStorage(url),c=(typeof sb==='function')?sb():null;
+    if(rs&&c&&c.storage){
+      var d=await conTiempo(c.storage.from(rs.bucket).download(rs.ruta),12000,'storage');
+      if(d&&d.error)throw d.error;
+      if(d&&d.data)return await imgDesdeBlob(d.data);
+      throw new Error('storage sin datos');
+    }
+  }catch(e){motivos.push('storage: '+((e&&e.message)||e))}
+  // 2) fetch normal ignorando la caché
+  try{
+    var r=await conTiempo(fetch(url,{mode:'cors',credentials:'omit',cache:'reload'}),12000,'fetch');
+    if(!r.ok)throw new Error('http '+r.status);
+    return await imgDesdeBlob(await r.blob());
+  }catch(e){motivos.push('fetch: '+((e&&e.message)||e))}
+  // 3) imagen con CORS y URL nueva (evita copias en caché sin cabeceras CORS)
+  try{
+    var sep=url.indexOf('?')>-1?'&':'?';
+    return await conTiempo(imgDesdeSrc(url+sep+'cs='+Date.now(),true),12000,'img');
+  }catch(e){motivos.push('img: '+((e&&e.message)||e))}
+  FOTO_FALLOS.push(motivos.join(' | '));
+  console.warn('Sincronía: no se pudo cargar la foto',url,motivos);
+  return null;
 }
 async function cargarImg(url){
   if(!urlOk(url))return null;
@@ -32651,11 +32680,13 @@ function textoCompartir(r,B){
 async function compartir(r,A,B,btn){
   if(btn.disabled)return;btn.disabled=true;
   var antes=btn.textContent;btn.textContent='Creando tarjeta…';
+  FOTO_FALLOS=[];
   try{
     var blob;
     try{blob=await dibujar(r,A,B,false)}
     catch(e1){console.warn('Sincronía: la tarjeta con fotos falló, se reintenta sin fotos',e1);blob=await dibujar(r,A,B,true)}
     abrirVistaCompartir(blob,textoCompartir(r,B),B);
+    if(FOTO_FALLOS.length)toast('Tarjeta creada sin foto: '+FOTO_FALLOS[0].slice(0,140));
   }catch(e){console.warn('Sincronía: no se pudo crear la tarjeta',e);toast('No se pudo crear la tarjeta'+(e&&e.name?' ('+e.name+')':''))}
   finally{btn.disabled=false;btn.textContent='';btn.append(ic('fas fa-share-nodes'),document.createTextNode('Compartir mi sincronía'))}
 }
