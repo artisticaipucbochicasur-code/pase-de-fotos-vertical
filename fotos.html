@@ -31780,7 +31780,7 @@ body.dark-mode #commentsModal{--cm-bg:#161718;--cm-fg:#f1f3f5;--cm-mut:#9aa0a6;-
       }
       var total=Array.isArray(a.comentarios)?a.comentarios.length:l.length;
       $('.fp-tk-n',t).textContent=total;
-      var firma=l.map(function(c){return c.id+':'+(c.textoPuro||'').length}).join(',');
+      var firma=l.map(function(c){return c.id+':'+(c.textoPuro||'').length+':'+(c.autor||'')}).join(',');
       t._lista=l;
       if(t._firma!==firma){t._firma=firma;t._i=0;mostrar(t,l[0],false)}
       t.hidden=false;
@@ -33807,11 +33807,34 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
     }catch(e){}
   }
 
+  /* Respaldo visual: corrige el nombre ya pintado (autor del feed y comentarios rotativos) */
+  function parchearPantalla(){
+    try{
+      var cont=document.getElementById('autorContainer');
+      if(cont){
+        var n=MAP[norm(cont.dataset.correo)],el=cont.querySelector('.fb-post-author-name');
+        if(n&&el&&el.textContent!==n){el.textContent=n;var im=cont.querySelector('.fb-post-avatar-wrap img');if(im)im.alt=n}
+      }
+      var ids={};gA().forEach(function(a){ids[String(a.id)]=a});
+      document.querySelectorAll('.swiper-slide[data-id] .fp-ticker').forEach(function(t){
+        var sl=t.closest('.swiper-slide'),a=sl&&ids[String(sl.dataset.id)],c=t._lista&&t._lista[t._i||0];
+        var m=c&&MAP[norm(c.autorCorreo||c.correo)],nm=t.querySelector('.fp-tk-name');
+        if(m&&nm&&nm.textContent!==m)nm.textContent=m;
+      });
+    }catch(e){}
+  }
+  setInterval(parchearPantalla,700);
+
   async function sincronizar(forzar){
     if(corriendo)return;
     if(!forzar&&Date.now()-ultima<30000)return;
     corriendo=true;
-    try{if(await traerNombres()){ultima=Date.now();aplicar()}}catch(e){console.warn('[nombres]',e)}
+    try{
+      var ok=await traerNombres();
+      try{var yo=norm(currentAuthorEmail),mio=String(localStorage.getItem('autor')||'').trim();if(yo&&mio)MAP[yo]=mio}catch(e){}
+      if(ok){ultima=Date.now()}
+      aplicar();
+    }catch(e){console.warn('[nombres]',e)}
     corriendo=false;
   }
 
