@@ -33501,11 +33501,11 @@ document.addEventListener('click',function(e){if(e.target.closest&&e.target.clos
 
 /* ---------- Cápsula de tiempo ---------- */
 var uid=null,nombre='Anónimo';
-async function sesion(){var r=await sb().auth.getUser();var u=r&&r.data&&r.data.user;if(!u)return false;uid=u.id;nombre=(u.user_metadata&&(u.user_metadata.nombre||u.user_metadata.full_name))||(u.email||'').split('@')[0]||'Anónimo';return true}
+async function sesion(){try{var r=await sb().auth.getSession();var u=r&&r.data&&r.data.session&&r.data.session.user;if(!u){r=await sb().auth.getUser();u=r&&r.data&&r.data.user}}catch(e){return false}if(!u)return false;uid=u.id;nombre=(u.user_metadata&&(u.user_metadata.nombre||u.user_metadata.full_name))||(u.email||'').split('@')[0]||'Anónimo';return true}
 function falta(f){var ms=new Date(f)-Date.now();if(ms<=0)return'Lista para abrir';var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);return(d?d+'d ':'')+h+'h '+m+'m'}
 var cap=el('div');cap.id='dcCap';var box=el('div');box.id='dcCapBox';cap.appendChild(box);document.body.appendChild(cap);
 cap.onclick=function(e){if(e.target===cap)cap.classList.remove('on')};
-async function abrir(){cap.classList.add('on');if(!uid&&!(await sesion())){box.textContent='Inicia sesión para usar las cápsulas.';return}await pintar()}
+async function abrir(){cap.classList.add('on');box.textContent='Cargando…';try{if(!uid&&!(await sesion())){box.textContent='Inicia sesión para usar las cápsulas.';return}await pintar()}catch(e){box.textContent='Error: '+((e&&e.message)||e)}}
 function form(){
   var d=el('div','dcCard');d.appendChild(el('b',null,'Sellar una cápsula'));
   var t=el('textarea');t.rows=3;t.placeholder='Mensaje que se abrirá en el futuro…';t.maxLength=2000;
