@@ -32538,12 +32538,29 @@ async function abrirRanking(){
 function cargarImg(url){
   return new Promise(function(res){
     if(!urlOk(url))return res(null);
-    var im=new Image(),fin=false;
+    var fin=false,obj=null;
     function ok(v){if(fin)return;fin=true;res(v)}
-    im.crossOrigin='anonymous';
-    im.onload=function(){ok(im)};im.onerror=function(){ok(null)};
-    setTimeout(function(){ok(null)},5000);
-    im.src=url;
+    var tm=setTimeout(function(){ok(null)},6000);
+    function cargar(src,cors){
+      var im=new Image();
+      if(cors)im.crossOrigin='anonymous';
+      im.onload=function(){clearTimeout(tm);ok(im)};
+      im.onerror=function(){clearTimeout(tm);ok(null)};
+      im.src=src;
+    }
+    try{
+      // La foto ya se mostró en pantalla sin CORS y el navegador puede reutilizar esa copia en caché,
+      // lo que "contamina" el canvas y hace fallar toBlob(). Se pide de nuevo ignorando la caché.
+      fetch(url,{mode:'cors',credentials:'omit',cache:'reload'}).then(function(r){
+        if(!r.ok)throw new Error('http '+r.status);
+        return r.blob();
+      }).then(function(b){
+        obj=URL.createObjectURL(b);cargar(obj,false);
+      }).catch(function(){
+        var sep=url.indexOf('?')>-1?'&':'?';
+        cargar(url+sep+'cs='+Date.now(),true);
+      });
+    }catch(e){ok(null)}
   });
 }
 function recortar(x,t,max){
@@ -32566,13 +32583,13 @@ function avatarCanvas(x,img,nombre,cx,cy,r){
   }
   x.restore();
 }
-async function dibujar(r,A,B){
+async function dibujar(r,A,B,sinFotos){
   var W=1080,H=1920,cv=document.createElement('canvas');cv.width=W;cv.height=H;
   var x=cv.getContext('2d');
   var g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#312e81');g.addColorStop(.5,'#7e22ce');g.addColorStop(1,'#db2777');
   x.fillStyle=g;x.fillRect(0,0,W,H);
   [[160,300,330,.10],[930,1560,430,.09],[860,430,190,.08],[120,1500,150,.07]].forEach(function(c){x.beginPath();x.arc(c[0],c[1],c[2],0,Math.PI*2);x.fillStyle='rgba(255,255,255,'+c[3]+')';x.fill()});
-  var imgs=await Promise.all([cargarImg(A.foto),cargarImg(B.foto)]);
+  var imgs=sinFotos?[null,null]:await Promise.all([cargarImg(A.foto),cargarImg(B.foto)]);
   var nv=nivel(r.pct);
   x.textAlign='center';x.textBaseline='alphabetic';x.fillStyle='#fff';
   x.globalAlpha=.85;x.font='800 46px system-ui,sans-serif';x.fillText('S I N C R O N Í A',W/2,250);x.globalAlpha=1;
@@ -32594,7 +32611,16 @@ async function dibujar(r,A,B){
   x.font='900 78px system-ui,sans-serif';x.fillText(nv.t,W/2,1660);
   x.globalAlpha=.9;x.font='500 40px system-ui,sans-serif';x.fillText(recortar(x,nv.d,900),W/2,1730);x.globalAlpha=1;
   x.globalAlpha=.8;x.font='700 38px system-ui,sans-serif';x.fillText('¿Qué tan sincronizado estás conmigo? · DECOM',W/2,1850);x.globalAlpha=1;
-  return await new Promise(function(res,rej){cv.toBlob(function(b){b?res(b):rej(new Error('sin imagen'))},'image/png')});
+  return await new Promise(function(res,rej){
+    function desdeDataURL(){
+      try{
+        var d=cv.toDataURL('image/png').split(','),bin=atob(d[1]),u8=new Uint8Array(bin.length);
+        for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+        res(new Blob([u8],{type:'image/png'}));
+      }catch(e){rej(e)}
+    }
+    try{cv.toBlob(function(b){b?res(b):desdeDataURL()},'image/png')}catch(e){rej(e)}
+  });
 }
 function textoCompartir(r,B){
   var txt='Mi sincronía con '+B.nombre+' en DECOM es del '+r.pct+'% '+nivel(r.pct).e+' ¿Y la tuya?';
@@ -32605,9 +32631,11 @@ async function compartir(r,A,B,btn){
   if(btn.disabled)return;btn.disabled=true;
   var antes=btn.textContent;btn.textContent='Creando tarjeta…';
   try{
-    var blob=await dibujar(r,A,B);
+    var blob;
+    try{blob=await dibujar(r,A,B,false)}
+    catch(e1){console.warn('Sincronía: la tarjeta con fotos falló, se reintenta sin fotos',e1);blob=await dibujar(r,A,B,true)}
     abrirVistaCompartir(blob,textoCompartir(r,B),B);
-  }catch(e){toast('No se pudo crear la tarjeta')}
+  }catch(e){console.warn('Sincronía: no se pudo crear la tarjeta',e);toast('No se pudo crear la tarjeta'+(e&&e.name?' ('+e.name+')':''))}
   finally{btn.disabled=false;btn.textContent='';btn.append(ic('fas fa-share-nodes'),document.createTextNode('Compartir mi sincronía'))}
 }
 function abrirVistaCompartir(blob,txt,B){
