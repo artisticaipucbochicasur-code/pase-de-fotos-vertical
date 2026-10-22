@@ -21087,20 +21087,22 @@ function initSwiper(initialIndex = 0) {
 
     spaceBetween: 0,
 
-    // Paginado fluido tipo TikTok / Reels: la publicación sigue al dedo y al soltar
-    // se acomoda suavemente en la siguiente o en la actual (nunca queda a medias).
-    freeMode: { enabled: true, momentum: true, momentumRatio: 0.85, momentumVelocityRatio: 1, momentumBounce: false, sticky: false },
-    speed: 380,
-    threshold: 6,
-    touchAngle: 60,
+    // Paginado tipo Facebook / Reels: la publicación sigue al dedo y al soltar
+    // SIEMPRE se acomoda en la siguiente o en la actual (nunca queda a medias).
+    // Antes estaba freeMode + loop: el impulso saltaba varias publicaciones o
+    // rebotaba hacia atrás; por eso se sentía "a saltos".
+    freeMode: false,
+    speed: 340,
+    threshold: 8,
+    touchAngle: 40,
     touchRatio: 1,
     followFinger: true,
     shortSwipes: true,
     longSwipes: true,
-    longSwipesRatio: 0.18,
-    longSwipesMs: 260,
+    longSwipesRatio: 0.2,
+    longSwipesMs: 300,
     resistance: true,
-    resistanceRatio: 0.7,
+    resistanceRatio: 0.85,
     grabCursor: true,
 
     touchStartPreventDefault: false,
@@ -21133,7 +21135,9 @@ function initSwiper(initialIndex = 0) {
 
             // Solo cargar la imagen visible y las cercanas.
             cargarImagenesCercanas(activeIndex);
-            precargarPerfilesCercanos(activeIndex);
+            // Las consultas de perfiles esperan a que termine la animación.
+            clearTimeout(window.__decomPerfilesT);
+            window.__decomPerfilesT = setTimeout(() => { try { precargarPerfilesCercanos(activeIndex); } catch (_) {} }, 420);
 
             // 🎥 Si el nuevo anuncio activo es un video, se reproduce solo;
             // si el anterior era un video, se pausa automáticamente.
@@ -26415,7 +26419,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function darLike(sl,x,y){
     corazon(sl,x,y);
     var now=Date.now();if(darLike.t&&now-darLike.t<800)return;darLike.t=now;
-    try{var idx=$$('.swiper-slide',sl.parentNode).indexOf(sl);if(swiperInstance&&swiperInstance.realIndex!==idx)swiperInstance.slideTo(idx,0)}catch(e){}
+    try{var idx=Array.prototype.indexOf.call(swiperInstance.slides,sl);if(swiperInstance&&idx>-1&&swiperInstance.activeIndex!==idx)swiperInstance.slideTo(idx,0,false)}catch(e){}
     var b=$('.feed-post-action-like',sl);if(b&&b.classList.contains('is-liked'))return;
     if(typeof toggleLikeAnuncioActual==='function')toggleLikeAnuncioActual();
   }
@@ -26467,7 +26471,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     try{if(navigator.share){await navigator.share({title:a.titulo||'Publicación',text:a.titulo||'',url:url});return}}catch(e){if(e&&e.name==='AbortError')return}
     try{await navigator.clipboard.writeText(url);toast('Enlace copiado')}catch(e){window.prompt('Copia el enlace:',url)}
   }
-  window.fpCompartirEnlaceActivo=function(){try{var sl=$$('.swiper-wrapper > .swiper-slide')[swiperInstance.realIndex];if(sl)compartirEnlace(sl)}catch(e){}};
+  window.fpCompartirEnlaceActivo=function(){try{var sl=swiperInstance.slides[swiperInstance.activeIndex];if(sl&&sl.querySelector('.feed-post-footer'))compartirEnlace(sl)}catch(e){}};
   function botonEnlace(sl){
     var acc=$('.feed-post-actions',sl);if(!acc||$('.fp-link',acc))return;
     var b=document.createElement('button');b.type='button';b.className='feed-post-action fp-link';b.setAttribute('aria-label','Compartir enlace');b.innerHTML='<i class="fas fa-link"></i>';
@@ -34055,141 +34059,178 @@ setTimeout(fondoTodas,800);setTimeout(fondoTodas,3000);
 </html>
 
 
-<!-- DECOM PATCH AISLADO: carruseles de sugerencias dentro del feed -->
+<!-- DECOM PATCH AISLADO v3: sugerencias en slides independientes, compactas y sin saltos -->
 <style id="decom-feed-suggestions-carousel-css">
-/* Las sugerencias son una capa SOBRE la publicación (position:absolute, anclada justo encima del pie).
-   No participan del layout: la foto/video conserva exactamente su ancho, alto y escala. */
-.decom-feed-insert{position:absolute;left:0;right:0;bottom:var(--decom-fi-b,0px);z-index:15;box-sizing:border-box;margin:0;padding:10px 12px 8px;background:var(--dc-bg,#fff);color:var(--dc-tx,#1c1e21);border-top:1px solid var(--dc-line,#e4e6eb);border-radius:16px 16px 0 0;box-shadow:0 -10px 24px rgba(0,0,0,.35);font-family:inherit}
-.decom-feed-insert *{box-sizing:border-box}
-.decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0 0 8px}
-.decom-feed-insert-head>div{flex:1;min-width:0}
-.decom-feed-insert-title{display:block;font-size:15px;font-weight:800;line-height:1.2}
-.decom-feed-insert-sub{font-size:11px;font-weight:500;color:var(--dc-sub,#65676b);margin-top:2px}
-.decom-feed-insert-more{flex:0 0 auto;border:0;background:transparent;color:var(--dc-blue,#1877f2);font-size:12px;font-weight:750;padding:6px 4px;cursor:pointer}
-.decom-feed-insert-close{flex:0 0 auto;width:28px;height:28px;border:0;border-radius:50%;background:var(--dc-card,#f0f2f5);color:var(--dc-tx,#1c1e21);font-size:14px;line-height:1;cursor:pointer}
-.decom-feed-insert-row{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 4px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none}
-.decom-feed-insert-row::-webkit-scrollbar{display:none}
-.decom-feed-person{position:relative;display:flex;flex:0 0 128px;max-width:128px;flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid var(--dc-line,#e4e6eb);border-radius:12px;background:var(--dc-card,#f0f2f5);scroll-snap-align:start}
-.decom-feed-person-photo{width:100%;height:84px;flex:0 0 84px;display:flex;align-items:center;justify-content:center;background:#9aa7b8 center/cover no-repeat;color:#fff;font-size:28px;font-weight:800;cursor:pointer}
-.decom-feed-person-name{padding:6px 8px 0;font-size:12.5px;font-weight:800;line-height:1.2;min-height:32px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;cursor:pointer}
-.decom-feed-person-reason{padding:2px 8px 6px;font-size:10.5px;color:var(--dc-sub,#65676b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.decom-feed-person .fp-amistad-btn{margin:auto 7px 7px;width:calc(100% - 14px);min-height:30px;font-size:12px}
-.decom-feed-person-dismiss{position:absolute;right:5px;top:5px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.56);color:#fff;font-size:15px;line-height:1;cursor:pointer}
-.decom-feed-story{position:relative;flex:0 0 92px;width:92px;scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
-.decom-feed-story-media{height:140px;width:92px;border-radius:12px;background:#9aa7b8 center/cover no-repeat;display:flex;align-items:flex-end;padding:7px;color:#fff;overflow:hidden;box-shadow:inset 0 -55px 35px -25px rgba(0,0,0,.75)}
-.decom-feed-story-avatar{position:absolute;top:6px;left:6px;width:30px;height:30px;border-radius:50%;border:3px solid var(--dc-blue,#1877f2);background:#ddd center/cover no-repeat}
-.decom-feed-story-name{font-size:11.5px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
+/* Fluidez: la cinta vertical se anima en su propia capa de la GPU. */
+.swiper-wrapper{will-change:transform}
+
+/* La sugerencia es una diapositiva más del feed: nunca toca la imagen ni el pie de una publicación. */
+.swiper-slide.decom-feed-suggestion-slide{
+  display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:stretch!important;
+  gap:14px;width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+  padding:max(12px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom))!important;
+  background:var(--dc-card,#f0f2f5)!important;color:var(--dc-tx,#1c1e21);
+}
+body.dark-mode .swiper-slide.decom-feed-suggestion-slide{background:#0f1012!important;color:#e4e6eb}
+
+/* Tarjeta: ocupa solo lo necesario y queda centrada; el contenido crece con la altura de la pantalla. */
+.decom-feed-suggestion-slide .decom-feed-insert{
+  position:relative;z-index:1;box-sizing:border-box;width:100%;max-width:560px;margin:0 auto;flex:0 1 auto;min-height:0;
+  padding:14px 0 10px;background:var(--dc-bg,#fff);color:var(--dc-tx,#1c1e21);
+  border:1px solid var(--dc-line,rgba(128,128,128,.22));border-radius:18px;font-family:inherit;
+  box-shadow:0 2px 14px rgba(0,0,0,.08);overflow:hidden;
+}
+body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#18191a;color:#e4e6eb;border-color:rgba(255,255,255,.1);box-shadow:none}
+.decom-feed-suggestion-slide .decom-feed-insert *{box-sizing:border-box}
+.decom-feed-suggestion-slide .decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0;padding:0 16px 12px;font-size:17px;font-weight:800;line-height:1.25}
+.decom-feed-suggestion-slide .decom-feed-insert-head span{flex:1;min-width:0}
+.decom-feed-suggestion-slide .decom-feed-insert-sub{font-size:12.5px;font-weight:500;opacity:.68;margin-top:3px}
+
+/* Fila horizontal: se desliza hacia los lados sin mover el feed. */
+.decom-feed-suggestion-slide .decom-feed-insert-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 16px 10px;scroll-snap-type:x proximity;scroll-padding:0 16px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none;min-width:0;max-width:100%}
+.decom-feed-suggestion-slide .decom-feed-insert-row::-webkit-scrollbar{display:none}
+
+/* Personas: foto grande que se adapta a la altura disponible. */
+.decom-feed-suggestion-slide .decom-feed-person{position:relative;display:flex;flex:0 0 min(62vw,236px);width:min(62vw,236px);flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid var(--dc-line,rgba(128,128,128,.22));border-radius:14px;background:var(--dc-card,rgba(128,128,128,.06));scroll-snap-align:start}
+body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#242526;border-color:rgba(255,255,255,.08)}
+.decom-feed-suggestion-slide .decom-feed-person-photo{width:100%;height:clamp(170px,31dvh,290px);flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1877f2,#7b61ff) center/cover no-repeat;color:#fff;font-size:44px;font-weight:800;cursor:pointer}
+.decom-feed-suggestion-slide .decom-feed-person-name{padding:10px 11px 2px;font-size:15px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;cursor:pointer}
+.decom-feed-suggestion-slide .decom-feed-person-reason{padding:0 11px 8px;font-size:12px;opacity:.7;line-height:1.3;min-height:16px}
+.decom-feed-suggestion-slide .decom-feed-person .fp-amistad-btn{margin:auto 10px 10px;width:calc(100% - 20px);min-height:38px;font-size:13.5px}
+.decom-feed-suggestion-slide .decom-feed-person-dismiss{position:absolute;right:7px;top:7px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer}
+
+/* Historias: formato vertical grande, como en Facebook/Instagram. */
+.decom-feed-suggestion-slide .decom-feed-story{position:relative;display:block;flex:0 0 clamp(124px,36vw,172px);width:clamp(124px,36vw,172px);scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
+.decom-feed-suggestion-slide .decom-feed-story-media{height:clamp(210px,43dvh,340px);width:100%;border-radius:14px;background:#dce4ee center/cover no-repeat;display:flex;align-items:flex-end;padding:10px;color:#fff;overflow:hidden;box-shadow:inset 0 -70px 40px -30px rgba(0,0,0,.8)}
+.decom-feed-suggestion-slide .decom-feed-story-avatar{position:absolute;top:9px;left:9px;width:38px;height:38px;border-radius:50%;border:3px solid #1877f2;background:#ddd center/cover no-repeat}
+.decom-feed-suggestion-slide .decom-feed-story-name{font-size:13px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
+
+.decom-feed-suggestion-slide .decom-feed-insert-link{display:block;margin:4px auto 0;border:0;background:transparent;color:#1877f2;font-size:14px;font-weight:750;padding:8px 14px;cursor:pointer}
+
+/* Guía para continuar: da sentido al resto de la pantalla y evita que se vea vacía. */
+.decom-feed-suggestion-slide .decom-feed-next{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;opacity:.6;pointer-events:none;user-select:none}
+.decom-feed-suggestion-slide .decom-feed-next i{font-size:15px;animation:decomFeedNext 1.6s ease-in-out infinite}
+@keyframes decomFeedNext{0%,100%{transform:translateY(2px);opacity:.5}50%{transform:translateY(-3px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.decom-feed-suggestion-slide .decom-feed-next i{animation:none}}
+@media (max-height:620px){
+  .decom-feed-suggestion-slide .decom-feed-person-photo{height:clamp(120px,30dvh,170px)}
+  .decom-feed-suggestion-slide .decom-feed-story-media{height:clamp(150px,40dvh,220px)}
+  .decom-feed-suggestion-slide .decom-feed-next{display:none}
+}
+@media (min-width:700px){.swiper-slide.decom-feed-suggestion-slide{padding:24px!important}}
 </style>
 <script id="decom-feed-suggestions-carousel-js">
 (function(){
  'use strict';
- if(window.__decomFeedCarouselPatch)return;window.__decomFeedCarouselPatch=true;
- var CADA=9;            /* una sugerencia cada 9 publicaciones (según el orden de los datos, no de la pantalla) */
- var TTL=180000;        /* los datos se reutilizan 3 min: nada se vuelve a pedir en cada giro del carrusel */
- var hiddenKey='decom_feed_suggest_hidden_v1';
- var cache={people:{l:null,t:0,c:false},stories:{l:null,t:0,c:false}};
- var cerradas=new Set(); /* publicaciones donde la persona cerró la sugerencia (hasta recargar) */
+ if(window.__decomFeedCarouselPatchV3)return;window.__decomFeedCarouselPatchV3=true;
+ var hiddenKey='decom_feed_suggest_hidden_v1',busy=false,retryT=null;
  function q(s,r){return (r||document).querySelector(s)}
  function norm(v){return String(v||'').trim().toLowerCase()}
  function client(){try{return typeof supabaseClient!=='undefined'?supabaseClient:(typeof sb==='function'?sb():null)}catch(_){return null}}
  function emailMe(){try{return norm(typeof miCorreo==='function'?miCorreo():(localStorage.getItem('correo')||''))}catch(_){return ''}}
  function hidden(){try{return new Set(JSON.parse(localStorage.getItem(hiddenKey)||'[]').map(String))}catch(_){return new Set()}}
  function saveHidden(id){var h=hidden();h.add(String(id));try{localStorage.setItem(hiddenKey,JSON.stringify(Array.from(h).slice(-200)))}catch(_){}}
- function avatarStyle(el,url){if(url&&/^(https?:|data:|blob:)/i.test(url))el.style.backgroundImage='url("'+String(url).replace(/["\\()\s]/g,function(c){return '%'+c.charCodeAt(0).toString(16).toUpperCase()})+'")'}
- function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
- function rotar(list,start,max){var out=[],n=list.length;if(!n)return out;for(var i=0;i<Math.min(max,n);i++)out.push(list[(start+i)%n]);return out}
+ function avatarStyle(el,url){if(url&&/^(https?:|data:|blob:)/i.test(url))el.style.backgroundImage='url("'+String(url).replace(/["\\]/g,'')+'")'}
+ function makeHead(title,sub){var h=document.createElement('div');h.className='decom-feed-insert-head';var w=document.createElement('div');var t=document.createElement('span');t.textContent=title;var d=document.createElement('div');d.className='decom-feed-insert-sub';d.textContent=sub;w.append(t,d);h.append(w);return h}
+ function makeHint(){var d=document.createElement('div');d.className='decom-feed-next';d.setAttribute('aria-hidden','true');var i=document.createElement('i');i.className='fas fa-chevron-up';var t=document.createElement('span');t.textContent='Desliza hacia arriba para seguir';d.append(i,t);return d}
 
- /* ---------- Datos ---------- */
+ /* ---------- Acceso seguro al carrusel ---------- */
+ function sw(){try{return typeof swiperInstance!=='undefined'?swiperInstance:null}catch(_){return null}}
+ function slidesOf(s){return s&&s.slides?s.slides:[]}
+ function idxOf(s,el){return Array.prototype.indexOf.call(slidesOf(s),el)}
+ function userBusy(s){
+   if(!s)return false;
+   try{return !!(s.animating||(s.touchEventsData&&s.touchEventsData.isTouched)||document.querySelector('.fp-exp'))}catch(_){return false}
+ }
+ /* Inserta SIN mover lo que el usuario está viendo: si el nuevo slide queda antes del activo,
+    se reubica el carrusel en el mismo anuncio (antes esto provocaba saltos y retrocesos). */
+ function insertSafe(after,slide){
+   var s=sw(),act=s?slidesOf(s)[s.activeIndex]:null;
+   var di=after.getAttribute('data-swiper-slide-index');
+   if(di!==null)slide.setAttribute('data-swiper-slide-index',di); /* realIndex sigue apuntando al anuncio previo */
+   after.insertAdjacentElement('afterend',slide);
+   if(!s)return;
+   try{
+     s.update();
+     if(act){var n=idxOf(s,act);if(n>-1&&n!==s.activeIndex)s.slideTo(n,0,false)}
+   }catch(_){}
+ }
+ function removeSlide(slide){
+   var s=sw();
+   function go(){
+     var act=s?slidesOf(s)[s.activeIndex]:null;
+     slide.remove();
+     if(!s)return;
+     try{s.update();if(act&&act!==slide){var n=idxOf(s,act);if(n>-1&&n!==s.activeIndex)s.slideTo(n,0,false)}}catch(_){}
+   }
+   if(s&&slidesOf(s)[s.activeIndex]===slide){try{s.slideNext(300)}catch(_){}setTimeout(go,460)}else go();
+ }
+ /* Al llegar a una sugerencia se pausa el video del anuncio anterior (comparten índice de datos). */
+ function hook(){
+   var s=sw();if(!s||s.__decomSugHook||typeof s.on!=='function')return;
+   s.__decomSugHook=true;
+   s.on('slideChange',function(){
+     var el=slidesOf(s)[s.activeIndex];
+     if(el&&el.classList&&el.classList.contains('decom-feed-suggestion-slide')){try{if(typeof pausarVideoActivo==='function')pausarVideoActivo()}catch(_){}}
+   });
+ }
+
  async function peopleData(){
    var c=client(),me=emailMe();if(!c||!me)return [];
    var r=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(300);
    if(r.error||!Array.isArray(r.data))return [];
-   var users=r.data.filter(function(u){return norm(u.correo)!==me&&u.nombre});
-   var estados={};
+   var users=r.data.filter(function(u){return norm(u.correo)!==me&&u.nombre&&!hidden().has(String(u.id))});
    try{
      var mine=await c.from('usuarios').select('id').ilike('correo',me).limit(1);
      var mid=mine.data&&mine.data[0]?String(mine.data[0].id):'';
      if(mid){
        var req=await c.from('solicitudes_amigos').select('solicitante_id,solicitado_id,estado').or('solicitante_id.eq.'+mid+',solicitado_id.eq.'+mid).limit(1000);
-       if(!req.error)(req.data||[]).forEach(function(x){
-         var other=String(x.solicitante_id)===mid?String(x.solicitado_id):String(x.solicitante_id);
-         if(x.estado==='aceptada')estados[other]='aceptada';
-         else if(x.estado==='pendiente')estados[other]=String(x.solicitante_id)===mid?'enviada':'recibida';
-       });
+       if(!req.error){var blocked=new Set();(req.data||[]).forEach(function(x){var other=String(x.solicitante_id)===mid?String(x.solicitado_id):String(x.solicitante_id);if(x.estado==='aceptada')blocked.add(other)});users=users.filter(function(u){return !blocked.has(String(u.id))})}
      }
    }catch(_){}
-   return shuffle(users.filter(function(u){return estados[String(u.id)]!=='aceptada'}).map(function(u){return {u:u,estado:estados[String(u.id)]||'ninguna'}})).slice(0,30);
+   return users.slice(0,14);
  }
- async function storiesData(){
-   var c=client(),me=emailMe();if(!c||!me)return [];
-   try{
-     var r=await c.from('historias').select('id,autor_correo,tipo,media_url,texto,expira').gt('expira',new Date().toISOString()).neq('autor_correo',me).order('creado',{ascending:false}).limit(40);
-     if(r.error||!r.data)return [];
-     var seen=new Set(),rows=[];
-     r.data.forEach(function(x){var k=norm(x.autor_correo);if(!k||seen.has(k)||!/^https?:\/\//i.test(x.media_url||''))return;seen.add(k);rows.push(x)});
-     if(!rows.length)return [];
-     var us=await c.from('usuarios').select('correo,nombre,foto_perfil').in('correo',rows.map(function(x){return x.autor_correo}));
-     var map={};(us.data||[]).forEach(function(u){map[norm(u.correo)]=u});
-     return rows.slice(0,14).map(function(x){return {story:x,user:map[norm(x.autor_correo)]||{correo:x.autor_correo,nombre:String(x.autor_correo).split('@')[0]}}});
-   }catch(_){return []}
- }
- function cargar(){
-   var ahora=Date.now();
-   [['people',peopleData],['stories',storiesData]].forEach(function(p){
-     var k=cache[p[0]];if(k.c||(k.l&&ahora-k.t<TTL))return;
-     k.c=true;
-     p[1]().then(function(l){k.l=l;k.t=Date.now()},function(){k.l=k.l||[];k.t=Date.now()}).then(function(){k.c=false;schedule()});
-   });
- }
-
- /* ---------- Plan estable: qué publicaciones llevan sugerencia ----------
-    Se calcula con el ORDEN DE LOS DATOS (anunciosData), no con la posición de los slides en pantalla:
-    Swiper reordena los slides al dar la vuelta, y por eso antes se iban acumulando. */
- function plan(){
-   var out={},data;
-   try{data=window.fpFiltroActivo?[]:(anunciosData||[])}catch(_){data=[]}
-   var n=data.length;if(n<CADA)return out;
-   var picks=[];
-   for(var base=CADA-1;base<n;base+=CADA){
-     var i=base;
-     while(i<n&&i<base+3&&data[i]&&data[i].tipo_media==='video')i++;   /* sobre un video no se superpone nada */
-     if(i<n&&data[i]&&data[i].tipo_media!=='video')picks.push(i);
-   }
-   if(picks.length>1&&(n-picks[picks.length-1]+picks[0])<5)picks.pop(); /* al dar la vuelta nunca quedan seguidas */
-   picks.forEach(function(i,k){out[String(data[i].id)]={type:k%2===0?'people':'stories',slot:k}});
-   return out;
- }
-
- /* ---------- Construcción ---------- */
  function profileOpen(u){try{if(typeof abrirPerfilPorCorreo==='function')abrirPerfilPorCorreo(u.correo)}catch(_){}}
- function makeHead(title,sub,moreText,onMore,onClose){
-   var h=document.createElement('div');h.className='decom-feed-insert-head';
-   var w=document.createElement('div'),t=document.createElement('span');t.className='decom-feed-insert-title';t.textContent=title;
-   var d=document.createElement('div');d.className='decom-feed-insert-sub';d.textContent=sub;w.append(t,d);h.append(w);
-   if(moreText){var m=document.createElement('button');m.type='button';m.className='decom-feed-insert-more';m.textContent=moreText;m.onclick=function(e){e.stopPropagation();onMore()};h.append(m)}
-   var x=document.createElement('button');x.type='button';x.className='decom-feed-insert-close';x.textContent='✕';x.setAttribute('aria-label','Cerrar sugerencias');x.onclick=function(e){e.stopPropagation();onClose()};h.append(x);
-   return h;
+ function makeSlide(type){
+   var slide=document.createElement('div');slide.className='swiper-slide decom-feed-suggestion-slide';slide.dataset.decomFeedSuggestionSlide=type;slide.setAttribute('role','group');slide.setAttribute('aria-label',type==='people'?'Personas que quizás conozcas':'Historias recomendadas');return slide;
  }
- function buildPeople(items,onClose){
-   var section=document.createElement('section');section.className='decom-feed-insert decom-feed-people';
-   section.appendChild(makeHead('Personas que quizás conozcas','Desliza de lado para ver más','Ver más',function(){var b=q('#fpBell')||q('#fpFollowHeader');if(b)b.click()},onClose));
+ function renderPeople(slide,users){
+   if(!users.length)return false;
+   var section=document.createElement('section');section.className='decom-feed-insert decom-feed-people';section.dataset.decomFeedInsert='people';
+   section.appendChild(makeHead('Personas que quizás conozcas','Desliza hacia los lados para descubrir personas'));
    var row=document.createElement('div');row.className='decom-feed-insert-row';
-   items.forEach(function(it){
-     var u=it.u,card=document.createElement('article');card.className='decom-feed-person';
-     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');
-     x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)onClose()};
+   users.forEach(function(u){
+     var card=document.createElement('article');card.className='decom-feed-person';
+     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)removeSlide(slide)};
      var ph=document.createElement('div');ph.className='decom-feed-person-photo';avatarStyle(ph,u.foto_perfil);if(!u.foto_perfil)ph.textContent=String(u.nombre||'?').trim().charAt(0).toUpperCase();ph.onclick=function(){profileOpen(u)};
      var nm=document.createElement('div');nm.className='decom-feed-person-name';nm.textContent=u.nombre||'Usuario';nm.onclick=function(){profileOpen(u)};
      var why=document.createElement('div');why.className='decom-feed-person-reason';why.textContent=[u.congregacion,u.ciudad].filter(Boolean).slice(0,2).join(' · ')||'Quizás lo conozcas';
      card.append(x,ph,nm,why);
-     try{if(window.fpAmistad&&typeof window.fpAmistad.crearBoton==='function')card.appendChild(window.fpAmistad.crearBoton(u,it.estado||'ninguna','',function(){}))}catch(_){}
+     try{if(window.fpAmistad&&typeof window.fpAmistad.crearBoton==='function')card.appendChild(window.fpAmistad.crearBoton(u,'ninguna','',function(){}))}catch(_){}
      row.appendChild(card);
    });
-   section.appendChild(row);return section;
+   section.appendChild(row);
+   var all=document.createElement('button');all.type='button';all.className='decom-feed-insert-link';all.textContent='Ver más sugerencias';all.onclick=function(){var b=q('#fpBell')||q('#fpFollowHeader');if(b)b.click()};
+   section.appendChild(all);slide.appendChild(section);slide.appendChild(makeHint());return true;
  }
- function buildStories(items,onClose){
-   var section=document.createElement('section');section.className='decom-feed-insert decom-feed-stories';
-   section.appendChild(makeHead('Historias que te pueden gustar','Historias recientes de personas de DECOM','Ver todas',function(){var b=q('#fpHisBtn');if(b)b.click()},onClose));
+ async function storiesData(){
+   var c=client(),me=emailMe();if(!c||!me)return [];
+   try{
+     var r=await c.from('historias').select('id,autor_correo,tipo,media_url,texto,expira').gt('expira',new Date().toISOString()).neq('autor_correo',me).order('creado',{ascending:false}).limit(30);
+     if(r.error||!r.data)return [];
+     var seen=new Set(),rows=[];r.data.forEach(function(x){var k=norm(x.autor_correo);if(!k||seen.has(k)||!x.media_url)return;seen.add(k);rows.push(x)});
+     if(!rows.length)return [];
+     var emails=rows.map(function(x){return x.autor_correo});
+     var us=await c.from('usuarios').select('correo,nombre,foto_perfil').in('correo',emails);
+     var map={};(us.data||[]).forEach(function(u){map[norm(u.correo)]=u});
+     return rows.map(function(x){return {story:x,user:map[norm(x.autor_correo)]||{correo:x.autor_correo,nombre:String(x.autor_correo).split('@')[0]}}});
+   }catch(_){return []}
+ }
+ function renderStories(slide,items){
+   if(!items.length)return false;
+   var section=document.createElement('section');section.className='decom-feed-insert decom-feed-stories';section.dataset.decomFeedInsert='stories';
+   section.appendChild(makeHead('Historias que te pueden gustar','Historias recientes de personas de DECOM'));
    var row=document.createElement('div');row.className='decom-feed-insert-row';
    items.forEach(function(it){
      var b=document.createElement('button');b.type='button';b.className='decom-feed-story';
@@ -34199,64 +34240,65 @@ setTimeout(fondoTodas,800);setTimeout(fondoTodas,3000);
      b.append(media,av);b.onclick=function(){try{if(window.fpHistoriasDe)window.fpHistoriasDe(it.story.autor_correo,true)}catch(_){}};
      row.appendChild(b);
    });
-   section.appendChild(row);return section;
+   section.appendChild(row);slide.appendChild(section);slide.appendChild(makeHint());return true;
  }
-
- /* La capa se ancla justo encima del pie y se oculta cuando la descripción está expandida. No toca el layout. */
- function follow(slide,footer,section){
-   function sync(){
-     section.style.display=footer.classList.contains('fp-exp')?'none':'';
-     var b=Math.max(0,slide.clientHeight-footer.offsetTop);
-     section.style.setProperty('--decom-fi-b',b+'px');
-   }
-   sync();
-   var mo=new MutationObserver(sync);mo.observe(footer,{attributes:true,attributeFilter:['class']});
-   var ro=null;if(window.ResizeObserver){ro=new ResizeObserver(sync);ro.observe(footer);ro.observe(slide)}
-   section._decomStop=function(){mo.disconnect();if(ro)ro.disconnect()};
+ function isAdSlide(slide){
+   if(!slide)return false;
+   if(slide.matches('.ad,.ads,.anuncio,.publicidad,[data-ad],[data-advertisement],.sponsored,.swiper-slide-ad'))return true;
+   var t=norm(slide.innerText||'');
+   return /\b(publicidad|contenido patrocinado|anuncio patrocinado|sponsored)\b/.test(t);
  }
- function unmount(sec){if(sec._decomStop)sec._decomStop();sec.remove()}
- function mount(slide,info){
-   var id=slide.dataset.id;if(cerradas.has(id))return;
-   var footer=slide.querySelector('.feed-post-footer');if(!footer)return;   /* sin pie: no se pone nada */
-   var onClose=function(){cerradas.add(id);unmount(section)};
-   var section;
-   if(info.type==='people'){
-     var oc=hidden(),lista=(cache.people.l||[]).filter(function(it){return !oc.has(String(it.u.id))});
-     var items=rotar(lista,info.slot*6,10);if(!items.length)return;
-     section=buildPeople(items,onClose);
-   }else{
-     var its=rotar(cache.stories.l||[],info.slot*3,12);if(!its.length)return;
-     section=buildStories(its,onClose);
-   }
-   section._decomLive=true;section.dataset.decomFeedInsert=info.type;
-   slide.appendChild(section);
-   follow(slide,footer,section);
- }
-
- /* ---------- Reconciliación (idempotente: se puede llamar las veces que sea) ---------- */
- function decorate(){
-   var wrapper=q('.swiper-wrapper');if(!wrapper)return;
-   var pl=plan(),necesita=false;
-   Array.prototype.forEach.call(wrapper.querySelectorAll(':scope > .swiper-slide'),function(slide){
-     var id=slide.dataset.id,info=id!=null?pl[String(id)]:null;
-     Array.prototype.slice.call(slide.querySelectorAll('[data-decom-feed-insert]')).forEach(function(sec){
-       /* se retira lo que ya no corresponde a esta publicación y las copias muertas que clona Swiper */
-       if(!info||!sec._decomLive||sec.dataset.decomFeedInsert!==info.type)unmount(sec);
-     });
-     if(!info||slide.querySelector('[data-decom-feed-insert]'))return;
-     var k=cache[info.type];
-     if(k.l===null){necesita=true;return}
-     mount(slide,info);
+ function originalSlides(wrapper){
+   return Array.prototype.filter.call(wrapper.children,function(s){
+     return s.classList.contains('swiper-slide')&&!s.classList.contains('swiper-slide-duplicate')&&!s.classList.contains('decom-feed-suggestion-slide');
    });
-   if(necesita)cargar();
-   else{var ahora=Date.now();if((cache.people.l&&ahora-cache.people.t>=TTL)||(cache.stories.l&&ahora-cache.stories.t>=TTL))cargar()}
+ }
+ async function decorate(){
+   if(busy)return;var wrapper=q('.swiper-wrapper');if(!wrapper)return;
+   var slides=originalSlides(wrapper);if(slides.length<12)return;
+   busy=true;hook();
+   try{
+     /* Una recomendación por cada bloque amplio de publicaciones; nunca dentro de la publicación. */
+     var candidates=[],count=0;
+     slides.forEach(function(s){
+       count++;
+       if(count<12||(count-12)%14!==0)return;
+       if(s.dataset.decomSuggestionChecked==='1')return;
+       var nx=s.nextElementSibling;
+       if(nx&&nx.classList.contains('decom-feed-suggestion-slide')){s.dataset.decomSuggestionChecked='1';return}
+       var idx=slides.indexOf(s),prev=slides[idx-1],next=slides[idx+1];
+       if(isAdSlide(s)||isAdSlide(prev)||isAdSlide(next)){s.dataset.decomSuggestionChecked='1';return}
+       candidates.push({after:s,ordinal:Math.floor((count-12)/14)});
+     });
+     for(var i=0;i<candidates.length;i++){
+       var item=candidates[i],after=item.after;
+       if(!after.isConnected)continue;
+       var type=item.ordinal%2===0?'people':'stories',data=[];
+       /* 1) Primero se consultan los datos (sin tocar el DOM). */
+       try{data=type==='people'?await peopleData():await storiesData()}catch(_){data=[]}
+       if(!after.isConnected)continue;
+       after.dataset.decomSuggestionChecked='1';
+       if(!data.length)continue;
+       /* 2) Se dibuja fuera del carrusel. */
+       var slide=makeSlide(type),ok=false;
+       try{ok=type==='people'?renderPeople(slide,data):renderStories(slide,data)}catch(_){}
+       if(!ok)continue;
+       /* 3) Se inserta solo cuando el usuario no está tocando ni hay animación en curso. */
+       var tries=0;
+       while(userBusy(sw())&&tries<25){await new Promise(function(r){setTimeout(r,300)});tries++}
+       if(!after.isConnected)continue;
+       insertSafe(after,slide);
+     }
+   }catch(e){console.warn('Carruseles de sugerencias DECOM:',e)}
+   finally{busy=false}
  }
  var queued=false;
- function schedule(){if(queued)return;queued=true;setTimeout(function(){queued=false;try{decorate()}catch(e){console.warn('Sugerencias DECOM:',e)}},450)}
+ function schedule(){if(queued)return;queued=true;setTimeout(function(){queued=false;decorate()},800)}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule);else schedule();
  var w=q('.swiper-wrapper');
- if(w&&window.MutationObserver)new MutationObserver(schedule).observe(w,{childList:true});
+ if(w&&window.MutationObserver)new MutationObserver(function(mutations){
+   if(mutations.some(function(m){return Array.prototype.some.call(m.addedNodes,function(n){return n.nodeType===1&&!n.classList.contains('decom-feed-suggestion-slide')})}))schedule();
+ }).observe(w,{childList:true});
  document.addEventListener('visibilitychange',function(){if(!document.hidden)schedule()});
- window.addEventListener('resize',schedule);
 })();
 </script>
