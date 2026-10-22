@@ -33844,54 +33844,44 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <!-- ======================================================================
-     FEED A TODO EL ANCHO (estilo Facebook): toda foto ocupa el ancho completo
-     de la pantalla, sin bordes, con su alto natural. Si la publicación es más
-     alta que la pantalla, se desplaza por dentro (foto + pie) y al llegar al
-     final el siguiente gesto pasa a la publicación siguiente.
-     Bloque independiente: no cambia la lógica existente. Videos y álbumes
-     conservan su comportamiento actual.
+     FEED A TODO EL ANCHO (estilo Facebook), SIN scroll interno:
+     cada publicación ocupa una pantalla y el carrusel las desplaza completas.
+     La foto va de borde a borde, sin deformarse; si es más alta que el
+     espacio disponible se recorta un poco arriba/abajo (al tocarla se abre
+     completa en el visor). Videos y álbumes no cambian.
 ====================================================================== -->
 <style id="fp-feed-ancho-completo">
 .swiper-slide:not(.video):not([data-dcm]){
   box-sizing:border-box;
   padding-top:var(--fp-hdr,0px);
-  overflow-x:hidden;
-  overflow-y:hidden; /* el desplazamiento lo maneja el script de abajo */
-  overscroll-behavior:none;
 }
 .swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container{
-  flex:0 0 auto;
+  flex:1 1 auto;
+  min-height:0;
   width:100%;
   height:auto;
-  min-height:0;
-  margin:auto 0;      /* foto corta: centrada; foto alta: sin espacio extra */
-  overflow:visible;
+  display:flex;
+  align-items:center;      /* foto corta: centrada en el espacio sobre el pie */
+  justify-content:center;
+  overflow:hidden;
 }
-/* Mientras carga, reserva espacio para que el pie no salte */
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container:not(.fp-ok-wrap){min-height:55dvh}
-.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img{
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img,
+.swiper-slide:not(.video):not([data-dcm]) .swiper-zoom-container>img.fp-llena{
   display:block;
   width:100%;
   max-width:100%;
   height:auto;
-  max-height:none;
+  max-height:100%;         /* si es muy alta, se recorta en vez de dejar franjas */
   margin:0;
-  object-fit:contain;
+  object-fit:cover;
+  object-position:center;
 }
-.swiper-slide:not(.video):not([data-dcm]) .feed-post-footer{flex:0 0 auto}
-/* Pie expandido: queda fijo abajo de la pantalla mientras se desplaza */
-.swiper-slide:not(.video):not([data-dcm]) .feed-post-footer.fp-exp{
-  position:sticky;left:auto;right:auto;bottom:0;z-index:40;max-height:68%;
-}
-.swiper-slide:not(.video):not([data-dcm]) .fp-post-spacer{display:none!important}
+/* El pie siempre pegado abajo */
+.swiper-slide:not(.video):not([data-dcm]) .feed-post-footer{flex:0 0 auto;margin-top:auto}
 </style>
 <script id="fp-feed-ancho-completo-js">
 (function(){
 if(window.__fpFeedAncho)return;window.__fpFeedAncho=1;
-var SEL='.swiper-slide:not(.video):not([data-dcm])';
-var g=null,raf=0,tragarClickHasta=0;
-
-/* Altura del encabezado fijo, para que la foto no arranque debajo de él */
 function medirHeader(){
   try{
     var h=document.getElementById('socialHeader'),v=0;
@@ -33903,82 +33893,6 @@ medirHeader();
 window.addEventListener('resize',medirHeader);
 window.addEventListener('orientationchange',function(){setTimeout(medirHeader,300)});
 setTimeout(medirHeader,600);setTimeout(medirHeader,2500);
-
-function slideDe(t){return t&&t.closest?t.closest(SEL):null}
-function maxScroll(sl){return sl.scrollHeight-sl.clientHeight}
-function pararInercia(){if(raf){cancelAnimationFrame(raf);raf=0}}
-
-function inercia(sl,v){
-  var pos=sl.scrollTop,max=maxScroll(sl),last=performance.now();
-  function paso(t){
-    var dt=Math.min(32,t-last);last=t;
-    pos-=v*dt;
-    if(pos<=0){pos=0;v=0}else if(pos>=max){pos=max;v=0}
-    sl.scrollTop=pos;
-    v*=Math.pow(0.95,dt/16);
-    if(Math.abs(v)<0.03){raf=0;return}
-    raf=requestAnimationFrame(paso);
-  }
-  raf=requestAnimationFrame(paso);
-}
-
-function abajo(e){
-  if(e.isPrimary===false)return;
-  if(e.pointerType==='mouse'&&e.button!==0)return;
-  pararInercia();g=null;
-  var t=e.target,sl=slideDe(t);
-  if(!sl||(t.closest&&t.closest('.feed-post-footer.fp-exp,input,textarea,select')))return;
-  if(maxScroll(sl)<=2)return; /* cabe completa: Swiper hace todo como siempre */
-  g={sl:sl,id:e.pointerId,x0:e.clientX,y0:e.clientY,y:e.clientY,t:e.timeStamp,v:0,mode:null};
-}
-function mover(e){
-  if(!g||e.pointerId!==g.id)return;
-  var x=e.clientX,y=e.clientY;
-  if(g.mode===null){
-    var ty=y-g.y0,tx=x-g.x0;
-    if(Math.abs(ty)<3&&Math.abs(tx)<3)return;
-    if(Math.abs(tx)>Math.abs(ty)){g.mode='swiper';return}
-    var st=g.sl.scrollTop,m=maxScroll(g.sl);
-    /* dedo hacia arriba = ver más abajo; hacia abajo = volver arriba */
-    g.mode=(ty<0?st<m-1:st>1)?'inner':'swiper';
-  }
-  if(g.mode!=='inner')return;
-  e.stopPropagation(); /* Swiper no ve este gesto: la publicación se desplaza por dentro */
-  var dy=y-g.y,dt=Math.max(1,e.timeStamp-g.t);
-  g.sl.scrollTop-=dy;
-  g.v=0.7*g.v+0.3*(dy/dt);
-  g.y=y;g.t=e.timeStamp;
-}
-function bloquear(e){if(g&&g.mode==='inner')e.stopPropagation()}
-function arriba(e){
-  if(!g||e.pointerId!==g.id)return;
-  var G=g;g=null;
-  if(G.mode!=='inner')return;
-  tragarClickHasta=Date.now()+250;
-  var parado=(e.timeStamp-G.t)>80;
-  if(e.type==='pointerup'&&!parado&&Math.abs(G.v)>0.15)inercia(G.sl,G.v);
-}
-
-var o={capture:true,passive:true};
-document.addEventListener('pointerdown',abajo,o);
-document.addEventListener('pointermove',mover,o);
-document.addEventListener('touchmove',bloquear,o);
-document.addEventListener('mousemove',bloquear,o);
-document.addEventListener('pointerup',arriba,o);
-document.addEventListener('pointercancel',arriba,o);
-
-/* Tras arrastrar la publicación, el soltar no cuenta como toque (no abre el visor) */
-document.addEventListener('click',function(e){
-  if(Date.now()<tragarClickHasta&&slideDe(e.target)){e.stopPropagation();e.preventDefault()}
-},true);
-
-/* PC: rueda del mouse desplaza la publicación alta */
-document.addEventListener('wheel',function(e){
-  var sl=slideDe(e.target);if(!sl||(e.target.closest&&e.target.closest('.feed-post-footer.fp-exp')))return;
-  var st=sl.scrollTop,m=maxScroll(sl);
-  if(m<=2)return;
-  if((e.deltaY>0&&st<m-1)||(e.deltaY<0&&st>1)){sl.scrollTop=st+e.deltaY;e.preventDefault()}
-},{passive:false});
 })();
 </script>
 
