@@ -32253,20 +32253,8 @@ function nivel(p){
 function infoDe(D,k,extra){
   var u=D&&D.users[k];
   var nombre=(u&&u.nombre)||(extra&&extra.nombre)||'';
-  var foto=(u&&u.foto)||(extra&&extra.foto)||(extra&&extra.fotoPerfil)||'';
-  // Para el usuario actual, la app puede tener la foto más reciente en la sesión local.
-  if(k===yo()){
-    try{
-      var ul=JSON.parse(localStorage.getItem('usuario')||'null');
-      if(ul){
-        if(!nombre)nombre=ul.nombre||'';
-        foto=foto||ul.fotoPerfil||ul.foto_perfil||ul.foto||'';
-      }
-    }catch(e){}
-    try{if(!nombre&&usuarioActual&&usuarioActual.nombre)nombre=usuarioActual.nombre;
-      if(!foto&&usuarioActual)foto=usuarioActual.fotoPerfil||usuarioActual.foto_perfil||usuarioActual.foto||'';
-    }catch(e){}
-  }
+  var foto=(u&&u.foto)||(extra&&extra.foto)||'';
+  if(!nombre){try{if(k===yo()&&usuarioActual&&usuarioActual.nombre)nombre=usuarioActual.nombre}catch(e){}}
   if(!nombre)nombre=String(k).split('@')[0]||'Alguien';
   return {correo:(u&&u.correo)||(extra&&extra.correo)||k,nombre:nombre,foto:foto};
 }
@@ -32589,43 +32577,63 @@ function rutaStorage(url){
   var ruta;try{ruta=decodeURIComponent(m[2])}catch(e){ruta=m[2]}
   return {bucket:m[1],ruta:ruta};
 }
+var FOTO_NOTAS=[];
+/* Comprueba que la imagen se pueda exportar desde un canvas (que no esté "contaminada" por CORS). */
+function esLimpia(im){
+  try{
+    var c=document.createElement('canvas');c.width=2;c.height=2;
+    var x=c.getContext('2d');x.drawImage(im,0,0,2,2);x.getImageData(0,0,1,1);
+    return true;
+  }catch(e){return false}
+}
+/* Blob -> imagen. createImageBitmap siempre produce una imagen "limpia" (sin origen). */
+async function aImagen(b){
+  if(window.createImageBitmap){try{return await createImageBitmap(b)}catch(e){}}
+  return await imgDesdeBlob(b);
+}
 async function imgWeb(url){
-  var motivos=[];
+  var motivos=[],im=null,via='';
+  async function intento(etq,fn){
+    try{
+      var r=await conTiempo(fn(),12000,etq);
+      if(!r)throw new Error('sin datos');
+      if(!esLimpia(r))throw new Error('canvas contaminado');
+      im=r;via=etq;
+    }catch(e){motivos.push(etq+': '+((e&&e.message)||e))}
+  }
   // 1) Storage API de Supabase (misma vía que usa la app para subir fotos)
-  try{
-    var rs=rutaStorage(url),c=(typeof sb==='function')?sb():null;
-    if(rs&&c&&c.storage){
-      var d=await conTiempo(c.storage.from(rs.bucket).download(rs.ruta),12000,'storage');
+  var rs=rutaStorage(url),c=null;
+  try{c=(typeof sb==='function')?sb():null}catch(e){}
+  if(rs&&c&&c.storage){
+    await intento('storage',async function(){
+      var d=await c.storage.from(rs.bucket).download(rs.ruta);
       if(d&&d.error)throw d.error;
-      if(d&&d.data)return await imgDesdeBlob(d.data);
-      throw new Error('storage sin datos');
-    }
-  }catch(e){motivos.push('storage: '+((e&&e.message)||e))}
+      if(!d||!d.data)throw new Error('sin datos');
+      return await aImagen(d.data);
+    });
+  }else motivos.push('storage: '+(rs?'sin cliente':'la URL no es de Storage'));
   // 2) fetch normal ignorando la caché
-  try{
-    var r=await conTiempo(fetch(url,{mode:'cors',credentials:'omit',cache:'reload'}),12000,'fetch');
+  if(!im)await intento('fetch',async function(){
+    var r=await fetch(url,{mode:'cors',credentials:'omit',cache:'reload'});
     if(!r.ok)throw new Error('http '+r.status);
-    return await imgDesdeBlob(await r.blob());
-  }catch(e){motivos.push('fetch: '+((e&&e.message)||e))}
-  // 3) imagen con CORS y URL nueva (evita copias en caché sin cabeceras CORS)
-  try{
+    return await aImagen(await r.blob());
+  });
+  // 3) imagen con CORS y URL nueva
+  if(!im)await intento('img',function(){
     var sep=url.indexOf('?')>-1?'&':'?';
-    return await conTiempo(imgDesdeSrc(url+sep+'cs='+Date.now(),true),12000,'img');
-  }catch(e){motivos.push('img: '+((e&&e.message)||e))}
+    return imgDesdeSrc(url+sep+'cs='+Date.now(),true);
+  });
+  if(im){FOTO_NOTAS.push('ok:'+via+(via!=='storage'?' ('+motivos.join(' | ')+')':''));return im}
   FOTO_FALLOS.push(motivos.join(' | '));
   console.warn('Sincronía: no se pudo cargar la foto',url,motivos);
   return null;
 }
 async function cargarImg(url){
-  // No limitar las fotos de perfil al formato exacto de URL pública de Storage:
-  // algunas cuentas guardan URL firmadas, CDN o rutas con parámetros.
-  url=String(url||'').trim();
-  if(!url)return null;
-  var propia=/^(data:|blob:)/i.test(url);
-  var web=/^https?:\/\//i.test(url);
-  if(!propia&&!web)return null;
+  if(!urlOk(url))return null;
+  var propia=/^(data:|blob:)/.test(String(url));
   if(!propia&&window.AndroidApp&&typeof window.AndroidApp.fetchImage==='function'){
-    try{var im=await imgNativa(url);if(im)return im}catch(e){}
+    var im=await imgNativa(url);
+    if(im&&esLimpia(im)){FOTO_NOTAS.push('ok:nativo');return im}
   }
   return await imgWeb(url);
 }
@@ -32696,13 +32704,22 @@ function textoCompartir(r,B){
 async function compartir(r,A,B,btn){
   if(btn.disabled)return;btn.disabled=true;
   var antes=btn.textContent;btn.textContent='Creando tarjeta…';
-  FOTO_FALLOS=[];
+  FOTO_FALLOS=[];FOTO_NOTAS=[];
   try{
     var blob;
     try{blob=await dibujar(r,A,B,false)}
-    catch(e1){console.warn('Sincronía: la tarjeta con fotos falló, se reintenta sin fotos',e1);blob=await dibujar(r,A,B,true)}
+    catch(e1){console.warn('Sincronía: la tarjeta con fotos falló, se reintenta sin fotos',e1);FOTO_FALLOS.push('dibujo con fotos: '+((e1&&e1.name)||'Error')+' '+((e1&&e1.message)||''));blob=await dibujar(r,A,B,true)}
     abrirVistaCompartir(blob,textoCompartir(r,B),B);
     if(FOTO_FALLOS.length)toast('Tarjeta creada sin foto: '+FOTO_FALLOS[0].slice(0,140));
+    try{
+      var hint=document.querySelector('#fpSincShare .fps-hint');
+      if(hint){
+        var dg=document.createElement('div');
+        dg.style.cssText='margin-top:8px;font-size:11px;line-height:1.35;word-break:break-word;color:'+(FOTO_FALLOS.length?'#b91c1c':'#6b7280');
+        dg.textContent='[v6] '+(FOTO_FALLOS.length?'Sin foto → '+FOTO_FALLOS.join(' || '):'Fotos cargadas')+(FOTO_NOTAS.length?' · '+FOTO_NOTAS.join(' · '):'');
+        hint.appendChild(dg);
+      }
+    }catch(e){}
   }catch(e){console.warn('Sincronía: no se pudo crear la tarjeta',e);toast('No se pudo crear la tarjeta'+(e&&e.name?' ('+e.name+')':''))}
   finally{btn.disabled=false;btn.textContent='';btn.append(ic('fas fa-share-nodes'),document.createTextNode('Compartir mi sincronía'))}
 }
