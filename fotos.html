@@ -24,7 +24,16 @@
   
   <meta name="mobile-web-app-capable" content="yes">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script id="decom-early">
+/* DECOM mejoras: silencia logs, pausa intervalos rápidos con la pestaña oculta, helper de escape */
+(function(){var dbg=false;try{dbg=localStorage.getItem('decom_debug')==='1'}catch(e){}
+if(!dbg){['log','debug','info'].forEach(function(k){console[k]=function(){}})}
+var si=window.setInterval;
+window.setInterval=function(fn,ms){if(typeof fn!=='function'||!(ms<10000))return si.apply(window,arguments);var a=[].slice.call(arguments,2);return si.call(window,function(){if(document.hidden)return;fn.apply(this,a)},ms)};
+window.decomEsc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="supabase.js"></script>
 
@@ -33467,6 +33476,78 @@ window.fpNav={irAlFeed:function(){sinPadresHasta=Date.now()+2500;
   var tope=stack.length;
   stack.slice().forEach(function(en){if(en.susp){quitar(en);atrasProg()}});
   },pila:function(){return stack.map(function(x){return x.d.k+(x.susp?'*':'')})},hist:function(){return hist}};
+})();
+</script>
+<script id="decom-capsulas-tendencias">
+(function(){
+var sb=function(){return window.supabaseClient};
+var $=function(s,r){return(r||document).querySelector(s)};
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function toast(m){try{if(typeof mostrarToast==='function')return mostrarToast(m)}catch(e){}var t=el('div',null,m);t.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;z-index:100000;font:14px sans-serif';document.body.appendChild(t);setTimeout(function(){t.remove()},2500)}
+var css=document.createElement('style');css.textContent='#dcCap{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99990;display:none;align-items:flex-end;justify-content:center;font-family:inherit}#dcCap.on{display:flex}#dcCapBox{background:#1c1c1e;color:#fff;width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}#dcCapBox h2{margin:0 0 10px;font-size:18px;display:flex;justify-content:space-between;align-items:center}#dcCapBox input,#dcCapBox textarea{width:100%;box-sizing:border-box;padding:9px;margin:5px 0;border-radius:10px;border:1px solid #444;background:#2a2a2c;color:#fff;font:inherit}#dcCapBox button{background:#3b82f6;color:#fff;border:0;border-radius:10px;padding:8px 12px;margin:3px 3px 3px 0;font:inherit;cursor:pointer}#dcCapBox button.g{background:#3a3a3c}.dcCard{background:#2a2a2c;border-radius:12px;padding:10px;margin:8px 0}.dcCard small{opacity:.7}.dcChips{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0}.dcChip{background:#3a3a3c;color:#fff;border-radius:16px;padding:4px 10px;font-size:13px;cursor:pointer}';
+document.head.appendChild(css);
+
+/* ---------- Tendencias de hashtags dentro del buscador existente ---------- */
+function tendencias(){
+  var box=$('#dcTend'),res=$('#searchResults');if(!res)return;
+  if(!box){box=el('div','dcChips');box.id='dcTend';res.parentNode.insertBefore(box,res)}
+  box.textContent='';
+  var datos=(typeof anunciosData!=='undefined'&&Array.isArray(anunciosData))?anunciosData:[],cnt={};
+  datos.forEach(function(a){((a.titulo||'')+' '+(a.descripcion||'')).replace(/#[\p{L}\p{N}_]{2,30}/gu,function(h){h=h.toLowerCase();cnt[h]=(cnt[h]||0)+1})});
+  Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]}).slice(0,10).forEach(function(h){
+    var c=el('span','dcChip',h+' · '+cnt[h]);c.onclick=function(){var i=$('#searchInput');i.value=h;i.dispatchEvent(new Event('input'))};box.appendChild(c)});
+}
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#btnBuscar'))setTimeout(tendencias,50)});
+
+/* ---------- Cápsula de tiempo ---------- */
+var uid=null,nombre='Anónimo';
+async function sesion(){var r=await sb().auth.getUser();var u=r&&r.data&&r.data.user;if(!u)return false;uid=u.id;nombre=(u.user_metadata&&(u.user_metadata.nombre||u.user_metadata.full_name))||(u.email||'').split('@')[0]||'Anónimo';return true}
+function falta(f){var ms=new Date(f)-Date.now();if(ms<=0)return'Lista para abrir';var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);return(d?d+'d ':'')+h+'h '+m+'m'}
+var cap=el('div');cap.id='dcCap';var box=el('div');box.id='dcCapBox';cap.appendChild(box);document.body.appendChild(cap);
+cap.onclick=function(e){if(e.target===cap)cap.classList.remove('on')};
+async function abrir(){cap.classList.add('on');if(!uid&&!(await sesion())){box.textContent='Inicia sesión para usar las cápsulas.';return}await pintar()}
+function form(){
+  var d=el('div','dcCard');d.appendChild(el('b',null,'Sellar una cápsula'));
+  var t=el('textarea');t.rows=3;t.placeholder='Mensaje que se abrirá en el futuro…';t.maxLength=2000;
+  var p=el('input');p.placeholder='Pista pública (ej. "un deseo")';p.maxLength=80;
+  var f=el('input');f.type='datetime-local';
+  function en(dias){var x=new Date(Date.now()+dias*864e5);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());f.value=x.toISOString().slice(0,16)}
+  var fila=el('div');[['1 mes',30],['6 meses',182],['1 año',365]].forEach(function(o){var b=el('button','g',o[0]);b.onclick=function(){en(o[1])};fila.appendChild(b)});
+  var ok=el('button',null,'Sellar');ok.onclick=async function(){
+    var txt=t.value.trim();if(!txt||!f.value)return toast('Escribe un mensaje y elige fecha');
+    var fe=new Date(f.value);if(fe-Date.now()<36e5)return toast('La fecha debe ser al menos 1 hora adelante');
+    ok.disabled=true;var r=await sb().from('capsulas').insert({autor_nombre:nombre,pista:p.value.trim()||null,fecha_apertura:fe.toISOString()}).select('id').single();
+    if(r.error){ok.disabled=false;return toast('Error: '+r.error.message)}
+    var r2=await sb().from('capsulas_contenido').insert({capsula_id:r.data.id,contenido:txt});
+    if(r2.error){await sb().from('capsulas').delete().eq('id',r.data.id);ok.disabled=false;return toast('Error: '+r2.error.message)}
+    toast('Cápsula sellada 🔒');pintar()};
+  [t,p,f,fila,ok].forEach(function(x){d.appendChild(x)});return d}
+async function pintar(){
+  box.textContent='';var h=el('h2',null,'⏳ Cápsulas de tiempo');var x=el('button','g','✕');x.onclick=function(){cap.classList.remove('on')};h.appendChild(x);box.appendChild(h);box.appendChild(form());
+  var r=await sb().from('capsulas').select('id,autor_id,autor_nombre,pista,fecha_apertura').order('fecha_apertura',{ascending:true}).limit(50);
+  if(r.error){box.appendChild(el('p',null,'No se pudo cargar: '+r.error.message));return}
+  if(!r.data.length)box.appendChild(el('p',null,'Aún no hay cápsulas. ¡Sella la primera!'));
+  r.data.forEach(function(c){box.appendChild(tarjeta(c))})}
+function tarjeta(c){
+  var d=el('div','dcCard'),abierta=new Date(c.fecha_apertura)<=Date.now(),mia=c.autor_id===uid;
+  d.appendChild(el('b',null,(abierta?'🔓 ':'🔒 ')+c.autor_nombre));
+  d.appendChild(el('div',null,c.pista?'Pista: '+c.pista:'Sin pista'));
+  d.appendChild(el('small',null,abierta?'Abre: '+new Date(c.fecha_apertura).toLocaleDateString():'Se abre en '+falta(c.fecha_apertura)));
+  var zona=el('div');d.appendChild(zona);
+  if(!abierta&&!mia){var i=el('input');i.placeholder='¿Qué crees que hay dentro?';i.maxLength=140;var b=el('button',null,'Predecir');
+    b.onclick=async function(){if(!i.value.trim())return;var r=await sb().from('capsulas_predicciones').insert({capsula_id:c.id,usuario_nombre:nombre,texto:i.value.trim()});toast(r.error?(r.error.code==='23505'?'Ya predijiste':'Error: '+r.error.message):'Predicción guardada');if(!r.error)i.value=''};
+    zona.appendChild(i);zona.appendChild(b)}
+  if(abierta||mia){var v=el('button','g',abierta?'Ver contenido':'Ver mi contenido (sellada)');
+    v.onclick=async function(){v.disabled=true;var r=await sb().from('capsulas_contenido').select('contenido').eq('capsula_id',c.id).maybeSingle();
+      if(r.error||!r.data){zona.appendChild(el('p',null,'Aún no se puede abrir.'));return}
+      zona.appendChild(el('p',null,r.data.contenido));
+      var pr=await sb().from('capsulas_predicciones').select('id,usuario_nombre,texto,acerto').eq('capsula_id',c.id);
+      (pr.data||[]).forEach(function(q){var l=el('div',null,'• '+q.usuario_nombre+': '+q.texto+(q.acerto?' ✅':''));
+        if(mia&&abierta&&!q.acerto){var a=el('button','g','Acertó');a.onclick=async function(){await sb().from('capsulas_predicciones').update({acerto:true}).eq('id',q.id);a.remove();l.textContent+=' ✅'};l.appendChild(a)}zona.appendChild(l)})};
+    zona.appendChild(v)}
+  if(mia){var e=el('button','g','Eliminar');e.onclick=async function(){if(!confirm('¿Eliminar cápsula?'))return;await sb().from('capsulas').delete().eq('id',c.id);pintar()};d.appendChild(e)}
+  return d}
+var n=0,iv=setInterval(function(){var ref=$('#btnBuscar');if(ref&&ref.parentNode&&!$('#dcCapBtn')){var b=el('button','header-btn','⏳');b.type='button';b.id='dcCapBtn';b.title='Cápsulas de tiempo';b.setAttribute('aria-label','Cápsulas de tiempo');b.onclick=abrir;ref.parentNode.insertBefore(b,ref.nextSibling);clearInterval(iv)}else if(++n>60)clearInterval(iv)},1000);
 })();
 </script>
 </body>
