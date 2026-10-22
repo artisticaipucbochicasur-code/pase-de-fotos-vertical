@@ -20328,9 +20328,6 @@ function iniciarRealtimeSupabase(){
 
                 if(payload.eventType === "DELETE"){
                     eliminarPublicacionLocal(payload.old?.id);
-                    try {
-                        localStorage.removeItem(ANUNCIOS_LAST_FULL_SYNC_KEY);
-                    } catch (_) {}
                 }
             }
         )
@@ -20523,18 +20520,9 @@ if(nombreArchivo){
             "Anuncio eliminado correctamente."
         );
 
-        // Actualización local inmediata: feed, caché y localStorage.
+        // Actualización local inmediata. El evento Realtime posterior
+        // se deduplica y no vuelve a consultar todas las publicaciones.
         eliminarPublicacionLocal(anuncioId);
-
-        // La consulta incremental no detecta eliminaciones antiguas.
-        // Invalidar la marca de sincronización completa fuerza una reconciliación
-        // con Supabase al volver a abrir/recargar la app.
-        try {
-            localStorage.removeItem(ANUNCIOS_LAST_FULL_SYNC_KEY);
-            guardarCacheAnuncios();
-        } catch (cacheError) {
-            console.warn("No se pudo invalidar la sincronización del feed:", cacheError);
-        }
 
 
 
@@ -21101,9 +21089,7 @@ function initSwiper(initialIndex = 0) {
 
     // Paginado fluido tipo TikTok / Reels: la publicación sigue al dedo y al soltar
     // se acomoda suavemente en la siguiente o en la actual (nunca queda a medias).
-    // El feed vertical debe detenerse en una publicación completa.
-    // El modo libre con momentum y sticky:false podía saltar publicaciones al soltar el dedo.
-    freeMode: { enabled: false },
+    freeMode: { enabled: true, momentum: true, momentumRatio: 0.85, momentumVelocityRatio: 1, momentumBounce: false, sticky: false },
     speed: 380,
     threshold: 6,
     touchAngle: 60,
@@ -34069,54 +34055,34 @@ setTimeout(fondoTodas,800);setTimeout(fondoTodas,3000);
 </html>
 
 
-<!-- DECOM PATCH AISLADO v2: sugerencias en slides independientes -->
+<!-- DECOM PATCH AISLADO: carruseles de sugerencias dentro del feed -->
 <style id="decom-feed-suggestions-carousel-css">
-/* Las sugerencias ocupan su propia diapositiva: nunca entran en el pie ni alteran la imagen/video del post. */
-.swiper-slide.decom-feed-suggestion-slide{
-  display:flex!important; flex-direction:column!important; justify-content:center!important;
-  align-items:stretch!important; width:100%!important; height:100%!important; min-height:0!important;
-  max-height:100%!important; box-sizing:border-box!important; overflow:hidden!important;
-  padding:clamp(12px,3vw,28px)!important;
-  background:var(--feed-page-bg,#f3f4f6)!important;
-}
-body.dark-mode .swiper-slide.decom-feed-suggestion-slide{background:#111318!important}
-.decom-feed-suggestion-slide .decom-feed-insert{
-  position:relative;z-index:1;box-sizing:border-box;width:100%;max-width:900px;margin:0 auto;
-  padding:12px;background:var(--feed-card-bg,#fff);color:var(--feed-text,#171717);
-  border:1px solid rgba(128,128,128,.22);border-radius:14px;font-family:inherit;
-}
-body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1f;color:#f1f3f5;border-color:rgba(255,255,255,.12)}
-.decom-feed-suggestion-slide .decom-feed-insert *{box-sizing:border-box}
-.decom-feed-suggestion-slide .decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:16px;font-weight:800;line-height:1.25}
-.decom-feed-suggestion-slide .decom-feed-insert-head span{flex:1;min-width:0}
-.decom-feed-suggestion-slide .decom-feed-insert-sub{font-size:12px;font-weight:500;opacity:.68;margin-top:3px}
-.decom-feed-suggestion-slide .decom-feed-insert-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 7px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:thin;min-width:0;max-width:100%}
-.decom-feed-suggestion-slide .decom-feed-insert-row::-webkit-scrollbar{height:4px}
-.decom-feed-suggestion-slide .decom-feed-insert-row::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:8px}
-.decom-feed-suggestion-slide .decom-feed-person{position:relative;display:flex;flex:0 0 164px;width:164px;max-width:164px;min-height:220px;flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid rgba(128,128,128,.22);border-radius:13px;background:rgba(128,128,128,.055);scroll-snap-align:start}
-.decom-feed-suggestion-slide .decom-feed-person-photo{width:100%;height:135px;flex:0 0 135px;display:flex;align-items:center;justify-content:center;background:#dce4ee center/cover no-repeat;color:#fff;font-size:32px;font-weight:800;cursor:pointer}
-.decom-feed-suggestion-slide .decom-feed-person-name{padding:9px 9px 3px;font-size:13px;font-weight:800;line-height:1.25;min-height:38px;overflow-wrap:anywhere}
-.decom-feed-suggestion-slide .decom-feed-person-reason{padding:0 9px 7px;font-size:11px;opacity:.7;line-height:1.25;min-height:25px}
-.decom-feed-suggestion-slide .decom-feed-person .fp-amistad-btn{margin:auto 8px 9px;width:calc(100% - 16px);min-height:34px;font-size:12px}
-.decom-feed-suggestion-slide .decom-feed-person-dismiss{position:absolute;right:6px;top:6px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.56);color:#fff;font-size:17px;cursor:pointer}
-.decom-feed-suggestion-slide .decom-feed-story{position:relative;display:block;flex:0 0 108px;width:108px;min-width:108px;scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
-.decom-feed-suggestion-slide .decom-feed-story-media{height:150px;width:108px;border-radius:13px;background:#dce4ee center/cover no-repeat;display:flex;align-items:flex-end;padding:8px;color:#fff;overflow:hidden;box-shadow:inset 0 -55px 35px -25px rgba(0,0,0,.75)}
-.decom-feed-suggestion-slide .decom-feed-story-avatar{position:absolute;top:7px;left:7px;width:34px;height:34px;border-radius:50%;border:3px solid #1877f2;background:#ddd center/cover no-repeat}
-.decom-feed-suggestion-slide .decom-feed-story-name{font-size:12px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
-.decom-feed-suggestion-slide .decom-feed-insert-link{display:block;margin:7px auto 0;border:0;background:transparent;color:#1877f2;font-weight:750;padding:5px 8px;cursor:pointer}
-@media(max-width:480px){
- .swiper-slide.decom-feed-suggestion-slide{padding:10px!important}
- .decom-feed-suggestion-slide .decom-feed-insert{padding:10px}
- .decom-feed-suggestion-slide .decom-feed-person{flex-basis:148px;width:148px;max-width:148px}
- .decom-feed-suggestion-slide .decom-feed-person-photo{height:122px;flex-basis:122px}
- .decom-feed-suggestion-slide .decom-feed-story{flex-basis:96px;width:96px;min-width:96px}
- .decom-feed-suggestion-slide .decom-feed-story-media{width:96px;height:138px}
-}
+/* Estilos aislados: nunca modifican imágenes, videos, slides ni pies de publicación existentes. */
+.decom-feed-insert{position:relative;z-index:1;box-sizing:border-box;width:100%;margin:10px 0 4px;padding:12px;background:var(--feed-card-bg,#fff);color:var(--feed-text,#171717);border:1px solid rgba(128,128,128,.22);border-radius:14px;font-family:inherit;}
+body.dark-mode .decom-feed-insert{background:#191b1f;color:#f1f3f5;border-color:rgba(255,255,255,.12)}
+.decom-feed-insert *{box-sizing:border-box}
+.decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:16px;font-weight:800;line-height:1.25}
+.decom-feed-insert-head span{flex:1;min-width:0}
+.decom-feed-insert-sub{font-size:12px;font-weight:500;opacity:.68;margin-top:3px}
+.decom-feed-insert-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 7px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:thin}
+.decom-feed-insert-row::-webkit-scrollbar{height:4px}.decom-feed-insert-row::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:8px}
+.decom-feed-person{position:relative;display:flex;flex:0 0 164px;max-width:164px;min-height:220px;flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid rgba(128,128,128,.22);border-radius:13px;background:rgba(128,128,128,.055);scroll-snap-align:start}
+.decom-feed-person-photo{width:100%;height:135px;flex:0 0 135px;display:flex;align-items:center;justify-content:center;background:#dce4ee center/cover no-repeat;color:#fff;font-size:32px;font-weight:800;cursor:pointer}
+.decom-feed-person-name{padding:9px 9px 3px;font-size:13px;font-weight:800;line-height:1.25;min-height:38px;overflow-wrap:anywhere}
+.decom-feed-person-reason{padding:0 9px 7px;font-size:11px;opacity:.7;line-height:1.25;min-height:25px}
+.decom-feed-person .fp-amistad-btn{margin:auto 8px 9px;width:calc(100% - 16px);min-height:34px;font-size:12px}
+.decom-feed-person-dismiss{position:absolute;right:6px;top:6px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.56);color:#fff;font-size:17px;cursor:pointer}
+.decom-feed-story{position:relative;flex:0 0 108px;width:108px;scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
+.decom-feed-story-media{height:150px;width:108px;border-radius:13px;background:#dce4ee center/cover no-repeat;display:flex;align-items:flex-end;padding:8px;color:#fff;overflow:hidden;box-shadow:inset 0 -55px 35px -25px rgba(0,0,0,.75)}
+.decom-feed-story-avatar{position:absolute;top:7px;left:7px;width:34px;height:34px;border-radius:50%;border:3px solid #1877f2;background:#ddd center/cover no-repeat}
+.decom-feed-story-name{font-size:12px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
+.decom-feed-insert-link{display:block;margin:7px auto 0;border:0;background:transparent;color:#1877f2;font-weight:750;padding:5px 8px;cursor:pointer}
+@media(max-width:480px){.decom-feed-insert{margin:8px 0;padding:10px}.decom-feed-person{flex-basis:148px;max-width:148px}.decom-feed-person-photo{height:122px;flex-basis:122px}.decom-feed-story{flex-basis:96px;width:96px}.decom-feed-story-media{width:96px;height:138px}}
 </style>
 <script id="decom-feed-suggestions-carousel-js">
 (function(){
  'use strict';
- if(window.__decomFeedCarouselPatchV2)return;window.__decomFeedCarouselPatchV2=true;
+ if(window.__decomFeedCarouselPatch)return;window.__decomFeedCarouselPatch=true;
  var hiddenKey='decom_feed_suggest_hidden_v1',busy=false;
  function q(s,r){return (r||document).querySelector(s)}
  function norm(v){return String(v||'').trim().toLowerCase()}
@@ -34132,27 +34098,29 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1
    if(r.error||!Array.isArray(r.data))return [];
    var users=r.data.filter(function(u){return norm(u.correo)!==me&&u.nombre&&!hidden().has(String(u.id))});
    try{
+     var meRow=users.length?null:null;
      var mine=await c.from('usuarios').select('id').ilike('correo',me).limit(1);
      var mid=mine.data&&mine.data[0]?String(mine.data[0].id):'';
      if(mid){
        var req=await c.from('solicitudes_amigos').select('solicitante_id,solicitado_id,estado').or('solicitante_id.eq.'+mid+',solicitado_id.eq.'+mid).limit(1000);
-       if(!req.error){var blocked=new Set();(req.data||[]).forEach(function(x){var other=String(x.solicitante_id)===mid?String(x.solicitado_id):String(x.solicitante_id);if(x.estado==='aceptada')blocked.add(other)});users=users.filter(function(u){return !blocked.has(String(u.id))})}
+       if(!req.error){
+         var blocked=new Set();
+         (req.data||[]).forEach(function(x){var other=String(x.solicitante_id)===mid?String(x.solicitado_id):String(x.solicitante_id);if(x.estado==='aceptada')blocked.add(other)});
+         users=users.filter(function(u){return !blocked.has(String(u.id))});
+       }
      }
    }catch(_){}
    return users.slice(0,14);
  }
  function profileOpen(u){try{if(typeof abrirPerfilPorCorreo==='function')abrirPerfilPorCorreo(u.correo)}catch(_){}}
- function makeSlide(type){
-   var slide=document.createElement('div');slide.className='swiper-slide decom-feed-suggestion-slide';slide.dataset.decomFeedSuggestionSlide=type;slide.setAttribute('role','group');slide.setAttribute('aria-label',type==='people'?'Personas que quizás conozcas':'Historias recomendadas');return slide;
- }
- function renderPeople(slide,users){
-   if(!users.length||!slide.isConnected)return false;
+ function renderPeople(host,users){
+   if(!users.length)return;
    var section=document.createElement('section');section.className='decom-feed-insert decom-feed-people';section.dataset.decomFeedInsert='people';
    section.appendChild(makeHead('Personas que quizás conozcas','Desliza horizontalmente para descubrir personas'));
    var row=document.createElement('div');row.className='decom-feed-insert-row';
    users.forEach(function(u){
      var card=document.createElement('article');card.className='decom-feed-person';
-     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)slide.remove()};
+     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)section.remove()};
      var ph=document.createElement('div');ph.className='decom-feed-person-photo';avatarStyle(ph,u.foto_perfil);if(!u.foto_perfil)ph.textContent=String(u.nombre||'?').trim().charAt(0).toUpperCase();ph.onclick=function(){profileOpen(u)};
      var nm=document.createElement('div');nm.className='decom-feed-person-name';nm.textContent=u.nombre||'Usuario';nm.onclick=function(){profileOpen(u)};
      var why=document.createElement('div');why.className='decom-feed-person-reason';why.textContent=[u.congregacion,u.ciudad].filter(Boolean).slice(0,2).join(' · ')||'Quizás lo conozcas';
@@ -34162,14 +34130,16 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1
    });
    section.appendChild(row);
    var all=document.createElement('button');all.type='button';all.className='decom-feed-insert-link';all.textContent='Ver más sugerencias';all.onclick=function(){var b=q('#fpBell')||q('#fpFollowHeader');if(b)b.click()};
-   section.appendChild(all);slide.appendChild(section);return true;
+   section.appendChild(all);host.appendChild(section);
+   keepSuggestionSeparateFromDescriptionScroll(host.closest('.swiper-slide')||host,section);
  }
  async function storiesData(){
    var c=client(),me=emailMe();if(!c||!me)return [];
    try{
      var r=await c.from('historias').select('id,autor_correo,tipo,media_url,texto,expira').gt('expira',new Date().toISOString()).neq('autor_correo',me).order('creado',{ascending:false}).limit(30);
      if(r.error||!r.data)return [];
-     var seen=new Set(),rows=[];r.data.forEach(function(x){var k=norm(x.autor_correo);if(!k||seen.has(k)||!x.media_url)return;seen.add(k);rows.push(x)});
+     var seen=new Set(),rows=[];
+     r.data.forEach(function(x){var k=norm(x.autor_correo);if(!k||seen.has(k)||!x.media_url)return;seen.add(k);rows.push(x)});
      if(!rows.length)return [];
      var emails=rows.map(function(x){return x.autor_correo});
      var us=await c.from('usuarios').select('correo,nombre,foto_perfil').in('correo',emails);
@@ -34177,8 +34147,8 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1
      return rows.map(function(x){return {story:x,user:map[norm(x.autor_correo)]||{correo:x.autor_correo,nombre:String(x.autor_correo).split('@')[0]}}});
    }catch(_){return []}
  }
- function renderStories(slide,items){
-   if(!items.length||!slide.isConnected)return false;
+ function renderStories(host,items){
+   if(!items.length)return;
    var section=document.createElement('section');section.className='decom-feed-insert decom-feed-stories';section.dataset.decomFeedInsert='stories';
    section.appendChild(makeHead('Historias que te pueden gustar','Historias recientes de personas de DECOM'));
    var row=document.createElement('div');row.className='decom-feed-insert-row';
@@ -34190,69 +34160,55 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1
      b.append(media,av);b.onclick=function(){try{if(window.fpHistoriasDe)window.fpHistoriasDe(it.story.autor_correo,true)}catch(_){}};
      row.appendChild(b);
    });
-   section.appendChild(row);slide.appendChild(section);return true;
+   section.appendChild(row);host.appendChild(section);
+   keepSuggestionSeparateFromDescriptionScroll(host.closest('.swiper-slide')||host,section);
  }
- function isAdSlide(slide){
-   if(!slide)return false;
-   if(slide.matches('.ad,.ads,.anuncio,.publicidad,[data-ad],[data-advertisement],.sponsored,.swiper-slide-ad'))return true;
-   var t=norm(slide.innerText||'');
-   return /\b(publicidad|contenido patrocinado|anuncio patrocinado|sponsored)\b/.test(t);
+ function targetFor(slide){
+   // Las sugerencias se conservan dentro del pie original para no alterar el layout
+   // ni las proporciones del anuncio. Al expandir la descripción se ocultan para que
+   // no participen visualmente del scroll interno del texto; reaparecen al contraer.
+   return slide.querySelector('.feed-post-footer');
  }
- function originalSlides(wrapper){
-   return Array.prototype.filter.call(wrapper.children,function(s){
-     return s.classList.contains('swiper-slide')&&!s.classList.contains('swiper-slide-duplicate')&&!s.classList.contains('decom-feed-suggestion-slide');
-   });
+ function keepSuggestionSeparateFromDescriptionScroll(slide, section){
+   var footer=slide.querySelector('.feed-post-footer');
+   if(!footer||!section)return;
+   var sync=function(){section.style.display=footer.classList.contains('fp-exp')?'none':''};
+   sync();
+   if(window.MutationObserver){
+     var observer=new MutationObserver(sync);
+     observer.observe(footer,{attributes:true,attributeFilter:['class']});
+     section._decomExpandObserver=observer;
+   }
  }
  async function decorate(){
-   if(busy)return;
-   // No insertar ni medir slides mientras el usuario está desplazando el feed.
-   try {
-     if(typeof swiperInstance!=='undefined'&&swiperInstance&&
-        (swiperInstance.animating || swiperInstance.touchEventsData?.isTouched)) {
-       schedule();
-       return;
-     }
-   } catch (_) {}
-   var wrapper=q('.swiper-wrapper');if(!wrapper)return;
-   var slides=originalSlides(wrapper);if(slides.length<12)return;
+   if(busy)return;var wrapper=q('.swiper-wrapper');if(!wrapper)return;
+   var slides=Array.prototype.filter.call(wrapper.children,function(x){return x.classList.contains('swiper-slide')&&!x.classList.contains('swiper-slide-duplicate')});
+   if(!slides.length)return;
    busy=true;
    try{
-     /* Una recomendación por cada bloque amplio de publicaciones; nunca dentro de la publicación/anuncio. */
-     var candidates=[],count=0;
-     slides.forEach(function(s){
-       count++;
-       if(count<12||(count-12)%14!==0)return;
-       if(!s.isConnected||s.dataset.decomSuggestionChecked==='1')return;
-       s.dataset.decomSuggestionChecked='1';
-       var idx=slides.indexOf(s),prev=slides[idx-1],next=slides[idx+1];
-       /* Evitar insertar junto a anuncios o a otra recomendación; si coincide, se omite ese turno. */
-       if(isAdSlide(s)||isAdSlide(prev)||isAdSlide(next))return;
-       candidates.push({after:s,ordinal:Math.floor((count-12)/14)});
+     var p=null,st=null;
+     // Mucho menos frecuente: una sugerencia cada 9 publicaciones; alternar personas e historias.
+     slides.forEach(function(slide,idx){
+       if((idx+1)%9!==0||!slide.isConnected||q('[data-decom-feed-insert]',slide))return;
+       var host=targetFor(slide);
+       if(!host)return; // si el pie no existe, omitir; jamás alterar tamaño de imagen/video
+       var type=(Math.floor((idx+1)/9)%2===1)?'people':'stories';
+       if(type==='people'){
+         peopleData().then(function(users){if(slide.isConnected&&!q('[data-decom-feed-insert]',slide))renderPeople(host,users)}).catch(function(){});
+       }else{
+         storiesData().then(function(items){if(slide.isConnected&&!q('[data-decom-feed-insert]',slide))renderStories(host,items)}).catch(function(){});
+       }
      });
-     for(var i=0;i<candidates.length;i++){
-       var item=candidates[i],after=item.after;
-       if(!after.isConnected)continue;
-       var slide=makeSlide(item.ordinal%2===0?'people':'stories');
-       after.insertAdjacentElement('afterend',slide);
-       var ok=false;
-       try{
-         if(item.ordinal%2===0)ok=renderPeople(slide,await peopleData());
-         else ok=renderStories(slide,await storiesData());
-       }catch(_){}
-       if(!ok)slide.remove();
-     }
-     /* Si el carrusel Swiper ya existe, actualiza sus medidas sin recrearlo ni tocar los medios. */
-     try{if(typeof swiperInstance!=='undefined'&&swiperInstance&&typeof swiperInstance.update==='function')swiperInstance.update()}catch(_){}
    }catch(e){console.warn('Carruseles de sugerencias DECOM:',e)}
    finally{busy=false}
  }
+
  var queued=false;
- function schedule(){if(queued)return;queued=true;setTimeout(function(){queued=false;decorate()},800)}
+ function schedule(){if(queued)return;queued=true;setTimeout(function(){queued=false;decorate()},700)}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule);else schedule();
  var w=q('.swiper-wrapper');
- if(w&&window.MutationObserver)new MutationObserver(function(mutations){
-   if(mutations.some(function(m){return Array.prototype.some.call(m.addedNodes,function(n){return n.nodeType===1&&!n.classList.contains('decom-feed-suggestion-slide')})}))schedule();
- }).observe(w,{childList:true});
+ if(w&&window.MutationObserver)new MutationObserver(function(){schedule()}).observe(w,{childList:true});
  document.addEventListener('visibilitychange',function(){if(!document.hidden)schedule()});
+ window.addEventListener('resize',schedule);
 })();
 </script>
