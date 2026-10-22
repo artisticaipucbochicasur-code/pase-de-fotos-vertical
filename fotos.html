@@ -21087,22 +21087,20 @@ function initSwiper(initialIndex = 0) {
 
     spaceBetween: 0,
 
-    // Paginado tipo Facebook / Reels: la publicación sigue al dedo y al soltar
-    // SIEMPRE se acomoda en la siguiente o en la actual (nunca queda a medias).
-    // Antes estaba freeMode + loop: el impulso saltaba varias publicaciones o
-    // rebotaba hacia atrás; por eso se sentía "a saltos".
-    freeMode: false,
-    speed: 340,
-    threshold: 8,
-    touchAngle: 40,
+    // Paginado fluido tipo TikTok / Reels: la publicación sigue al dedo y al soltar
+    // se acomoda suavemente en la siguiente o en la actual (nunca queda a medias).
+    freeMode: { enabled: true, momentum: true, momentumRatio: 0.85, momentumVelocityRatio: 1, momentumBounce: false, sticky: false },
+    speed: 380,
+    threshold: 6,
+    touchAngle: 60,
     touchRatio: 1,
     followFinger: true,
     shortSwipes: true,
     longSwipes: true,
-    longSwipesRatio: 0.2,
-    longSwipesMs: 300,
+    longSwipesRatio: 0.18,
+    longSwipesMs: 260,
     resistance: true,
-    resistanceRatio: 0.85,
+    resistanceRatio: 0.7,
     grabCursor: true,
 
     touchStartPreventDefault: false,
@@ -21135,9 +21133,7 @@ function initSwiper(initialIndex = 0) {
 
             // Solo cargar la imagen visible y las cercanas.
             cargarImagenesCercanas(activeIndex);
-            // Las consultas de perfiles esperan a que termine la animación.
-            clearTimeout(window.__decomPerfilesT);
-            window.__decomPerfilesT = setTimeout(() => { try { precargarPerfilesCercanos(activeIndex); } catch (_) {} }, 420);
+            precargarPerfilesCercanos(activeIndex);
 
             // 🎥 Si el nuevo anuncio activo es un video, se reproduce solo;
             // si el anterior era un video, se pausa automáticamente.
@@ -26419,7 +26415,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
   function darLike(sl,x,y){
     corazon(sl,x,y);
     var now=Date.now();if(darLike.t&&now-darLike.t<800)return;darLike.t=now;
-    try{var idx=Array.prototype.indexOf.call(swiperInstance.slides,sl);if(swiperInstance&&idx>-1&&swiperInstance.activeIndex!==idx)swiperInstance.slideTo(idx,0,false)}catch(e){}
+    try{var idx=$$('.swiper-slide',sl.parentNode).indexOf(sl);if(swiperInstance&&swiperInstance.realIndex!==idx)swiperInstance.slideTo(idx,0)}catch(e){}
     var b=$('.feed-post-action-like',sl);if(b&&b.classList.contains('is-liked'))return;
     if(typeof toggleLikeAnuncioActual==='function')toggleLikeAnuncioActual();
   }
@@ -26471,7 +26467,7 @@ body.dark-mode .fp-online-dot{border-color:#202124}
     try{if(navigator.share){await navigator.share({title:a.titulo||'Publicación',text:a.titulo||'',url:url});return}}catch(e){if(e&&e.name==='AbortError')return}
     try{await navigator.clipboard.writeText(url);toast('Enlace copiado')}catch(e){window.prompt('Copia el enlace:',url)}
   }
-  window.fpCompartirEnlaceActivo=function(){try{var sl=swiperInstance.slides[swiperInstance.activeIndex];if(sl&&sl.querySelector('.feed-post-footer'))compartirEnlace(sl)}catch(e){}};
+  window.fpCompartirEnlaceActivo=function(){try{var sl=$$('.swiper-wrapper > .swiper-slide')[swiperInstance.realIndex];if(sl)compartirEnlace(sl)}catch(e){}};
   function botonEnlace(sl){
     var acc=$('.feed-post-actions',sl);if(!acc||$('.fp-link',acc))return;
     var b=document.createElement('button');b.type='button';b.className='feed-post-action fp-link';b.setAttribute('aria-label','Compartir enlace');b.innerHTML='<i class="fas fa-link"></i>';
@@ -34059,123 +34055,63 @@ setTimeout(fondoTodas,800);setTimeout(fondoTodas,3000);
 </html>
 
 
-<!-- DECOM PATCH AISLADO v3: sugerencias en slides independientes, compactas y sin saltos -->
+<!-- DECOM PATCH AISLADO v2: sugerencias en slides independientes -->
 <style id="decom-feed-suggestions-carousel-css">
-/* Fluidez: la cinta vertical se anima en su propia capa de la GPU. */
-.swiper-wrapper{will-change:transform}
-
-/* La sugerencia es una diapositiva más del feed: nunca toca la imagen ni el pie de una publicación. */
+/* Las sugerencias ocupan su propia diapositiva: nunca entran en el pie ni alteran la imagen/video del post. */
 .swiper-slide.decom-feed-suggestion-slide{
-  display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:stretch!important;
-  gap:14px;width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;
-  box-sizing:border-box!important;overflow:hidden!important;
-  padding:max(12px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom))!important;
-  background:var(--dc-card,#f0f2f5)!important;color:var(--dc-tx,#1c1e21);
+  display:flex!important; flex-direction:column!important; justify-content:center!important;
+  align-items:stretch!important; width:100%!important; height:100%!important; min-height:0!important;
+  max-height:100%!important; box-sizing:border-box!important; overflow:hidden!important;
+  padding:clamp(12px,3vw,28px)!important;
+  background:var(--feed-page-bg,#f3f4f6)!important;
 }
-body.dark-mode .swiper-slide.decom-feed-suggestion-slide{background:#0f1012!important;color:#e4e6eb}
-
-/* Tarjeta: ocupa solo lo necesario y queda centrada; el contenido crece con la altura de la pantalla. */
+body.dark-mode .swiper-slide.decom-feed-suggestion-slide{background:#111318!important}
 .decom-feed-suggestion-slide .decom-feed-insert{
-  position:relative;z-index:1;box-sizing:border-box;width:100%;max-width:560px;margin:0 auto;flex:0 1 auto;min-height:0;
-  padding:14px 0 10px;background:var(--dc-bg,#fff);color:var(--dc-tx,#1c1e21);
-  border:1px solid var(--dc-line,rgba(128,128,128,.22));border-radius:18px;font-family:inherit;
-  box-shadow:0 2px 14px rgba(0,0,0,.08);overflow:hidden;
+  position:relative;z-index:1;box-sizing:border-box;width:100%;max-width:900px;margin:0 auto;
+  padding:12px;background:var(--feed-card-bg,#fff);color:var(--feed-text,#171717);
+  border:1px solid rgba(128,128,128,.22);border-radius:14px;font-family:inherit;
 }
-body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#18191a;color:#e4e6eb;border-color:rgba(255,255,255,.1);box-shadow:none}
+body.dark-mode .decom-feed-suggestion-slide .decom-feed-insert{background:#191b1f;color:#f1f3f5;border-color:rgba(255,255,255,.12)}
 .decom-feed-suggestion-slide .decom-feed-insert *{box-sizing:border-box}
-.decom-feed-suggestion-slide .decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0;padding:0 16px 12px;font-size:17px;font-weight:800;line-height:1.25}
+.decom-feed-suggestion-slide .decom-feed-insert-head{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:16px;font-weight:800;line-height:1.25}
 .decom-feed-suggestion-slide .decom-feed-insert-head span{flex:1;min-width:0}
-.decom-feed-suggestion-slide .decom-feed-insert-sub{font-size:12.5px;font-weight:500;opacity:.68;margin-top:3px}
-
-/* Fila horizontal: se desliza hacia los lados sin mover el feed. */
-.decom-feed-suggestion-slide .decom-feed-insert-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 16px 10px;scroll-snap-type:x proximity;scroll-padding:0 16px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none;min-width:0;max-width:100%}
-.decom-feed-suggestion-slide .decom-feed-insert-row::-webkit-scrollbar{display:none}
-
-/* Personas: foto grande que se adapta a la altura disponible. */
-.decom-feed-suggestion-slide .decom-feed-person{position:relative;display:flex;flex:0 0 min(62vw,236px);width:min(62vw,236px);flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid var(--dc-line,rgba(128,128,128,.22));border-radius:14px;background:var(--dc-card,rgba(128,128,128,.06));scroll-snap-align:start}
-body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#242526;border-color:rgba(255,255,255,.08)}
-.decom-feed-suggestion-slide .decom-feed-person-photo{width:100%;height:clamp(170px,31dvh,290px);flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1877f2,#7b61ff) center/cover no-repeat;color:#fff;font-size:44px;font-weight:800;cursor:pointer}
-.decom-feed-suggestion-slide .decom-feed-person-name{padding:10px 11px 2px;font-size:15px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;cursor:pointer}
-.decom-feed-suggestion-slide .decom-feed-person-reason{padding:0 11px 8px;font-size:12px;opacity:.7;line-height:1.3;min-height:16px}
-.decom-feed-suggestion-slide .decom-feed-person .fp-amistad-btn{margin:auto 10px 10px;width:calc(100% - 20px);min-height:38px;font-size:13.5px}
-.decom-feed-suggestion-slide .decom-feed-person-dismiss{position:absolute;right:7px;top:7px;width:30px;height:30px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer}
-
-/* Historias: formato vertical grande, como en Facebook/Instagram. */
-.decom-feed-suggestion-slide .decom-feed-story{position:relative;display:block;flex:0 0 clamp(124px,36vw,172px);width:clamp(124px,36vw,172px);scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
-.decom-feed-suggestion-slide .decom-feed-story-media{height:clamp(210px,43dvh,340px);width:100%;border-radius:14px;background:#dce4ee center/cover no-repeat;display:flex;align-items:flex-end;padding:10px;color:#fff;overflow:hidden;box-shadow:inset 0 -70px 40px -30px rgba(0,0,0,.8)}
-.decom-feed-suggestion-slide .decom-feed-story-avatar{position:absolute;top:9px;left:9px;width:38px;height:38px;border-radius:50%;border:3px solid #1877f2;background:#ddd center/cover no-repeat}
-.decom-feed-suggestion-slide .decom-feed-story-name{font-size:13px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
-
-.decom-feed-suggestion-slide .decom-feed-insert-link{display:block;margin:4px auto 0;border:0;background:transparent;color:#1877f2;font-size:14px;font-weight:750;padding:8px 14px;cursor:pointer}
-
-/* Guía para continuar: da sentido al resto de la pantalla y evita que se vea vacía. */
-.decom-feed-suggestion-slide .decom-feed-next{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;opacity:.6;pointer-events:none;user-select:none}
-.decom-feed-suggestion-slide .decom-feed-next i{font-size:15px;animation:decomFeedNext 1.6s ease-in-out infinite}
-@keyframes decomFeedNext{0%,100%{transform:translateY(2px);opacity:.5}50%{transform:translateY(-3px);opacity:1}}
-@media (prefers-reduced-motion:reduce){.decom-feed-suggestion-slide .decom-feed-next i{animation:none}}
-@media (max-height:620px){
-  .decom-feed-suggestion-slide .decom-feed-person-photo{height:clamp(120px,30dvh,170px)}
-  .decom-feed-suggestion-slide .decom-feed-story-media{height:clamp(150px,40dvh,220px)}
-  .decom-feed-suggestion-slide .decom-feed-next{display:none}
+.decom-feed-suggestion-slide .decom-feed-insert-sub{font-size:12px;font-weight:500;opacity:.68;margin-top:3px}
+.decom-feed-suggestion-slide .decom-feed-insert-row{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 7px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:thin;min-width:0;max-width:100%}
+.decom-feed-suggestion-slide .decom-feed-insert-row::-webkit-scrollbar{height:4px}
+.decom-feed-suggestion-slide .decom-feed-insert-row::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:8px}
+.decom-feed-suggestion-slide .decom-feed-person{position:relative;display:flex;flex:0 0 164px;width:164px;max-width:164px;min-height:220px;flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid rgba(128,128,128,.22);border-radius:13px;background:rgba(128,128,128,.055);scroll-snap-align:start}
+.decom-feed-suggestion-slide .decom-feed-person-photo{width:100%;height:135px;flex:0 0 135px;display:flex;align-items:center;justify-content:center;background:#dce4ee center/cover no-repeat;color:#fff;font-size:32px;font-weight:800;cursor:pointer}
+.decom-feed-suggestion-slide .decom-feed-person-name{padding:9px 9px 3px;font-size:13px;font-weight:800;line-height:1.25;min-height:38px;overflow-wrap:anywhere}
+.decom-feed-suggestion-slide .decom-feed-person-reason{padding:0 9px 7px;font-size:11px;opacity:.7;line-height:1.25;min-height:25px}
+.decom-feed-suggestion-slide .decom-feed-person .fp-amistad-btn{margin:auto 8px 9px;width:calc(100% - 16px);min-height:34px;font-size:12px}
+.decom-feed-suggestion-slide .decom-feed-person-dismiss{position:absolute;right:6px;top:6px;width:27px;height:27px;border:0;border-radius:50%;background:rgba(0,0,0,.56);color:#fff;font-size:17px;cursor:pointer}
+.decom-feed-suggestion-slide .decom-feed-story{position:relative;display:block;flex:0 0 108px;width:108px;min-width:108px;scroll-snap-align:start;cursor:pointer;border:0;background:transparent;color:inherit;text-align:left;padding:0}
+.decom-feed-suggestion-slide .decom-feed-story-media{height:150px;width:108px;border-radius:13px;background:#dce4ee center/cover no-repeat;display:flex;align-items:flex-end;padding:8px;color:#fff;overflow:hidden;box-shadow:inset 0 -55px 35px -25px rgba(0,0,0,.75)}
+.decom-feed-suggestion-slide .decom-feed-story-avatar{position:absolute;top:7px;left:7px;width:34px;height:34px;border-radius:50%;border:3px solid #1877f2;background:#ddd center/cover no-repeat}
+.decom-feed-suggestion-slide .decom-feed-story-name{font-size:12px;font-weight:800;line-height:1.2;text-shadow:0 1px 4px #000;overflow-wrap:anywhere}
+.decom-feed-suggestion-slide .decom-feed-insert-link{display:block;margin:7px auto 0;border:0;background:transparent;color:#1877f2;font-weight:750;padding:5px 8px;cursor:pointer}
+@media(max-width:480px){
+ .swiper-slide.decom-feed-suggestion-slide{padding:10px!important}
+ .decom-feed-suggestion-slide .decom-feed-insert{padding:10px}
+ .decom-feed-suggestion-slide .decom-feed-person{flex-basis:148px;width:148px;max-width:148px}
+ .decom-feed-suggestion-slide .decom-feed-person-photo{height:122px;flex-basis:122px}
+ .decom-feed-suggestion-slide .decom-feed-story{flex-basis:96px;width:96px;min-width:96px}
+ .decom-feed-suggestion-slide .decom-feed-story-media{width:96px;height:138px}
 }
-@media (min-width:700px){.swiper-slide.decom-feed-suggestion-slide{padding:24px!important}}
 </style>
 <script id="decom-feed-suggestions-carousel-js">
 (function(){
  'use strict';
- if(window.__decomFeedCarouselPatchV3)return;window.__decomFeedCarouselPatchV3=true;
- var hiddenKey='decom_feed_suggest_hidden_v1',busy=false,retryT=null;
+ if(window.__decomFeedCarouselPatchV2)return;window.__decomFeedCarouselPatchV2=true;
+ var hiddenKey='decom_feed_suggest_hidden_v1',busy=false;
  function q(s,r){return (r||document).querySelector(s)}
  function norm(v){return String(v||'').trim().toLowerCase()}
  function client(){try{return typeof supabaseClient!=='undefined'?supabaseClient:(typeof sb==='function'?sb():null)}catch(_){return null}}
  function emailMe(){try{return norm(typeof miCorreo==='function'?miCorreo():(localStorage.getItem('correo')||''))}catch(_){return ''}}
  function hidden(){try{return new Set(JSON.parse(localStorage.getItem(hiddenKey)||'[]').map(String))}catch(_){return new Set()}}
  function saveHidden(id){var h=hidden();h.add(String(id));try{localStorage.setItem(hiddenKey,JSON.stringify(Array.from(h).slice(-200)))}catch(_){}}
- function avatarStyle(el,url){if(url&&/^(https?:|data:|blob:)/i.test(url))el.style.backgroundImage='url("'+String(url).replace(/["\\]/g,'')+'")'}
+ function avatarStyle(el,url){if(url&&/^(https?:|data:|blob:)/i.test(url))el.style.backgroundImage='url("'+String(url).replace(/["\\\\]/g,'')+'")'}
  function makeHead(title,sub){var h=document.createElement('div');h.className='decom-feed-insert-head';var w=document.createElement('div');var t=document.createElement('span');t.textContent=title;var d=document.createElement('div');d.className='decom-feed-insert-sub';d.textContent=sub;w.append(t,d);h.append(w);return h}
- function makeHint(){var d=document.createElement('div');d.className='decom-feed-next';d.setAttribute('aria-hidden','true');var i=document.createElement('i');i.className='fas fa-chevron-up';var t=document.createElement('span');t.textContent='Desliza hacia arriba para seguir';d.append(i,t);return d}
-
- /* ---------- Acceso seguro al carrusel ---------- */
- function sw(){try{return typeof swiperInstance!=='undefined'?swiperInstance:null}catch(_){return null}}
- function slidesOf(s){return s&&s.slides?s.slides:[]}
- function idxOf(s,el){return Array.prototype.indexOf.call(slidesOf(s),el)}
- function userBusy(s){
-   if(!s)return false;
-   try{return !!(s.animating||(s.touchEventsData&&s.touchEventsData.isTouched)||document.querySelector('.fp-exp'))}catch(_){return false}
- }
- /* Inserta SIN mover lo que el usuario está viendo: si el nuevo slide queda antes del activo,
-    se reubica el carrusel en el mismo anuncio (antes esto provocaba saltos y retrocesos). */
- function insertSafe(after,slide){
-   var s=sw(),act=s?slidesOf(s)[s.activeIndex]:null;
-   var di=after.getAttribute('data-swiper-slide-index');
-   if(di!==null)slide.setAttribute('data-swiper-slide-index',di); /* realIndex sigue apuntando al anuncio previo */
-   after.insertAdjacentElement('afterend',slide);
-   if(!s)return;
-   try{
-     s.update();
-     if(act){var n=idxOf(s,act);if(n>-1&&n!==s.activeIndex)s.slideTo(n,0,false)}
-   }catch(_){}
- }
- function removeSlide(slide){
-   var s=sw();
-   function go(){
-     var act=s?slidesOf(s)[s.activeIndex]:null;
-     slide.remove();
-     if(!s)return;
-     try{s.update();if(act&&act!==slide){var n=idxOf(s,act);if(n>-1&&n!==s.activeIndex)s.slideTo(n,0,false)}}catch(_){}
-   }
-   if(s&&slidesOf(s)[s.activeIndex]===slide){try{s.slideNext(300)}catch(_){}setTimeout(go,460)}else go();
- }
- /* Al llegar a una sugerencia se pausa el video del anuncio anterior (comparten índice de datos). */
- function hook(){
-   var s=sw();if(!s||s.__decomSugHook||typeof s.on!=='function')return;
-   s.__decomSugHook=true;
-   s.on('slideChange',function(){
-     var el=slidesOf(s)[s.activeIndex];
-     if(el&&el.classList&&el.classList.contains('decom-feed-suggestion-slide')){try{if(typeof pausarVideoActivo==='function')pausarVideoActivo()}catch(_){}}
-   });
- }
-
  async function peopleData(){
    var c=client(),me=emailMe();if(!c||!me)return [];
    var r=await c.from('usuarios').select('id,correo,nombre,foto_perfil,cargo,congregacion,ciudad').limit(300);
@@ -34196,13 +34132,13 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#24252
    var slide=document.createElement('div');slide.className='swiper-slide decom-feed-suggestion-slide';slide.dataset.decomFeedSuggestionSlide=type;slide.setAttribute('role','group');slide.setAttribute('aria-label',type==='people'?'Personas que quizás conozcas':'Historias recomendadas');return slide;
  }
  function renderPeople(slide,users){
-   if(!users.length)return false;
+   if(!users.length||!slide.isConnected)return false;
    var section=document.createElement('section');section.className='decom-feed-insert decom-feed-people';section.dataset.decomFeedInsert='people';
-   section.appendChild(makeHead('Personas que quizás conozcas','Desliza hacia los lados para descubrir personas'));
+   section.appendChild(makeHead('Personas que quizás conozcas','Desliza horizontalmente para descubrir personas'));
    var row=document.createElement('div');row.className='decom-feed-insert-row';
    users.forEach(function(u){
      var card=document.createElement('article');card.className='decom-feed-person';
-     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)removeSlide(slide)};
+     var x=document.createElement('button');x.type='button';x.className='decom-feed-person-dismiss';x.textContent='×';x.setAttribute('aria-label','Ocultar sugerencia');x.onclick=function(e){e.stopPropagation();saveHidden(u.id);card.remove();if(!row.children.length)slide.remove()};
      var ph=document.createElement('div');ph.className='decom-feed-person-photo';avatarStyle(ph,u.foto_perfil);if(!u.foto_perfil)ph.textContent=String(u.nombre||'?').trim().charAt(0).toUpperCase();ph.onclick=function(){profileOpen(u)};
      var nm=document.createElement('div');nm.className='decom-feed-person-name';nm.textContent=u.nombre||'Usuario';nm.onclick=function(){profileOpen(u)};
      var why=document.createElement('div');why.className='decom-feed-person-reason';why.textContent=[u.congregacion,u.ciudad].filter(Boolean).slice(0,2).join(' · ')||'Quizás lo conozcas';
@@ -34212,7 +34148,7 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#24252
    });
    section.appendChild(row);
    var all=document.createElement('button');all.type='button';all.className='decom-feed-insert-link';all.textContent='Ver más sugerencias';all.onclick=function(){var b=q('#fpBell')||q('#fpFollowHeader');if(b)b.click()};
-   section.appendChild(all);slide.appendChild(section);slide.appendChild(makeHint());return true;
+   section.appendChild(all);slide.appendChild(section);return true;
  }
  async function storiesData(){
    var c=client(),me=emailMe();if(!c||!me)return [];
@@ -34228,7 +34164,7 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#24252
    }catch(_){return []}
  }
  function renderStories(slide,items){
-   if(!items.length)return false;
+   if(!items.length||!slide.isConnected)return false;
    var section=document.createElement('section');section.className='decom-feed-insert decom-feed-stories';section.dataset.decomFeedInsert='stories';
    section.appendChild(makeHead('Historias que te pueden gustar','Historias recientes de personas de DECOM'));
    var row=document.createElement('div');row.className='decom-feed-insert-row';
@@ -34240,7 +34176,7 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#24252
      b.append(media,av);b.onclick=function(){try{if(window.fpHistoriasDe)window.fpHistoriasDe(it.story.autor_correo,true)}catch(_){}};
      row.appendChild(b);
    });
-   section.appendChild(row);slide.appendChild(section);slide.appendChild(makeHint());return true;
+   section.appendChild(row);slide.appendChild(section);return true;
  }
  function isAdSlide(slide){
    if(!slide)return false;
@@ -34256,39 +34192,34 @@ body.dark-mode .decom-feed-suggestion-slide .decom-feed-person{background:#24252
  async function decorate(){
    if(busy)return;var wrapper=q('.swiper-wrapper');if(!wrapper)return;
    var slides=originalSlides(wrapper);if(slides.length<12)return;
-   busy=true;hook();
+   busy=true;
    try{
-     /* Una recomendación por cada bloque amplio de publicaciones; nunca dentro de la publicación. */
+     /* Una recomendación por cada bloque amplio de publicaciones; nunca dentro de la publicación/anuncio. */
      var candidates=[],count=0;
      slides.forEach(function(s){
        count++;
        if(count<12||(count-12)%14!==0)return;
-       if(s.dataset.decomSuggestionChecked==='1')return;
-       var nx=s.nextElementSibling;
-       if(nx&&nx.classList.contains('decom-feed-suggestion-slide')){s.dataset.decomSuggestionChecked='1';return}
+       if(!s.isConnected||s.dataset.decomSuggestionChecked==='1')return;
+       s.dataset.decomSuggestionChecked='1';
        var idx=slides.indexOf(s),prev=slides[idx-1],next=slides[idx+1];
-       if(isAdSlide(s)||isAdSlide(prev)||isAdSlide(next)){s.dataset.decomSuggestionChecked='1';return}
+       /* Evitar insertar junto a anuncios o a otra recomendación; si coincide, se omite ese turno. */
+       if(isAdSlide(s)||isAdSlide(prev)||isAdSlide(next))return;
        candidates.push({after:s,ordinal:Math.floor((count-12)/14)});
      });
      for(var i=0;i<candidates.length;i++){
        var item=candidates[i],after=item.after;
        if(!after.isConnected)continue;
-       var type=item.ordinal%2===0?'people':'stories',data=[];
-       /* 1) Primero se consultan los datos (sin tocar el DOM). */
-       try{data=type==='people'?await peopleData():await storiesData()}catch(_){data=[]}
-       if(!after.isConnected)continue;
-       after.dataset.decomSuggestionChecked='1';
-       if(!data.length)continue;
-       /* 2) Se dibuja fuera del carrusel. */
-       var slide=makeSlide(type),ok=false;
-       try{ok=type==='people'?renderPeople(slide,data):renderStories(slide,data)}catch(_){}
-       if(!ok)continue;
-       /* 3) Se inserta solo cuando el usuario no está tocando ni hay animación en curso. */
-       var tries=0;
-       while(userBusy(sw())&&tries<25){await new Promise(function(r){setTimeout(r,300)});tries++}
-       if(!after.isConnected)continue;
-       insertSafe(after,slide);
+       var slide=makeSlide(item.ordinal%2===0?'people':'stories');
+       after.insertAdjacentElement('afterend',slide);
+       var ok=false;
+       try{
+         if(item.ordinal%2===0)ok=renderPeople(slide,await peopleData());
+         else ok=renderStories(slide,await storiesData());
+       }catch(_){}
+       if(!ok)slide.remove();
      }
+     /* Si el carrusel Swiper ya existe, actualiza sus medidas sin recrearlo ni tocar los medios. */
+     try{if(typeof swiperInstance!=='undefined'&&swiperInstance&&typeof swiperInstance.update==='function')swiperInstance.update()}catch(_){}
    }catch(e){console.warn('Carruseles de sugerencias DECOM:',e)}
    finally{busy=false}
  }
