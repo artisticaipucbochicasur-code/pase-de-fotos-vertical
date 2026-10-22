@@ -33500,6 +33500,7 @@ function tendencias(){
 document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#btnBuscar'))setTimeout(tendencias,50)});
 
 /* ---------- Cápsula de tiempo ---------- */
+var MOSTRAR_BOTON_CAPSULA=false; /* cambia a true para volver a mostrar el botón ⏳ */
 var uid=null,nombre='Anónimo';
 async function sesion(){try{var r=await sb().auth.getSession();var u=r&&r.data&&r.data.session&&r.data.session.user;if(!u){r=await sb().auth.getUser();u=r&&r.data&&r.data.user}}catch(e){return false}if(!u)return false;uid=u.id;nombre=(u.user_metadata&&(u.user_metadata.nombre||u.user_metadata.full_name))||(u.email||'').split('@')[0]||'Anónimo';return true}
 function falta(f){var ms=new Date(f)-Date.now();if(ms<=0)return'Lista para abrir';var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);return(d?d+'d ':'')+h+'h '+m+'m'}
@@ -33547,7 +33548,7 @@ function tarjeta(c){
     zona.appendChild(v)}
   if(mia){var e=el('button','g','Eliminar');e.onclick=async function(){if(!confirm('¿Eliminar cápsula?'))return;await sb().from('capsulas').delete().eq('id',c.id);pintar()};d.appendChild(e)}
   return d}
-var n=0,iv=setInterval(function(){var ref=$('#btnBuscar');if(ref&&ref.parentNode&&!$('#dcCapBtn')){var b=el('button','header-btn','⏳');b.type='button';b.id='dcCapBtn';b.title='Cápsulas de tiempo';b.setAttribute('aria-label','Cápsulas de tiempo');b.onclick=abrir;ref.parentNode.insertBefore(b,ref.nextSibling);clearInterval(iv)}else if(++n>60)clearInterval(iv)},1000);
+var n=0,iv=setInterval(function(){var ref=$('#btnBuscar');if(ref&&ref.parentNode&&!$('#dcCapBtn')){var b=el('button','header-btn','⏳');b.type='button';b.id='dcCapBtn';b.title='Cápsulas de tiempo';b.setAttribute('aria-label','Cápsulas de tiempo');b.onclick=abrir;b.style.display=MOSTRAR_BOTON_CAPSULA?'':'none';ref.parentNode.insertBefore(b,ref.nextSibling);clearInterval(iv)}else if(++n>60)clearInterval(iv)},1000);
 })();
 </script>
 <script id="decom-album">
@@ -33594,6 +33595,13 @@ document.addEventListener('play',function(e){var v=e.target;if(!v.closest||!v.cl
   document.querySelectorAll('.dcm video').forEach(function(o){if(o!==v)o.pause()});
   try{var io=new IntersectionObserver(function(en){if(!en[0].isIntersecting){v.pause();io.disconnect()}},{threshold:.2});io.observe(v)}catch(x){}},true);
 
+var dx=0,dy=0;
+document.addEventListener('pointerdown',function(e){dx=e.clientX;dy=e.clientY},true);
+document.addEventListener('click',function(e){var t=e.target;if(!t||t.tagName!=='IMG'||!t.closest||!t.closest('.dcm-i'))return;
+  if(Math.hypot(e.clientX-dx,e.clientY-dy)>10)return;var z=t.closest('.swiper-zoom-container'),u=t.currentSrc||t.src;if(!z||!u)return;
+  e.stopPropagation();var p=new Image();p.src=u;p.alt=t.alt||'';p.style.display='none';z.appendChild(p);
+  try{p.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,clientX:e.clientX,clientY:e.clientY}))}finally{p.remove()}},true);
+
 /* ---------- ESCRITURA: nuevo botón "Álbum" en el modal de publicar ---------- */
 var files=[],bx=el('div'),ov=el('div');bx.id='dcAlbBox';ov.id='dcAlb';ov.appendChild(bx);document.body.appendChild(ov);
 ov.onclick=function(e){if(e.target===ov&&!ocupado)ov.classList.remove('on')};
@@ -33631,13 +33639,13 @@ async function publicar(ok){
     S.textContent='Publicando…';
     var r=await sb().from('publicaciones').insert([{titulo:titulo,descripcion:desc,url_media:medios[0].u,correo:correo,autor:autor,tipo_media:'imagen',medios:medios}]);
     if(r.error)throw r.error;
-    files=[];ov.classList.remove('on');toast('Álbum publicado ✅')}
+    files=[];ov.classList.remove('on');var cm=$('#closePublishModal');if(cm)cm.click();toast('Álbum publicado ✅')}
   catch(e){try{if(rutas.length)await sb().storage.from('decom-media').remove(rutas)}catch(x){}
     S.textContent=/medios/.test((e&&e.message)||'')?'Falta crear la columna "medios" (ejecuta medios_publicaciones.sql).':'No se pudo publicar: '+((e&&e.message)||e);S.style.color='#c00'}
   ocupado=ok.disabled=false}
 function boton(){var seg=$('#publishModal .dc-seg');if(!seg||$('#tabAlbum'))return;
   var b=el('button',null,'Álbum');b.id='tabAlbum';b.type='button';b.style.cssText='flex:1;padding:10px;border:none;border-radius:8px;background:#ccc;color:#333;cursor:pointer;font-weight:bold';
-  b.onclick=function(){var c=$('#closePublishModal');if(c)c.click();else $('#publishModal').style.display='none';pintar();ov.classList.add('on')};seg.appendChild(b)}
+  b.onclick=function(){pintar();ov.classList.add('on')};seg.appendChild(b)}
 boton();
 })();
 </script>
