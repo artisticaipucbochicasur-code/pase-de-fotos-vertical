@@ -13522,69 +13522,168 @@ closePublishModal.addEventListener("click", () => {
   }
 });
 
-// 🔹 Función para comprimir imágenes
-function compressImage(base64, maxWidth = 800, quality = 0.7) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = function () {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+// Optimización real de la imagen que se sube (no solo de la vista previa).
+// Mantiene GIF animados; redimensiona fotos grandes y evita Base64 para reducir RAM.
+let archivoImagenOptimizado = null;
+let urlPreviewOptimizada = null;
+let tokenProcesamientoImagen = 0;
 
-      let width = img.width;
-      let height = img.height;
+async function optimizarImagenPublicacion(file) {
+  if (!file || !/^image\//i.test(file.type)) return file;
+  // No convertir GIF animados en una imagen fija.
+  if (/gif/i.test(file.type)) return file;
 
-      // 🔹 Redimensionar si es más grande que el ancho máximo
-      if (width > maxWidth) {
-        height = (maxWidth / width) * height;
-        width = maxWidth;
+  let bitmap = null, img = null, source = null, width = 0, height = 0, objectUrl = null;
+  try {
+    if (typeof createImageBitmap === "function") {
+      try {
+        bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+        source = bitmap; width = bitmap.width; height = bitmap.height;
+      } catch (_) {
+        try { bitmap = await createImageBitmap(file); source = bitmap; width = bitmap.width; height = bitmap.height; } catch (_) {}
       }
+    }
+    if (!source) {
+      objectUrl = URL.createObjectURL(file);
+      img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("No se pudo leer la imagen"));
+        image.src = objectUrl;
+      });
+      source = img; width = img.naturalWidth || img.width; height = img.naturalHeight || img.height;
+    }
+    if (!width || !height) throw new Error("Dimensiones de imagen no válidas");
 
-      canvas.width = width;
-      canvas.height = height;
+    const originalType = (file.type || "").toLowerCase();
+    // Las fotos se guardan como JPEG; PNG conserva transparencia; WebP conserva su formato.
+    const mime = originalType.includes("png") ? "image/png" :
+                 originalType.includes("webp") ? "image/webp" : "image/jpeg";
+    const maxDimension = 1600;
+    let scale = Math.min(1, maxDimension / Math.max(width, height));
+    let targetW = Math.max(1, Math.round(width * scale));
+    let targetH = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { alpha: mime === "image/png" });
+    if (!ctx) throw new Error("No se pudo preparar la imagen");
 
-      // 🔹 Dibujar y comprimir
-      ctx.drawImage(img, 0, 0, width, height);
-      const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
-      resolve(compressedBase64);
-    };
-    img.src = base64;
-  });
+    // La codificación se hace con toBlob (asíncrono), no con toDataURL/Base64.
+    async function encode(w, h, quality) {
+      canvas.width = w; canvas.height = h;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.clearRect(0, 0, w, h);
+      if (mime !== "image/png") {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.drawImage(source, 0, 0, w, h);
+      return await new Promise((resolve, reject) => {
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Falló la compresión")), mime, quality);
+      });
+    }
+
+    let blob;
+    if (mime === "image/png") {
+      blob = await encode(targetW, targetH);
+      // PNG muy grande: reducir moderadamente resolución, sin perder transparencia.
+      if (blob.size > 2 * 1024 * 1024 && Math.max(targetW, targetH) > 1200) {
+        const k = 1200 / Math.max(targetW, targetH);
+        blob = await encode(Math.max(1, Math.round(targetW*k)), Math.max(1, Math.round(targetH*k)));
+      }
+    } else {
+      blob = await encode(targetW, targetH, 0.82);
+      if (blob.size > 1.5 * 1024 * 1024) blob = await encode(targetW, targetH, 0.72);
+      if (blob.size > 1.5 * 1024 * 1024) blob = await encode(targetW, targetH, 0.64);
+      if (blob.size > 1.8 * 1024 * 1024 && Math.max(targetW, targetH) > 1280) {
+        const k = 1280 / Math.max(targetW, targetH);
+        blob = await encode(Math.max(1, Math.round(targetW*k)), Math.max(1, Math.round(targetH*k)), 0.68);
+      }
+    }
+
+    const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+    const baseName = (file.name || "foto").replace(/\.[^.]+$/, "");
+    return new File([blob], baseName + "_optimizada." + ext, {
+      type: mime, lastModified: Date.now()
+    });
+  } finally {
+    if (bitmap && typeof bitmap.close === "function") bitmap.close();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }
 }
 
-// 🔹 Vista previa y compresión de imagen
-fileInput.addEventListener("change", function () {
-  const file = this.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onloadstart = function () {
-      progressContainer.style.display = "block";
-      progressBar.style.width = "0%";
-    };
-    reader.onprogress = function (e) {
-      if (e.lengthComputable) {
-        const percent = (e.loaded / e.total) * 100;
-        progressBar.style.width = percent + "%";
-      }
-    };
-    reader.onloadend = async function (e) {
-      const originalBase64 = e.target.result;
+// Vista previa y preparación del archivo que realmente se enviará a Storage.
+fileInput.addEventListener("change", async function () {
+  const file = this.files && this.files[0];
+  const token = ++tokenProcesamientoImagen;
+  archivoImagenOptimizado = null;
+  base64Imagen = "";
 
-      // 🔹 Comprimir imagen antes de mostrarla
-      const compressedBase64 = await compressImage(originalBase64, 800, 0.7);
-      base64Imagen = compressedBase64.split(",")[1];
-
-      previewImg.src = compressedBase64;
-      previewImg.style.display = "block";
-      previewImg.style.maxWidth = "100%";
-      previewImg.style.maxHeight = "180px";
-      previewImg.style.objectFit = "cover";
-      previewImg.style.borderRadius = "12px";
-
-      progressBar.style.width = "100%";
-      setTimeout(() => (progressContainer.style.display = "none"), 500);
-    };
-    reader.readAsDataURL(file);
+  if (urlPreviewOptimizada) {
+    URL.revokeObjectURL(urlPreviewOptimizada);
+    urlPreviewOptimizada = null;
   }
+  if (!file) {
+    previewImg.removeAttribute("src");
+    previewImg.style.display = "none";
+    progressContainer.style.display = "none";
+    return;
+  }
+
+  progressContainer.style.display = "block";
+  progressBar.style.width = "10%";
+  mensaje.textContent = "Optimizando foto para que cargue rápido…";
+  mensaje.style.color = "#1877f2";
+  btnPublicar.disabled = true;
+
+  try {
+    const optimizada = await optimizarImagenPublicacion(file);
+    if (token !== tokenProcesamientoImagen) return;
+    archivoImagenOptimizado = optimizada || file;
+    urlPreviewOptimizada = URL.createObjectURL(archivoImagenOptimizado);
+    previewImg.src = urlPreviewOptimizada;
+    previewImg.style.display = "block";
+    previewImg.style.maxWidth = "100%";
+    previewImg.style.maxHeight = "180px";
+    previewImg.style.objectFit = "contain";
+    previewImg.style.borderRadius = "12px";
+
+    const antes = (file.size / 1024 / 1024).toFixed(2);
+    const despues = (archivoImagenOptimizado.size / 1024 / 1024).toFixed(2);
+    progressBar.style.width = "100%";
+    mensaje.textContent = archivoImagenOptimizado.size < file.size
+      ? `Foto optimizada: ${antes} MB → ${despues} MB. Lista para publicar.`
+      : "Foto lista para publicar.";
+    mensaje.style.color = "#16803c";
+  } catch (err) {
+    console.warn("No se pudo optimizar la foto; se conservará el archivo original:", err);
+    if (token !== tokenProcesamientoImagen) return;
+    // No se pierde la publicación si el dispositivo no soporta la codificación.
+    archivoImagenOptimizado = file;
+    urlPreviewOptimizada = URL.createObjectURL(file);
+    previewImg.src = urlPreviewOptimizada;
+    previewImg.style.display = "block";
+    mensaje.textContent = "No se pudo reducir esta imagen en el dispositivo; se usará el original.";
+    mensaje.style.color = "#b45309";
+  } finally {
+    if (token === tokenProcesamientoImagen) {
+      btnPublicar.disabled = false;
+      setTimeout(() => {
+        if (token === tokenProcesamientoImagen) progressContainer.style.display = "none";
+      }, 500);
+    }
+  }
+});
+
+
+// Evita conservar una foto optimizada en memoria después de cerrar el modal.
+closePublishModal.addEventListener("click", () => {
+  tokenProcesamientoImagen++;
+  archivoImagenOptimizado = null;
+  if (urlPreviewOptimizada) { URL.revokeObjectURL(urlPreviewOptimizada); urlPreviewOptimizada = null; }
+  base64Imagen = "";
+  // No permitir que una foto ya descartada se suba después como archivo original.
+  if (fileInput) fileInput.value = "";
 });
 
 // 🔹 Enviar anuncio usando Supabase Storage + Database
@@ -13683,10 +13782,10 @@ try {
     if (!isEditing || fileInput.files[0]) {
 
 
-        const archivo = fileInput.files[0];
+        const archivo = archivoImagenOptimizado || fileInput.files[0];
 
 
-        const extension = archivo.name.split(".").pop();
+        const extension = (archivo.name.split(".").pop() || "jpg").toLowerCase();
 
 
         const nombreArchivo =
@@ -13964,6 +14063,9 @@ const datosActualizar = {
     document.getElementById("descripcion").value="";
 
     fileInput.value="";
+    archivoImagenOptimizado = null;
+    tokenProcesamientoImagen++;
+    if (urlPreviewOptimizada) { URL.revokeObjectURL(urlPreviewOptimizada); urlPreviewOptimizada = null; }
 
 
     previewImg.src="";
