@@ -20981,7 +20981,7 @@ function initSwiper(initialIndex = 0) {
 
     direction: 'vertical',
 
-    slidesPerView: 1,
+    slidesPerView: 'auto',
 
     spaceBetween: 0,
 
@@ -33141,6 +33141,12 @@ function abrirEditor(){
         var correoDb=(row&&row.correo)||base.correo;
         var res=await c.from('usuarios').update(datos).eq('correo',correoDb);
         if(res&&res.error)throw res.error;
+        /* El nombre nuevo también se actualiza en publicaciones y comentarios (autor) */
+        try{
+          await c.from('publicaciones').update({autor:datos.nombre}).eq('correo',correoDb);
+          await c.from('comentarios').update({autor:datos.nombre}).eq('correo',correoDb);
+        }catch(eSync){console.warn('Sincronizar nombre:',eSync)}
+        try{if(typeof window.fpSincNombreAutor==='function')window.fpSincNombreAutor(correoDb,datos.nombre)}catch(e){}
         if(portadaQuitar&&portadaCol){
           try{var id3=await obtenerAuthId();await c.storage.from('perfiles').remove(['usuarios/'+id3+'/portada.jpg','usuarios/'+id3+'/portada_original.jpg'])}catch(e){}
         }
@@ -33741,6 +33747,107 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
   if(cT){clearTimeout(cT);cT=null;return}           /* segundo toque = doble toque (Me gusta, lo maneja la app) */
   if(Math.hypot(e.clientX-dX,e.clientY-dY)>10)return;
   cT=setTimeout(function(){cT=null;abrir(foto)},300)},true);
+})();
+</script>
+
+
+<!-- ======================================================================
+     AJUSTE: fotos/anuncios del carrusel con menos márgenes + nombre de autor
+     siempre actualizado. Bloque independiente: no cambia la lógica existente.
+====================================================================== -->
+<style id="fp-carrusel-menos-margenes">
+/* Publicaciones de imagen estilo Facebook: foto a todo el ancho, sin bordes
+   laterales; la publicación crece en alto según la foto (los videos no cambian). */
+.swiper-slide:not(.video){height:auto!important;min-height:0!important}
+.swiper-slide:not(.video) .swiper-zoom-container{flex:0 0 auto;width:100%;height:auto!important}
+.swiper-slide:not(.video) .swiper-zoom-container>img{width:100%;height:auto;max-width:100%;max-height:none;margin:0;object-fit:contain;display:block}
+/* mientras carga la foto se reserva espacio para que el feed no salte */
+.swiper-slide:not(.video) .swiper-zoom-container:not(.dcm-w):not(.fp-ok-wrap):not(:has(>img.fp-ok)){min-height:75vw}
+.swiper-slide:not(.video) .swiper-zoom-container.dcm-w>img{height:auto!important}
+/* "Ver más" se despliega en su sitio (la publicación ya no mide una pantalla) */
+.swiper-slide:not(.video) .feed-post-footer.fp-exp{position:relative;max-height:none;box-shadow:none;animation:none;border-radius:0}
+/* Pie un poco más compacto */
+.swiper-slide .feed-post-footer:not(.fp-exp){padding-top:8px}
+.swiper-slide .feed-post-head{margin-bottom:6px;padding-bottom:6px}
+.swiper-slide .fp-ticker{margin-top:18px}
+</style>
+<script id="fp-carrusel-nombres">
+(function(){
+if(window.__fpCarruselNombres)return;window.__fpCarruselNombres=1;
+function $$(q,r){return Array.prototype.slice.call((r||document).querySelectorAll(q))}
+function norm(s){return String(s||'').trim().toLowerCase()}
+
+/* ---------- 1) Alturas variables: avisar a Swiper cuando una foto cambia de tamaño ---------- */
+var up=null;
+function actualizar(){
+  if(up)return;
+  up=setTimeout(function(){
+    up=null;
+    try{
+      var sw=swiperInstance;if(!sw)return;
+      if(sw.animating||(sw.touchEventsData&&sw.touchEventsData.isTouched)){actualizar();return}
+      sw.update();
+    }catch(e){}
+  },200);
+}
+function ajustarTodas(){actualizar()}
+document.addEventListener('load',function(e){var i=e.target;if(i&&i.tagName==='IMG'&&i.matches&&i.matches('.swiper-zoom-container>img'))actualizar()},true);
+window.addEventListener('resize',actualizar);
+window.addEventListener('orientationchange',function(){setTimeout(actualizar,300)});
+document.addEventListener('click',function(){setTimeout(actualizar,350)},true);
+
+/* ---------- 2) Nombre de autor siempre actualizado ---------- */
+var mapa={},vistos={},TTL=60000;
+function cliente(){try{return supabaseClient}catch(e){return null}}
+function lista(){try{return anunciosData||[]}catch(e){return[]}}
+function aplicar(){
+  var cambio=false,cambioC=false;
+  lista().forEach(function(a){var n=mapa[norm(a&&a.correo)];if(n&&a.autor!==n){a.autor=n;cambio=true}});
+  try{Object.keys(comentariosPorAnuncio||{}).forEach(function(k){(comentariosPorAnuncio[k]||[]).forEach(function(c){
+    var n=mapa[norm(c.autorCorreo||c.correo)];if(n&&c.autor!==n){c.autor=n;cambioC=true}})})}catch(e){}
+  try{(comentariosFilasCache||[]).forEach(function(c){var n=mapa[norm(c.correo)];if(n&&c.autor!==n){c.autor=n;cambioC=true}})}catch(e){}
+  /* pantalla */
+  var porId={};lista().forEach(function(a){if(a)porId[String(a.id)]=a});
+  $$('.swiper-slide[data-id]').forEach(function(sl){
+    var a=porId[sl.dataset.id];if(!a)return;
+    var el=sl.querySelector('.feed-post-author');if(el&&a.autor&&el.textContent!==a.autor)el.textContent=a.autor;
+  });
+  var cont=document.getElementById('autorContainer');
+  if(cont){var n=mapa[norm(cont.dataset.correo)];var nm=cont.querySelector('.fb-post-author-name');if(n&&nm&&nm.textContent!==n)nm.textContent=n}
+  if(cambio){try{guardarCacheAnuncios()}catch(e){}}
+  if(cambioC){try{guardarCacheComentarios()}catch(e){}}
+}
+async function sincronizar(){
+  var c=cliente();if(!c)return;
+  var ahora=Date.now(),pend={};
+  lista().forEach(function(a){var k=norm(a&&a.correo);if(k&&(!vistos[k]||ahora-vistos[k]>TTL))pend[k]=1});
+  try{Object.keys(comentariosPorAnuncio||{}).forEach(function(id){(comentariosPorAnuncio[id]||[]).forEach(function(x){
+    var k=norm(x.autorCorreo||x.correo);if(k&&(!vistos[k]||ahora-vistos[k]>TTL))pend[k]=1})})}catch(e){}
+  var ks=Object.keys(pend);
+  for(var i=0;i<ks.length;i+=100){
+    var parte=ks.slice(i,i+100);
+    try{
+      var r=await c.from('usuarios').select('correo,nombre').in('correo',parte);
+      (r.data||[]).forEach(function(u){var n=String(u.nombre||'').trim();if(n)mapa[norm(u.correo)]=n});
+      parte.forEach(function(k){vistos[k]=ahora});
+    }catch(e){}
+  }
+  aplicar();
+}
+var st=null;function programar(){clearTimeout(st);st=setTimeout(sincronizar,700)}
+/* usado al guardar el perfil: efecto inmediato en pantalla y en memoria local */
+window.fpSincNombreAutor=function(correo,nombre){
+  var k=norm(correo),n=String(nombre||'').trim();if(!k||!n)return;
+  mapa[k]=n;vistos[k]=Date.now();aplicar();
+};
+function iniciar(){
+  var w=document.querySelector('.swiper-wrapper');
+  if(w){try{new MutationObserver(function(){programar();setTimeout(ajustarTodas,250)}).observe(w,{childList:true})}catch(e){}}
+  programar();ajustarTodas();
+  setInterval(sincronizar,TTL);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)programar()});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else setTimeout(iniciar,300);
 })();
 </script>
 
