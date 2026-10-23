@@ -29426,14 +29426,15 @@ body #fpHC.fp-story-editor-open .fp-story-editor .fp-thumb-x{position:absolute;t
 .fp-amistad-btn:active{transform:scale(.97)}
 .fp-amistad-btn.on{background:rgba(128,128,128,.2)!important;color:inherit!important;border:1px solid rgba(128,128,128,.35)!important}
 
-/* ---------- Carrusel de sugerencias independiente del Swiper de anuncios ----------
-   Se dibuja como tarjeta flotante tipo publicación. Nunca se inserta en
-   .swiper-wrapper: no cambia índices, alturas, IDs ni el ciclo de anuncios. */
-#fpPK{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2147482050;display:flex;flex-direction:column;gap:10px;padding:14px 0 10px;background:var(--fp-pk-bg,#fff);color:var(--fp-pk-fg,#1c1e21);border:1px solid rgba(0,0,0,.12);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.24);font-family:system-ui,sans-serif;touch-action:pan-y;will-change:transform;animation:fpPKin .24s ease-out;max-height:min(48dvh,440px);box-sizing:border-box;overflow:hidden}
-body.dark-mode #fpPK{--fp-pk-bg:#202124;--fp-pk-fg:#f1f3f4;border-color:rgba(255,255,255,.12)}
-@keyframes fpPKin{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+/* ---------- Carrusel de sugerencias integrado en el pie de una publicación ----------
+   No es fixed ni modal: se monta dentro del footer del slide activo. El Swiper
+   vertical sigue conteniendo exclusivamente anuncios reales, por lo que sus
+   índices, IDs, comentarios, likes, compartir y ciclo no se alteran. */
+#fpPK{position:relative;inset:auto;z-index:2;display:flex;flex-direction:column;gap:9px;width:100%;margin:10px 0 0;padding:12px 0 8px;background:var(--fp-pk-bg,rgba(255,255,255,.06));color:var(--fp-pk-fg,inherit);border:1px solid rgba(128,128,128,.25);border-radius:14px;box-shadow:none;font-family:system-ui,sans-serif;touch-action:pan-y;animation:fpPKin .18s ease-out;max-height:none;box-sizing:border-box;overflow:hidden;flex:0 0 auto}
+body.dark-mode #fpPK{--fp-pk-bg:rgba(255,255,255,.045);--fp-pk-fg:#f1f3f4;border-color:rgba(255,255,255,.12)}
+@keyframes fpPKin{from{opacity:.65}to{opacity:1}}
 #fpPK.fp-pk-drag{animation:none;transition:none}
-#fpPK.fp-pk-fly{animation:none;transition:transform .22s ease,opacity .22s ease}
+#fpPK.fp-pk-fly{animation:none;transition:opacity .18s ease}
 #fpPK .fp-pk-head{display:flex;align-items:center;gap:10px;padding:0 14px}
 #fpPK .fp-pk-head>div{flex:1;min-width:0}
 #fpPK .fp-pk-head b{display:block;font-size:17px;font-weight:800;letter-spacing:-.2px}
@@ -29452,7 +29453,7 @@ body.dark-mode #fpPK{--fp-pk-bg:#202124;--fp-pk-fg:#f1f3f4;border-color:rgba(255
 #fpPK .fp-pk-foot{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;padding:0 12px}
 #fpPK .fp-pk-all{border:0;border-radius:9px;background:#1877f2;color:#fff;font:750 12px system-ui,sans-serif;padding:9px 14px;cursor:pointer}
 #fpPK .fp-pk-hint{font-size:11px;opacity:.62}
-@media(min-width:700px){#fpPK{left:auto;right:16px;bottom:16px;width:min(520px,calc(100vw - 32px));border-radius:18px}#fpPK .fp-pk-card{flex-basis:150px;width:150px}}
+@media(min-width:700px){#fpPK .fp-pk-card{flex-basis:150px;width:150px}}
 @media(prefers-reduced-motion:reduce){#fpPK{animation:none}#fpPK *{scroll-behavior:auto!important;transition:none!important}}
 </style>
 <script>
@@ -29581,7 +29582,6 @@ function hayModal(){
 }
 async function mostrarPK(){
   if(PK.cargando||$('#fpPK')||hayModal()||!miCorreo()||!sb())return;
-  var storyStrip=$('#fpHStrip');if(storyStrip&&getComputedStyle(storyStrip).display!=='none')storyStrip.style.display='none';
   PK.cargando=true;
   try{
     var lista=await candidatos();if(!lista.length||$('#fpPK')||hayModal())return;
@@ -29603,22 +29603,24 @@ async function mostrarPK(){
     var foot=el('div',null,null,'fp-pk-foot');
     var all=el('button',null,'Ver todas las sugerencias','fp-pk-all');all.type='button';
     all.onclick=function(){cerrarPK();var bell=document.getElementById('fpBell');if(bell){bell.click();setTimeout(function(){var t=$('#fpNot [data-t="sug"]');if(t)t.click()},80)}};
-    foot.append(all,el('div',null,'⌃ Desliza hacia arriba para seguir viendo','fp-pk-hint'));box.appendChild(foot);
+    foot.append(all);box.appendChild(foot);
     /* arrastrar con ratón en escritorio; en el móvil se usa el desplazamiento táctil nativo */
     row.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'||e.button!==0)return;var x0=e.clientX,s0=row.scrollLeft,drag=false;
       function mv(ev){var dx=ev.clientX-x0;if(Math.abs(dx)>4)drag=true;if(drag)row.scrollLeft=s0-dx}
       function up(){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);if(drag){row.dataset.dragged='1';setTimeout(function(){delete row.dataset.dragged},120)}}
       document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up)});
     row.addEventListener('click',function(e){if(row.dataset.dragged==='1'){e.preventDefault();e.stopPropagation()}},true);
-    /* El bloque es independiente del gesto vertical de Swiper; se cierra con X.
-       El desplazamiento horizontal queda reservado exclusivamente al carrusel interno. */
+    /* Se integra dentro del pie de la publicación visible; nunca se superpone
+       sobre anuncios ni se añade al wrapper del Swiper como una diapositiva falsa. */
     function salir(){
       if(!box.isConnected)return;
-      box.classList.add('fp-pk-fly');box.style.transform='translateY(18px)';box.style.opacity='.0';
-      setTimeout(cerrarPK,220);
+      box.classList.add('fp-pk-fly');box.style.opacity='0';
+      setTimeout(cerrarPK,180);
     }
-    document.body.appendChild(box);
-    try{Array.prototype.forEach.call(document.querySelectorAll('.swiper video'),function(v){v.pause()})}catch(_){}
+    var activeSlide=document.querySelector('.swiper-slide-active[data-id]');
+    var footer=activeSlide&&activeSlide.querySelector('.feed-post-footer');
+    if(!footer){PK.n=13;return;}
+    footer.appendChild(box);
   }catch(e){console.warn('Personas que quizás conozcas:',e)}
   finally{PK.cargando=false}
 }
