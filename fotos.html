@@ -3859,7 +3859,7 @@ Volver al inicio
   display:none;
   justify-content:center;
   align-items:center;
-  z-index:999999;
+  z-index:2147483400;
 ">
   <img id="fotoGrandeVista" src="" style="
     max-width:90%;
@@ -30364,13 +30364,31 @@ function abrirPro(d){
     try{iniciarChatCon({nombre:u.nombre||u.correo,correo:u.correo,foto:u.foto||''})}catch(e){toast('No se pudo abrir el chat')}
   }
 
+  function verHistoriaPerfil(){
+    (async function(){
+      var ok=false;try{if(window.fpHistoriasDe)ok=await window.fpHistoriasDe(U.correo,true)}catch(e){}
+      if(!ok)toast('La historia ya no está disponible');
+    })();
+  }
+  /* Como Facebook: si tiene historia y foto, se pregunta qué ver */
+  function menuAvatar(){
+    if(!vivo()||$('.fpp-sm',root))return;
+    var sm=el('div','fpp-sm'),box=el('div','box');sm.appendChild(box);
+    sm.addEventListener('click',function(e){if(e.target===sm)sm.remove()});
+    function item(icono,txt,fn){
+      var b=el('button','fpp-mi');b.type='button';b.append(ic(icono),document.createTextNode(txt));
+      b.onclick=function(){sm.remove();fn()};box.appendChild(b);
+    }
+    item('fas fa-play-circle','Ver historia',verHistoriaPerfil);
+    item('fas fa-user-circle','Ver foto de perfil',function(){lbFoto(U.foto,U.nombre)});
+    item('fas fa-times','Cancelar',function(){});
+    root.appendChild(sm);
+  }
   function avatarTap(){
+    var hayFoto=urlOk(U.foto);
     if(st.hist){
-      (async function(){
-        var ok=false;try{if(window.fpHistoriasDe)ok=await window.fpHistoriasDe(U.correo,true)}catch(e){}
-        if(!ok)toast('La historia ya no está disponible');
-      })();
-    }else if(urlOk(U.foto)){lbFoto(U.foto,U.nombre)}
+      if(hayFoto)menuAvatar();else verHistoriaPerfil();
+    }else if(hayFoto){lbFoto(U.foto,U.nombre)}
   }
 
   function menuMas(){
@@ -33304,6 +33322,7 @@ function envolverPerfil(){
 var REG=[
   {k:'confirm',el:function(){var e=$('.fp-confirm-overlay');return vis(e)?e:null},
     close:function(e){var bs=Array.prototype.slice.call(e.querySelectorAll('button')),b=bs.filter(function(x){return /cancel|no\b|volver|cerrar/i.test(x.textContent||'')})[0];if(b)b.click();else e.click()}},
+  {k:'fotogrande',el:function(){var e=$('#modalFotoGrande');return e&&e.style.display==='flex'&&vis(e)?e:null},close:function(e){e.style.display='none'}},
   {k:'covview',el:function(){return $('#fpCovView')},close:function(e){e.click()}},
   {k:'covadj',el:function(){return $('#fpCov')},close:function(){if(typeof window.__fpCovEsc==='function')window.__fpCovEsc()}},
   {k:'sincshare',el:function(){return $('#fpSincShare')},close:function(e){clic('.fps-x',e)}},
