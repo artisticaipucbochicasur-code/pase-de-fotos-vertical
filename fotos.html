@@ -20818,7 +20818,7 @@ async function resolveFotoPerfil(correo, nombre = "") {
             fallbackName(nombre);
 
 
-            fotoCache[correoNorm] = avatar;
+            if(!error) fotoCache[correoNorm] = avatar; // si fue error de red, no se guarda: se reintenta
 
 
             return avatar;
@@ -23447,6 +23447,7 @@ let yaTieneImagen = false;
     };
 
    userBtn.appendChild(img);
+   try{ if(window.fpPintarMenuFoto) window.fpPintarMenuFoto(img.src); }catch(e){}
 
   } else {
     const candidates = buildDriveCandidates(foto);
@@ -23500,6 +23501,7 @@ url += "?v=" + window.__FP_V;
         });
 
         userBtn.appendChild(img);
+        try{ if(window.fpPintarMenuFoto) window.fpPintarMenuFoto(img.src); }catch(e){}
       };
 
       testImg.onload = () => {
@@ -33180,6 +33182,7 @@ function abrirEditor(){
         }catch(e){}
         try{if(typeof usuarioActual==='object'&&usuarioActual)Object.assign(usuarioActual,nuevo)}catch(e){}
         try{if(typeof perfilCache==='object'&&perfilCache)Object.keys(perfilCache).forEach(function(k){delete perfilCache[k]})}catch(e){}
+        try{if(nuevaFoto&&window.fpSincFotoUsuario)window.fpSincFotoUsuario(correoDb,nuevaFoto,datos.nombre)}catch(e){}
         try{if(typeof mostrarUsuario==='function')mostrarUsuario(nuevo)}catch(e){}
         DST=0;
         var teniaPerfil=hayPerfil();
@@ -33885,5 +33888,234 @@ window.addEventListener('click',function(e){var t=e.target,foto=t&&t.closest&&t.
   window.addEventListener('focus',function(){sincronizar(false)});
 })();
 </script>
+<script id="fp-foto-sync-js">
+/* ============================================================
+   SINCRONIZACIÓN INMEDIATA DE FOTO DE PERFIL
+   - Al guardar el perfil: actualiza menú, botón de usuario, feed, comentarios,
+     red, perfil abierto, etc. al instante (sin refrescar).
+   - Realtime: escucha cambios en la tabla usuarios + canal broadcast de respaldo,
+     así cuando OTRA persona cambia su foto, tú la ves al momento.
+   ============================================================ */
+(function(){
+  'use strict';
+  var APLICADA={};            /* correo normalizado -> última url aplicada */
+  var chBc=null,chListo=false,pendientes=[],iniciado=false,ultimaSync=0,sincronizando=false;
+
+  function nk(s){try{return normalizeText(String(s||''))}catch(e){return String(s||'').trim().toLowerCase()}}
+  function sb(){try{return supabaseClient}catch(e){return null}}
+  function okUrl(u){return typeof u==='string'&&/^(https?:|data:|blob:)/i.test(u)}
+  function baseDe(u){return String(u||'').split('?')[0]}
+  function cssUrl(u){return 'url("'+String(u).replace(/["\\()\s]/g,function(c){return '%'+c.charCodeAt(0).toString(16).toUpperCase()})+'")'}
+  function miCorreo(){
+    try{var u=JSON.parse(localStorage.getItem('usuario')||'{}');if(u&&u.correo)return nk(u.correo)}catch(e){}
+    try{if(typeof usuarioActual==='object'&&usuarioActual&&usuarioActual.correo)return nk(usuarioActual.correo)}catch(e){}
+    return '';
+  }
+
+  /* ---- menú lateral: foto grande (la usa también mostrarUsuario) ---- */
+  window.fpPintarMenuFoto=function(src){
+    try{
+      var mp=document.getElementById('userMenuPhoto');if(!mp||!src)return;
+      var cur=mp.querySelector('img');
+      if(cur){if(cur.getAttribute('src')!==src)cur.src=src;return}
+      mp.textContent='';
+      var im=document.createElement('img');im.alt='';
+      im.style.cssText='width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #1877f2';
+      im.src=src;mp.appendChild(im);
+    }catch(e){}
+  };
+  function pintarBotonUsuario(url){
+    try{
+      var b=document.getElementById('userBtn');if(!b)return;
+      var im=b.querySelector('img');
+      if(im){im.src=url;return}
+      b.textContent='';
+      im=document.createElement('img');im.alt='avatar';
+      im.style.cssText='width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #1877f2;box-shadow:0 1px 3px rgba(0,0,0,0.2)';
+      im.src=url;b.appendChild(im);
+    }catch(e){}
+  }
+
+  /* ---- cambia la url en cualquier <img> o fondo que muestre la foto vieja ---- */
+  function cambiarUrls(bases,url){
+    document.querySelectorAll('img').forEach(function(im){
+      var s=im.getAttribute('src')||'';if(!s||s===url)return;
+      if(bases.indexOf(baseDe(s))>-1)im.src=url;
+    });
+    document.querySelectorAll('[style*="background"]').forEach(function(el){
+      var bg=el.style.backgroundImage||'';if(!bg||bg.indexOf('url(')<0)return;
+      for(var i=0;i<bases.length;i++){
+        if(bases[i]&&bg.indexOf(bases[i])>-1&&bg.indexOf(url)<0){el.style.backgroundImage=cssUrl(url);break}
+      }
+    });
+  }
+
+  /* ---- sitios donde la persona tenía iniciales (no había <img> que cambiar) ---- */
+  function repintarIniciales(k,url){
+    try{
+      var porId={};
+      (anunciosData||[]).forEach(function(a){if(a&&nk(a.correo)===k)porId[String(a.id)]=a});
+      document.querySelectorAll('.swiper-slide[data-id]').forEach(function(sl){
+        var a=porId[String(sl.dataset.id)];if(!a)return;
+        var av=sl.querySelector('.feed-post-avatar');if(!av)return;
+        var im=av.querySelector('img');
+        if(im&&im.getAttribute('src')===url)return;
+        if(typeof pintarAvatarAutor==='function')pintarAvatarAutor(av,url,String(a.autor||''));
+      });
+      (anunciosData||[]).forEach(function(a){if(a&&nk(a.correo)===k&&'fotoPerfil' in a)a.fotoPerfil=url});
+    }catch(e){}
+    try{
+      var c=document.getElementById('autorContainer');
+      if(c&&nk(c.dataset.correo)===k){
+        var w=c.querySelector('.fb-post-avatar-wrap');
+        if(w&&!w.querySelector('img[src="'+url.replace(/"/g,'\\"')+'"]')){
+          var nom=(c.querySelector('.fb-post-author-name')||{}).textContent||'';
+          var im2=document.createElement('img');im2.alt=nom;im2.src=url;
+          im2.onerror=function(){w.textContent=(typeof fallbackName==='function'?fallbackName(nom):'?')};
+          w.textContent='';w.appendChild(im2);
+        }
+      }
+    }catch(e){}
+    try{
+      document.querySelectorAll('.fp-avatar-wrap[data-correo]').forEach(function(w){
+        if(nk(w.dataset.correo)!==k)return;
+        var av=w.querySelector('.fp-red-av');if(!av)return;
+        if(av.tagName==='IMG'){if(av.getAttribute('src')!==url)av.src=url;return}
+        var im3=document.createElement('img');im3.className='fp-red-av';im3.alt='';im3.src=url;av.replaceWith(im3);
+      });
+    }catch(e){}
+    try{ /* comentarios abiertos: si alguno mostraba iniciales, se vuelve a pintar con la caché nueva */
+      var cm=document.getElementById('commentsModal');
+      if(cm&&cm.classList.contains('open')&&cm.querySelector('.fb-comment-avatar-fallback')&&typeof renderizarComentariosModal==='function'){
+        var act=(anunciosData||[])[swiperInstance&&swiperInstance.realIndex];if(act)renderizarComentariosModal(act);
+      }
+    }catch(e){}
+  }
+
+  /* ---- núcleo: aplica una foto nueva en TODA la app ---- */
+  function aplicarFoto(correo,url,nombre){
+    var k=nk(correo);if(!k||!okUrl(url))return false;
+    if(APLICADA[k]===url)return false;
+    var previas=[];
+    try{previas.push(fotoCache[k])}catch(e){}
+    previas.push(APLICADA[k]);
+    var esMio=(k===miCorreo());
+    if(esMio){try{previas.push(localStorage.getItem('fotoPerfil'))}catch(e){}try{previas.push(usuarioActual&&usuarioActual.fotoPerfil)}catch(e){}}
+    var bases=[baseDe(url)];
+    previas.forEach(function(p){if(okUrl(p)){var b=baseDe(p);if(bases.indexOf(b)<0)bases.push(b)}});
+    APLICADA[k]=url;
+
+    /* cachés internas: así lo que se pinte de ahora en adelante ya usa la foto nueva */
+    try{fotoCache[k]=url}catch(e){}
+    try{if(typeof perfilCache==='object'&&perfilCache&&perfilCache[k])perfilCache[k].fotoPerfil=url}catch(e){}
+
+    if(esMio){
+      try{
+        var u=JSON.parse(localStorage.getItem('usuario')||'{}');u.fotoPerfil=url;u.foto_perfil=url;
+        localStorage.setItem('usuario',JSON.stringify(u));localStorage.setItem('fotoPerfil',url);
+      }catch(e){}
+      try{if(typeof usuarioActual==='object'&&usuarioActual){usuarioActual.fotoPerfil=url;usuarioActual.foto_perfil=url}}catch(e){}
+      pintarBotonUsuario(url);
+      window.fpPintarMenuFoto(url);
+      try{var fm=document.getElementById('fotoPerfilModal');if(fm)fm.src=url}catch(e){}
+    }
+    cambiarUrls(bases,url);
+    repintarIniciales(k,url);
+    return true;
+  }
+
+  /* ---- avisar a los demás ---- */
+  function emitir(correo,url,nombre){
+    var m={type:'broadcast',event:'foto',payload:{correo:correo,nombre:nombre||''}};
+    if(chBc&&chListo){try{chBc.send(m)}catch(e){}}else pendientes.push(m);
+  }
+
+  /* Llamado al guardar el perfil */
+  window.fpSincFotoUsuario=function(correo,url,nombre){
+    try{aplicarFoto(correo,url,nombre)}catch(e){console.warn('[foto-sync]',e)}
+    emitir(correo,url,nombre);
+  };
+
+  /* ---- si alguien avisa por broadcast, se confirma contra la base de datos (no se confía en el mensaje) ---- */
+  async function traerYAplicar(correo){
+    var c=sb();if(!c||!correo)return;
+    try{
+      var cl=String(correo).trim();
+      var r=await c.from('usuarios').select('correo,nombre,foto_perfil').in('correo',[cl,cl.toLowerCase()]).limit(1);
+      var row=r&&r.data&&r.data[0];
+      if(row&&okUrl(row.foto_perfil))aplicarFoto(row.correo,row.foto_perfil,row.nombre);
+    }catch(e){}
+  }
+
+  function iniciarCanales(){
+    var c=sb();if(!c||!c.channel||iniciado)return false;
+    iniciado=true;
+    try{ /* cambios directos en la tabla usuarios */
+      c.channel('fp-usuarios-foto-live')
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'usuarios'},function(p){
+          var r=p&&p.new;if(r&&r.correo&&okUrl(r.foto_perfil))aplicarFoto(r.correo,r.foto_perfil,r.nombre);
+        })
+        .subscribe();
+    }catch(e){console.warn('[foto-sync] realtime usuarios',e)}
+    try{ /* respaldo: funciona aunque la tabla usuarios no tenga Realtime activado */
+      chBc=c.channel('fp-perfil-aviso',{config:{broadcast:{self:false}}})
+        .on('broadcast',{event:'foto'},function(m){var d=m&&m.payload;if(d&&d.correo)traerYAplicar(d.correo)})
+        .subscribe(function(st){
+          chListo=(st==='SUBSCRIBED');
+          if(chListo){while(pendientes.length){try{chBc.send(pendientes.shift())}catch(e){}}}
+        });
+    }catch(e){console.warn('[foto-sync] broadcast',e)}
+    return true;
+  }
+
+  /* ---- red de seguridad: al volver a la app, revisa las fotos de quienes se ven en el feed ---- */
+  async function sincronizarVisibles(){
+    var c=sb();if(!c||sincronizando||Date.now()-ultimaSync<30000)return;
+    sincronizando=true;
+    try{
+      var set={};
+      (anunciosData||[]).forEach(function(a){if(a&&a.correo)set[String(a.correo).trim()]=1});
+      try{(comentariosFilasCache||[]).forEach(function(x){if(x&&x.correo)set[String(x.correo).trim()]=1})}catch(e){}
+      var vars={};Object.keys(set).forEach(function(x){vars[x]=1;vars[x.toLowerCase()]=1});
+      var lista=Object.keys(vars);
+      for(var i=0;i<lista.length;i+=100){
+        var r=await c.from('usuarios').select('correo,nombre,foto_perfil').in('correo',lista.slice(i,i+100));
+        if(r.error)continue;
+        (r.data||[]).forEach(function(u){
+          var k=nk(u.correo),f=u.foto_perfil,actual='';
+          try{actual=fotoCache[k]}catch(e){}
+          if(okUrl(f)&&actual&&actual!==f)aplicarFoto(u.correo,f,u.nombre);
+        });
+      }
+      ultimaSync=Date.now();
+    }catch(e){}
+    sincronizando=false;
+  }
+
+  /* ---- cualquier otra ruta que llame a mostrarUsuario con foto nueva también sincroniza todo ---- */
+  function envolverMostrarUsuario(){
+    var f=window.mostrarUsuario;
+    if(typeof f!=='function')return false;
+    if(f.__fpFoto)return true;
+    var g=function(u){
+      var r=f.apply(this,arguments);
+      try{
+        var url=u&&(u.fotoPerfil||u.foto_perfil);var c=u&&(u.correo||u.email);
+        if(c&&okUrl(url))aplicarFoto(c,url,u.nombre);
+      }catch(e){}
+      return r;
+    };
+    try{Object.keys(f).forEach(function(k){g[k]=f[k]})}catch(e){}
+    g.__fpFoto=1;window.mostrarUsuario=g;return true;
+  }
+
+  var t1=0,iv1=setInterval(function(){if(iniciarCanales()||++t1>90)clearInterval(iv1)},1000);
+  var t2=0,iv2=setInterval(function(){if(envolverMostrarUsuario()||++t2>60)clearInterval(iv2)},500);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)sincronizarVisibles()});
+  window.addEventListener('focus',sincronizarVisibles);
+  window.addEventListener('online',sincronizarVisibles);
+})();
+</script>
+
 </body>
 </html>
