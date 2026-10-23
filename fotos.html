@@ -4907,6 +4907,8 @@ body.dark-mode .chat-list-typing{
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>try{var _p=new URLSearchParams(location.search).get("post");if(_p)localStorage.setItem("decom_anuncios_last_viewed_v4",_p)}catch(e){}</script>
   <script>
+    /* Versión de caché de fotos: cambia cada hora (no en cada render), así las fotos se reutilizan y igual se renuevan */
+    window.__FP_V = window.__FP_V || Math.floor(Date.now()/3600000);
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyY6m3H8WD494cnoQbNXwspsZtD1sGu97yio9mk9DTozGSuyo6gHXB1W6HArcpYfP2/exec";
     let anunciosData = [];
     let indiceBusqueda = []; // [{ i, key, titulo }]
@@ -5178,7 +5180,7 @@ function obtenerAvatarUsuario(nombre, foto, tamaño = 100){
 
         return `
         <img 
-        src="${foto}?v=${Date.now()}"
+        src="${foto.indexOf('?')>-1?foto:foto+'?v='+window.__FP_V}"
         style="
         width:${tamaño}px;
         height:${tamaño}px;
@@ -23471,7 +23473,7 @@ url.includes("supabase.co/storage")
 && !url.includes("?v=")
 ){
 
-url += "?v=" + Date.now();
+url += "?v=" + window.__FP_V;
 
 }
       if (!url) return tryNext();
