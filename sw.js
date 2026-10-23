@@ -2,8 +2,15 @@
 // 🚀 SERVICE WORKER DE DECOM
 // =====================================
 
-
 const CACHE_IMAGENES = "anuncios-imagenes-v1";
+
+// Máximo de imágenes guardadas (al pasarse se borran las más antiguas).
+// 600 imágenes ≈ 100–150 MB con las fotos comprimidas que sube la app.
+const MAX_IMAGENES = 600;
+
+// Dentro de la APK (WebView) la caché de imágenes la maneja la propia app Android,
+// así no se guarda dos veces la misma imagen.
+const ES_WEBVIEW_APK = /;\s*wv\)/.test((self.navigator && self.navigator.userAgent) || "");
 
 
 // =====================================
@@ -69,6 +76,118 @@ self.addEventListener("activate", (event) => {
 // 🖼️ CACHE INTELIGENTE DE IMÁGENES
 // =====================================
 
+// Borra las imágenes más antiguas cuando se supera el máximo.
+async function recortarCache(cache){
+
+    try{
+
+        const keys = await cache.keys();
+
+        if(keys.length <= MAX_IMAGENES){
+
+            return;
+
+        }
+
+        const sobran = keys.length - Math.floor(MAX_IMAGENES * 0.85);
+
+        for(let i = 0; i < sobran; i++){
+
+            await cache.delete(keys[i]);
+
+        }
+
+    }catch(e){}
+
+}
+
+
+// Descarga la imagen (con CORS, para poder guardarla) y la guarda en la caché.
+async function descargarYGuardar(cache, url, requestOriginal){
+
+    try{
+
+        const response = await fetch(url, {
+
+            mode: "cors",
+
+            credentials: "omit"
+
+        });
+
+
+        if(response && response.status === 200){
+
+            cache.put(url, response.clone())
+
+                .then(() => recortarCache(cache))
+
+                .catch(() => {});
+
+        }
+
+
+        return response;
+
+    }catch(e){
+
+        // Si falla la descarga con CORS, se intenta la petición original sin guardarla.
+
+        try{
+
+            return await fetch(requestOriginal);
+
+        }catch(e2){
+
+            return Response.error();
+
+        }
+
+    }
+
+}
+
+
+async function responderImagen(event){
+
+    const request = event.request;
+
+    const url = request.url;
+
+    const cache = await caches.open(CACHE_IMAGENES);
+
+    const cached = await cache.match(url);
+
+
+    if(cached){
+
+        // Fotos de perfil sin ?v= pueden cambiar con el mismo nombre:
+        // se muestra la guardada y se actualiza en segundo plano.
+
+        const perfilSinVersion =
+
+            url.includes("/object/public/perfiles/") &&
+
+            !/[?&]v=/.test(url);
+
+
+        if(perfilSinVersion){
+
+            event.waitUntil(descargarYGuardar(cache, url, request).catch(() => {}));
+
+        }
+
+
+        return cached;
+
+    }
+
+
+    return descargarYGuardar(cache, url, request);
+
+}
+
+
 self.addEventListener("fetch", (event)=>{
 
 
@@ -77,6 +196,21 @@ self.addEventListener("fetch", (event)=>{
 
     const url = request.url;
 
+
+    if(request.method !== "GET"){
+
+        return;
+
+    }
+
+
+    // En la APK la caché de imágenes la hace la app Android.
+
+    if(ES_WEBVIEW_APK){
+
+        return;
+
+    }
 
 
     // Solo imágenes provenientes de Supabase Storage
@@ -89,64 +223,7 @@ self.addEventListener("fetch", (event)=>{
 
     ){
 
-
-        event.respondWith(
-
-            caches.open(CACHE_IMAGENES)
-
-            .then(async(cache)=>{
-
-
-                // Buscar primero en caché
-
-                const cached = await cache.match(request);
-
-
-
-                if(cached){
-
-                    return cached;
-
-                }
-
-
-
-                // Si no existe, pedir a internet
-
-                const response = await fetch(request);
-
-
-
-                // Guardar copia
-
-                if(
-
-                    response &&
-
-                    response.status === 200
-
-                ){
-
-                    cache.put(
-
-                        request,
-
-                        response.clone()
-
-                    );
-
-                }
-
-
-
-                return response;
-
-
-
-            })
-
-        );
-
+        event.respondWith(responderImagen(event));
 
     }
 
