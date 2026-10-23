@@ -28992,6 +28992,15 @@ function abrirVisor(k){
 }
 /* PERFIL PRO: permite al perfil saber si hay historia y abrirla */
 window.fpHistoriasDe=async function(c,abrir){c=String(c||'').toLowerCase();if(abrir){if(!(H[c]&&H[c].length)){try{await cargar()}catch(e){}}if(H[c]&&H[c].length){abrirVisor(c);return true}return false}return (H[c]&&H[c].length)?{n:H[c].length,nuevo:sinVer(c)}:null};
+/* FEED: datos de solo lectura para el panel "Historias que te pueden gustar" dentro del carrusel */
+window.fpHistoriasFeed=function(){
+  try{return ORDEN.filter(function(k){return (H[k]||[]).length}).slice(0,16).map(function(k){
+    var a=H[k]||[],it=a.filter(function(x){return !VIS[x.id]})[0]||a[a.length-1]||{};
+    return {k:k,nombre:nom(k),foto:(INFO[k]||{}).f||'',nuevo:sinVer(k),n:a.length,tipo:it.tipo,media:it.media_url||'',texto:it.texto||'',fondo:it.fondo||''};
+  })}catch(e){return []}
+};
+window.fpHistoriasAbrir=function(k){try{abrirVisor(k)}catch(e){}};
+window.fpHistoriasRecargar=function(){try{return cargar()}catch(e){return Promise.resolve(false)}};
 function cerrarVisor(){
   corre=false;cancelAnimationFrame(raf);if(V){V.style.display='none';V.textContent=''}
   ordenar();punto();if(L&&L.style.display==='flex')pintarLista();
@@ -29648,6 +29657,7 @@ function enganchar(){
 }
 setInterval(enganchar,2000);
 window.fpMostrarSugerenciasAmigos=mostrarPK;
+window.fpPKApi={candidatos:candidatos,ocultar:ocultar,abrirPerfil:abrirPerfil};
 })();
 </script>
 
