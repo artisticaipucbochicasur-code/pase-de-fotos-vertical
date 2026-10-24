@@ -19531,26 +19531,52 @@ async function obtenerSrcImagenCacheada(url){
     return promesa;
 }
 
+async function calentarCacheImagen(url){
+    if(!url || !("caches" in window)) return;
+    try{
+        const cache = await caches.open(ANUNCIOS_IMAGE_CACHE);
+        if(await cache.match(url)) return;
+        const respuesta = await fetch(url, {cache:"force-cache", credentials:"omit"});
+        if(respuesta.ok) await cache.put(url, respuesta.clone());
+    }catch(error){
+        // La carga visible no depende de que la caché pueda calentarse.
+    }
+}
+
 async function cargarImagenElemento(img){
-    if(!img || img.dataset.cargando === "1") return;
+    if(!img) return;
 
     const url = img.dataset.src || "";
     if(!url) return;
 
-    if(img.src && img.dataset.urlCargada === url) return;
+    // No volver a cambiar el src cuando la imagen ya fue solicitada:
+    // sustituirlo después de una espera de Cache Storage puede provocar
+    // un segundo decodificado justo mientras el usuario está deslizando.
+    if(img.dataset.urlCargada === url || img.dataset.cargando === "1") return;
 
     img.dataset.cargando = "1";
+    img.decoding = "async";
+    img.loading = "lazy";
 
+    // Mostrar/cargar primero desde su URL original para que la red del
+    // navegador pinte la foto sin esperar a Cache Storage.
+    img.src = url;
+    img.dataset.urlCargada = url;
+
+    // Calentar la caché aparte, sin reemplazar el src visible por un blob.
+    // La promesa no bloquea el gesto ni el cambio de publicación.
     try{
-        const src = await obtenerSrcImagenCacheada(url);
-
-        if((img.dataset.src || "") !== url) return;
-
-        img.src = src || url;
-        img.dataset.urlCargada = url;
+        if(typeof requestIdleCallback === "function"){
+            requestIdleCallback(function(){
+                calentarCacheImagen(url).catch(function(){});
+            }, {timeout: 1200});
+        }else{
+            setTimeout(function(){
+                calentarCacheImagen(url).catch(function(){});
+            }, 250);
+        }
     }catch(error){
-        img.src = url;
-        img.dataset.urlCargada = url;
+        console.debug("Precarga de imagen pospuesta:", error);
     }finally{
         img.dataset.cargando = "0";
     }
@@ -19585,6 +19611,7 @@ function cargarImagenesCercanas(indice, radio = ANUNCIOS_VIDEO_PRELOAD_RADIO){
             const img = slide.querySelector("img[data-src]");
 
             if(img){
+                img.decoding = "async";
                 cargarImagenElemento(img);
             }
 
@@ -29196,7 +29223,9 @@ function compartirAHistoria(){
 var stripT=0,stripN=0,stripNext=3+Math.floor(Math.random()*4);
 function stripMostrar(){
   if((V&&V.style.display==='block')||(L&&L.style.display==='flex'))return;
-  var ks=ORDEN.filter(sinVer);if(!ks.length)return;
+  // Prioriza historias sin ver; si ya se vieron todas, muestra igualmente
+  // la fila de historias disponibles en lugar de dejar la recomendación vacía.
+  var ks=ORDEN.filter(sinVer);if(!ks.length)ks=ORDEN.slice();if(!ks.length)return;
   var S=$('#fpHStrip');if(!S){S=el('div');S.id='fpHStrip';document.body.appendChild(S)}
   S.textContent='';var h=$('#socialHeader');S.style.top=((h?h.getBoundingClientRect().bottom:50)+6)+'px';
   ks.slice(0,12).forEach(function(k){var b=el('div',null,null,'fpit');b.appendChild(avatar(k,54,'nv'));b.appendChild(el('span',null,nom(k)));b.onclick=function(){S.style.display='none';abrirVisor(k)};S.appendChild(b)});
@@ -29206,7 +29235,24 @@ function stripMostrar(){
 function engancharFeed(){
   var sw;try{sw=swiperInstance}catch(e){}
   if(!sw||!sw.on||sw.__fp13)return;sw.__fp13=1;
-  sw.on('slideChange',function(){stripN++;if(stripN>=stripNext&&(!window.__dcStripOk||window.__dcStripOk())){stripN=0;stripNext=4+Math.floor(Math.random()*5);stripMostrar()}});
+  sw.on('slideChange',function(){
+    stripN++;
+    if(stripN>=stripNext&&(!window.__dcStripOk||window.__dcStripOk())){
+      stripN=0;stripNext=4+Math.floor(Math.random()*5);
+      // La franja de historias se pinta cuando termina el movimiento,
+      // evitando competir con el gesto o la carga de la publicación.
+      var mostrarLuego=function(){
+        var instancia;try{instancia=swiperInstance}catch(e){}
+        if((instancia&&instancia.animating)||
+           (instancia&&instancia.touchEventsData&&instancia.touchEventsData.isTouched)){
+          setTimeout(mostrarLuego,450);return;
+        }
+        if(!document.hidden)stripMostrar();
+      };
+      if(typeof requestIdleCallback==='function')requestIdleCallback(mostrarLuego,{timeout:1400});
+      else setTimeout(mostrarLuego,650);
+    }
+  });
 }
 setInterval(function(){ganchos();engancharFeed()},2000);
 
@@ -29628,9 +29674,23 @@ function enganchar(){
   var sw;try{sw=swiperInstance}catch(e){}
   if(!sw||!sw.on||sw.__fpPK)return;sw.__fpPK=1;
   sw.on('slideChange',function(){
-    /* El índice sigue representando exclusivamente anuncios reales. */
+    /* El índice sigue representando exclusivamente anuncios reales.
+       La consulta de sugerencias se difiere fuera del gesto/transición. */
     PK.n++;if($('#fpPK'))return;
-    if(PK.n>=14){PK.n=0;mostrarPK().catch(function(e){console.warn('Sugerencias del feed:',e)})}
+    if(PK.n>=14){
+      PK.n=0;
+      var programar=function(){
+        var instancia;try{instancia=swiperInstance}catch(e){}
+        if($('#fpPK')||hayModal()||!miCorreo()||!sb())return;
+        // No insertar contenido durante un gesto o una transición del feed.
+        if(instancia && (instancia.animating || (instancia.touchEventsData && instancia.touchEventsData.isTouched))){
+          setTimeout(programar,700);return;
+        }
+        mostrarPK().catch(function(e){console.warn('Sugerencias del feed:',e)});
+      };
+      if(typeof requestIdleCallback==='function')requestIdleCallback(programar,{timeout:1800});
+      else setTimeout(programar,900);
+    }
   });
 }
 setInterval(enganchar,2000);
