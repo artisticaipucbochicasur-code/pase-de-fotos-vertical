@@ -21016,7 +21016,7 @@ function initSwiper(initialIndex = 0) {
 
     // Paginado fluido tipo TikTok / Reels: la publicación sigue al dedo y al soltar
     // se acomoda suavemente en la siguiente o en la actual (nunca queda a medias).
-    freeMode: { enabled: true, momentum: true, momentumRatio: 0.85, momentumVelocityRatio: 1, momentumBounce: false, sticky: false },
+    freeMode: { enabled: true, momentum: true, momentumRatio: 1.05, momentumVelocityRatio: 1.2, minimumVelocity: 0.02, momentumBounce: false, sticky: false },
     speed: 380,
     threshold: 6,
     touchAngle: 60,
@@ -29586,7 +29586,7 @@ function crearBoton(u,inicial,cls,cb){
 window.fpAmistad={yoIdPublic:yoId,crearBoton:crearBoton,estadoPar:estadoPar,enviar:enviar,cancelar:cancelar,eliminar:eliminar,aceptar:aceptar};
 
 /* ---------- Carrusel "Personas que quizás conozcas" dentro del feed ---------- */
-var PK={n:0,next:5+Math.floor(Math.random()*3),last:0,cargando:false};
+var PK={n:0,next:5+Math.floor(Math.random()*3),last:0,cargando:false,cache:null,cacheAt:0,precalentando:false};
 function ocultosGet(){try{return JSON.parse(localStorage.getItem('fp_pk_ocultos')||'[]').map(String)}catch(e){return[]}}
 function ocultar(id){try{var l=ocultosGet();if(l.indexOf(String(id))<0)l.push(String(id));localStorage.setItem('fp_pk_ocultos',JSON.stringify(l.slice(-200)))}catch(e){}}
 function cerrarPK(){var e=$('#fpPK');if(e)e.remove();}
@@ -29619,6 +29619,23 @@ async function candidatos(){
      return {u:u,s:s,why:why,estado:est[String(u.id)]||'ninguna'}})
    .sort(function(a,b){return b.s-a.s}).slice(0,12);
 }
+// Consulta y prepara las sugerencias antes de necesitarlas. Así, el cambio de
+// publicación no espera consultas de Supabase ni la primera descarga de avatares.
+async function precalentarPK(){
+  if(PK.precalentando||!miCorreo()||!sb()||document.hidden)return;
+  if(PK.cache&&Date.now()-PK.cacheAt<120000)return;
+  PK.precalentando=true;
+  try{
+    var lista=await candidatos();
+    if(lista&&lista.length){
+      PK.cache=lista;PK.cacheAt=Date.now();
+      var urls=lista.map(function(it){return it.u&&it.u.foto_perfil}).filter(function(u){return u&&/^https?:\/\//i.test(u)});
+      var calentar=function(){urls.forEach(function(url){var im=new Image();im.decoding='async';im.loading='eager';im.src=url})};
+      if(typeof requestIdleCallback==='function')requestIdleCallback(calentar,{timeout:1800});else setTimeout(calentar,250);
+    }
+  }catch(e){console.debug('Precarga de sugerencias aplazada:',e)}
+  finally{PK.precalentando=false}
+}
 function foto(u){var d=el('div',null,null,'fp-pk-ph');var f=u.foto_perfil;if(f&&/^(https?:|data:|blob:)/.test(f))d.style.backgroundImage='url("'+String(f).replace(/"/g,'%22')+'")';else{d.textContent=(u.nombre||'?').trim().charAt(0).toUpperCase();d.classList.add('ini')}return d}
 function abrirPerfil(u){cerrarPK();try{abrirPerfilPorCorreo(u.correo)}catch(e){}}
 function hayModal(){
@@ -29630,7 +29647,7 @@ async function mostrarPK(){
   if(PK.cargando||$('#fpPK')||hayModal()||!miCorreo()||!sb())return;
   PK.cargando=true;
   try{
-    var lista=await candidatos();if(!lista.length||$('#fpPK')||hayModal())return;
+    var lista=(PK.cache&&Date.now()-PK.cacheAt<120000)?PK.cache:await candidatos();if(!lista.length||$('#fpPK')||hayModal())return;
     PK.last=Date.now();
     var box=el('div',null,null);box.id='fpPK';box.setAttribute('role','region');box.setAttribute('aria-label','Personas que quizás conozcas');
     var head=el('div',null,null,'fp-pk-head');
@@ -29667,6 +29684,9 @@ async function mostrarPK(){
     var footer=activeSlide&&activeSlide.querySelector('.feed-post-footer');
     if(!footer){PK.n=13;return;}
     footer.appendChild(box);
+    // Dejar preparada la siguiente tanda mientras el usuario continúa navegando.
+    if(typeof requestIdleCallback==='function')requestIdleCallback(function(){PK.cache=null;precalentarPK()}, {timeout:2500});
+    else setTimeout(function(){PK.cache=null;precalentarPK()},1200);
   }catch(e){console.warn('Personas que quizás conozcas:',e)}
   finally{PK.cargando=false}
 }
@@ -29694,6 +29714,9 @@ function enganchar(){
   });
 }
 setInterval(enganchar,2000);
+// Preparar datos y avatares sin bloquear el gesto ni la animación del feed.
+setTimeout(function(){if(typeof requestIdleCallback==='function')requestIdleCallback(precalentarPK,{timeout:2500});else precalentarPK()},1800);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){setTimeout(precalentarPK,350)}});
 window.fpMostrarSugerenciasAmigos=mostrarPK;
 })();
 </script>
