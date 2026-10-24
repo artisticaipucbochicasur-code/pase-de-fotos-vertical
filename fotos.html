@@ -19556,10 +19556,17 @@ async function cargarImagenElemento(img){
 
     img.dataset.cargando = "1";
     img.decoding = "async";
-    img.loading = "lazy";
 
-    // Mostrar/cargar primero desde su URL original para que la red del
-    // navegador pinte la foto sin esperar a Cache Storage.
+    // Las publicaciones cercanas forman parte del gesto inmediato: no usar
+    // lazy en ellas, porque el navegador puede empezar a descargarlas justo
+    // cuando el usuario ya está deslizando y mostrar primero una imagen parcial.
+    img.loading = "eager";
+    var slidePropia = img.closest ? img.closest('.swiper-slide') : null;
+    var esActiva = !!(slidePropia && slidePropia.classList.contains('swiper-slide-active'));
+    if ('fetchPriority' in img) img.fetchPriority = esActiva ? 'high' : 'auto';
+
+    // No sustituir la URL por blob ni cambiar el src después de cargar:
+    // así una descarga tardía no vuelve a decodificar la imagen visible.
     img.src = url;
     img.dataset.urlCargada = url;
 
@@ -19604,6 +19611,22 @@ function cargarImagenesCercanas(indice, radio = ANUNCIOS_VIDEO_PRELOAD_RADIO){
         }
     }
 
+    // Precargar también las URL únicas en memoria; no crea elementos dentro
+    // del carrusel ni cambia el orden/índice de Swiper.
+    const urlsPreparacion = new Set();
+    ids.forEach(id => {
+        const dato = anunciosData.find(a => String(a?.id ?? "") === id);
+        if (dato && dato.tipo_media !== "video" && dato.url) urlsPreparacion.add(dato.url);
+    });
+    urlsPreparacion.forEach(url => {
+        try {
+            const imgFondo = new Image();
+            imgFondo.decoding = "async";
+            if ('fetchPriority' in imgFondo) imgFondo.fetchPriority = "low";
+            imgFondo.src = url;
+        } catch (_) {}
+    });
+
     document
         .querySelectorAll(".swiper-slide[data-id]")
         .forEach(slide => {
@@ -19612,6 +19635,12 @@ function cargarImagenesCercanas(indice, radio = ANUNCIOS_VIDEO_PRELOAD_RADIO){
 
             if(img){
                 img.decoding = "async";
+                img.loading = "eager";
+                // Las copias de loop y las diapositivas cercanas también se
+                // preparan antes del siguiente gesto, sin tocar el índice.
+                if ('fetchPriority' in img) {
+                    img.fetchPriority = slide.classList.contains('swiper-slide-active') ? 'high' : 'auto';
+                }
                 cargarImagenElemento(img);
             }
 
